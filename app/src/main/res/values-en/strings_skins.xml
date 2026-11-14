@@ -3,4 +3,6 @@
 <resources>
     <string name="settings_skin_title">Appearance</string>
     <string name="settings_skin_desc">App color scheme. Applies instantly, no restart.</string>
+    <string name="settings_home_title">Home screen</string>
+    <string name="settings_home_desc">How the first tab looks: the standard home or a retro hi-fi stack with a cassette deck.</string>
 </resources>

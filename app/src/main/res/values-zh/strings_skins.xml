@@ -3,4 +3,6 @@
 <resources>
     <string name="settings_skin_title">外观</string>
     <string name="settings_skin_desc">应用配色方案。立即生效，无需重启。</string>
+    <string name="settings_home_title">主屏幕</string>
+    <string name="settings_home_desc">第一个标签页的样式：标准主页或带磁带卡座的复古音响组合。</string>
 </resources>

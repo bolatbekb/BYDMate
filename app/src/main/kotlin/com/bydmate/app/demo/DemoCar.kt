@@ -103,6 +103,10 @@ object DemoCar {
             frontTrunk = 0,
             batteryRemainKwh = soc / 100 * CAPACITY_KWH,
             seatbeltRL = 0, seatbeltRM = 0, seatbeltRR = 0,
+            // Hybrid readings, so the retro home screens can show the tank on an emulator.
+            fuelPercent = 64,
+            fuelRangeKm = 540,
+            evRangeKm = (soc / 100 * 125).roundToInt(),
         )
     }
 

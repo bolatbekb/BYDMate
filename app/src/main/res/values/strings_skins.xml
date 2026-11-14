@@ -3,4 +3,6 @@
 <resources>
     <string name="settings_skin_title">Оформление</string>
     <string name="settings_skin_desc">Цветовая схема приложения. Меняется сразу, без перезапуска.</string>
+    <string name="settings_home_title">Главный экран</string>
+    <string name="settings_home_desc">Как выглядит первая вкладка: стандартная главная или ретро-стойка с кассетной декой.</string>
 </resources>

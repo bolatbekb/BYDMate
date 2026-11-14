@@ -3,4 +3,6 @@
 <resources>
     <string name="settings_skin_title">Wygląd</string>
     <string name="settings_skin_desc">Schemat kolorów aplikacji. Zmienia się od razu, bez restartu.</string>
+    <string name="settings_home_title">Ekran główny</string>
+    <string name="settings_home_desc">Wygląd pierwszej karty: standardowy ekran lub zestaw retro z magnetofonem kasetowym.</string>
 </resources>

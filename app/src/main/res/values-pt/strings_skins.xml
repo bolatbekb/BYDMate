@@ -3,4 +3,6 @@
 <resources>
     <string name="settings_skin_title">Aparência</string>
     <string name="settings_skin_desc">Esquema de cores do app. Aplica-se na hora, sem reiniciar.</string>
+    <string name="settings_home_title">Tela inicial</string>
+    <string name="settings_home_desc">Aparência da primeira aba: a inicial padrão ou um rack retrô com tape deck.</string>
 </resources>

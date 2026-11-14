@@ -3,4 +3,6 @@
 <resources>
     <string name="settings_skin_title">Афармленне</string>
     <string name="settings_skin_desc">Каляровая схема праграмы. Мяняецца адразу, без перазапуску.</string>
+    <string name="settings_home_title">Галоўны экран</string>
+    <string name="settings_home_desc">Як выглядае першая ўкладка: стандартная галоўная або рэтра-стойка з касетнай дэкай.</string>
 </resources>

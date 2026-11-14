@@ -89,6 +89,7 @@ internal fun AppSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     val fontScale by viewModel.fontScale.collectAsState()
     FontScaleBlock(current = fontScale, onChange = viewModel::setFontScale)
     SkinPickerBlock()
+    HomeStylePickerBlock()
     DemoModeBlock()
 
     var showDonate by remember { mutableStateOf(false) }

@@ -299,17 +299,20 @@ fun AppNavigation(
                         restoreState = true
                     }
                 }
-                DashboardScreen(
-                    onOpenTechPanel = openTechTab,
-                    onOpenSettings = openSettingsTab,
-                    // Settings first: the periods screen takes its view model from that entry,
-                    // and Back lands on Settings.
-                    onOpenTariffPeriods = {
-                        openSettingsTab()
-                        // The restored Settings stack may already end on the periods screen.
-                        navController.navigate("tariff_periods") { launchSingleTop = true }
-                    },
-                )
+                com.bydmate.app.ui.home.ForkHome {
+                    // Fork: the home-style switch (standard or a retro stack) wraps the author's screen.
+                    DashboardScreen(
+                        onOpenTechPanel = openTechTab,
+                        onOpenSettings = openSettingsTab,
+                        // Settings first: the periods screen takes its view model from that entry,
+                        // and Back lands on Settings.
+                        onOpenTariffPeriods = {
+                            openSettingsTab()
+                            // The restored Settings stack may already end on the periods screen.
+                            navController.navigate("tariff_periods") { launchSingleTop = true }
+                        },
+                    )
+                }
             }
             composable(Screen.Trips.route) {
                 TripsScreen(onOpenTemperature = { navController.navigate("trip_temperature") })
