@@ -31,10 +31,10 @@ private val VuBg = Brush.verticalGradient(
 )
 
 // The mockup's SVG geometry: a 480 x 300 viewBox, pivot at (240, 290), scale from 138° to 42°.
-private const val VbW = 480f
-private const val VbH = 300f
-private const val Cx = 240f
-private const val Cy = 290f
+private const val VB_W = 480f
+private const val VB_H = 300f
+private const val VU_CX = 240f
+private const val VU_CY = 290f
 private const val A0 = 138f
 private const val A1 = 42f
 
@@ -80,8 +80,8 @@ internal fun VuMeter(
             val a = angleAt(frac) - rad(sway())
             drawLine(
                 Color(0xFFE6F2E8),
-                o + Offset(Cx, Cy) * s,
-                o + Offset(Cx + 214f * cos(a), Cy - 214f * sin(a)) * s,
+                o + Offset(VU_CX, VU_CY) * s,
+                o + Offset(VU_CX + 214f * cos(a), VU_CY - 214f * sin(a)) * s,
                 2f * s,
             )
         }
@@ -94,8 +94,8 @@ internal fun VuMeter(
 
 /** Scale factor and offset that fit the viewBox inside the canvas ("xMidYMid meet"). */
 private fun DrawScope.fit(): Pair<Float, Offset> {
-    val s = min(size.width / VbW, size.height / VbH)
-    return s to Offset((size.width - VbW * s) / 2f, (size.height - VbH * s) / 2f)
+    val s = min(size.width / VB_W, size.height / VB_H)
+    return s to Offset((size.width - VB_W * s) / 2f, (size.height - VB_H * s) / 2f)
 }
 
 private fun DrawScope.drawVuFace(tm: TextMeasurer, title: String, unit: String, marks: List<Int>) {
@@ -117,20 +117,20 @@ private fun DrawScope.drawVuFace(tm: TextMeasurer, title: String, unit: String, 
         val len = if (big) 30f else if (i % 2 == 1) 12f else 20f
         drawLine(
             VuGreen,
-            p(Cx + 190f * cos(a), Cy - 190f * sin(a)),
-            p(Cx + (190f + len) * cos(a), Cy - (190f + len) * sin(a)),
+            p(VU_CX + 190f * cos(a), VU_CY - 190f * sin(a)),
+            p(VU_CX + (190f + len) * cos(a), VU_CY - (190f + len) * sin(a)),
             (if (big) 3f else 2f) * s,
         )
     }
     val numStyle = style(15f, FontWeight.Bold)
     marks.forEachIndexed { i, m ->
         val a = angleAt(i / (marks.size - 1f))
-        text(m.toString(), Cx + 236f * cos(a), Cy - 236f * sin(a) + 5f, numStyle)
+        text(m.toString(), VU_CX + 236f * cos(a), VU_CY - 236f * sin(a) + 5f, numStyle)
     }
     val pctStyle = style(11f, FontWeight.Normal)
     listOf("0", "25", "50", "75", "100%").forEachIndexed { i, l ->
         val a = angleAt(i / 4f)
-        text(l, Cx + 172f * cos(a), Cy - 172f * sin(a) + 4f, pctStyle)
+        text(l, VU_CX + 172f * cos(a), VU_CY - 172f * sin(a) + 4f, pctStyle)
     }
     text(title, 240f, 232f, style(15f, FontWeight.Bold, 2f))
     text("BYDMATE", 30f, 226f, style(11f, FontWeight.ExtraBold), anchor = 0f)

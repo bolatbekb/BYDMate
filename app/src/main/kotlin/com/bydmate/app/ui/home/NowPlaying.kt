@@ -56,6 +56,7 @@ interface MusicControls {
  * DiLink (MediaSessionListenerService); without it nothing is shown. In DEMO mode a simulated
  * playlist plays instead, so the deck can be judged on an emulator.
  */
+@Suppress("TooManyFunctions") // lifecycle + six transport commands
 object NowPlayingSource : MusicControls {
     private val _state = MutableStateFlow(NowPlaying())
     val state: StateFlow<NowPlaying> = _state.asStateFlow()

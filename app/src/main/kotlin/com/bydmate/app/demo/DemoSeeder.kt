@@ -34,6 +34,7 @@ object DemoSeeder {
     private data class Leg(val start: Long, val end: Long, val km: Double, val kwh: Double, val socStart: Int,
                            val socEnd: Int, val avgSpeed: Double, val extStart: Int, val extEnd: Int)
 
+    @Suppress("LongMethod", "CyclomaticComplexMethod") // one linear script of the demo history
     suspend fun seedIfEmpty(db: AppDatabase) {
         if (db.settingsDao().get(SettingsRepository.KEY_SETUP_COMPLETED) == "true") return
         val rnd = Random(42)

@@ -1,3 +1,5 @@
+@file:Suppress("LongParameterList") // SVG-grid painters mirror the mockup's attributes one to one
+
 package com.bydmate.app.ui.home.kenwood
 
 import androidx.compose.foundation.Canvas

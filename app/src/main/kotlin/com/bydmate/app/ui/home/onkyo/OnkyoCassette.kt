@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // Canvas drawing of one hardware panel: many small private painters by design
+
 package com.bydmate.app.ui.home.onkyo
 
 import androidx.compose.foundation.Canvas
@@ -26,11 +28,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 private val HubXs = floatArrayOf(140f, 252f)
-private const val HubY = 100f
+private const val HUB_Y = 100f
 private val SixSlots = floatArrayOf(0f, 60f, 120f, 180f, 240f, 300f)
 
 private val WindowRect = RoundRect(78f, 58f, 314f, 142f, CornerRadius(6f))
-private val TapeBrushStops = arrayOf(0f to Color(0xFF5E4128), 0.4f to Color(0xFF5E4128), 1f to Color(0xFF2A1B10))
+private val TapeInner = Color(0xFF5E4128)
+private val TapeOuter = Color(0xFF2A1B10)
 
 /**
  * Smoked cassette door, 392 x 290 dp: the cassette close-up seen through the glass. Tape packs
@@ -101,8 +104,8 @@ private fun DrawScope.drawWindow(progress: Float) {
 }
 
 private fun DrawScope.drawTapePack(cx: Float, r: Float) {
-    val c = Offset(cx, HubY)
-    drawCircle(Brush.radialGradient(*TapeBrushStops, center = c, radius = r), r, c)
+    val c = Offset(cx, HUB_Y)
+    drawCircle(Brush.radialGradient(0f to TapeInner, 0.4f to TapeInner, 1f to TapeOuter, center = c, radius = r), r, c)
 }
 
 private fun DrawScope.drawAmberBlock() {
@@ -115,23 +118,23 @@ private fun DrawScope.drawAmberBlock() {
 
 /** Chrome hub with six dark slots and a white toothed centre; only the slots and teeth turn. */
 private fun DrawScope.drawHub(cx: Float, angle: Float) {
-    val c = Offset(cx, HubY)
+    val c = Offset(cx, HUB_Y)
     drawCircle(
         Brush.radialGradient(
             0f to Color.White, 0.45f to Color(0xFFC7CBD1), 1f to Color(0xFF6B7077),
-            center = Offset(cx - 27f + 0.38f * 54f, HubY - 27f + 0.32f * 54f), radius = 40.5f,
+            center = Offset(cx - 27f + 0.38f * 54f, HUB_Y - 27f + 0.32f * 54f), radius = 40.5f,
         ),
         27f, c,
     )
     drawCircle(Color(0xFF3A3C41), 27f, c, style = Stroke(1.5f))
     rotate(angle, c) {
-        SixSlots.forEach { a -> rotate(a, c) { drawRect(Ok.Bar, Offset(cx - 2f, HubY - 26f), Size(4f, 10f)) } }
+        SixSlots.forEach { a -> rotate(a, c) { drawRect(Ok.Bar, Offset(cx - 2f, HUB_Y - 26f), Size(4f, 10f)) } }
     }
     drawCircle(Color(0xFFF4F2EC), 14f, c)
     drawCircle(Color(0xFF9EA2A8), 14f, c, style = Stroke(1f))
     drawCircle(Color(0xFF141416), 8f, c)
     rotate(angle, c) {
-        SixSlots.forEach { a -> rotate(a, c) { drawRect(Color(0xFFF4F2EC), Offset(cx - 1.5f, HubY - 8.5f), Size(3f, 4f)) } }
+        SixSlots.forEach { a -> rotate(a, c) { drawRect(Color(0xFFF4F2EC), Offset(cx - 1.5f, HUB_Y - 8.5f), Size(3f, 4f)) } }
     }
 }
 

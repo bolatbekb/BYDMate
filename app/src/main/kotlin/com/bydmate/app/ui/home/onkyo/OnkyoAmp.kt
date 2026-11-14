@@ -1,3 +1,5 @@
+@file:Suppress("TooManyFunctions") // Canvas drawing of one hardware panel: many small private painters by design
+
 package com.bydmate.app.ui.home.onkyo
 
 import androidx.compose.foundation.Canvas

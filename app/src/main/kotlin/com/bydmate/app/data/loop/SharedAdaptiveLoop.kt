@@ -35,7 +35,7 @@ data class TimedSnapshot(val data: DiParsData, val measuredAtElapsedMs: Long)
  * fetch() returns null.
  */
 @Singleton
-class SharedAdaptiveLoop constructor(
+class SharedAdaptiveLoop @Suppress("LongParameterList") constructor( // test seams for clock, dispatcher, screen
     private val parsReader: ParsReader,
     private val lastStateDao: LastStateDao,
     private val energyDataReader: EnergyDataReader,

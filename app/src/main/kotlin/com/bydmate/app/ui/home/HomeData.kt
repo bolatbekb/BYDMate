@@ -41,6 +41,7 @@ data class HomeData(
     companion object {
         private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
 
+        @Suppress("CyclomaticComplexMethod") // a flat chain of null fallbacks, one per field
         fun from(s: DashboardUiState, live: DiParsData?): HomeData {
             val ev = s.evRangeKm ?: live?.evRangeKm ?: s.estimatedRangeKm?.roundToInt()
             val fuel = s.fuelRangeKm ?: live?.fuelRangeKm

@@ -38,6 +38,7 @@ object DemoCar {
 
     private val soc: Double get() = (SOC_START - usedKwh / CAPACITY_KWH * 100).coerceIn(5.0, 100.0)
 
+    @Suppress("LongMethod") // one value per DiParsData field
     fun snapshot(nowMs: Long = System.currentTimeMillis()): DiParsData {
         val (speed, powerKw, t) = step(nowMs)
         val hvVoltage = 395 + (soc / 10).roundToInt()
