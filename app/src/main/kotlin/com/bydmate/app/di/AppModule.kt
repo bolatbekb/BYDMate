@@ -551,6 +551,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideSharedAdaptiveLoop(
+        @ApplicationContext context: Context,
         parsReader: ParsReader,
         lastStateDao: LastStateDao,
         energyDataReader: EnergyDataReader,
@@ -558,6 +559,7 @@ object AppModule {
         parsReader = parsReader,
         lastStateDao = lastStateDao,
         energyDataReader = energyDataReader,
+        screenOn = { context.getSystemService(android.os.PowerManager::class.java)?.isInteractive != false },
         cadence = CadenceConfig.default(),
     )
 

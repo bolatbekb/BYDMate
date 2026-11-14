@@ -115,6 +115,19 @@ class AutoserviceChargingDetector @Inject @Suppress("LongParameterList") constru
         // longer the true charge start, so we skip reconstruction. Applies ONLY
         // to socDelta below SOC_DELTA_TRUSTED_CHARGE (i.e. exactly 2%).
         const val ODOMETER_MOVED_EPSILON_KM = 1.0f
+        /** Odometer step that forces a parked-anchor write; far below [ODOMETER_MOVED_EPSILON_KM]. */
+        const val ANCHOR_MILEAGE_STEP_KM = 0.2f
+        /** Longest the parked anchor goes unwritten while nothing changes. */
+        const val ANCHOR_HEARTBEAT_MS = 60_000L
+
+        /** True when the stored anchor already matches the car closely enough to skip the write. */
+        internal fun anchorFresh(prev: ChargingStateStore.State, soc: Int, mileage: Double?, now: Long): Boolean {
+            val prevKm = prev.mileageKm ?: return false
+            val km = mileage ?: return false
+            return prev.socPercent == soc &&
+                kotlin.math.abs(km - prevKm) < ANCHOR_MILEAGE_STEP_KM &&
+                now - prev.ts in 0 until ANCHOR_HEARTBEAT_MS
+        }
         // chargerConnectState (fid 89128973, dev 1009): 1 = plug physically in.
         private const val CHARGER_CONNECT_PLUGGED = 1
         // chargeConnectIndicator (fid 710934572, dev 1007): 1 = plug in, 2 = plug out.
@@ -228,6 +241,11 @@ class AutoserviceChargingDetector @Inject @Suppress("LongParameterList") constru
                     // anchor's odometer go stale (a 7 km drive at constant SOC),
                     // and the Step-5 odometer gate then ate a real dacha charge
                     // (field report 2026-06-11, Song, 10 kWh lost).
+                    // Perf: the write ran on every 1 s tick; it is skipped while SOC is the same,
+                    // the odometer moved less than ANCHOR_MILEAGE_STEP_KM and the anchor is
+                    // younger than ANCHOR_HEARTBEAT_MS, so the anchor never lags more than
+                    // 0.2 km behind the car — well inside the 1 km odometer gate.
+                    if (anchorFresh(prev, soc, data.mileage, now)) return@withLock false
                     stateStore.save(
                         socPercent = soc,
                         mileageKm = data.mileage?.toFloat(),

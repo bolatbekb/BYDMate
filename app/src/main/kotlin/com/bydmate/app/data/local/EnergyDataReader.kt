@@ -40,6 +40,7 @@ open class EnergyDataReader @Inject constructor(
 ) {
 
     companion object {
+        private const val AVAILABLE_TTL_NS = 30_000_000_000L
         private const val TAG = "EnergyDataReader"
         private const val ENERGY_DIR_PATH = "/storage/emulated/0/energydata"
         private const val LOCAL_DB_NAME = "vehicle_ec.db"
@@ -171,6 +172,16 @@ open class EnergyDataReader @Inject constructor(
      * Reuses existing find helpers — no new file probing logic.
      */
     fun isAvailable(): Boolean {
+        // Perf: called on every poll tick (TripRecorder, SharedAdaptiveLoop); the answer
+        // changes once in a blue moon, so a listFiles() per second is cached for 30 s.
+        val now = System.nanoTime()
+        availableCache?.let { (at, value) -> if (now - at < AVAILABLE_TTL_NS) return value }
+        return probeAvailable().also { availableCache = now to it }
+    }
+
+    @Volatile private var availableCache: Pair<Long, Boolean>? = null
+
+    private fun probeAvailable(): Boolean {
         val dir = energyDataDir()
         if (!dir.exists() || !dir.isDirectory) return false
         val db = findSourceDb(dir) ?: return false

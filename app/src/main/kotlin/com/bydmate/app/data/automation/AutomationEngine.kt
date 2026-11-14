@@ -300,6 +300,14 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
             .remove(KEY_SERVICE_START_SELF_RESTART_ELAPSED).commit()
     }
 
+    /** Parsed triggers by their JSON text: evaluate() runs every tick and on every push. */
+    private val triggerCache = object : LinkedHashMap<String, List<TriggerDef>>(16, 0.75f, true) {
+        override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<TriggerDef>>?) = size > 64
+    }
+
+    private fun parsedTriggers(json: String): List<TriggerDef> =
+        synchronized(triggerCache) { triggerCache.getOrPut(json) { TriggerDef.listFromJson(json) } }
+
     // Called every 3s from TrackingService poll loop.
     // tripStartedAt is passed explicitly (not read from TrackingService.tripStartedAt)
     // because the latter mirrors TripTracker via an async collect, which lags by a
@@ -329,7 +337,7 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
 
         for (rule in rules) {
             try {
-                val triggers = TriggerDef.listFromJson(rule.triggers)
+                val triggers = parsedTriggers(rule.triggers)
                 if (triggers.isEmpty()) continue
                 val oneShot = triggers.firstOrNull { it.kind == OneShotTrigger.KIND }
                 if (oneShot != null && OneShotTrigger.state(oneShot.value, now) == OneShotTrigger.State.EXPIRED) {

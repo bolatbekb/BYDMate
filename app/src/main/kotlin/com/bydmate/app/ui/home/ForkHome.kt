@@ -13,6 +13,8 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bydmate.app.service.TrackingService
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.sample
 import com.bydmate.app.ui.dashboard.DashboardViewModel
 import com.bydmate.app.ui.home.kenwood.KenwoodHome
 import com.bydmate.app.ui.home.onkyo.OnkyoHome
@@ -29,10 +31,15 @@ fun ForkHome(standard: @Composable () -> Unit) {
     }
 }
 
+private const val LIVE_SAMPLE_MS = 1_000L
+
+@OptIn(FlowPreview::class)
 @Composable
 private fun RetroHome(style: HomeStyle, viewModel: DashboardViewModel = hiltViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val live by TrackingService.lastData.collectAsStateWithLifecycle()
+    // Push patches lastData up to every 200 ms; the stack redraws at most once a second.
+    val liveFlow = remember { TrackingService.lastData.sample(LIVE_SAMPLE_MS) }
+    val live by liveFlow.collectAsStateWithLifecycle(initialValue = TrackingService.lastData.value)
     // Same as the author's screen: period totals and the insight reload on every resume.
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {

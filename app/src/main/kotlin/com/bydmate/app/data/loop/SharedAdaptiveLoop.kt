@@ -42,6 +42,8 @@ class SharedAdaptiveLoop constructor(
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val cadence: CadenceConfig = CadenceConfig.default(),
     private val elapsedNow: () -> Long = SystemClock::elapsedRealtime,
+    /** Head-unit screen on? Off while driving drops the cadence to the parked one. */
+    private val screenOn: () -> Boolean = { true },
 ) {
     private val _flow = MutableSharedFlow<DiParsData>(
         replay = 1, extraBufferCapacity = 0,
@@ -96,9 +98,15 @@ class SharedAdaptiveLoop constructor(
             _flow.emit(data)
             runCatching { persistSnapshot(data) }
                 .onFailure { Log.w(TAG, "persistSnapshot failed, loop continues", it) }
-            delay(cadence.intervalFor(LoopFsm.classify(data)))
+            delay(nextInterval(LoopFsm.classify(data)))
         }
     }
+
+    /** The cadence for [state]; with the screen off a drive is polled like a parked car (trip km and
+     *  kWh come from the car's lifetime counters, discrete events still arrive by push). */
+    internal fun nextInterval(state: LoopState): Long =
+        if (state == LoopState.DRIVE && !screenOn()) cadence.intervalFor(LoopState.PARKED)
+        else cadence.intervalFor(state)
 
     private suspend fun persistSnapshot(data: DiParsData) {
         val now = System.currentTimeMillis()

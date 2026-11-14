@@ -61,5 +61,10 @@ object DemoBindings {
         if (DemoMode.isOn(context)) DemoAutoserviceClient() else real()
 
     fun helper(context: Context, real: HelperClient): HelperClient =
-        if (DemoMode.isOn(context)) DemoHelperClient(real) else real
+        if (DemoMode.isOn(context)) DemoHelperClient(OfflineHelperClient()) else real
+}
+
+/** The real client with no daemon to find: calls fail fast instead of a ServiceManager lookup each. */
+private class OfflineHelperClient : com.bydmate.app.data.vehicle.HelperClientImpl() {
+    override fun resolveBinder(): android.os.IBinder? = null
 }
