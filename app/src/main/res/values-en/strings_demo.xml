@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_demo_header">Demo</string>
+    <string name="settings_demo_title">Demo mode</string>
+    <string name="settings_demo_desc">A simulated car on a drive plus three months of history, to judge the look. Your data is untouched. The app restarts.</string>
+</resources>

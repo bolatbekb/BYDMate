@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_skin_title">Aparência</string>
+    <string name="settings_skin_desc">Esquema de cores do app. Aplica-se na hora, sem reiniciar.</string>
+</resources>

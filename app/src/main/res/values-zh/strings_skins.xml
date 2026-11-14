@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_skin_title">外观</string>
+    <string name="settings_skin_desc">应用配色方案。立即生效，无需重启。</string>
+</resources>

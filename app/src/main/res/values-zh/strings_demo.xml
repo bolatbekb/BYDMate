@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_demo_header">演示</string>
+    <string name="settings_demo_title">演示模式</string>
+    <string name="settings_demo_desc">模拟行驶中的车辆及三个月的历史数据，用于评估外观。不会影响您的数据。应用将重新启动。</string>
+</resources>

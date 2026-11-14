@@ -2,40 +2,43 @@ package com.bydmate.app.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
+// Every token reads the active skin (Skins.kt). The names stay the author's so the
+// screens compile unchanged; reading one inside a composable subscribes it to skin changes.
+
 // Background gradient anchors
-val NavyDark = Color(0xFF0A1628)
-val NavyDeep = Color(0xFF0D1B2A)
-val NavyMid = Color(0xFF1B2838)
+val NavyDark: Color get() = SkinState.palette.navyDark
+val NavyDeep: Color get() = SkinState.palette.navyDeep
+val NavyMid: Color get() = SkinState.palette.navyMid
 
 // Surface / Cards
-val CardSurface = Color(0xFF162032)
-val CardSurfaceElevated = Color(0xFF1D2940)
-val CardBorder = Color(0xFF2A3A52)
+val CardSurface: Color get() = SkinState.palette.cardSurface
+val CardSurfaceElevated: Color get() = SkinState.palette.cardSurfaceElevated
+val CardBorder: Color get() = SkinState.palette.cardBorder
 
 // Accent colors
-val AccentGreen = Color(0xFF4ADE80)
-val AccentBlue = Color(0xFF60A5FA)
-val AccentOrange = Color(0xFFFB923C)
-val AccentTeal = Color(0xFF2DD4BF)
+val AccentGreen: Color get() = SkinState.palette.accentGreen
+val AccentBlue: Color get() = SkinState.palette.accentBlue
+val AccentOrange: Color get() = SkinState.palette.accentOrange
+val AccentTeal: Color get() = SkinState.palette.accentTeal
 
 // Text
-val TextPrimary = Color(0xFFE2E8F0)
-val TextSecondary = Color(0xFF94A3B8)
-val TextMuted = Color(0xFF64748B)
+val TextPrimary: Color get() = SkinState.palette.textPrimary
+val TextSecondary: Color get() = SkinState.palette.textSecondary
+val TextMuted: Color get() = SkinState.palette.textMuted
 
 // SOC traffic light
-val SocGreen = Color(0xFF4ADE80)
-val SocYellow = Color(0xFFFBBF24)
-val SocRed = Color(0xFFEF4444)
+val SocGreen: Color get() = SkinState.palette.socGreen
+val SocYellow: Color get() = SkinState.palette.socYellow
+val SocRed: Color get() = SkinState.palette.socRed
 
 // Consumption rating
-val ConsumptionGood = Color(0xFF4ADE80)
-val ConsumptionMid = Color(0xFFFBBF24)
-val ConsumptionBad = Color(0xFFEF4444)
+val ConsumptionGood: Color get() = SkinState.palette.socGreen
+val ConsumptionMid: Color get() = SkinState.palette.socYellow
+val ConsumptionBad: Color get() = SkinState.palette.socRed
 
 // Charts
-val ChartGrid = Color(0xFF1E3048)
+val ChartGrid: Color get() = SkinState.palette.chartGrid
 
 // Navigation
-val NavBarBackground = Color(0xFF0F1923)
-val NavIndicator = Color(0xFF1B3A4B)
+val NavBarBackground: Color get() = SkinState.palette.navBarBackground
+val NavIndicator: Color get() = SkinState.palette.navIndicator

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_demo_header">Демо</string>
+    <string name="settings_demo_title">Демо-режим</string>
+    <string name="settings_demo_desc">Имитация машины в поездке и три месяца истории, чтобы оценить оформление. Ваши данные не затрагиваются. Приложение перезапустится.</string>
+</resources>

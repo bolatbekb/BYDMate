@@ -82,7 +82,7 @@ internal enum class SettingsSection(@StringRes val labelRes: Int, val icon: Imag
     SMART_HOME(R.string.settings_smart_home_section_title, Icons.Outlined.Home),
 }
 
-internal val PrimaryColor = AccentGreen
+internal val PrimaryColor get() = AccentGreen
 
 /** Own phrases for built-in commands are hidden while the built-in phrase list settles. */
 internal const val SHOW_VOICE_USER_PHRASES = false

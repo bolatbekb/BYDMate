@@ -14,5 +14,5 @@ abstract class NativeModule {
 
     @Binds
     @Singleton
-    abstract fun bindParsReader(impl: NativeParsReader): ParsReader
+    abstract fun bindParsReader(impl: com.bydmate.app.demo.DemoAwareParsReader): ParsReader
 }

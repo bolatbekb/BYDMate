@@ -429,10 +429,16 @@ object AppModule {
             Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
-                AppDatabase.FILE_NAME
+                com.bydmate.app.demo.DemoMode.dbFile(context, AppDatabase.FILE_NAME)
             )
         )
             .build()
+            .also { db ->
+                // Fork: DEMO mode seeds its own database once (the real one is never opened).
+                if (com.bydmate.app.demo.DemoMode.isOn(context)) kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
+                    com.bydmate.app.demo.DemoSeeder.seedIfEmpty(db)
+                }
+            }
     }
 
     /** Every production migration: the app database and a restored archive of an older schema share them. */
@@ -530,15 +536,17 @@ object AppModule {
     fun provideAdbOnDeviceClient(
         @ApplicationContext context: Context,
         keyStore: com.bydmate.app.data.autoservice.AdbKeyStore
-    ): com.bydmate.app.data.autoservice.AdbOnDeviceClient =
-        com.bydmate.app.data.autoservice.AdbOnDeviceClientImpl(context, keyStore)
+    ): com.bydmate.app.data.autoservice.AdbOnDeviceClient = com.bydmate.app.demo.DemoBindings.adb(
+        context, com.bydmate.app.data.autoservice.AdbOnDeviceClientImpl(context, keyStore))
 
     @Provides
     @Singleton
     fun provideAutoserviceClient(
+        @ApplicationContext context: Context,
         adb: com.bydmate.app.data.autoservice.AdbOnDeviceClient
-    ): com.bydmate.app.data.autoservice.AutoserviceClient =
+    ): com.bydmate.app.data.autoservice.AutoserviceClient = com.bydmate.app.demo.DemoBindings.autoservice(context) {
         com.bydmate.app.data.autoservice.AutoserviceClientImpl(adb)
+    }
 
     @Provides
     @Singleton
@@ -594,8 +602,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideHelperClient(): com.bydmate.app.data.vehicle.HelperClient =
-        com.bydmate.app.data.vehicle.HelperClientImpl()
+    fun provideHelperClient(@ApplicationContext context: Context): com.bydmate.app.data.vehicle.HelperClient =
+        com.bydmate.app.demo.DemoBindings.helper(context, com.bydmate.app.data.vehicle.HelperClientImpl())
 
     @Provides
     @Singleton

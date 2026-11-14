@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_skin_title">Афармленне</string>
+    <string name="settings_skin_desc">Каляровая схема праграмы. Мяняецца адразу, без перазапуску.</string>
+</resources>

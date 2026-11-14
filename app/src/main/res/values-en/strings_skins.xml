@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_skin_title">Appearance</string>
+    <string name="settings_skin_desc">App color scheme. Applies instantly, no restart.</string>
+</resources>

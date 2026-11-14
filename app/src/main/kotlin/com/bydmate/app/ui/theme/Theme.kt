@@ -9,7 +9,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 
-private val DarkColorScheme = darkColorScheme(
+// A getter, not a val: rebuilt from the active skin on every read (cheap), so Material
+// components follow a skin switch along with the app's own tokens.
+private val DarkColorScheme get() = darkColorScheme(
     background = NavyDark,
     surface = CardSurface,
     surfaceVariant = CardSurfaceElevated,

@@ -88,6 +88,8 @@ internal fun AppSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     LanguageBlock(currentLang = lang, onLanguageChange = viewModel::setAppLanguage)
     val fontScale by viewModel.fontScale.collectAsState()
     FontScaleBlock(current = fontScale, onChange = viewModel::setFontScale)
+    SkinPickerBlock()
+    DemoModeBlock()
 
     var showDonate by remember { mutableStateOf(false) }
     if (showDonate) {
