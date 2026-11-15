@@ -28,6 +28,8 @@ data class NowPlaying(
     /** Short-lived: true right after Prev/Next, so the reels spin fast like a tape winding. */
     val winding: Boolean = false,
     val source: String? = null,
+    /** The player's own name as the launcher shows it ("AIMP", "Яндекс Музыка"); null when unknown. */
+    val sourceLabel: String? = null,
 ) {
     /** 0..1 through the track; 0.5 when unknown, so the two tape packs look even. */
     val progress: Float
@@ -38,6 +40,9 @@ data class NowPlaying(
         }
 
     val hasTrack: Boolean get() = !title.isNullOrBlank()
+
+    /** A stream with no length (radio): no tape progress to show, the counter reads LIVE. */
+    val isLive: Boolean get() = hasTrack && durationMs == null
 }
 
 /** Transport commands the deck buttons send. */
@@ -103,7 +108,7 @@ object NowPlayingSource : MusicControls {
             val (artist, title, dur) = demoTracks[demoIdx]
             if (demoPos >= dur) { demoIdx = (demoIdx + 1) % demoTracks.size; demoPos = 0 }
             val t = demoTracks[demoIdx]
-            _state.value = NowPlaying(t.first, t.second, demoPlaying, demoPos, t.third, winding, "Моя волна")
+            _state.value = NowPlaying(t.first, t.second, demoPlaying, demoPos, t.third, winding, "demo", "Моя волна")
             return
         }
         val msm = ctx.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager ?: return
@@ -114,8 +119,10 @@ object NowPlayingSource : MusicControls {
             _state.value = NowPlaying()
             return
         }
+        // The one playing; else the one that played last (most recent position update), not
+        // just the first in the system's list, so a long-paused player does not win.
         val c = controllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-            ?: controllers.firstOrNull()
+            ?: controllers.maxByOrNull { it.playbackState?.lastPositionUpdateTime ?: Long.MIN_VALUE }
         controller = c
         if (c == null) { _state.value = NowPlaying(); return }
         val md = c.metadata
@@ -134,7 +141,18 @@ object NowPlayingSource : MusicControls {
             durationMs = md?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.takeIf { it > 0 },
             winding = winding,
             source = c.packageName,
+            sourceLabel = appLabel(ctx, c.packageName),
         )
+    }
+
+    private val labels = HashMap<String, String?>()
+
+    /** The player's launcher name, cached per package: "AIMP" rather than "player" from com.aimp.player. */
+    private fun appLabel(ctx: Context, pkg: String): String? = labels.getOrPut(pkg) {
+        runCatching {
+            val pm = ctx.packageManager
+            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString().takeIf { it.isNotBlank() }
+        }.getOrNull()
     }
 
     private fun demo(): Boolean = appContext?.let { DemoMode.isOn(it) } == true

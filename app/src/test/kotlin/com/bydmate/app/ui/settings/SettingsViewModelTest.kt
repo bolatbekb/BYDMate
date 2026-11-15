@@ -1525,8 +1525,9 @@ class SettingsViewModelTest {
                 .replace(Regex("(?m)^timestamp: \\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}$"), "timestamp: <now>")
                 // app: the version name and code move with every release.
                 .replace(Regex("(?m)^(app: \\S+) v\\S+ \\(code=\\d+\\)$"), "$1 v<version> (code=<code>)")
-                // fork: the screen lines (fork.DisplayInfo) are not in the author's reference.
+                // fork: the screen and media lines (fork.DisplayInfo, fork.MediaInfo) are not in the author's reference.
                 .replace(Regex("(?m)^display(#\\d+: |: density |: window ).*\\n"), "")
+                .replace(Regex("(?m)^media(#\\d+|): .*\\n"), "")
             val reference = javaClass.getResourceAsStream("/diagnostic-dump/reference-header.txt")!!
                 .bufferedReader().use { it.readText() }
             assertEquals(reference, normalized)

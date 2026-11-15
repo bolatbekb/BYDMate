@@ -197,6 +197,7 @@ class DiagnosticDumpWriter @Inject @Suppress("LongParameterList") constructor( /
                 appendLine("locale: jvm=${Locale.getDefault().toLanguageTag()} app=${localePreferences.getLanguage() ?: "(unset)"}")
                 appendLine("font_scale: ${localePreferences.getFontScale()}")
                 com.bydmate.app.fork.DisplayInfo.lines(appContext).forEach { appendLine(it) } // fork
+                com.bydmate.app.fork.MediaInfo.lines(appContext).forEach { appendLine(it) } // fork
             } catch (e: Exception) {
                 appendLine("(failed to gather app/device metadata: ${e.message})")
             }
