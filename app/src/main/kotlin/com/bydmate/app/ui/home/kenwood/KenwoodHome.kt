@@ -139,6 +139,7 @@ private fun DeckWell(music: NowPlaying, modifier: Modifier) {
             val spin = rememberRunningClock(music.isPlaying, if (music.winding) 900f else 360f / 2.2f)
             CassetteDoor(
                 label = music.labelLine(),
+                progress = music.progress,
                 hubAngle = { spin.value },
                 modifier = Modifier.padding(top = 2.dp).size(316.dp, 196.dp).align(Alignment.CenterHorizontally),
                 frame = Kw.edge,
@@ -146,7 +147,7 @@ private fun DeckWell(music: NowPlaying, modifier: Modifier) {
             Spacer(Modifier.weight(1f))
             Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF2E3034)))
             Row(Modifier.fillMaxWidth().padding(top = 3.dp, start = 14.dp, end = 14.dp), verticalAlignment = Alignment.Bottom) {
-                KText("DM-i", 18f, color = Color(0xFFD0D2D6), family = LogoFont, weight = FontWeight.Medium)
+                KText("HYBRID", 18f, color = Color(0xFFD0D2D6), family = LogoFont, weight = FontWeight.Medium)
                 Spacer(Modifier.weight(1f))
                 KText(
                     "STEREO DRIVE DECK KX-2026", 10f,

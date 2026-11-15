@@ -156,6 +156,7 @@ private fun DeckTier(
             Brand(15, "STEREO CASSETTE DRIVE DECK")
             CassetteDoor(
                 label = music.labelLine(),
+                progress = music.progress,
                 hubAngle = hubAngle,
                 modifier = Modifier.size(DoorW, DoorW * (290f / 392f)),
                 frame = Ok.Edge,

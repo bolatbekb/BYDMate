@@ -25,6 +25,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.drawscope.withTransform
@@ -51,6 +52,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.text.font.Font
 import com.bydmate.app.R
 import kotlin.math.roundToInt
+import androidx.compose.ui.util.lerp
 import kotlin.math.min
 
 /*
@@ -61,12 +63,14 @@ import kotlin.math.min
 /**
  * The deck's cassette compartment: a smoked acrylic door in [frame], the photographed
  * [cassette] centred in it at its true proportions, [label] handwritten on its label. The hubs
- * turn by [hubAngle] degrees, read at draw time so spinning only redraws the hub layer;
- * [caption] is engraved under the tape when the door has room for it.
+ * (or, on a layered cassette, the whole reels) turn by [hubAngle] degrees, read at draw time so
+ * spinning only redraws that layer; a layered cassette's tape packs follow [progress] (0: left
+ * pack full). [caption] is engraved under the tape when the door has room for it.
  */
 @Composable
 fun CassetteDoor(
     label: String,
+    progress: Float,
     hubAngle: () -> Float,
     modifier: Modifier = Modifier,
     cassette: PhotoCassette = CassetteRotation.current,
@@ -77,26 +81,96 @@ fun CassetteDoor(
     val face = ImageBitmap.imageResource(cassette.face)
     val hubL = ImageBitmap.imageResource(cassette.hubLImage)
     val hubR = ImageBitmap.imageResource(cassette.hubRImage)
+    val layers = cassette.layers
+    val back = layers?.let { ImageBitmap.imageResource(it.back) }
     Box(modifier.semantics { contentDescription = "Кассета: $label" }) {
         Canvas(Modifier.fillMaxSize()) {
             drawDoorBack()
             val (k, o) = cassetteFit()
-            drawImage(
-                face, dstOffset = IntOffset(o.x.roundToInt(), o.y.roundToInt()),
-                dstSize = IntSize((CASSETTE_W * k).roundToInt(), (CASSETTE_H * k).roundToInt()),
-                filterQuality = FilterQuality.Medium,
-            )
-            drawHandwriting(tm, label, cassette, k, o)
-            if (caption != null) drawCaption(tm, caption)
+            if (layers != null && back != null) {
+                clipRect(o.x, o.y, o.x + CASSETTE_W * k, o.y + CASSETTE_H * k) {
+                    drawFaceImage(back, k, o)
+                    val p = progress.coerceIn(0f, 1f)
+                    withTransform({ translate(o.x, o.y); scale(k, k, Offset.Zero) }) {
+                        drawTapePack(cassette.hubL, lerp(layers.packMaxR, layers.packMinR, p))
+                        drawTapePack(cassette.hubR, lerp(layers.packMinR, layers.packMaxR, p))
+                    }
+                }
+            } else {
+                drawFaceImage(face, k, o)
+                drawHandwriting(tm, label, cassette, k, o)
+                if (caption != null) drawCaption(tm, caption)
+            }
         }
         Canvas(Modifier.fillMaxSize()) {
             val (k, o) = cassetteFit()
             // played side A: the tape runs left to right along the bottom, both reels turn anticlockwise
             val a = -hubAngle()
-            drawHubPatch(hubL, o + cassette.hubL * k, k, a)
-            drawHubPatch(hubR, o + cassette.hubR * k, k, a)
+            clipRect(o.x, o.y, o.x + CASSETTE_W * k, o.y + CASSETTE_H * k) {
+                drawHubPatch(hubL, o + cassette.hubL * k, k, a)
+                drawHubPatch(hubR, o + cassette.hubR * k, k, a)
+            }
+        }
+        if (layers != null) {
+            Canvas(Modifier.fillMaxSize()) {
+                val (k, o) = cassetteFit()
+                drawFaceImage(face, k, o)
+                withTransform({ translate(o.x, o.y); scale(k, k, Offset.Zero) }) { drawWindowPlastic(layers.window) }
+                drawHandwriting(tm, label, cassette, k, o)
+                if (caption != null) drawCaption(tm, caption)
+            }
         }
         Canvas(Modifier.fillMaxSize()) { drawDoorGlass(frame) }
+    }
+}
+
+/** A face-sized bitmap (stored at any width) drawn over the cassette's place in the door. */
+private fun DrawScope.drawFaceImage(image: ImageBitmap, k: Float, o: Offset) = drawImage(
+    image, dstOffset = IntOffset(o.x.roundToInt(), o.y.roundToInt()),
+    dstSize = IntSize((CASSETTE_W * k).roundToInt(), (CASSETTE_H * k).roundToInt()),
+    filterQuality = FilterQuality.Medium,
+)
+
+/** A pack of brown tape wound to radius [r] round [c] (face pixels): winding rings and a soft sheen. */
+private fun DrawScope.drawTapePack(c: Offset, r: Float) {
+    drawCircle(
+        Brush.radialGradient(
+            0f to Color(0xFF1C130D), 0.5f to Color(0xFF3B2819), 0.85f to Color(0xFF47311F), 1f to Color(0xFF2A1C12),
+            center = c, radius = r,
+        ),
+        r, c,
+    )
+    var rr = 116f
+    var i = 0
+    while (rr < r - 2f) {
+        drawCircle(if (i % 3 == 0) Color.Black.copy(alpha = 0.16f) else Color(0xFF6B4A30).copy(alpha = 0.10f), rr, c, style = Stroke(1.4f))
+        rr += 5.5f
+        i++
+    }
+    drawCircle(
+        Brush.sweepGradient(
+            0f to Color.Transparent, 0.08f to Color.White.copy(alpha = 0.07f), 0.18f to Color.Transparent,
+            0.58f to Color.Transparent, 0.66f to Color.White.copy(alpha = 0.05f), 0.76f to Color.Transparent, 1f to Color.Transparent,
+            center = c,
+        ),
+        r, c,
+    )
+    drawCircle(Color.Black.copy(alpha = 0.5f), r, c, style = Stroke(2f))
+}
+
+/** The cassette's clear window (face pixels): a faint smoky tint and one soft reflection. */
+private fun DrawScope.drawWindowPlastic(w: RoundRect) {
+    val path = Path().apply { addRoundRect(w) }
+    clipPath(path) {
+        drawRect(Color(0xFF0A0C10).copy(alpha = 0.14f), Offset(w.left, w.top), Size(w.width, w.height))
+        drawRect(
+            Brush.linearGradient(
+                0f to Color.Transparent, 0.35f to Color.White.copy(alpha = 0.10f), 0.5f to Color.White.copy(alpha = 0.03f), 1f to Color.Transparent,
+                start = Offset(w.left, w.top), end = Offset(w.left + w.width * 0.45f, w.bottom),
+            ),
+            Offset(w.left, w.top), Size(w.width, w.height),
+        )
+        drawLine(Color.White.copy(alpha = 0.12f), Offset(w.left, w.top + 1.5f), Offset(w.right, w.top + 1.5f), 1.5f)
     }
 }
 
