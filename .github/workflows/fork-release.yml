@@ -1,6 +1,7 @@
 # Fork-only: builds the signed release APK.
 #  - every push to main: APK as a build artifact (Actions › run › Artifacts);
-#  - a tag v* (e.g. v4.4.0.2): also a GitHub Release with the APK attached, which the
+#  - a tag v* (e.g. v4.4.0.2): also a GitHub Release with the APK attached and the notes from
+#    release-notes/<tag>.md (required, written by a human), which the
 #    in-app updater (ForkConfig.UPDATE_REPO) picks up.
 # Signing comes from repo secrets: SIGNING_KEYSTORE_BASE64, SIGNING_STORE_PASSWORD,
 # SIGNING_KEY_ALIAS, SIGNING_KEY_PASSWORD. Kept apart from ci.yml so upstream merges don't touch it.
@@ -33,6 +34,15 @@ jobs:
           java-version: '17'
 
       - uses: gradle/actions/setup-gradle@v5
+
+      - name: Release notes written
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # Every release needs human notes of what changed (FORK.md, "Релиз").
+          test -s "release-notes/${GITHUB_REF_NAME}.md" || {
+            echo "::error::release-notes/${GITHUB_REF_NAME}.md is missing or empty: describe what changed before tagging"
+            exit 1
+          }
 
       - name: Signing key
         env:
@@ -77,7 +87,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "$GITHUB_REF_NAME" app/build/outputs/apk/release/*.apk \
-            --title "BYDMate ${GITHUB_REF_NAME#v} (fork)" --generate-notes
+            --title "BYDMate ${GITHUB_REF_NAME#v} (fork)" --notes-file "release-notes/${GITHUB_REF_NAME}.md"
 
       - name: Clean up the key
         if: always()

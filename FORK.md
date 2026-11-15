@@ -91,13 +91,15 @@ Remote `upstream` настроен только на чтение (push URL — 
 
 ## Релиз
 
-1. Подними `versionName` и `versionCode` в `app/build.gradle.kts`, закоммить и отправь в `main`.
-2. Поставь тег и отправь его:
+1. Подними `versionName` и `versionCode` в `app/build.gradle.kts`.
+2. **Напиши пояснение к релизу** в `release-notes/v<версия>.md`: по-русски, простыми словами для водителя — что изменилось на экране и в поведении, что исправлено, нужно ли что-то сделать после обновления. Не список коммитов. Без этого файла CI откажется выпускать релиз, а сам текст станет описанием релиза на GitHub.
+3. Закоммить и отправь в `main`.
+4. Поставь тег и отправь его:
    ```bash
    git tag -a v4.4.1.2 -m "BYDMate 4.4.1.2 (fork)"
    git push origin v4.4.1.2
    ```
-3. Workflow **Fork release APK** соберёт подписанный APK и создаст релиз на странице [Releases](https://github.com/bolatbekb/BYDMate/releases). Приложение в машине предложит обновиться.
+5. Workflow **Fork release APK** соберёт подписанный APK и создаст релиз на странице [Releases](https://github.com/bolatbekb/BYDMate/releases). Приложение в машине предложит обновиться.
 
 Когда запускается сборка:
 - **push в `main`** — APK попадает в Actions → запуск → Artifacts, скачать можно только залогинившись в GitHub;
