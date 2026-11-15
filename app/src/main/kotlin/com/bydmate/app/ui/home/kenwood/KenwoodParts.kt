@@ -28,6 +28,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import com.bydmate.app.ui.home.brushedFascia
+import com.bydmate.app.ui.home.hardwareKey
+import com.bydmate.app.ui.home.spunCap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -124,37 +127,17 @@ internal fun KText(
 internal fun Logo(size: Float, modifier: Modifier = Modifier) =
     KText("BYDMATE", size, modifier, color = Kw.logo, family = LogoFont, weight = FontWeight.Medium, spacing = size * 0.09f)
 
-/** A tier of the stack: horizontal hairlines of brushed aluminium, a lit top edge and a dark lip. */
+/** A tier of the stack: horizontally brushed black aluminium, a lit top edge and a dark lip. */
 internal fun Modifier.brushedTier(): Modifier = this
     .clip(RoundedCornerShape(3.dp))
-    .drawBehind {
-        drawRect(Color(0xFF222326))
-        val step = 3.dp.toPx()
-        val line = 1.dp.toPx()
-        val hair = Color(0xFF1B1C1E)
-        var y = size.height - line
-        while (y > -line) {
-            drawRect(hair, Offset(0f, y), Size(size.width, line))
-            y -= step
-        }
-        drawRect(Kw.edge, size = Size(size.width, 1.dp.toPx()))
-        val lip = 2.dp.toPx()
-        drawRect(Kw.deep, Offset(0f, size.height - lip), Size(size.width, lip))
-    }
+    .brushedFascia(Color(0xFF28292C), Color(0xFF1B1C1E), Kw.edge, Kw.deep)
 
 /** Black window with a grey frame: the display, analyzer and meter cut-outs. */
 internal fun Modifier.window(bg: Color = Kw.vfdBg): Modifier = background(bg).border(1.dp, Kw.edge)
 
-/** Face of a square push key: dark plate on a 2 dp shadow, or pushed in and lit. */
-internal fun Modifier.keyFace(lit: Boolean, plate: Color = Kw.key): Modifier = drawBehind {
-    val px = 1.dp.toPx()
-    if (!lit) drawRect(Kw.deep, Offset(0f, 2 * px), size)
-    drawRect(if (lit) Kw.keyLit else plate)
-    if (lit) drawRect(
-        Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent), endY = 5 * px),
-    )
-    drawRect(Kw.edge, Offset(px / 2, px / 2), Size(size.width - px, size.height - px), style = Stroke(px))
-}
+/** Face of a flat rectangular push key: black plate on a 2 dp shadow, or pushed in and lit blue. */
+internal fun Modifier.keyFace(lit: Boolean, plate: Color = Color(0xFF18191B)): Modifier =
+    hardwareKey(down = lit, face = if (lit) Kw.keyLit else plate, edge = Kw.edge, shadow = Kw.deep, radius = 2.dp)
 
 /** Push key with a glyph; lights while held or while [on]. */
 @Composable
@@ -258,13 +241,8 @@ internal fun RoundButton(label: String, value: String, modifier: Modifier = Modi
                 .size(22.dp)
                 .clip(CircleShape)
                 .drawBehind {
-                    drawCircle(
-                        Brush.radialGradient(
-                            listOf(Color(0xFF34363B), Color(0xFF0E0F11)),
-                            Offset(size.width * 0.4f, size.height * 0.35f),
-                            size.width * 0.85f,
-                        ),
-                    )
+                    drawCircle(Color(0xFF0E0F11))
+                    spunCap(center, size.width * 0.42f)
                 }
                 .border(1.dp, Kw.edge, CircleShape),
         )
@@ -355,14 +333,7 @@ internal fun KnurledKnob(value: Int?, max: Int, modifier: Modifier = Modifier, d
             63 * u, shadowC,
         )
         drawKnurl(c, 53 * u)
-        drawCircle(
-            Brush.radialGradient(
-                listOf(Color(0xFF2C2E33), Color(0xFF111215)),
-                Offset(34 * u + 82 * u * 0.4f, 34 * u + 82 * u * 0.35f),
-                72 * u,
-            ),
-            41 * u, c,
-        )
+        spunCap(c, 41 * u, Color(0xFF17181B), Color(0xFF3A3C41))
         if (value != null) drawCircle(Kw.white, 4 * u, at(225f - value.coerceIn(0, max).toFloat() / max * 270f, 30f))
     }
 }

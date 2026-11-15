@@ -43,6 +43,7 @@ import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.home.CassetteGlyph
 import com.bydmate.app.ui.home.EngravedIcon
 import com.bydmate.app.ui.home.HomeData
+import com.bydmate.app.ui.home.spunCap
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.RetroTab
@@ -191,6 +192,7 @@ private fun RangeKnob(totalKm: Int?) {
             drawArc(Color(0xFF1E2023), i * 8f, 4f, useCenter = true, topLeft = c - Offset(r, r), size = Size(2 * r, 2 * r))
         }
         drawCircle(Ok.Edge, r, c, style = Stroke(1.dp.toPx()))
+        spunCap(c, r * 0.62f, Color(0xFF17181B), Color(0xFF3E4045))
         if (totalKm != null) {
             val a = (225f - totalKm.coerceIn(0, 900) / 900f * 270f) * PI.toFloat() / 180f
             val d = 20.dp.toPx()

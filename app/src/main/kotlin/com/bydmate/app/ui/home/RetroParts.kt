@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -17,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -68,11 +71,12 @@ private val TapeDark = Color(0xFF1F150F)
 private val HubFace = Color(0xFFD4D3CF)
 
 /**
- * The deck's cassette compartment: a smoked acrylic door in [frame], the cassette centred in
- * it at its true proportions. The tape packs follow [progress] (0 at the start of side A: left
- * pack full); the hubs turn by [hubAngle] degrees, read at draw time so spinning only redraws
- * the hub layer. [stripe] tints the label's thin band; [caption] is engraved under the tape
- * when the door has room for it.
+ * The deck's cassette door, as on a real KX / Integra deck: an opaque smoked panel with silver
+ * [trim] and printed deck legends ([topText] above the window, [bottomText] below), and one
+ * rectangular window through which the tape is seen: the label's title line (side A, [artist]
+ * — [title]), the two hubs and the brown packs between them. The packs follow [progress] (0 at
+ * the start of side A: left pack full); the hubs turn by [hubAngle] degrees, read at draw time
+ * so spinning only redraws the hub layer. [stripe] tints the label's thin band.
  */
 @Composable
 fun CassetteDoor(
@@ -81,65 +85,56 @@ fun CassetteDoor(
     progress: Float,
     hubAngle: () -> Float,
     modifier: Modifier = Modifier,
-    frame: Color = Color(0xFF45474C),
+    trim: Color = Color(0xFFA9ACB1),
     stripe: Color = Color(0xFF8A5048),
-    caption: String? = null,
+    topText: String = "STEREO CASSETTE DECK",
+    bottomText: String = "DOLBY B·C NR",
 ) {
     val tm = rememberTextMeasurer(cacheSize = 8)
     Box(modifier.semantics { contentDescription = "Кассета: $artist — $title" }) {
         Canvas(Modifier.fillMaxSize()) {
-            drawDoorBack()
-            withCassette { k ->
-                drawShell()
-                drawLabel(tm, k, artist, title, stripe)
-                drawWindow(progress)
-                drawHeadArea()
-                drawScrews()
+            val win = doorWindow()
+            clipPath(Path().apply { addRoundRect(win) }) {
+                drawRect(Color(0xFF060607))
+                withTape(win) { k ->
+                    drawRect(Brush.verticalGradient(listOf(ShellTop, ShellBottom), 0f, CH), Offset.Zero, Size(CW, CH))
+                    drawLabel(tm, k, artist, title, stripe)
+                    drawWindow(progress)
+                }
             }
-            if (caption != null) drawCaption(tm, caption)
         }
         Canvas(Modifier.fillMaxSize()) {
+            val win = doorWindow()
             val a = hubAngle()
-            withCassette {
-                clipPath(Path().apply { addRoundRect(Window) }) { HubXs.forEach { drawHub(it, a) } }
-                drawWindowGlass()
+            clipPath(Path().apply { addRoundRect(win) }) {
+                withTape(win) {
+                    clipPath(Path().apply { addRoundRect(Window) }) { HubXs.forEach { drawHub(it, a) } }
+                    drawWindowGlass()
+                }
             }
         }
-        Canvas(Modifier.fillMaxSize()) { drawDoorGlass(frame) }
+        Canvas(Modifier.fillMaxSize()) { drawDoor(tm, trim, topText, bottomText) }
     }
 }
 
-/** Where the cassette sits in the door: centred, a margin all round, true aspect ratio. */
-private fun DrawScope.cassetteFit(): Pair<Float, Offset> {
-    val margin = min(size.width, size.height) * 0.06f
-    val k = min((size.width - 2 * margin) / CW, (size.height - 2 * margin) / CH)
-    val top = if (size.height - CH * k > 2 * margin + 20.dp.toPx()) margin * 1.2f else (size.height - CH * k) / 2
-    return k to Offset((size.width - CW * k) / 2, top)
+/** Part of the cassette framed by the door window, in cassette units: the title line to the label under the window. */
+private const val VIEW_X = 150f
+private const val VIEW_Y = 138f
+private const val VIEW_W = 704f
+private const val VIEW_H = 272f
+
+/** The door's window: 80 % of the door wide, the view's aspect ratio, centred. */
+private fun DrawScope.doorWindow(): RoundRect {
+    val w = min(size.width * 0.8f, size.height * 0.52f * VIEW_W / VIEW_H)
+    val h = w * VIEW_H / VIEW_W
+    val l = (size.width - w) / 2
+    val t = (size.height - h) / 2 + size.height * 0.02f
+    return RoundRect(l, t, l + w, t + h, CornerRadius(4.dp.toPx()))
 }
 
-private inline fun DrawScope.withCassette(block: DrawScope.(Float) -> Unit) {
-    val (k, o) = cassetteFit()
-    withTransform({ translate(o.x, o.y); scale(k, k, Offset.Zero) }) { block(k) }
-}
-
-private fun DrawScope.drawDoorBack() {
-    val r = CornerRadius(10.dp.toPx())
-    drawRoundRect(Brush.verticalGradient(listOf(Color(0xFF111214), Color(0xFF070708))), cornerRadius = r)
-}
-
-private fun DrawScope.drawShell() {
-    val r = CornerRadius(28f)
-    drawRoundRect(Brush.verticalGradient(listOf(ShellTop, ShellBottom), 0f, CH), Offset.Zero, Size(CW, CH), r)
-    // moulded bevel: light upper-left edge, dark lower-right edge, inner parting line
-    drawRoundRect(Color.White.copy(alpha = 0.16f), Offset(2f, 2f), Size(CW - 4f, CH - 4f), r, Stroke(3f))
-    drawRoundRect(Color.Black.copy(alpha = 0.55f), Offset(5f, 6f), Size(CW - 8f, CH - 8f), r, Stroke(3f))
-    drawRoundRect(Color.Black.copy(alpha = 0.35f), Offset(24f, 24f), Size(CW - 48f, CH - 48f), CornerRadius(16f), Stroke(2f))
-    // grip ribs on both sides
-    for (i in 0 until 6) {
-        val y = 250f + i * 22f
-        drawLine(Color.Black.copy(alpha = 0.4f), Offset(30f, y), Offset(62f, y), 3f)
-        drawLine(Color.Black.copy(alpha = 0.4f), Offset(CW - 62f, y), Offset(CW - 30f, y), 3f)
-    }
+private inline fun DrawScope.withTape(win: RoundRect, block: DrawScope.(Float) -> Unit) {
+    val k = win.width / VIEW_W
+    withTransform({ translate(win.left - VIEW_X * k, win.top - VIEW_Y * k); scale(k, k, Offset.Zero) }) { block(k) }
 }
 
 private fun DrawScope.drawLabel(tm: TextMeasurer, k: Float, artist: String, title: String, stripe: Color) {
@@ -152,25 +147,18 @@ private fun DrawScope.drawLabel(tm: TextMeasurer, k: Float, artist: String, titl
         },
     ) {
         drawRect(Brush.verticalGradient(listOf(Paper, Color(0xFFCFC8B8)), 40f, 452f), Offset(84f, 40f), Size(836f, 412f))
-        drawRect(stripe, Offset(84f, 170f), Size(836f, 12f))
-        drawRect(stripe.copy(alpha = 0.55f), Offset(84f, 186f), Size(836f, 4f))
+        drawRect(stripe, Offset(84f, 140f), Size(836f, 7f))
+        drawRect(stripe.copy(alpha = 0.55f), Offset(84f, 150f), Size(836f, 3f))
     }
-    // side letter box and the two ruled writing lines
-    drawRect(Color(0xFF2A2A2A), Offset(112f, 66f), Size(64f, 74f), style = Stroke(2.5f))
-    labelText(tm, k, "A", 144f, 128f, 58f, Color(0xFF2A2A2A), FontWeight.Bold, center = true)
-    drawLine(PaperRule, Offset(206f, 108f), Offset(892f, 108f), 1.5f)
-    drawLine(PaperRule, Offset(206f, 154f), Offset(892f, 154f), 1.5f)
-    labelText(tm, k, artist, 214f, 102f, 40f, InkColor, FontWeight.SemiBold, family = FontFamily.Cursive, maxW = 670f)
-    labelText(tm, k, title, 214f, 148f, 36f, InkColor, family = FontFamily.Cursive, maxW = 670f)
-    // small print under the window
-    labelText(tm, k, "C-90", 112f, 436f, 24f, Color(0xFF4E4A42), FontWeight.Bold)
-    labelText(tm, k, "TYPE II · HIGH POSITION", 892f, 436f, 20f, Color(0xFF5E594F), end = true)
+    // side letter and the writing line with artist — title, just above the tape window
+    labelText(tm, k, "A", 166f, 190f, 36f, Color(0xFF2A2A2A), FontWeight.Bold)
+    drawLine(PaperRule, Offset(206f, 196f), Offset(836f, 196f), 1.5f)
+    labelText(tm, k, "$artist — $title", 212f, 188f, 32f, InkColor, FontWeight.SemiBold, family = FontFamily.Cursive, maxW = 620f)
 }
 
 private fun DrawScope.labelText(
     tm: TextMeasurer, k: Float, text: String, x: Float, baseline: Float, sizeUnits: Float, color: Color,
-    weight: FontWeight = FontWeight.Normal, family: FontFamily = FontFamily.SansSerif,
-    maxW: Float? = null, center: Boolean = false, end: Boolean = false,
+    weight: FontWeight = FontWeight.Normal, family: FontFamily = FontFamily.SansSerif, maxW: Float? = null,
 ) {
     // measured in px, drawn inside the cassette's unit transform: undo k for the layout
     val layout = tm.measure(
@@ -179,13 +167,7 @@ private fun DrawScope.labelText(
         overflow = TextOverflow.Ellipsis, softWrap = false, maxLines = 1,
         constraints = maxW?.let { Constraints(maxWidth = (it * k).toInt()) } ?: Constraints(),
     )
-    val w = layout.size.width / k
-    val left = when {
-        center -> x - w / 2
-        end -> x - w
-        else -> x
-    }
-    withTransform({ translate(left, baseline - layout.firstBaseline / k); scale(1f / k, 1f / k, Offset.Zero) }) {
+    withTransform({ translate(x, baseline - layout.firstBaseline / k); scale(1f / k, 1f / k, Offset.Zero) }) {
         drawText(layout)
     }
 }
@@ -198,7 +180,6 @@ private fun DrawScope.drawWindow(progress: Float) {
     clipPath(Path().apply { addRoundRect(Window) }) {
         tapePack(HubXs[0], sqrt(PACK_MIN * PACK_MIN + span * (1f - p)))
         tapePack(HubXs[1], sqrt(PACK_MIN * PACK_MIN + span * p))
-        // guide rollers at the lower corners and the tape leaving each pack towards them
         drawLine(TapeLight, Offset(HubXs[0] - 60f, Window.bottom - 2f), Offset(HubXs[1] + 60f, Window.bottom - 2f), 3f)
     }
 }
@@ -239,7 +220,7 @@ private fun DrawScope.drawHub(cx: Float, angle: Float) {
     }
 }
 
-/** Clear window plastic: ruler marks between the hubs, a soft sheen, a thin frame. */
+/** Clear window plastic of the cassette: ruler marks between the hubs, a soft sheen, a thin frame. */
 private fun DrawScope.drawWindowGlass() {
     for (i in 0..16) {
         val x = 404f + i * 12.25f
@@ -254,81 +235,53 @@ private fun DrawScope.drawWindowGlass() {
     drawRoundRect(Color.White.copy(alpha = 0.10f), Window.topLeft() + Offset(0f, 3f), Window.size(), CornerRadius(14f), Stroke(1.5f))
 }
 
-/** Lower trapezoid: head and pinch-roller openings, capstan holes, the tape across them. */
-private fun DrawScope.drawHeadArea() {
-    val trap = Path().apply { moveTo(170f, CH); lineTo(212f, 488f); lineTo(792f, 488f); lineTo(834f, CH); close() }
-    drawPath(trap, Brush.verticalGradient(listOf(Color(0xFF2A2B2E), Color(0xFF1A1B1D)), 488f, CH))
-    drawLine(Color.White.copy(alpha = 0.14f), Offset(212f, 489f), Offset(792f, 489f), 2f)
-    drawLine(Color.Black.copy(alpha = 0.6f), Offset(170f, CH), Offset(212f, 488f), 2.5f)
-    drawLine(Color.Black.copy(alpha = 0.6f), Offset(792f, 488f), Offset(834f, CH), 2.5f)
-    // openings along the bottom edge: pinch rollers, head, erase head; the tape runs past them
-    val openings = listOf(
-        floatArrayOf(250f, 92f), floatArrayOf(372f, 62f), floatArrayOf(450f, 104f),
-        floatArrayOf(570f, 62f), floatArrayOf(662f, 92f),
-    )
-    openings.forEach { (x, w) ->
-        drawRoundRect(Hole, Offset(x, 578f), Size(w, CH - 578f + 4f), CornerRadius(4f))
-        drawRect(TapeLight, Offset(x, 612f), Size(w, 6f))
-    }
-    // capstan holes and the small guide holes
-    drawCircle(Hole, 17f, Offset(300f, 540f))
-    drawCircle(Hole, 17f, Offset(704f, 540f))
-    drawCircle(Color.White.copy(alpha = 0.08f), 17f, Offset(300f, 541f), style = Stroke(1.5f))
-    drawCircle(Color.White.copy(alpha = 0.08f), 17f, Offset(704f, 541f), style = Stroke(1.5f))
-    drawRoundRect(Hole, Offset(392f, 520f), Size(22f, 30f), CornerRadius(4f))
-    drawRoundRect(Hole, Offset(590f, 520f), Size(22f, 30f), CornerRadius(4f))
-}
-
-private fun DrawScope.drawScrews() {
-    listOf(Offset(44f, 44f), Offset(CW - 44f, 44f), Offset(44f, CH - 44f), Offset(CW - 44f, CH - 44f), Offset(502f, 520f))
-        .forEachIndexed { i, c -> drawScrew(c, if (i % 2 == 0) 20f else -35f) }
-}
-
-private fun DrawScope.drawScrew(c: Offset, slot: Float) {
-    drawCircle(Color.Black.copy(alpha = 0.6f), 19f, c + Offset(1.5f, 2f))
-    drawCircle(
-        Brush.radialGradient(listOf(Color(0xFF8D8E92), Color(0xFF3A3B3F)), c - Offset(6f, 6f), 24f),
-        17f, c,
-    )
-    rotate(slot, c) {
-        drawLine(Color(0xFF1C1C1E), c - Offset(10f, 0f), c + Offset(10f, 0f), 3.5f)
-        drawLine(Color(0xFF1C1C1E), c - Offset(0f, 10f), c + Offset(0f, 10f), 3.5f)
-    }
-}
-
-private fun DrawScope.drawCaption(tm: TextMeasurer, caption: String) {
-    val (k, o) = cassetteFit()
-    val layout = tm.measure(
-        caption,
-        TextStyle(color = Color(0xFF7E8187), fontSize = 10.dp.toSp(), letterSpacing = 1.dp.toSp(), fontFamily = FontFamily.SansSerif),
-    )
-    val y = o.y + CH * k + (size.height - o.y - CH * k - layout.size.height) / 2
-    drawText(layout, topLeft = Offset((size.width - layout.size.width) / 2, y))
-}
-
-/** The acrylic: a smoky tint over everything, one soft diagonal reflection, the door frame. */
-private fun DrawScope.drawDoorGlass(frame: Color) {
-    val r = CornerRadius(10.dp.toPx())
-    drawRoundRect(Color(0xFF0A0C10).copy(alpha = 0.30f), cornerRadius = r)
-    val glare = Path().apply {
-        moveTo(size.width * 0.06f, 0f); lineTo(size.width * 0.42f, 0f)
-        lineTo(size.width * 0.20f, size.height); lineTo(0f, size.height); lineTo(0f, size.height * 0.55f); close()
-    }
-    clipPath(Path().apply { addRoundRect(RoundRect(0f, 0f, size.width, size.height, r)) }) {
-        drawPath(
-            glare,
-            Brush.linearGradient(
-                0f to Color.White.copy(alpha = 0.10f), 0.5f to Color.White.copy(alpha = 0.03f), 1f to Color.Transparent,
-                start = Offset.Zero, end = Offset(size.width * 0.4f, size.height),
-            ),
-        )
-        drawRect(
-            Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.06f), Color.Transparent), 0f, size.height * 0.25f),
-        )
-    }
+/**
+ * The door over everything: an opaque smoked panel with a window cut out, the smoked acrylic
+ * in the window (tint, one soft reflection, an inner shadow), silver trim round the door and
+ * the window, the printed legends.
+ */
+private fun DrawScope.drawDoor(tm: TextMeasurer, trim: Color, topText: String, bottomText: String) {
     val px = 1.dp.toPx()
-    drawRoundRect(frame, Offset(px, px), Size(size.width - 2 * px, size.height - 2 * px), r, Stroke(2 * px))
-    drawRoundRect(Color.Black.copy(alpha = 0.7f), Offset(3 * px, 3 * px), Size(size.width - 6 * px, size.height - 6 * px), CornerRadius(8.dp.toPx()), Stroke(2 * px))
+    val win = doorWindow()
+    val r = CornerRadius(6.dp.toPx())
+    val panel = Path().apply {
+        addRoundRect(RoundRect(0f, 0f, size.width, size.height, r))
+        addRoundRect(win)
+        fillType = androidx.compose.ui.graphics.PathFillType.EvenOdd
+    }
+    drawPath(panel, Brush.verticalGradient(listOf(Color(0xFF1C1D20), Color(0xFF111214), Color(0xFF0C0D0E))))
+    // a faint sheen across the upper half of the panel
+    drawPath(panel, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.05f), Color.Transparent), 0f, size.height * 0.45f))
+    // smoked acrylic in the window
+    clipPath(Path().apply { addRoundRect(win) }) {
+        drawRect(Color(0xFF0B0D12).copy(alpha = 0.34f))
+        val glare = Path().apply {
+            moveTo(win.left + win.width * 0.05f, win.top); lineTo(win.left + win.width * 0.30f, win.top)
+            lineTo(win.left + win.width * 0.18f, win.bottom); lineTo(win.left - win.width * 0.07f, win.bottom); close()
+        }
+        drawPath(glare, Brush.verticalGradient(listOf(Color.White.copy(alpha = 0.09f), Color.White.copy(alpha = 0.02f)), win.top, win.bottom))
+        drawRect(Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent), win.top, win.top + 7 * px))
+        drawRect(Brush.horizontalGradient(listOf(Color.Black.copy(alpha = 0.45f), Color.Transparent), win.left, win.left + 6 * px))
+    }
+    // silver trim: lit from above, darker at the bottom edge
+    val trimBrush = Brush.verticalGradient(listOf(trim, trim.copy(alpha = 0.45f), trim.copy(alpha = 0.8f)))
+    drawRoundRect(trimBrush, Offset(px / 2, px / 2), Size(size.width - px, size.height - px), r, style = Stroke(1.5f * px))
+    drawRoundRect(Color.Black.copy(alpha = 0.8f), Offset(2.5f * px, 2.5f * px), Size(size.width - 5 * px, size.height - 5 * px), CornerRadius(4.dp.toPx()), Stroke(px))
+    drawRoundRect(
+        Brush.verticalGradient(listOf(trim.copy(alpha = 0.5f), trim), win.top, win.bottom),
+        Offset(win.left - px, win.top - px), Size(win.width + 2 * px, win.height + 2 * px), CornerRadius(5.dp.toPx()), style = Stroke(1.2f * px),
+    )
+    // printed legends
+    val legend = TextStyle(color = Color(0xFF9EA1A7), fontSize = 9.dp.toSp(), letterSpacing = 1.4.dp.toSp(), fontFamily = FontFamily.SansSerif)
+    val top = tm.measure(topText, legend)
+    drawText(top, topLeft = Offset((size.width - top.size.width) / 2, (win.top - top.size.height) / 2 + px))
+    val bottom = tm.measure(bottomText, legend.copy(color = Color(0xFF7E8187)))
+    drawText(bottom, topLeft = Offset((size.width - bottom.size.width) / 2, win.bottom + (size.height - win.bottom - bottom.size.height) / 2))
+    // tape direction arrows either side of the window
+    val ay = win.top + win.height / 2
+    val arrow = Color(0xFF6E7176)
+    drawPath(Path().apply { moveTo(win.left - 9 * px, ay - 4 * px); lineTo(win.left - 15 * px, ay); lineTo(win.left - 9 * px, ay + 4 * px); close() }, arrow)
+    drawPath(Path().apply { moveTo(win.right + 9 * px, ay - 4 * px); lineTo(win.right + 15 * px, ay); lineTo(win.right + 9 * px, ay + 4 * px); close() }, arrow)
 }
 
 private fun RoundRect.topLeft() = Offset(left, top)
@@ -374,4 +327,72 @@ val CassetteGlyph: ImageVector by lazy {
             moveTo(17.8f, 11f); arcTo(2f, 2f, 0f, true, true, 13.8f, 11f); arcTo(2f, 2f, 0f, true, true, 17.8f, 11f); close()
         }
     }.build()
+}
+
+/* ---------------------------------------------------------------- fascia and key materials */
+
+/**
+ * Horizontally brushed metal fascia from [top] to [bottom]: irregular fine hairlines, a soft
+ * sheen band in the upper third, light falling off to the right, a lit top edge in [edge], a
+ * dark lip in [lip] and dark seams at both ends. Built once per size (drawWithCache).
+ */
+fun Modifier.brushedFascia(top: Color, bottom: Color, edge: Color, lip: Color): Modifier = drawWithCache {
+    val px = 1.dp.toPx()
+    val dark = Path()
+    val light = Path()
+    var seed = 0x2F6E2B1
+    var y = 0f
+    while (y < size.height) {
+        seed = seed * 1_103_515_245 + 12_345
+        val r = (seed ushr 16) and 0x7FFF
+        val h = px * (0.5f + (r % 3) * 0.25f)
+        (if (r % 3 == 0) light else dark).addRect(Rect(0f, y, size.width, y + h))
+        y += px * (1f + (r % 5) * 0.35f)
+    }
+    val base = Brush.verticalGradient(listOf(top, bottom))
+    val sheen = Brush.verticalGradient(
+        0f to Color.Transparent, 0.2f to Color.White.copy(alpha = 0.045f), 0.45f to Color.Transparent, 1f to Color.Transparent,
+    )
+    val falloff = Brush.horizontalGradient(listOf(Color.White.copy(alpha = 0.025f), Color.Transparent, Color.Black.copy(alpha = 0.07f)))
+    onDrawBehind {
+        drawRect(base)
+        drawPath(dark, Color.Black.copy(alpha = 0.15f))
+        drawPath(light, Color.White.copy(alpha = 0.035f))
+        drawRect(sheen)
+        drawRect(falloff)
+        drawRect(edge, size = Size(size.width, px))
+        drawRect(Color.White.copy(alpha = 0.05f), Offset(0f, px), Size(size.width, px))
+        drawRect(lip, Offset(0f, size.height - 2 * px), Size(size.width, 2 * px))
+        drawRect(Color.Black.copy(alpha = 0.45f), size = Size(px, size.height))
+        drawRect(Color.Black.copy(alpha = 0.45f), Offset(size.width - px, 0f), Size(px, size.height))
+    }
+}
+
+/**
+ * Face of a hardware push key: [face] with a faint vertical gradient, a lit top edge and a
+ * [shadow] lip below when raised; flush, darker and shaded from the top edge when [down].
+ */
+fun Modifier.hardwareKey(down: Boolean, face: Color, edge: Color, shadow: Color, radius: Dp): Modifier = drawWithCache {
+    val px = 1.dp.toPx()
+    val r = CornerRadius(radius.toPx())
+    val raised = Brush.verticalGradient(listOf(lerp(face, Color.White, 0.07f), face, lerp(face, Color.Black, 0.18f)))
+    val pushed = Brush.verticalGradient(listOf(lerp(face, Color.Black, 0.35f), lerp(face, Color.Black, 0.1f)))
+    val inner = Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent), 0f, 6 * px)
+    onDrawBehind {
+        if (!down) drawRoundRect(shadow, Offset(0f, 2 * px), size, r)
+        drawRoundRect(if (down) pushed else raised, cornerRadius = r)
+        if (down) {
+            drawRoundRect(inner, cornerRadius = r)
+        } else {
+            drawLine(Color.White.copy(alpha = 0.16f), Offset(radius.toPx(), 1.5f * px), Offset(size.width - radius.toPx(), 1.5f * px), px)
+        }
+        drawRoundRect(edge, Offset(px / 2, px / 2), Size(size.width - px, size.height - px), r, style = Stroke(px))
+    }
+}
+
+/** Spun-aluminium cap: a conical sheen ([dark] / [light], two highlights round) drawn at [radius] around [c]. */
+fun DrawScope.spunCap(c: Offset, radius: Float, dark: Color = Color(0xFF1F2023), light: Color = Color(0xFF45474C)) {
+    drawCircle(Brush.sweepGradient(listOf(dark, light, dark, lerp(dark, light, 0.6f), dark), c), radius, c)
+    drawCircle(Brush.radialGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f)), c, radius), radius, c)
+    drawCircle(Color.Black.copy(alpha = 0.6f), radius, c, style = Stroke(1.dp.toPx()))
 }
