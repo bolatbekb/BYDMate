@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -31,6 +32,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -38,6 +40,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bydmate.app.ui.home.CassetteGlyph
+import com.bydmate.app.ui.home.EngravedIcon
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
@@ -217,7 +221,7 @@ internal fun AmpTier(
             .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Row(Modifier.fillMaxWidth().height(52.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().height(60.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Column(Modifier.width(330.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
                 Brand(14, "STEREO POWER AMPLIFIER")
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -250,31 +254,38 @@ internal fun AmpTier(
 @Composable
 private fun InputSelector(tabs: List<RetroTab>, onTab: (RetroTab) -> Unit, modifier: Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        SourceKey("TAPE", current = true, onClick = {}, modifier = Modifier.weight(0.8f))
+        SourceKey("TAPE", CassetteGlyph, current = true, onClick = {}, modifier = Modifier.weight(1f))
         tabs.forEach { tab ->
-            SourceKey(tab.label, current = false, onClick = { onTab(tab) }, modifier = Modifier.weight(1.1f))
+            SourceKey(tab.label, tab.icon, current = false, onClick = { onTab(tab) }, modifier = Modifier.weight(1f))
         }
     }
 }
 
-/** Source key: amber lamp over the legend, pushed in while held, the lamp lit on the current source. */
+/**
+ * Source key: an engraved icon over the legend, an amber lamp in the corner lit on the current
+ * source, pushed in while held.
+ */
 @Composable
-private fun SourceKey(label: String, current: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun SourceKey(label: String, icon: ImageVector, current: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val src = remember { MutableInteractionSource() }
     val pressed by src.collectIsPressedAsState()
-    Column(
+    Box(
         modifier.fillMaxHeight().keyFace(pressed)
             .clickable(src, null, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label }
-            .padding(horizontal = 6.dp, vertical = 7.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
+            .semantics { contentDescription = label },
     ) {
-        LedStrip(current, Modifier.size(26.dp, 4.dp), halo = 5.dp)
-        Label(
-            label.uppercase(), size = 13.sp, color = if (current) Ok.White else KeyText,
-            weight = FontWeight.SemiBold, spacing = 0.5.sp, align = TextAlign.Center,
-        )
+        LedStrip(current, Modifier.align(Alignment.TopStart).padding(start = 8.dp, top = 8.dp).size(14.dp, 4.dp), halo = 5.dp)
+        Column(
+            Modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
+        ) {
+            EngravedIcon(icon, tone = if (current) Color(0xFF9A9DA3) else Color(0xFF74777D), size = 22.dp)
+            Label(
+                label.uppercase(), size = 12.sp, color = if (current) Ok.White else KeyText,
+                weight = FontWeight.SemiBold, spacing = 0.3.sp, align = TextAlign.Center,
+            )
+        }
     }
 }
 

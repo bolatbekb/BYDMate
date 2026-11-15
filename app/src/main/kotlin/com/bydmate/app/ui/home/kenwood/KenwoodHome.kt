@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -43,6 +44,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.bydmate.app.ui.home.CassetteDoor
+import com.bydmate.app.ui.home.CassetteGlyph
+import com.bydmate.app.ui.home.EngravedIcon
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
@@ -131,15 +135,23 @@ private fun DeckWell(music: NowPlaying, modifier: Modifier) {
             },
     ) {
         Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 6.dp)) {
-            KText("STEREO DRIVE DECK KX-2026", 10f, Modifier.padding(start = 14.dp), color = Color(0xFFB5B8BD), family = LogoFont, spacing = 1f)
-            HfsCassette(music, Modifier.padding(top = 4.dp).width(276.dp).align(Alignment.CenterHorizontally))
+            val spin = rememberRunningClock(music.isPlaying, if (music.winding) 900f else 360f / 2.2f)
+            CassetteDoor(
+                artist = music.artist?.takeIf { it.isNotBlank() } ?: "—",
+                title = music.title?.takeIf { it.isNotBlank() } ?: "Нет музыки",
+                progress = music.progress,
+                hubAngle = { spin.value },
+                modifier = Modifier.padding(top = 2.dp).size(316.dp, 196.dp).align(Alignment.CenterHorizontally),
+                frame = Kw.edge,
+                stripe = Color(0xFF4C7C80),
+            )
             Spacer(Modifier.weight(1f))
             Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF2E3034)))
             Row(Modifier.fillMaxWidth().padding(top = 3.dp, start = 14.dp, end = 14.dp), verticalAlignment = Alignment.Bottom) {
                 KText("DM-i", 18f, color = Color(0xFFD0D2D6), family = LogoFont, weight = FontWeight.Medium)
                 Spacer(Modifier.weight(1f))
                 KText(
-                    "BLADE BATTERY · DUAL MOTOR", 9f,
+                    "STEREO DRIVE DECK KX-2026", 10f,
                     color = Kw.grey, family = LogoFont, align = TextAlign.End,
                 )
             }
@@ -396,7 +408,7 @@ private fun AmplifierTier(
                     listOf("0", "200", "400", "600", "800 КМ").forEach { KText(it, 10f, color = Kw.grey) }
                 }
             }
-            InputSelector(tabs, onTab, Modifier.fillMaxWidth().height(48.dp))
+            InputSelector(tabs, onTab, Modifier.fillMaxWidth().height(60.dp))
         }
         AmpLegend(music, Modifier.width(170.dp).fillMaxHeight())
     }
@@ -406,30 +418,33 @@ private fun AmplifierTier(
 @Composable
 private fun InputSelector(tabs: List<RetroTab>, onTab: (RetroTab) -> Unit, modifier: Modifier) {
     Row(modifier, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-        SourceKey("TAPE", current = true, onClick = {}, modifier = Modifier.weight(0.8f).fillMaxHeight())
+        SourceKey("TAPE", CassetteGlyph, current = true, onClick = {}, modifier = Modifier.weight(1f).fillMaxHeight())
         tabs.forEach { tab ->
-            SourceKey(tab.label, current = false, onClick = { onTab(tab) }, modifier = Modifier.weight(1.1f).fillMaxHeight())
+            SourceKey(tab.label, tab.icon, current = false, onClick = { onTab(tab) }, modifier = Modifier.weight(1f).fillMaxHeight())
         }
     }
 }
 
-/** Square source key with an LED slot over the legend; the LED glows on the current source. */
+/**
+ * Square source key: an engraved icon over the legend, and an LED slot in the corner that glows
+ * on the current source.
+ */
 @Composable
-private fun SourceKey(label: String, current: Boolean, onClick: () -> Unit, modifier: Modifier) {
+private fun SourceKey(label: String, icon: ImageVector, current: Boolean, onClick: () -> Unit, modifier: Modifier) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
-    Column(
+    val lit = current || pressed
+    Box(
         modifier
             .keyFace(pressed)
             .clickable(source, indication = null, role = Role.Button, onClick = onClick)
-            .semantics { contentDescription = label }
-            .padding(horizontal = 6.dp, vertical = 6.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.SpaceBetween,
+            .semantics { contentDescription = label },
     ) {
         Box(
             Modifier
-                .size(22.dp, 5.dp)
+                .align(Alignment.TopStart)
+                .padding(start = 8.dp, top = 8.dp)
+                .size(14.dp, 4.dp)
                 .drawBehind {
                     if (current) {
                         val g = 3.dp.toPx()
@@ -438,10 +453,17 @@ private fun SourceKey(label: String, current: Boolean, onClick: () -> Unit, modi
                     drawRect(if (current) Kw.vfd else Kw.vfdOff)
                 },
         )
-        KText(
-            label.uppercase(), 13f, color = if (current || pressed) Kw.vfd else Kw.text,
-            weight = FontWeight.Medium, spacing = 0.5f, align = TextAlign.Center,
-        )
+        Column(
+            Modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 5.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(3.dp, Alignment.CenterVertically),
+        ) {
+            EngravedIcon(icon, tone = if (lit) Kw.vfdDim else Color(0xFF70747B), size = 22.dp)
+            KText(
+                label.uppercase(), 12f, color = if (lit) Kw.vfd else Kw.text,
+                weight = FontWeight.Medium, spacing = 0.3f, align = TextAlign.Center,
+            )
+        }
     }
 }
 

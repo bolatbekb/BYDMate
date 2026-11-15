@@ -37,7 +37,7 @@ fun ForkHome(onOpenTab: (String) -> Unit, standard: @Composable () -> Unit) {
         HomeStyle.STANDARD -> standard()
         else -> {
             val tabs = Screen.entries.filter { it != Screen.Dashboard }
-                .map { RetroTab(it.route, stringResource(it.labelRes)) }
+                .map { RetroTab(it.route, stringResource(it.labelRes), it.icon) }
             RetroHome(style, tabs, onTab = { onOpenTab(it.route) })
         }
     }

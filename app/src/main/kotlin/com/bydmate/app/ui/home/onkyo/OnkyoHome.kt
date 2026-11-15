@@ -42,6 +42,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.bydmate.app.ui.home.CassetteDoor
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
@@ -152,7 +153,16 @@ private fun DeckTier(
         DeckLeft(Modifier.width(84.dp).fillMaxHeight())
         Column(Modifier.width(DoorW), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Brand(15, "STEREO CASSETTE DRIVE DECK")
-            CassetteDoor(music.progress, hubAngle, width = DoorW)
+            CassetteDoor(
+                artist = music.artist?.takeIf { it.isNotBlank() } ?: "—",
+                title = music.title?.takeIf { it.isNotBlank() } ?: "Нет музыки",
+                progress = music.progress,
+                hubAngle = hubAngle,
+                modifier = Modifier.size(DoorW, DoorW * (290f / 392f)),
+                frame = Ok.Edge,
+                stripe = Color(0xFF8A5048),
+                caption = "AMCS · DOLBY B NR · AUTO REVERSE",
+            )
         }
         PeakPanel(data.socPercent, data.fuelPercent, Modifier.width(132.dp).fillMaxHeight())
         Column(Modifier.width(136.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {

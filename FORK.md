@@ -3,7 +3,7 @@
 Это форк [AndyShaman/BYDMate](https://github.com/AndyShaman/BYDMate): `bolatbekb/BYDMate`.
 Форк добавляет свои функции и регулярно забирает изменения автора. Как пользоваться приложением, описано в [README.md](README.md). Здесь описано только то, чем форк отличается от оригинала и как его поддерживать.
 
-Версия форка: **4.4.1.1** (основа: 4.4.1 автора).
+Версия форка: **4.4.1.2** (основа: 4.4.1 автора).
 
 ## Что добавлено
 
@@ -11,7 +11,7 @@
 |---|---|---|
 | Цветовые скины: Classic, Cockpit, Graphite Pro, Volt, Telemetry, OLED | Настройки → Приложение → «Оформление» | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt` |
 | Демо-режим: имитация поездки и 90 дней истории в отдельной базе | Настройки → Приложение → «Демо» | `demo/*`, `ui/settings/DemoModeBlock.kt` |
-| Ретро-главные «Стойка KX» и «Стойка Integra» с кассетной декой и управлением музыкой | Настройки → Приложение → «Главный экран» | `ui/home/*`, `ui/settings/HomeStylePickerBlock.kt` |
+| Ретро-главные «Стойка KX» и «Стойка Integra»: кассетная дека с реалистичной кассетой и управлением музыкой; вместо нижней панели вкладок — клавиши-переключатель входов с гравированными значками. Свёрстаны под 1280×604 dp (экран Leopard 5 без панелей машины) | Настройки → Приложение → «Главный экран» | `ui/home/*` (общая кассета — `RetroParts.kt`), `ui/settings/HomeStylePickerBlock.kt` |
 | Скриншот всего экрана вместе с панелями машины, через ADB `screencap`, с задержкой 5 с | Настройки → Приложение | `fork/ScreenshotTaker.kt`, `ui/settings/ScreenshotBlock.kt` |
 | Размер окна, панели машины и плотность (dpi) в шапке диагностического лога | Настройки → запись лога | `fork/DisplayInfo.kt` |
 | Обновления из релизов форка, а не автора | автопроверка и кнопка в настройках | `fork/ForkConfig.kt` |
@@ -42,7 +42,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 
 ### Где возможен конфликт: правки в файлах автора
 
-Всего 17 файлов и около 150 строк. При конфликте ищи в них метку `fork`.
+Всего 17 файлов, порядка 150–170 строк. При конфликте ищи в них метку `fork`.
 
 | Файл | Что изменено |
 |---|---|
@@ -52,7 +52,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | `ui/theme/Theme.kt` | `DarkColorScheme` стал геттером |
 | `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером |
 | `ui/settings/SettingsAppVoice.kt` | вызовы блоков скина, главной, демо и скриншота в разделе «Приложение» |
-| `ui/navigation/AppNavigation.kt` | `DashboardScreen` обёрнут в `ForkHome { … }` |
+| `ui/navigation/AppNavigation.kt` | `DashboardScreen` обёрнут в `ForkHome(onOpenTab) { … }`; нижняя панель скрыта, пока на главной ретро-стойка (`hidesBottomBar`) |
 | `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса |
 | `di/NativeModule.kt` | привязка `DemoAwareParsReader` |
 | `service/UpdateChecker.kt` | адрес релизов берётся из `ForkConfig.UPDATE_REPO` |
