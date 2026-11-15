@@ -159,10 +159,9 @@ private fun DeckTier(
                 progress = music.progress,
                 hubAngle = hubAngle,
                 modifier = Modifier.size(DoorW, DoorW * (290f / 392f)),
-                trim = Color(0xFFB3B1AA),
+                frame = Ok.Edge,
                 stripe = Color(0xFF8A5048),
-                topText = "INTEGRA · AMCS",
-                bottomText = "DOLBY B·C NR · HX PRO · ACCUBIAS",
+                caption = "AMCS · DOLBY B NR · AUTO REVERSE",
             )
         }
         PeakPanel(data.socPercent, data.fuelPercent, Modifier.width(132.dp).fillMaxHeight())

@@ -142,10 +142,8 @@ private fun DeckWell(music: NowPlaying, modifier: Modifier) {
                 progress = music.progress,
                 hubAngle = { spin.value },
                 modifier = Modifier.padding(top = 2.dp).size(316.dp, 196.dp).align(Alignment.CenterHorizontally),
-                trim = Color(0xFF9FA3A9),
+                frame = Kw.edge,
                 stripe = Color(0xFF4C7C80),
-                topText = "KX-2026 · STEREO CASSETTE DECK",
-                bottomText = "DOLBY B·C NR · AUTO REVERSE · CCRS",
             )
             Spacer(Modifier.weight(1f))
             Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF2E3034)))
