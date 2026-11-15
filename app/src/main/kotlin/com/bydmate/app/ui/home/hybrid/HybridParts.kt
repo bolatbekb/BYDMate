@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 /*
- * The RS stack is the mockup itself (res/drawable-nodpi/rs_base.png, 2560 x 1208, twice the car's
+ * The RS stack is the mockup itself (res/drawable-nodpi/rs_base.webp, 2560 x 1208, twice the car's
  * 1280 x 604 dp content area) with the live parts erased (tools/rs/RsBackplate.java). Everything
  * the app draws on top is placed on the mockup's pixel grid, converted by [K].
  */

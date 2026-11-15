@@ -4,7 +4,6 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -50,8 +49,10 @@ internal data class PrintedScale(
  */
 @Composable
 internal fun MeterNeedle(scale: PrintedScale, value: Double?, originX: Int, originY: Int, modifier: Modifier) {
-    val angle by animateFloatAsState(scale.angleOf(value), tween(700), label = "needle")
+    // read in the draw phase only: the swing redraws this canvas, never recomposes the screen
+    val angleState = animateFloatAsState(scale.angleOf(value), tween(700), label = "needle")
     Canvas(modifier.clipToBounds()) {
+        val angle = angleState.value
         val s = K * density // px per mockup pixel
         val c = Offset((scale.cx - originX) * s, (scale.cy - originY) * s)
         val a = angle * PI.toFloat() / 180f

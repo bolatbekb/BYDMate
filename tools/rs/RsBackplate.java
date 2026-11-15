@@ -1,4 +1,4 @@
-// Run: java RsBackplate.java <BYDMATE_Hybrid_2560x1208.png> <app/src/main/res/drawable-nodpi>
+// Run: java RsBackplate.java <BYDMATE_Hybrid_2560x1208.png> <app/src/main/res/drawable-nodpi>, then tools/webp.sh
 import javax.imageio.ImageIO; import java.awt.image.BufferedImage; import java.io.File; import java.util.function.IntPredicate;
 
 /** Builds the RS stack's backplate from the mockup: erases what the app draws live, extracts lit faces and reels. */
