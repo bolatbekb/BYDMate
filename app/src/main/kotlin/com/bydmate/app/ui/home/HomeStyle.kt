@@ -10,6 +10,7 @@ enum class HomeStyle(val id: String, val title: String) {
     STANDARD("standard", "Стандартная"),
     KENWOOD("kenwood", "Стойка KX"),
     ONKYO("onkyo", "Стойка Integra"),
+    HYBRID("hybrid", "Стойка RS"),
 }
 
 object HomeStyleState {
@@ -25,6 +26,8 @@ object HomeStyleState {
         }.getOrNull()
         current = HomeStyle.entries.firstOrNull { it.id == id } ?: HomeStyle.STANDARD
         CassetteRotation.init(context)
+        ReelCassetteRotation.init(context)
+        DayMileage.init(context)
     }
 
     fun select(context: Context, style: HomeStyle) {

@@ -49,15 +49,26 @@ data class HomeData(
     val weekPer100: List<Double?>,
     val events: List<HomeEvent>,
     val currency: String,
+    /** Engine speed, rpm; 0 with the engine off, null when the car does not report it. */
+    val engineRpm: Int? = null,
+    /** AC / heat pump compressor draw, kW. */
+    val compressorKw: Double? = null,
+    /** Climate on; null when unknown. */
+    val acOn: Boolean? = null,
+    /** Climate in AUTO; null when unknown. */
+    val acAuto: Boolean? = null,
+    /** Kilometres driven today (see DayMileage). */
+    val todayKm: Double? = null,
 ) {
     companion object {
         private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
 
-        @Suppress("CyclomaticComplexMethod") // a flat chain of null fallbacks, one per field
+        @Suppress("CyclomaticComplexMethod", "LongMethod") // a flat chain of null fallbacks, one per field
         fun from(
             s: DashboardUiState,
             live: DiParsData?,
             supported: List<com.bydmate.app.data.vehicle.DriveMode>? = null,
+            todayKm: Double? = null,
         ): HomeData {
             val ev = s.evRangeKm ?: live?.evRangeKm ?: s.estimatedRangeKm?.roundToInt()
             val fuel = s.fuelRangeKm ?: live?.fuelRangeKm
@@ -115,6 +126,11 @@ data class HomeData(
                 weekPer100 = week,
                 events = events,
                 currency = s.currencySymbol,
+                engineRpm = s.engineRpm ?: live?.engineRpm,
+                compressorKw = live?.compressorW?.let { it / 1000.0 },
+                acOn = live?.acStatus?.let { it == 1 },
+                acAuto = live?.acCtrlMode?.let { it == 0 },
+                todayKm = todayKm,
             )
         }
     }

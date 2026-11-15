@@ -7,4 +7,7 @@ package com.bydmate.app.fork
 object ForkConfig {
     /** GitHub "owner/repo" whose latest release the in-app updater offers. */
     const val UPDATE_REPO = "bolatbekb/BYDMate"
+
+    /** The author's donation prompt never pops up on its own; it stays reachable from Settings. */
+    const val DONATION_PROMPT = false
 }

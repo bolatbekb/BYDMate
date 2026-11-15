@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.sample
 import com.bydmate.app.ui.dashboard.DashboardViewModel
 import com.bydmate.app.ui.home.kenwood.KenwoodHome
 import com.bydmate.app.ui.home.onkyo.OnkyoHome
+import com.bydmate.app.ui.home.hybrid.HybridHome
 
 /** True on the Dashboard tab while a retro home is on: it draws the tabs itself (AppNavigation hook). */
 fun hidesBottomBar(route: String?): Boolean =
@@ -74,10 +75,12 @@ private fun RetroHome(
     val music by NowPlayingSource.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.bydmate.app.fork.DriveModeSupport.ensureProbed(context) }
     val profiles by com.bydmate.app.fork.DriveModeSupport.supported.collectAsStateWithLifecycle()
-    val data = remember(state, live, profiles) { HomeData.from(state, live, profiles) }
+    val todayKm by DayMileage.todayKm.collectAsStateWithLifecycle()
+    val data = remember(state, live, profiles, todayKm) { HomeData.from(state, live, profiles, todayKm) }
     when (style) {
         HomeStyle.KENWOOD -> KenwoodHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.ONKYO -> OnkyoHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
+        HomeStyle.HYBRID -> HybridHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.STANDARD -> Unit
     }
 }

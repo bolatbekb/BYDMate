@@ -130,6 +130,7 @@ fun AppNavigation(
     // before the update dialog — support first, then offer the update once it is dismissed.
     var showDonation by remember { mutableStateOf(false) }
     LaunchedEffect(startDestination) {
+        if (!com.bydmate.app.fork.ForkConfig.DONATION_PROMPT) return@LaunchedEffect // fork: no donation pop-up
         if (startDestination == "dashboard" &&
             UpdateChecker.getLastSeenVersion(autoCheckContext) == currentAppVersion &&
             DonationReminder.shouldShow(autoCheckContext, currentAppVersion)
