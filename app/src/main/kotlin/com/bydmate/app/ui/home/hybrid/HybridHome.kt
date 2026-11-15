@@ -173,8 +173,8 @@ private fun TrackBar(progress: Float, modifier: Modifier) {
 }
 
 /** Reel centres in the printed tape window. */
-private const val REEL_L_X = 537
-private const val REEL_R_X = 826
+private const val REEL_L_X = 536
+private const val REEL_R_X = 829
 private const val REEL_Y = 343
 private const val REEL_SIZE = 84
 
@@ -348,28 +348,28 @@ private fun VolumeMarker(volume: Float?) {
 /* ---------------------------------------------------------------- meters */
 
 /** The meter screen on the mockup: needles are clipped to it. */
-private val MeterScreen = KeyRect(296, 596, 2222, 330)
+private val MeterScreen = KeyRect(375, 596, 2142, 330)
 
 @Composable
 private fun Meters(d: HomeData) {
     val m = MeterScreen
     val rpm = d.engineRpm?.let { it / 1000.0 }
-    MeterNeedle(RpmScale, rpm, m.x, m.y, Modifier.at(m.x, m.y, 920, m.h))
-    Txt(rpm?.let { String.format(Locale.US, "%.2f", it) } ?: "—", 812, 835, 76f, Rs.Green, glow = true, centre = true, width = 300)
+    MeterNeedle(RpmScale, rpm, m.x, m.y, Modifier.at(m.x, m.y, 878, m.h))
+    Txt(rpm?.let { String.format(Locale.US, "%.2f", it) } ?: "—", 868, 830, 76f, Rs.Green, glow = true, centre = true, width = 300)
 
     CompressorLabels.forEachIndexed { i, (x, y) ->
         Txt(String.format(Locale.US, "%.1f", i * 0.5), x, y, 34f, Rs.White, centre = true, width = 90)
     }
-    MeterNeedle(CompressorScale, d.compressorKw, 1505, m.y, Modifier.at(1505, m.y, 1013, m.h))
-    ValueUnit(d.compressorKw?.let { String.format(Locale.US, "%.1f", it) } ?: "—", " kW", 1922, 858, 76f, 52f, Rs.Green)
+    MeterNeedle(CompressorScale, d.compressorKw, 1512, m.y, Modifier.at(1512, m.y, 1005, m.h))
+    ValueUnit(d.compressorKw?.let { String.format(Locale.US, "%.1f", it) } ?: "—", " kW", 1930, 860, 76f, 52f, Rs.Green)
 
     val engineOn = d.engineRpm?.let { it > 0 }
     val acOn = d.acOn
-    Txt(statusText(engineOn, "Работает", "Остановлен"), 1365, 732, 31f, if (engineOn == true) Color(0xFF39E08A) else Rs.Dim, centre = true, width = 240)
-    Txt(statusText(acOn, "Активен", "Выключен"), 1365, 890, 31f, if (acOn == true) Rs.Lime else Rs.Dim, centre = true, width = 240)
+    Txt(statusText(engineOn, "Работает", "Остановлен"), 1380, 728, 31f, if (engineOn == true) Color(0xFF39E08A) else Rs.Dim, centre = true, width = 240)
+    Txt(statusText(acOn, "Активен", "Выключен"), 1382, 887, 31f, if (acOn == true) Rs.Lime else Rs.Dim, centre = true, width = 240)
     // printed lamps go dark when their unit is off
-    if (engineOn != true) Box(Modifier.at(1314, 612, 88, 60).background(Rs.Screen.copy(alpha = 0.72f)))
-    if (acOn != true) Box(Modifier.at(1328, 772, 74, 70).background(Rs.Screen.copy(alpha = 0.72f)))
+    if (engineOn != true) Box(Modifier.at(1334, 614, 84, 62).background(Rs.Screen.copy(alpha = 0.72f)))
+    if (acOn != true) Box(Modifier.at(1348, 774, 70, 70).background(Rs.Screen.copy(alpha = 0.72f)))
 }
 
 private fun statusText(on: Boolean?, yes: String, no: String): String = when (on) {

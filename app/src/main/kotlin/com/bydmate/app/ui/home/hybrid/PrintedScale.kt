@@ -81,21 +81,21 @@ internal fun MeterNeedle(scale: PrintedScale, value: Double?, originX: Int, orig
 
 /** Engine speed: 0..8 ×1000 rpm, the numbers as printed. */
 internal val RpmScale = PrintedScale(
-    805f, 1133f, 292f, 505f,
-    listOf(0.0 to 140.0f, 1.0 to 128.4f, 2.0 to 116.6f, 3.0 to 103.3f, 4.0 to 90.6f, 5.0 to 76.5f, 6.0 to 63.6f, 7.0 to 51.8f, 8.0 to 41.5f),
+    855f, 1080f, 245f, 452f,
+    listOf(0.0 to 142.7f, 1.0 to 129.6f, 2.0 to 117.7f, 3.0 to 103.3f, 4.0 to 89.0f, 5.0 to 74.6f, 6.0 to 61.6f, 7.0 to 49.8f, 8.0 to 38.2f),
 )
 
 /** AC compressor power: 0..4.5 kW, ten marks where the artwork has its ten numbers. */
 internal val CompressorScale = PrintedScale(
-    1992f, 1132f, 301f, 466f,
+    2000f, 1128f, 299f, 452f,
     listOf(
-        0.0 to 136.7f, 0.5 to 126.6f, 1.0 to 115.0f, 1.5 to 102.6f, 2.0 to 87.5f,
-        2.5 to 74.6f, 3.0 to 63.3f, 3.5 to 52.1f, 4.0 to 43.0f, 4.5 to 36.0f,
+        0.0 to 136.5f, 0.5 to 126.7f, 1.0 to 115.2f, 1.5 to 103.0f, 2.0 to 87.4f,
+        2.5 to 74.5f, 3.0 to 63.5f, 3.5 to 52.1f, 4.0 to 42.7f, 4.5 to 35.4f,
     ),
 )
 
 /** Where the compressor numbers are printed (mockup pixels, centres), in [CompressorScale] order. */
 internal val CompressorLabels = listOf(
-    1621 to 783, 1690 to 726, 1783 to 683, 1887 to 663, 2013 to 652,
-    2121 to 663, 2215 to 688, 2305 to 730, 2372 to 778, 2402 to 834,
+    1635 to 782, 1700 to 725, 1790 to 682, 1892 to 660, 2022 to 650,
+    2130 to 660, 2220 to 687, 2310 to 730, 2380 to 777, 2415 to 833,
 )

@@ -81,8 +81,8 @@ public class RsBackplate {
     BufferedImage leaf=new BufferedImage(71,57,BufferedImage.TYPE_INT_ARGB);   // ECO's leaf, alpha from its brightness
     for(int y=0;y<57;y++)for(int x=0;x<71;x++){ int c=orig.getRGB(1895+x,22+y); int al=cl((lum(c)-55)*255/130.0); leaf.setRGB(x,y,(al<<24)|(c&0xFFFFFF)); }
     save(leaf,out+"/rs_leaf.png");
-    reel(orig,537,343,42,out+"/rs_reel_l.png");
-    reel(orig,826,343,42,out+"/rs_reel_r.png");
+    reel(orig,536,343,42,out+"/rs_reel_l.png");
+    reel(orig,829,343,42,out+"/rs_reel_r.png");
 
     // ---- header: all three mode keys unlit, their words drawn by the app
     blit(orig,2322,0,2541,104,img,2098,0,2331,104);     // SPORT key (and its plate) over the lit NORMAL
@@ -100,16 +100,18 @@ public class RsBackplate {
     // ---- volume marker
     angFill(img,2367,306,20,104,4,46);
     // ---- meters: needles, values, statuses, compressor numbers
-    needleOnArc(orig,img,606,676,736,856,15,8,805,1133,452,40,3.2);
-    needleOnArc(orig,img,1949,670,1970,838,12,8,1992,1132,442,40,3.4);
-    needle(img,626,730,726,848,17,0);
-    needle(img,1947,708,1966,836,14,0);
-    fill(img,712,794,940,871,null,0);
-    fill(img,1912,820,2108,897,null,0);
-    fill(img,1296,710,1434,754,null,0);
-    fill(img,1298,870,1430,912,null,0);
-    int[][] kw={{1596,764,1647,801},{1659,704,1721,748},{1752,660,1814,706},{1856,640,1918,686},{1982,628,2044,676},{2092,640,2151,686},{2184,664,2246,712},{2274,707,2336,753},{2342,754,2403,802},{2372,810,2433,858}};
+    needle(img,706,742,789,849,15,8);                    // the wide lower blade, below the scale
+    needleOnArc(orig,img,664,670,712,742,8,3,855,1080,402,70,2.8);  // its thin tip across the scale
+    needleOnArc(orig,img,1957,680,1978,836,12,8,2000,1128,438,40,3.4);
+    needle(img,691,728,782,841,17,0);
+    needle(img,1955,718,1975,834,14,0);
+    fill(img,775,792,985,868,null,0);
+    fill(img,1922,822,2118,897,null,0);
+    fill(img,1310,706,1452,752,null,0);
+    fill(img,1310,864,1454,910,null,0);
+    int[][] kw={{1604,758,1663,793},{1670,703,1730,746},{1760,660,1820,703},{1862,638,1922,681},{1992,628,2052,671},{2100,638,2160,681},{2190,665,2250,708},{2280,708,2340,751},{2350,755,2410,798},{2385,811,2445,854}};
     for(int[] r:kw) fill(img,r[0],r[1],r[2],r[3],null,0);
+    fill(img,1604,793,1655,799,null,0);                 // the foot of "0.0", short of the end tick
     // ---- bottom: the lit car key becomes a plain key with the same icon and word
     blit(orig,1136,1017,1392,1165,img,866,1017,1129,1165);
     fill(img,890,1033,1110,1152,null,0);
