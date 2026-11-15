@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_screenshot_title">Zrób zrzut całego ekranu</string>
+    <string name="settings_screenshot_desc">Cały ekran razem z paskiem stanu auta i panelem klimatyzacji. Zrzut po %1$d s — zdążysz otworzyć właściwy ekran. Plik trafi do Pobranych. Wymaga dostępu ADB.</string>
+    <string name="settings_screenshot_button">Zrób</string>
+    <string name="settings_screenshot_wait">Zrzut za %1$d s — otwórz właściwy ekran</string>
+    <string name="settings_screenshot_saved">Zrzut zapisany: %1$s</string>
+    <string name="settings_screenshot_failed">Nie udało się zrobić zrzutu: brak dostępu ADB</string>
+</resources>

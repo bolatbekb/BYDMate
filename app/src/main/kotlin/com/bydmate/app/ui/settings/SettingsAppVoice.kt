@@ -91,6 +91,7 @@ internal fun AppSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     SkinPickerBlock()
     HomeStylePickerBlock()
     DemoModeBlock()
+    ScreenshotBlock()
 
     var showDonate by remember { mutableStateOf(false) }
     if (showDonate) {

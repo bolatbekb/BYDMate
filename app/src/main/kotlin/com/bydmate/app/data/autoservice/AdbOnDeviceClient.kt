@@ -69,6 +69,13 @@ interface AdbOnDeviceClient {
     suspend fun spawnHelper(token: String): Boolean
 
     /**
+     * Fork: saves a PNG of the whole screen (the car's bars included) to [path] via shell
+     * `screencap`. Only paths matching [com.bydmate.app.fork.ScreenshotTaker.PATH_REGEX] pass.
+     * Default false, so fakes and other implementations need not know about it.
+     */
+    suspend fun screencap(path: String): Boolean = false
+
+    /**
      * Kills any running helper daemon (by exact nice-name) under shell uid, so a fresh
      * daemon from a newer app version can re-take the binder service and the exclusive
      * file lock. The lock auto-releases on process death. Hardcoded cmdline — no caller
@@ -226,6 +233,26 @@ class AdbOnDeviceClientImpl @Inject constructor(
             p.exec(spawnCmd) != null
         } catch (e: Exception) {
             Log.w(TAG, "spawnHelper failed: ${e.message}")
+            false
+        }
+    }
+
+    // fork: whole-screen screenshot for the settings button (ScreenshotTaker).
+    override suspend fun screencap(path: String): Boolean = withContext(Dispatchers.IO) {
+        require(path.matches(com.bydmate.app.fork.ScreenshotTaker.PATH_REGEX)) { "screencap: refused path" }
+        val p = protocol ?: run {
+            if (connect().isFailure) return@withContext false
+            protocol ?: return@withContext false
+        }
+        try {
+            // Raw exec like spawnHelper: a fixed command, the path checked above. Prints OK
+            // only when the file really landed.
+            val out = kotlinx.coroutines.runInterruptible {
+                p.exec("screencap -p $path && [ -s $path ] && echo OK")
+            }
+            out?.contains("OK") == true
+        } catch (e: Exception) {
+            Log.w(TAG, "screencap failed: ${e.message}")
             false
         }
     }

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_screenshot_title">Зрабіць скрыншот усяго экрана</string>
+    <string name="settings_screenshot_desc">Увесь экран разам са статусам машыны і панэллю клімату. Здымак праз %1$d с — паспейце адкрыць патрэбны экран. Файл трапіць у «Спампоўкі». Патрэбны доступ па ADB.</string>
+    <string name="settings_screenshot_button">Зняць</string>
+    <string name="settings_screenshot_wait">Скрыншот праз %1$d с — адкрыйце патрэбны экран</string>
+    <string name="settings_screenshot_saved">Скрыншот захаваны: %1$s</string>
+    <string name="settings_screenshot_failed">Не ўдалося зняць экран: няма доступу па ADB</string>
+</resources>

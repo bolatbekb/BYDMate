@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_screenshot_title">截取整个屏幕</string>
+    <string name="settings_screenshot_desc">整个屏幕，包括车辆状态栏和空调栏。%1$d 秒后截取，请先打开要截的界面。保存到“下载”。需要 ADB 权限。</string>
+    <string name="settings_screenshot_button">截图</string>
+    <string name="settings_screenshot_wait">%1$d 秒后截图——请打开要截的界面</string>
+    <string name="settings_screenshot_saved">截图已保存：%1$s</string>
+    <string name="settings_screenshot_failed">无法截图：没有 ADB 权限</string>
+</resources>
