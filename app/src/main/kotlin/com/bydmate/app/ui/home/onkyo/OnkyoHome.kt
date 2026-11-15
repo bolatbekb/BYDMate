@@ -45,11 +45,12 @@ import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
+import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.tapeTime
 import kotlin.math.min
 
 private val DesignW = 1280.dp
-private val DesignH = 700.dp
+private val DesignH = 604.dp
 
 /** What the gold centre panel of the amplifier shows; chosen with the small LED keys. */
 internal enum class CentreView { LOG, TRACK, WEEK }
@@ -58,23 +59,31 @@ internal enum class CentreView { LOG, TRACK, WEEK }
  * Retro home screen styled as a two-tier hi-fi stack: a cassette deck over a power amplifier.
  * The deck plays the active media session (hubs turn, tape packs follow the track, the keys
  * drive [controls]); its meters, knobs and the amplifier's two VU meters read the car's
- * [data]. Drawn at a fixed 1280 x 700 dp and scaled uniformly to fit, letterboxed in black.
+ * [data]. The amplifier's INPUT SELECTOR keys open the app's [tabs] through [onTab]; its lit
+ * TAPE key is this screen. Drawn at a fixed 1280 x 604 dp (the car's content area) and scaled
+ * uniformly to fit, letterboxed in black.
  */
 @Composable
-fun OnkyoHome(data: HomeData, music: NowPlaying, controls: MusicControls) {
+fun OnkyoHome(
+    data: HomeData,
+    music: NowPlaying,
+    controls: MusicControls,
+    tabs: List<RetroTab> = emptyList(),
+    onTab: (RetroTab) -> Unit = {},
+) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Ok.Letterbox), contentAlignment = Alignment.Center) {
         val sw = if (constraints.hasBoundedWidth) maxWidth / DesignW else 1f
         val sh = if (constraints.hasBoundedHeight) maxHeight / DesignH else sw
         val scale = min(sw, sh)
         val base = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(base.density * scale, 1f)) {
-            Box(Modifier.size(DesignW, DesignH)) { Rack(data, music, controls) }
+            Box(Modifier.size(DesignW, DesignH)) { Rack(data, music, controls, tabs, onTab) }
         }
     }
 }
 
 @Composable
-private fun Rack(data: HomeData, music: NowPlaying, controls: MusicControls) {
+private fun Rack(data: HomeData, music: NowPlaying, controls: MusicControls, tabs: List<RetroTab>, onTab: (RetroTab) -> Unit) {
     var centre by rememberSaveable { mutableStateOf(CentreView.LOG) }
     var percent by rememberSaveable { mutableStateOf(false) }
     var swayOn by rememberSaveable { mutableStateOf(true) }
@@ -104,18 +113,23 @@ private fun Rack(data: HomeData, music: NowPlaying, controls: MusicControls) {
         }
     }
 
-    Column(Modifier.fillMaxSize().padding(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(Modifier.fillMaxSize().padding(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         DeckTier(
             data, music, controls, { hubAngle.floatValue },
             centre = centre, onCentre = { centre = it },
             percent = percent, onPercent = { percent = it },
             swayOn = swayOn, onSway = { swayOn = !swayOn },
         )
-        AmpTier(data, music, centre, percent, { sway.value }, Modifier.weight(1f))
+        AmpTier(data, music, centre, percent, { sway.value }, tabs, onTab, Modifier.weight(1f))
     }
 }
 
 /* ---------------------------------------------------------------- deck (upper tier) */
+
+private val DeckH = 296.dp
+
+/** The door fills the deck's height under the brand line (10 + 18 + 5 + door + 10). */
+private val DoorW = 340.dp
 
 @Composable
 private fun DeckTier(
@@ -131,14 +145,14 @@ private fun DeckTier(
     onSway: () -> Unit,
 ) {
     Row(
-        Modifier.fillMaxWidth().height(340.dp).clip(RoundedCornerShape(3.dp))
+        Modifier.fillMaxWidth().height(DeckH).clip(RoundedCornerShape(3.dp))
             .brushedAluminium().padding(horizontal = 12.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         DeckLeft(Modifier.width(84.dp).fillMaxHeight())
-        Column(Modifier.width(392.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Column(Modifier.width(DoorW), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Brand(15, "STEREO CASSETTE DRIVE DECK")
-            CassetteDoor(music.progress, hubAngle)
+            CassetteDoor(music.progress, hubAngle, width = DoorW)
         }
         PeakPanel(data.socPercent, data.fuelPercent, Modifier.width(132.dp).fillMaxHeight())
         Column(Modifier.width(136.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -167,11 +181,11 @@ internal fun Brand(size: Int, line: String, modifier: Modifier = Modifier, trail
 @Composable
 private fun DeckLeft(modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        Box(Modifier.size(1.dp, 26.dp))
+        Box(Modifier.size(1.dp, 10.dp))
         Label("OPEN")
         Box(Modifier.size(1.dp, 4.dp))
         FlatKey(Modifier.size(66.dp, 22.dp))
-        Box(Modifier.size(1.dp, 12.dp))
+        Box(Modifier.size(1.dp, 10.dp))
         Label("A · B · C")
         Box(Modifier.size(1.dp, 4.dp))
         SmallKnob()
@@ -182,7 +196,7 @@ private fun DeckLeft(modifier: Modifier) {
         Box(Modifier.weight(1f))
         LedStrip(true, Modifier.size(66.dp, 4.dp))
         Box(Modifier.size(1.dp, 4.dp))
-        FlatKey(Modifier.size(66.dp, 40.dp))
+        FlatKey(Modifier.size(66.dp, 32.dp))
         Box(Modifier.size(1.dp, 4.dp))
         Label("POWER")
     }

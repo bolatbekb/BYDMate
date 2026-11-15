@@ -24,6 +24,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -36,11 +37,12 @@ private val TapeInner = Color(0xFF5E4128)
 private val TapeOuter = Color(0xFF2A1B10)
 
 /**
- * Smoked cassette door, 392 x 290 dp: the cassette close-up seen through the glass. Tape packs
- * follow [progress]; the hubs turn by [hubAngle] (read at draw time, so spinning only redraws).
+ * Smoked cassette door, drawn on a 392 x 290 grid and scaled to [width]: the cassette close-up
+ * seen through the glass. Tape packs follow [progress]; the hubs turn by [hubAngle] (read at
+ * draw time, so spinning only redraws).
  */
 @Composable
-internal fun CassetteDoor(progress: Float, hubAngle: () -> Float, modifier: Modifier = Modifier) {
+internal fun CassetteDoor(progress: Float, hubAngle: () -> Float, modifier: Modifier = Modifier, width: Dp = 392.dp) {
     val tm = rememberTextMeasurer()
     val amcs = remember(tm) {
         tm.measure("AMCS", TextStyle(color = Color(0xFF9EA2A8), fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp, fontFamily = FontFamily.SansSerif))
@@ -51,9 +53,10 @@ internal fun CassetteDoor(progress: Float, hubAngle: () -> Float, modifier: Modi
             TextStyle(color = Ok.Light, fontSize = 10.sp, letterSpacing = 1.sp, fontFamily = FontFamily.SansSerif),
         )
     }
-    Canvas(modifier.size(392.dp, 290.dp)) {
+    Canvas(modifier.size(width, width * (290f / 392f))) {
         val k = 1.dp.toPx()
-        withTransform({ scale(k, k, pivot = Offset.Zero) }) {
+        val r = size.width / (392f * k)
+        withTransform({ scale(k * r, k * r, pivot = Offset.Zero) }) {
             drawDoorAndShell()
             drawWindow(progress)
             drawAmberBlock()
@@ -66,8 +69,10 @@ internal fun CassetteDoor(progress: Float, hubAngle: () -> Float, modifier: Modi
             drawScrew(34f, 252f)
             drawScrew(358f, 252f)
         }
-        drawAtBaseline(amcs, 196f * k, 210f * k)
-        drawAtBaseline(caption, 196f * k, 276f * k)
+        withTransform({ scale(r, r, pivot = Offset.Zero) }) {
+            drawAtBaseline(amcs, 196f * k, 210f * k)
+            drawAtBaseline(caption, 196f * k, 276f * k)
+        }
     }
 }
 

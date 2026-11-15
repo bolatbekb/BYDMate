@@ -5,6 +5,9 @@ package com.bydmate.app.ui.home.kenwood
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -21,15 +24,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
@@ -37,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
+import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.deg
 import com.bydmate.app.ui.home.orDash
 import com.bydmate.app.ui.home.tapeTime
@@ -44,19 +54,28 @@ import java.util.Calendar
 import java.util.Locale
 
 private val DesignW = 1280.dp
-private val DesignH = 700.dp
+private val DesignH = 604.dp
 
 /**
  * Retro home screen styled as a three-tier black hi-fi stack: cassette deck with a fluorescent
  * display and range knob, graphic equalizer with spectrum analyzer and day log, and a power
- * amplifier with red range meters. Drawn at 1280 x 700 dp and scaled uniformly to fit.
+ * amplifier with red range meters and the INPUT SELECTOR keys that switch the app's tabs.
+ * Drawn at 1280 x 604 dp (the car's content area) and scaled uniformly to fit.
  *
  * @param data car readings; nulls show as dashes.
  * @param music the active media session, shown on the tape and display.
  * @param controls transport commands sent by the deck keys.
+ * @param tabs the app's other screens, one selector key each; the lit TAPE key is this screen.
+ * @param onTab opens a tab, as the bottom bar would.
  */
 @Composable
-fun KenwoodHome(data: HomeData, music: NowPlaying, controls: MusicControls) {
+fun KenwoodHome(
+    data: HomeData,
+    music: NowPlaying,
+    controls: MusicControls,
+    tabs: List<RetroTab> = emptyList(),
+    onTab: (RetroTab) -> Unit = {},
+) {
     BoxWithConstraints(Modifier.fillMaxSize().background(Kw.bg), contentAlignment = Alignment.Center) {
         val fitW = if (maxWidth.value.isFinite()) maxWidth / DesignW else 1f
         val fitH = if (maxHeight.value.isFinite()) maxHeight / DesignH else 1f
@@ -68,12 +87,12 @@ fun KenwoodHome(data: HomeData, music: NowPlaying, controls: MusicControls) {
                     .requiredSize(DesignW, DesignH)
                     .graphicsLayer { scaleX = scale; scaleY = scale }
                     .background(Kw.bg)
-                    .padding(horizontal = 10.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+                    .padding(horizontal = 10.dp, vertical = 6.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                DeckTier(data, music, controls, Modifier.fillMaxWidth().height(300.dp))
-                EqualizerTier(data, music, Modifier.fillMaxWidth().height(196.dp))
-                AmplifierTier(data, music, Modifier.fillMaxWidth().weight(1f))
+                DeckTier(data, music, controls, Modifier.fillMaxWidth().height(264.dp))
+                EqualizerTier(data, music, Modifier.fillMaxWidth().height(138.dp))
+                AmplifierTier(data, music, tabs, onTab, Modifier.fillMaxWidth().weight(1f))
             }
         }
     }
@@ -84,15 +103,15 @@ fun KenwoodHome(data: HomeData, music: NowPlaying, controls: MusicControls) {
 @Composable
 private fun DeckTier(data: HomeData, music: NowPlaying, controls: MusicControls, modifier: Modifier) {
     Row(
-        modifier.brushedTier().padding(horizontal = 16.dp, vertical = 14.dp),
+        modifier.brushedTier().padding(horizontal = 16.dp, vertical = 10.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Column(Modifier.width(150.dp).fillMaxHeight()) {
             Logo(19f)
-            Spacer(Modifier.height(14.dp))
+            Spacer(Modifier.height(12.dp))
             DeckKey(Glyph.EJECT, "Извлечь", controls::stop, Modifier.size(72.dp, 30.dp), glyphW = 16.dp, glyphH = 12.dp)
             Spacer(Modifier.weight(1f))
-            PowerPlate(11f, 80.dp, 46.dp, "▢ ON · ▢ OFF", Modifier.width(90.dp))
+            PowerPlate(11f, 76.dp, 38.dp, "▢ ON · ▢ OFF", Modifier.width(90.dp))
         }
         DeckWell(music, Modifier.width(380.dp).fillMaxHeight())
         DisplayColumn(data, music, controls, Modifier.weight(1f).fillMaxHeight())
@@ -111,17 +130,17 @@ private fun DeckWell(music: NowPlaying, modifier: Modifier) {
                 )
             },
     ) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 8.dp)) {
-            KText("STEREO DRIVE DECK KX-2026", 10f, color = Color(0xFFB5B8BD), family = LogoFont, spacing = 1f)
-            HfsCassette(music, Modifier.padding(top = 6.dp).width(270.dp).align(Alignment.CenterHorizontally))
+        Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 6.dp)) {
+            KText("STEREO DRIVE DECK KX-2026", 10f, Modifier.padding(start = 14.dp), color = Color(0xFFB5B8BD), family = LogoFont, spacing = 1f)
+            HfsCassette(music, Modifier.padding(top = 4.dp).width(276.dp).align(Alignment.CenterHorizontally))
             Spacer(Modifier.weight(1f))
             Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF2E3034)))
-            Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.Bottom) {
-                KText("DM-i", 22f, color = Color(0xFFD0D2D6), family = LogoFont, weight = FontWeight.Medium)
+            Row(Modifier.fillMaxWidth().padding(top = 3.dp, start = 14.dp, end = 14.dp), verticalAlignment = Alignment.Bottom) {
+                KText("DM-i", 18f, color = Color(0xFFD0D2D6), family = LogoFont, weight = FontWeight.Medium)
                 Spacer(Modifier.weight(1f))
                 KText(
-                    "BLADE BATTERY · DUAL MOTOR\nAUTO EV / HEV FINE TUNING", 8f,
-                    color = Kw.grey, family = LogoFont, align = TextAlign.End, maxLines = 2,
+                    "BLADE BATTERY · DUAL MOTOR", 9f,
+                    color = Kw.grey, family = LogoFont, align = TextAlign.End,
                 )
             }
         }
@@ -140,7 +159,7 @@ private fun DisplayColumn(data: HomeData, music: NowPlaying, controls: MusicCont
                 .fillMaxWidth()
                 .window()
                 .drawBehind { drawRect(Color(0xFF96C8FF).copy(alpha = 0.04f)) }
-                .padding(horizontal = 14.dp, vertical = 10.dp),
+                .padding(horizontal = 14.dp, vertical = 6.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
                 GlyphIcon(Glyph.STOP, if (music.isPlaying) Kw.vfdOff else Kw.vfd, 14.dp, 12.dp)
@@ -149,7 +168,7 @@ private fun DisplayColumn(data: HomeData, music: NowPlaying, controls: MusicCont
                 KText("REC · LOOP · RAND", 11f, color = Kw.vfdOff)
                 Spacer(Modifier.weight(1f))
                 KText(
-                    music.positionMs.tapeTime(), 38f, color = Kw.vfd, family = VfdFont,
+                    music.positionMs.tapeTime(), 32f, color = Kw.vfd, family = VfdFont,
                     weight = FontWeight.Bold, italic = true, glow = Color(0xB3AACDFF),
                 )
             }
@@ -164,7 +183,7 @@ private fun DisplayColumn(data: HomeData, music: NowPlaying, controls: MusicCont
                 }
             }
         }
-        Spacer(Modifier.height(10.dp))
+        Spacer(Modifier.height(6.dp))
         StatusStrip(data)
         Spacer(Modifier.weight(1f))
         TransportKeys(music, controls)
@@ -174,7 +193,7 @@ private fun DisplayColumn(data: HomeData, music: NowPlaying, controls: MusicCont
 /** One labelled fluorescent meter row: chip, 30 cells, percent. */
 @Composable
 private fun VfdMeter(label: String, percent: Int?) {
-    Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().padding(top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
         KText(
             label, 12f, Modifier.width(46.dp).background(Kw.vfd).padding(horizontal = 4.dp),
             color = Kw.vfdBg, weight = FontWeight.SemiBold, align = TextAlign.Center,
@@ -204,16 +223,14 @@ private fun StatusStrip(data: HomeData) {
 
 @Composable
 private fun TransportKeys(music: NowPlaying, controls: MusicControls) {
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-        Row(Modifier.fillMaxWidth().height(40.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
-            DeckKey(Glyph.PREV, "Назад", controls::previous, Modifier.weight(1f).fillMaxHeight())
-            DeckKey(
-                if (music.isPlaying) Glyph.PAUSE else Glyph.PLAY, "Пуск/пауза", controls::playPause,
-                Modifier.weight(1.6f).fillMaxHeight(), on = music.isPlaying,
-            )
-            DeckKey(Glyph.NEXT, "Вперёд", controls::next, Modifier.weight(1f).fillMaxHeight())
-        }
-        DeckKey(Glyph.STOP, "Стоп", controls::stop, Modifier.fillMaxWidth().height(34.dp))
+    Row(Modifier.fillMaxWidth().height(48.dp), horizontalArrangement = Arrangement.spacedBy(3.dp)) {
+        DeckKey(Glyph.PREV, "Назад", controls::previous, Modifier.weight(1f).fillMaxHeight())
+        DeckKey(
+            if (music.isPlaying) Glyph.PAUSE else Glyph.PLAY, "Пуск/пауза", controls::playPause,
+            Modifier.weight(1.6f).fillMaxHeight(), on = music.isPlaying,
+        )
+        DeckKey(Glyph.NEXT, "Вперёд", controls::next, Modifier.weight(1f).fillMaxHeight())
+        DeckKey(Glyph.STOP, "Стоп", controls::stop, Modifier.weight(1f).fillMaxHeight())
     }
 }
 
@@ -221,9 +238,8 @@ private fun TransportKeys(music: NowPlaying, controls: MusicControls) {
 private fun RangeColumn(data: HomeData, modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         KText("ЗАПАС ХОДА", 11f, spacing = 2f)
-        Spacer(Modifier.height(8.dp))
-        KnurledKnob(data.totalRangeKm, 900)
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(2.dp))
+        KnurledKnob(data.totalRangeKm, 900, diameter = 112.dp)
         KText("${data.totalRangeKm.orDash()} км", 22f, color = Kw.vfd, family = VfdFont, italic = true)
         Spacer(Modifier.weight(1f))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -240,7 +256,7 @@ private fun RangeColumn(data: HomeData, modifier: Modifier) {
 @Composable
 private fun EqualizerTier(data: HomeData, music: NowPlaying, modifier: Modifier) {
     Row(
-        modifier.brushedTier().padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier.brushedTier().padding(horizontal = 16.dp, vertical = 7.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         WeekSliders(data.weekPer100, Modifier.width(380.dp).fillMaxHeight())
@@ -263,7 +279,7 @@ private fun WeekSliders(week: List<Double?>, modifier: Modifier) {
             Spacer(Modifier.weight(1f))
             KText("РАСХОД ПО ДНЯМ · кВт·ч/100", 10f, spacing = 1f)
         }
-        Row(Modifier.fillMaxWidth().weight(1f).padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(Modifier.fillMaxWidth().weight(1f).padding(top = 3.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             for (i in 0 until 7) {
                 val v = week.getOrNull(i)
                 Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -288,7 +304,7 @@ private val spectrumHeights = intArrayOf(70, 88, 95, 80, 66, 74, 90, 62, 55, 68,
 @Composable
 private fun SpectrumPanel(playing: Boolean, modifier: Modifier) {
     val clock = rememberRunningClock(playing)
-    Column(modifier.window().padding(horizontal = 12.dp, vertical = 8.dp)) {
+    Column(modifier.window().padding(horizontal = 12.dp, vertical = 6.dp)) {
         Box(
             Modifier.fillMaxWidth().weight(1f).border(1.dp, Kw.vfdOff).padding(5.dp),
         ) {
@@ -309,7 +325,7 @@ private fun SpectrumPanel(playing: Boolean, modifier: Modifier) {
             }
         }
         KText(
-            "SPECTRUM ANALYZER", 10f, Modifier.fillMaxWidth().padding(top = 4.dp),
+            "SPECTRUM ANALYZER", 10f, Modifier.fillMaxWidth().padding(top = 2.dp),
             color = Kw.vfdDim, spacing = 2f, align = TextAlign.Center,
         )
     }
@@ -323,21 +339,21 @@ private fun EventsPanel(data: HomeData, modifier: Modifier) {
         .takeIf { it.isNotEmpty() }
         ?.sum()
     Column(
-        modifier.window().clipToBounds().padding(horizontal = 14.dp, vertical = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier.window().clipToBounds().padding(horizontal = 14.dp, vertical = 5.dp),
+        verticalArrangement = Arrangement.spacedBy(1.dp),
     ) {
         val head = "СОБЫТИЯ ДНЯ" + (todayCost?.let { String.format(Locale.getDefault(), " · %.0f %s", it, data.currency) } ?: "")
         KText(head, 10f, color = Kw.vfdDim, spacing = 2f)
         if (data.events.isEmpty()) {
-            KText("Нет поездок", 14f, color = Kw.vfdDim)
+            KText("Нет поездок", 13f, color = Kw.vfdDim)
         }
         data.events.forEach { e ->
             Row(Modifier.fillMaxWidth()) {
-                KText(e.time, 14f, Modifier.width(46.dp), color = Kw.vfdDim, family = VfdFont, italic = true)
+                KText(e.time, 13f, Modifier.width(46.dp), color = Kw.vfdDim, family = VfdFont, italic = true)
                 Spacer(Modifier.width(8.dp))
-                KText(e.title, 14f, Modifier.weight(1f), color = Kw.vfd)
+                KText(e.title, 13f, Modifier.weight(1f), color = Kw.vfd)
                 Spacer(Modifier.width(8.dp))
-                KText(e.cost, 14f, color = Kw.vfd, family = VfdFont, italic = true)
+                KText(e.cost, 13f, color = Kw.vfd, family = VfdFont, italic = true)
             }
         }
     }
@@ -346,32 +362,86 @@ private fun EventsPanel(data: HomeData, modifier: Modifier) {
 // ---------------------------------------------------------------- tier 3: power amplifier
 
 @Composable
-private fun AmplifierTier(data: HomeData, music: NowPlaying, modifier: Modifier) {
+private fun AmplifierTier(
+    data: HomeData,
+    music: NowPlaying,
+    tabs: List<RetroTab>,
+    onTab: (RetroTab) -> Unit,
+    modifier: Modifier,
+) {
     Row(
-        modifier.brushedTier().padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier.brushedTier().padding(horizontal = 16.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Column(Modifier.width(200.dp).fillMaxHeight()) {
             Logo(13f)
-            Spacer(Modifier.height(6.dp))
+            Spacer(Modifier.height(4.dp))
             KText("HYBRID POWER UNIT KM-2026", 10f, color = Kw.grey, spacing = 1f)
             Spacer(Modifier.weight(1f))
-            PowerPlate(10f, 60.dp, 34.dp, legend = null)
+            KText("INPUT SELECTOR", 11f, spacing = 2f)
+            Spacer(Modifier.height(2.dp))
+            KText("◀ TAPE · SOURCE ▶", 10f, color = Kw.grey, spacing = 1f)
         }
-        Column(
-            Modifier.weight(1f).fillMaxHeight().window().padding(horizontal = 14.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp, Alignment.CenterVertically),
-        ) {
-            PowerMeter("ЭЛЕКТРО", data.evRangeKm)
-            PowerMeter("БЕНЗИН", data.fuelRangeKm)
-            Row(
-                Modifier.fillMaxWidth().padding(start = 100.dp, end = 90.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+        Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            Column(
+                Modifier.fillMaxWidth().weight(1f).window().padding(horizontal = 14.dp, vertical = 5.dp),
+                verticalArrangement = Arrangement.spacedBy(5.dp, Alignment.CenterVertically),
             ) {
-                listOf("0", "200", "400", "600", "800 КМ").forEach { KText(it, 10f, color = Kw.grey) }
+                PowerMeter("ЭЛЕКТРО", data.evRangeKm)
+                PowerMeter("БЕНЗИН", data.fuelRangeKm)
+                Row(
+                    Modifier.fillMaxWidth().padding(start = 100.dp, end = 90.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    listOf("0", "200", "400", "600", "800 КМ").forEach { KText(it, 10f, color = Kw.grey) }
+                }
             }
+            InputSelector(tabs, onTab, Modifier.fillMaxWidth().height(48.dp))
         }
-        AmpLegend(music, Modifier.width(200.dp).fillMaxHeight())
+        AmpLegend(music, Modifier.width(170.dp).fillMaxHeight())
+    }
+}
+
+/** The amplifier's source keys: TAPE (this screen, lit) and one key per app tab. */
+@Composable
+private fun InputSelector(tabs: List<RetroTab>, onTab: (RetroTab) -> Unit, modifier: Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+        SourceKey("TAPE", current = true, onClick = {}, modifier = Modifier.weight(0.8f).fillMaxHeight())
+        tabs.forEach { tab ->
+            SourceKey(tab.label, current = false, onClick = { onTab(tab) }, modifier = Modifier.weight(1.1f).fillMaxHeight())
+        }
+    }
+}
+
+/** Square source key with an LED slot over the legend; the LED glows on the current source. */
+@Composable
+private fun SourceKey(label: String, current: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    Column(
+        modifier
+            .keyFace(pressed)
+            .clickable(source, indication = null, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label }
+            .padding(horizontal = 6.dp, vertical = 6.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Box(
+            Modifier
+                .size(22.dp, 5.dp)
+                .drawBehind {
+                    if (current) {
+                        val g = 3.dp.toPx()
+                        drawRect(Kw.vfd.copy(alpha = 0.3f), Offset(-g, -g), Size(size.width + 2 * g, size.height + 2 * g))
+                    }
+                    drawRect(if (current) Kw.vfd else Kw.vfdOff)
+                },
+        )
+        KText(
+            label.uppercase(), 13f, color = if (current || pressed) Kw.vfd else Kw.text,
+            weight = FontWeight.Medium, spacing = 0.5f, align = TextAlign.Center,
+        )
     }
 }
 
@@ -382,10 +452,10 @@ private fun PowerMeter(label: String, km: Int?) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         KText(label, 12f, Modifier.width(90.dp), color = Kw.ampLabel, spacing = 1f)
         Spacer(Modifier.width(10.dp))
-        AmpCells(km, AMP_MAX_KM, Modifier.weight(1f).height(22.dp))
+        AmpCells(km, AMP_MAX_KM, Modifier.weight(1f).height(16.dp))
         Spacer(Modifier.width(10.dp))
         KText(
-            "${km.orDash()} км", 18f, Modifier.width(80.dp),
+            "${km.orDash()} км", 16f, Modifier.width(80.dp),
             color = Kw.ampValue, family = VfdFont, italic = true, align = TextAlign.End,
         )
     }

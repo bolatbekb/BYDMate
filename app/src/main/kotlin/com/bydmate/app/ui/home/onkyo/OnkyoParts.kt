@@ -84,7 +84,7 @@ internal object Ok {
 internal fun Label(
     text: String,
     modifier: Modifier = Modifier,
-    size: TextUnit = 9.sp,
+    size: TextUnit = 10.sp,
     color: Color = Ok.Light,
     weight: FontWeight = FontWeight.Normal,
     spacing: TextUnit = 1.sp,
@@ -220,7 +220,7 @@ internal fun FlatKey(modifier: Modifier, onClick: (() -> Unit)? = null) {
 @Composable
 internal fun LedKey(label: String, lit: Boolean, modifier: Modifier = Modifier, onClick: (() -> Unit)? = null) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Label(label, size = 8.sp, spacing = 0.5.sp)
+        Label(label, size = 10.sp, spacing = 0.5.sp)
         LedStrip(lit, Modifier.fillMaxWidth().height(3.dp))
         FlatKey(Modifier.fillMaxWidth().height(22.dp), onClick)
     }

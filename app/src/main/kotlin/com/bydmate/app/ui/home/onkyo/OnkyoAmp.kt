@@ -31,6 +31,9 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -38,6 +41,7 @@ import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
+import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.deg
 import com.bydmate.app.ui.home.orDash
 import com.bydmate.app.ui.home.tapeTime
@@ -58,16 +62,16 @@ private val KeyText = Color(0xFFD5D7DB)
 @Composable
 internal fun TransportKeys(playing: Boolean, controls: MusicControls, modifier: Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
-        Row(Modifier.fillMaxWidth().height(44.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().height(46.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TransportKey("PREV", Glyph.PREV, Modifier.weight(1f), onClick = controls::previous)
             TransportKey("NEXT", Glyph.NEXT, Modifier.weight(1f), onClick = controls::next)
         }
-        TransportKey("PLAY", Glyph.PLAY, Modifier.fillMaxWidth().height(64.dp), on = playing, onClick = controls::play)
-        Row(Modifier.fillMaxWidth().height(54.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        TransportKey("PLAY", Glyph.PLAY, Modifier.fillMaxWidth().height(58.dp), on = playing, onClick = controls::play)
+        Row(Modifier.fillMaxWidth().height(50.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TransportKey("STOP", Glyph.STOP, Modifier.weight(1f), onClick = controls::stop)
             TransportKey("PAUSE", Glyph.PAUSE, Modifier.weight(1f), on = !playing, onClick = controls::pause)
         }
-        Row(Modifier.fillMaxWidth().height(54.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(Modifier.fillMaxWidth().height(46.dp), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             TransportKey("REC", Glyph.REC, Modifier.weight(1f), red = true)
             TransportKey("MENU", Glyph.MENU, Modifier.weight(1f))
         }
@@ -126,7 +130,7 @@ internal fun DeckRight(
             LedKey("УРОВЕНЬ %", percent, Modifier.weight(1f)) { onPercent(true) }
             LedKey("КАЧАНИЕ", swayOn, Modifier.weight(1f), onSway)
         }
-        Label("ПРИВОД ПЕРЕД · ЗАД", Modifier.fillMaxWidth(), size = 8.sp, spacing = 0.5.sp, align = TextAlign.Center)
+        Label("ПРИВОД ПЕРЕД · ЗАД", Modifier.fillMaxWidth(), size = 10.sp, spacing = 0.5.sp, align = TextAlign.Center)
         BalanceLeds(data.frontShare)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
             TempKnob("САЛОН", data.insideTemp.deg(), Modifier.weight(1f))
@@ -168,7 +172,7 @@ private fun TempKnob(label: String, value: String, modifier: Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
         SmallKnob()
         Label(value, size = 13.sp, color = Ok.White, weight = FontWeight.Bold, spacing = 0.sp)
-        Label(label, size = 8.sp, spacing = 0.5.sp)
+        Label(label, size = 10.sp, spacing = 0.5.sp)
     }
 }
 
@@ -193,7 +197,10 @@ private fun RangeKnob(totalKm: Int?) {
 
 /* ---------------------------------------------------------------- amplifier (lower tier) */
 
-/** Power amplifier: two VU meters (EV and fuel) around the gold-lettered centre panel. */
+/**
+ * Power amplifier: the INPUT SELECTOR keys (the app's tabs) under the brand line, then two VU
+ * meters (EV and fuel) around the gold-lettered centre panel.
+ */
 @Composable
 internal fun AmpTier(
     data: HomeData,
@@ -201,17 +208,26 @@ internal fun AmpTier(
     centre: CentreView,
     percent: Boolean,
     sway: () -> Float,
+    tabs: List<RetroTab>,
+    onTab: (RetroTab) -> Unit,
     modifier: Modifier,
 ) {
     Column(
         modifier.fillMaxWidth().clip(RoundedCornerShape(3.dp)).brushedAluminium()
-            .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 12.dp),
+            .padding(start = 14.dp, end = 14.dp, top = 8.dp, bottom = 10.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Brand(14, "STEREO POWER AMPLIFIER") {
-            Box(Modifier.border(1.dp, Ok.Edge).padding(horizontal = 8.dp)) {
-                Label("M-2026", size = 11.sp, color = Ok.White, weight = FontWeight.Bold, spacing = 0.sp)
+        Row(Modifier.fillMaxWidth().height(52.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.width(330.dp).fillMaxHeight(), verticalArrangement = Arrangement.SpaceBetween) {
+                Brand(14, "STEREO POWER AMPLIFIER")
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Box(Modifier.border(1.dp, Ok.Edge).padding(horizontal = 8.dp)) {
+                        Label("M-2026", size = 11.sp, color = Ok.White, weight = FontWeight.Bold, spacing = 0.sp)
+                    }
+                    Label("INPUT SELECTOR ▸", size = 11.sp, color = Ok.Text, weight = FontWeight.SemiBold)
+                }
             }
+            InputSelector(tabs, onTab, Modifier.weight(1f).fillMaxHeight())
         }
         val shape = RoundedCornerShape(4.dp)
         Row(Modifier.weight(1f).fillMaxWidth().clip(shape).border(2.dp, Ok.Shadow, shape)) {
@@ -227,6 +243,38 @@ internal fun AmpTier(
                 VuMeter("БЕНЗИН", "ЗАПАС · КМ", FuelMarks, data.fuelRangeKm, data.fuelRangeKm.unit("км"), sway, Modifier.weight(1f).fillMaxHeight())
             }
         }
+    }
+}
+
+/** TAPE (this screen, its lamp lit) and one key per app tab. */
+@Composable
+private fun InputSelector(tabs: List<RetroTab>, onTab: (RetroTab) -> Unit, modifier: Modifier) {
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        SourceKey("TAPE", current = true, onClick = {}, modifier = Modifier.weight(0.8f))
+        tabs.forEach { tab ->
+            SourceKey(tab.label, current = false, onClick = { onTab(tab) }, modifier = Modifier.weight(1.1f))
+        }
+    }
+}
+
+/** Source key: amber lamp over the legend, pushed in while held, the lamp lit on the current source. */
+@Composable
+private fun SourceKey(label: String, current: Boolean, onClick: () -> Unit, modifier: Modifier) {
+    val src = remember { MutableInteractionSource() }
+    val pressed by src.collectIsPressedAsState()
+    Column(
+        modifier.fillMaxHeight().keyFace(pressed)
+            .clickable(src, null, role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = label }
+            .padding(horizontal = 6.dp, vertical = 7.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.SpaceBetween,
+    ) {
+        LedStrip(current, Modifier.size(26.dp, 4.dp), halo = 5.dp)
+        Label(
+            label.uppercase(), size = 13.sp, color = if (current) Ok.White else KeyText,
+            weight = FontWeight.SemiBold, spacing = 0.5.sp, align = TextAlign.Center,
+        )
     }
 }
 
@@ -269,10 +317,13 @@ private fun Gold(text: String, modifier: Modifier = Modifier, size: Int = 10, ma
     Label(text, modifier, size = size.sp, color = Ok.Gold, maxLines = maxLines)
 }
 
+private const val LOG_ROWS = 5
+
 @Composable
 private fun LogLines(data: HomeData) {
     Gold("ЗА ПЕРИОД ${data.periodKm} · ${data.periodCost}".uppercase())
-    data.events.forEach { e ->
+    // Five fit above the speed line at 604 dp; a sixth would be cut in half.
+    data.events.take(LOG_ROWS).forEach { e ->
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
             Gold("${e.time} ${e.title}".uppercase(), Modifier.weight(1f))
             Gold(if (e.cost == "—") "—" else "${e.cost} ${data.currency}")
@@ -321,14 +372,14 @@ private fun WeekBars(week: List<Double?>, modifier: Modifier) {
         week.take(7).forEachIndexed { i, v ->
             Column(Modifier.weight(1f).fillMaxHeight(), horizontalAlignment = Alignment.CenterHorizontally) {
                 Column(Modifier.weight(1f).fillMaxWidth(), verticalArrangement = Arrangement.Bottom, horizontalAlignment = Alignment.CenterHorizontally) {
-                    Label(v?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—", size = 8.sp, color = Ok.Gold, spacing = 0.sp)
+                    Label(v?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—", size = 10.sp, color = Ok.Gold, spacing = 0.sp)
                     Box(Modifier.size(1.dp, 2.dp))
                     if (v != null) {
                         LedStrip(true, Modifier.fillMaxWidth().fillMaxHeight((v / top).toFloat().coerceIn(0.04f, 1f)), color = Ok.Gold, halo = 3.dp)
                     }
                 }
                 Box(Modifier.size(1.dp, 3.dp))
-                Label(days.getOrElse(i) { "" }, size = 8.sp, color = Ok.Light, spacing = 0.sp)
+                Label(days.getOrElse(i) { "" }, size = 10.sp, color = Ok.Light, spacing = 0.sp)
             }
         }
     }

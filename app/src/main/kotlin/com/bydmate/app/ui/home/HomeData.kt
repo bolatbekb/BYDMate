@@ -8,6 +8,9 @@ import java.util.Date
 import java.util.Locale
 import kotlin.math.roundToInt
 
+/** A tab the retro homes draw as a key on the deck: the author's bottom-bar items minus Home. */
+data class RetroTab(val route: String, val label: String)
+
 /** One line of the day's log on the retro screens. */
 data class HomeEvent(val time: String, val title: String, val cost: String, val fuel: Boolean)
 

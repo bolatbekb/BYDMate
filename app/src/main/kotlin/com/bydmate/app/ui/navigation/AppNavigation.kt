@@ -220,7 +220,8 @@ fun AppNavigation(
     Scaffold(
         containerColor = NavyDark,
         bottomBar = {
-            if (!isWelcome) {
+            // fork: a retro home draws the tabs into its own deck instead of this bar.
+            if (!isWelcome && !com.bydmate.app.ui.home.hidesBottomBar(currentDestination?.route)) {
                 NavigationBar(
                     modifier = Modifier.height(navBarHeight),
                     containerColor = NavBarBackground
@@ -299,7 +300,14 @@ fun AppNavigation(
                         restoreState = true
                     }
                 }
-                com.bydmate.app.ui.home.ForkHome {
+                // fork: the retro homes switch tabs themselves, the same way as the bottom bar.
+                com.bydmate.app.ui.home.ForkHome(onOpenTab = { route ->
+                    navController.navigate(route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+                }) {
                     // Fork: the home-style switch (standard or a retro stack) wraps the author's screen.
                     DashboardScreen(
                         onOpenTechPanel = openTechTab,

@@ -251,7 +251,7 @@ internal fun PowerPlate(caption: Float, w: Dp, h: Dp, legend: String?, modifier:
 @Composable
 internal fun RoundButton(label: String, value: String, modifier: Modifier = Modifier) {
     Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        KText(label, 9f, spacing = 1f)
+        KText(label, 10f, spacing = 1f)
         Spacer(Modifier.height(3.dp))
         Box(
             Modifier
@@ -340,8 +340,8 @@ internal fun EqSlider(fraction: Float?, modifier: Modifier = Modifier) {
  * Null hides the pip rather than pointing at a made-up value.
  */
 @Composable
-internal fun KnurledKnob(value: Int?, max: Int, modifier: Modifier = Modifier) {
-    Canvas(modifier.size(150.dp)) {
+internal fun KnurledKnob(value: Int?, max: Int, modifier: Modifier = Modifier, diameter: Dp = 150.dp) {
+    Canvas(modifier.size(diameter)) {
         val u = size.width / 150f
         val c = center
         fun at(deg: Float, r: Float): Offset {
