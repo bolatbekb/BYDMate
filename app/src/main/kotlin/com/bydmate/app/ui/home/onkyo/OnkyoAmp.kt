@@ -348,7 +348,7 @@ private fun LogLines(data: HomeData) {
 
 @Composable
 private fun TrackLines(music: NowPlaying) {
-    val src = music.source?.substringAfterLast('.')?.uppercase()
+    val src = (music.sourceLabel?.takeIf { it.isNotBlank() } ?: music.source?.substringAfterLast('.'))?.uppercase()
     Gold("ДЕКА · ${src ?: "НЕТ ПЛЕЕРА"}")
     if (!music.hasTrack) {
         Gold("КАССЕТА НЕ ВСТАВЛЕНА")
@@ -356,7 +356,7 @@ private fun TrackLines(music: NowPlaying) {
     }
     Label(music.artist?.uppercase() ?: "—", size = 13.sp, color = Color(0xFFE2C46A), weight = FontWeight.SemiBold, spacing = 0.5.sp, maxLines = 2)
     Label(music.title.orEmpty(), size = 13.sp, color = Color(0xFFE2C46A), spacing = 0.5.sp, maxLines = 2)
-    Gold("${music.positionMs.tapeTime()} / ${music.durationMs.tapeTime()}")
+    Gold(if (music.isLive) "LIVE" else "${music.positionMs.tapeTime()} / ${music.durationMs.tapeTime()}")
     Gold(
         when {
             music.winding -> "ПЕРЕМОТКА"

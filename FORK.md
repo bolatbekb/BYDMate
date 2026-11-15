@@ -136,3 +136,13 @@ Remote `upstream` настроен только на чтение (push URL — 
 - **Тесты и часовой пояс.** Три теста `TelegramReportBuilderTest` падают на машине с часовым поясом, отличным от UTC. У автора они падают так же, на GitHub Actions проходят.
 - **Эмулятор.** Официальный APK собран только под arm64. На x86_64-эмуляторе с Android 11+ он работает через встроенную трансляцию ARM.
 - **Голосовые модели и словарь ударений** по-прежнему скачиваются с релизов автора (`TtsVoiceCatalog`, `TtsModelManager`). Так и задумано: файлы лежат там.
+
+## Сторонние материалы
+
+Фотографии кассет на ретро-экранах (`res/drawable-nodpi/cassette_*`; полный текст: `app/src/main/assets/licenses/cassettes.md`):
+
+- tdk_sa60.png (+ _hubL/_hubR): "Compact Cassette - TDK SA 60.JPG" by Andrey Korzun, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), source: https://commons.wikimedia.org/wiki/File:Compact_Cassette_-_TDK_SA_60.JPG — cropped, perspective-corrected, handwriting removed by BYDMate fork.
+- tdk_arx90.png (+ _hubL/_hubR): "Compact Cassette - TDK AR-X90.JPG" by Andrey Korzun, [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0), source: https://commons.wikimedia.org/wiki/File:Compact_Cassette_-_TDK_AR-X90.JPG — cropped, perspective-corrected, handwriting removed by BYDMate fork.
+- tdk_d60.png (+ _hubL/_hubR): "TDK D 1985 euro market 01.jpg" by Retired electrician, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/), source: https://commons.wikimedia.org/wiki/File:TDK_D_1985_euro_market_01.jpg — cropped, perspective-corrected by BYDMate fork (no handwriting on this shell; window-frame ribs retouched out of the hub discs).
+- tdk_d46.png (+ _hubL/_hubR): "TDK D46 audio cassette.jpg" by Hannes Grobe/AWI, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0), source: https://commons.wikimedia.org/wiki/File:TDK_D46_audio_cassette.jpg — cropped, perspective-corrected by BYDMate fork (no handwriting on this shell; window-frame ribs retouched out of the hub discs).
+- res/font/caveat.ttf: шрифт Caveat © 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat), [SIL Open Font License 1.1](https://openfontlicense.org), источник: https://github.com/google/fonts/tree/main/ofl/caveat; текст лицензии: `app/src/main/assets/licenses/caveat-OFL.txt`.

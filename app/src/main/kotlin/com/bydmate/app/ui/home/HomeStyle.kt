@@ -24,6 +24,7 @@ object HomeStyleState {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
         }.getOrNull()
         current = HomeStyle.entries.firstOrNull { it.id == id } ?: HomeStyle.STANDARD
+        CassetteRotation.init(context)
     }
 
     fun select(context: Context, style: HomeStyle) {

@@ -48,12 +48,13 @@ import com.bydmate.app.ui.home.CassetteDoor
 import com.bydmate.app.ui.home.CassetteGlyph
 import com.bydmate.app.ui.home.EngravedIcon
 import com.bydmate.app.ui.home.HomeData
+import com.bydmate.app.ui.home.counterText
+import com.bydmate.app.ui.home.labelLine
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.deg
 import com.bydmate.app.ui.home.orDash
-import com.bydmate.app.ui.home.tapeTime
 import java.util.Calendar
 import java.util.Locale
 
@@ -137,13 +138,10 @@ private fun DeckWell(music: NowPlaying, modifier: Modifier) {
         Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 6.dp)) {
             val spin = rememberRunningClock(music.isPlaying, if (music.winding) 900f else 360f / 2.2f)
             CassetteDoor(
-                artist = music.artist?.takeIf { it.isNotBlank() } ?: "—",
-                title = music.title?.takeIf { it.isNotBlank() } ?: "Нет музыки",
-                progress = music.progress,
+                label = music.labelLine(),
                 hubAngle = { spin.value },
                 modifier = Modifier.padding(top = 2.dp).size(316.dp, 196.dp).align(Alignment.CenterHorizontally),
                 frame = Kw.edge,
-                stripe = Color(0xFF4C7C80),
             )
             Spacer(Modifier.weight(1f))
             Box(Modifier.fillMaxWidth().height(1.dp).background(Color(0xFF2E3034)))
@@ -177,10 +175,13 @@ private fun DisplayColumn(data: HomeData, music: NowPlaying, controls: MusicCont
                 GlyphIcon(Glyph.STOP, if (music.isPlaying) Kw.vfdOff else Kw.vfd, 14.dp, 12.dp)
                 GlyphIcon(Glyph.PLAY, if (music.isPlaying) Kw.vfd else Kw.vfdOff, 14.dp, 12.dp)
                 GlyphIcon(Glyph.PAUSE, Kw.vfdOff, 14.dp, 12.dp)
-                KText("REC · LOOP · RAND", 11f, color = Kw.vfdOff)
-                Spacer(Modifier.weight(1f))
+                val source = music.sourceLabel?.takeIf { it.isNotBlank() }
                 KText(
-                    music.positionMs.tapeTime(), 32f, color = Kw.vfd, family = VfdFont,
+                    source?.uppercase() ?: "REC · LOOP · RAND", 11f, Modifier.weight(1f),
+                    color = if (source != null) Kw.vfdDim else Kw.vfdOff, spacing = if (source != null) 1f else 0f,
+                )
+                KText(
+                    music.counterText(), 32f, color = Kw.vfd, family = VfdFont,
                     weight = FontWeight.Bold, italic = true, glow = Color(0xB3AACDFF),
                 )
             }

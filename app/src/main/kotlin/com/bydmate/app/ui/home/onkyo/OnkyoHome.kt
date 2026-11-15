@@ -44,10 +44,11 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.home.CassetteDoor
 import com.bydmate.app.ui.home.HomeData
+import com.bydmate.app.ui.home.counterText
+import com.bydmate.app.ui.home.labelLine
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.RetroTab
-import com.bydmate.app.ui.home.tapeTime
 import kotlin.math.min
 
 private val DesignW = 1280.dp
@@ -154,13 +155,10 @@ private fun DeckTier(
         Column(Modifier.width(DoorW), verticalArrangement = Arrangement.spacedBy(5.dp)) {
             Brand(15, "STEREO CASSETTE DRIVE DECK")
             CassetteDoor(
-                artist = music.artist?.takeIf { it.isNotBlank() } ?: "—",
-                title = music.title?.takeIf { it.isNotBlank() } ?: "Нет музыки",
-                progress = music.progress,
+                label = music.labelLine(),
                 hubAngle = hubAngle,
                 modifier = Modifier.size(DoorW, DoorW * (290f / 392f)),
                 frame = Ok.Edge,
-                stripe = Color(0xFF8A5048),
                 caption = "AMCS · DOLBY B NR · AUTO REVERSE",
             )
         }
@@ -305,7 +303,7 @@ private fun CounterPanel(music: NowPlaying) {
             contentAlignment = Alignment.Center,
         ) {
             Label(
-                music.positionMs.tapeTime(),
+                music.counterText(),
                 size = 26.sp, color = Ok.Green, weight = FontWeight.Bold, spacing = 0.sp,
                 family = FontFamily.Monospace, style = FontStyle.Italic,
                 shadow = Shadow(Ok.Green.copy(alpha = 0.7f), blurRadius = 8f * LocalDensity.current.density),
