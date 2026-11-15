@@ -25,6 +25,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import com.bydmate.app.ui.home.brushedFascia
+import com.bydmate.app.ui.home.hardwareKey
+import com.bydmate.app.ui.home.spunCap
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
@@ -109,34 +112,14 @@ internal fun Label(
 }
 
 /** Brushed black aluminium with a light top edge and a dark bottom lip. */
-internal fun Modifier.brushedAluminium(): Modifier = drawBehind {
-    val px = 1.dp.toPx()
-    drawRect(Ok.Brushed)
-    var y = size.height
-    while (y > 0f) {
-        drawRect(Ok.BrushedLine, Offset(0f, y - px), Size(size.width, px))
-        y -= 3 * px
-    }
-    drawRect(Ok.Edge, Offset.Zero, Size(size.width, px))
-    drawRect(Ok.Shadow, Offset(0f, size.height - 2 * px), Size(size.width, 2 * px))
-}
+internal fun Modifier.brushedAluminium(): Modifier = brushedFascia(Color(0xFF29292B), Color(0xFF1B1B1D), Ok.Edge, Ok.Shadow)
 
 /** Black inset panel with a thin grey frame. */
 internal fun Modifier.insetPanel(): Modifier = background(Ok.Panel).border(1.dp, Ok.Edge2)
 
-/** A plastic key face: raised with a dark lip below, or pushed in with an inner shadow. */
-internal fun Modifier.keyFace(down: Boolean, face: Color = Ok.KeyFace): Modifier = drawBehind {
-    val px = 1.dp.toPx()
-    if (!down) drawRect(Ok.Shadow, Offset(0f, 2 * px), size)
-    drawRect(if (down) Ok.KeyDown else face)
-    if (down) {
-        drawRect(
-            Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.8f), 1f to Color.Transparent, endY = 6 * px),
-            size = Size(size.width, 6 * px),
-        )
-    }
-    drawRect(Ok.Edge, Offset(px / 2, px / 2), Size(size.width - px, size.height - px), style = Stroke(px))
-}
+/** A rounded metal-look key face: raised with a dark lip below, or pushed in with an inner shadow. */
+internal fun Modifier.keyFace(down: Boolean, face: Color = Color(0xFF232427)): Modifier =
+    hardwareKey(down = down, face = face, edge = Ok.Edge, shadow = Ok.Shadow, radius = 4.dp)
 
 /** Soft halo behind a lit lamp. */
 internal fun DrawScope.glow(color: Color, rect: Rect, radius: Float) {
@@ -187,12 +170,8 @@ internal fun SmallKnob(size: Dp = 26.dp) {
     Box(
         Modifier.size(size).drawBehind {
             val r = this.size.minDimension / 2
-            drawCircle(
-                Brush.radialGradient(
-                    0f to Color(0xFF3A3C41), 1f to Color(0xFF0E0F11),
-                    center = Offset(this.size.width * 0.4f, this.size.height * 0.35f), radius = r * 1.5f,
-                ),
-            )
+            drawCircle(Color(0xFF0E0F11), r)
+            spunCap(center, r * 0.86f, Color(0xFF1E1F22), Color(0xFF4A4C51))
             drawCircle(Color(0xFF5A5C61), r - 0.5.dp.toPx(), style = Stroke(1.dp.toPx()))
         }
     )

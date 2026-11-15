@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -17,6 +19,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -374,4 +377,72 @@ val CassetteGlyph: ImageVector by lazy {
             moveTo(17.8f, 11f); arcTo(2f, 2f, 0f, true, true, 13.8f, 11f); arcTo(2f, 2f, 0f, true, true, 17.8f, 11f); close()
         }
     }.build()
+}
+
+/* ---------------------------------------------------------------- fascia and key materials */
+
+/**
+ * Horizontally brushed metal fascia from [top] to [bottom]: irregular fine hairlines, a soft
+ * sheen band in the upper third, light falling off to the right, a lit top edge in [edge], a
+ * dark lip in [lip] and dark seams at both ends. Built once per size (drawWithCache).
+ */
+fun Modifier.brushedFascia(top: Color, bottom: Color, edge: Color, lip: Color): Modifier = drawWithCache {
+    val px = 1.dp.toPx()
+    val dark = Path()
+    val light = Path()
+    var seed = 0x2F6E2B1
+    var y = 0f
+    while (y < size.height) {
+        seed = seed * 1_103_515_245 + 12_345
+        val r = (seed ushr 16) and 0x7FFF
+        val h = px * (0.5f + (r % 3) * 0.25f)
+        (if (r % 3 == 0) light else dark).addRect(Rect(0f, y, size.width, y + h))
+        y += px * (1f + (r % 5) * 0.35f)
+    }
+    val base = Brush.verticalGradient(listOf(top, bottom))
+    val sheen = Brush.verticalGradient(
+        0f to Color.Transparent, 0.2f to Color.White.copy(alpha = 0.045f), 0.45f to Color.Transparent, 1f to Color.Transparent,
+    )
+    val falloff = Brush.horizontalGradient(listOf(Color.White.copy(alpha = 0.025f), Color.Transparent, Color.Black.copy(alpha = 0.07f)))
+    onDrawBehind {
+        drawRect(base)
+        drawPath(dark, Color.Black.copy(alpha = 0.15f))
+        drawPath(light, Color.White.copy(alpha = 0.035f))
+        drawRect(sheen)
+        drawRect(falloff)
+        drawRect(edge, size = Size(size.width, px))
+        drawRect(Color.White.copy(alpha = 0.05f), Offset(0f, px), Size(size.width, px))
+        drawRect(lip, Offset(0f, size.height - 2 * px), Size(size.width, 2 * px))
+        drawRect(Color.Black.copy(alpha = 0.45f), size = Size(px, size.height))
+        drawRect(Color.Black.copy(alpha = 0.45f), Offset(size.width - px, 0f), Size(px, size.height))
+    }
+}
+
+/**
+ * Face of a hardware push key: [face] with a faint vertical gradient, a lit top edge and a
+ * [shadow] lip below when raised; flush, darker and shaded from the top edge when [down].
+ */
+fun Modifier.hardwareKey(down: Boolean, face: Color, edge: Color, shadow: Color, radius: Dp): Modifier = drawWithCache {
+    val px = 1.dp.toPx()
+    val r = CornerRadius(radius.toPx())
+    val raised = Brush.verticalGradient(listOf(lerp(face, Color.White, 0.07f), face, lerp(face, Color.Black, 0.18f)))
+    val pushed = Brush.verticalGradient(listOf(lerp(face, Color.Black, 0.35f), lerp(face, Color.Black, 0.1f)))
+    val inner = Brush.verticalGradient(listOf(Color.Black.copy(alpha = 0.7f), Color.Transparent), 0f, 6 * px)
+    onDrawBehind {
+        if (!down) drawRoundRect(shadow, Offset(0f, 2 * px), size, r)
+        drawRoundRect(if (down) pushed else raised, cornerRadius = r)
+        if (down) {
+            drawRoundRect(inner, cornerRadius = r)
+        } else {
+            drawLine(Color.White.copy(alpha = 0.16f), Offset(radius.toPx(), 1.5f * px), Offset(size.width - radius.toPx(), 1.5f * px), px)
+        }
+        drawRoundRect(edge, Offset(px / 2, px / 2), Size(size.width - px, size.height - px), r, style = Stroke(px))
+    }
+}
+
+/** Spun-aluminium cap: a conical sheen ([dark] / [light], two highlights round) drawn at [radius] around [c]. */
+fun DrawScope.spunCap(c: Offset, radius: Float, dark: Color = Color(0xFF1F2023), light: Color = Color(0xFF45474C)) {
+    drawCircle(Brush.sweepGradient(listOf(dark, light, dark, lerp(dark, light, 0.6f), dark), c), radius, c)
+    drawCircle(Brush.radialGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.35f)), c, radius), radius, c)
+    drawCircle(Color.Black.copy(alpha = 0.6f), radius, c, style = Stroke(1.dp.toPx()))
 }
