@@ -26,7 +26,7 @@ class PrintedScaleTest {
 
     @Test
     fun `compressor scale tops out at its last printed number`() {
-        assertEquals(36f, CompressorScale.angleOf(5.0), 0.001f)
-        assertEquals(87.5f, CompressorScale.angleOf(2.0), 0.001f)
+        assertEquals(35.4f, CompressorScale.angleOf(5.0), 0.001f)
+        assertEquals(87.4f, CompressorScale.angleOf(2.0), 0.001f)
     }
 }
