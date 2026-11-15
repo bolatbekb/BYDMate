@@ -175,11 +175,7 @@ private fun DisplayColumn(data: HomeData, music: NowPlaying, controls: MusicCont
                 GlyphIcon(Glyph.STOP, if (music.isPlaying) Kw.vfdOff else Kw.vfd, 14.dp, 12.dp)
                 GlyphIcon(Glyph.PLAY, if (music.isPlaying) Kw.vfd else Kw.vfdOff, 14.dp, 12.dp)
                 GlyphIcon(Glyph.PAUSE, Kw.vfdOff, 14.dp, 12.dp)
-                val source = music.sourceLabel?.takeIf { it.isNotBlank() }
-                KText(
-                    source?.uppercase() ?: "REC · LOOP · RAND", 11f, Modifier.weight(1f),
-                    color = if (source != null) Kw.vfdDim else Kw.vfdOff, spacing = if (source != null) 1f else 0f,
-                )
+                KText("REC · LOOP · RAND", 11f, Modifier.weight(1f), color = Kw.vfdOff)
                 KText(
                     music.counterText(), 32f, color = Kw.vfd, family = VfdFont,
                     weight = FontWeight.Bold, italic = true, glow = Color(0xB3AACDFF),

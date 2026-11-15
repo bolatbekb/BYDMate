@@ -72,9 +72,7 @@ object CassetteRotation {
 }
 
 /**
- * What is written on the cassette label: "artist — title". Radio often puts the station in
- * the artist and "Artist — Title" in the title, so a live stream shows the title alone when
- * the artist looks like a station.
+ * What is written on the cassette label: "artist — title", the title alone without an artist.
  */
 fun NowPlaying.labelLine(): String {
     val t = title?.trim().orEmpty()
@@ -82,10 +80,9 @@ fun NowPlaying.labelLine(): String {
     return when {
         t.isEmpty() -> "Нет музыки"
         a.isEmpty() -> t
-        isLive && (a == sourceLabel?.trim() || " - " in t || " — " in t) -> t
         else -> "$a — $t"
     }
 }
 
-/** The tape counter's text: running time, or LIVE for a stream without a duration. */
-fun NowPlaying.counterText(): String = if (isLive) "LIVE" else positionMs.tapeTime()
+/** The tape counter's text: the running time. */
+fun NowPlaying.counterText(): String = positionMs.tapeTime()
