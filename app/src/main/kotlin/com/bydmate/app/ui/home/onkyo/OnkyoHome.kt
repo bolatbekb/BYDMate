@@ -167,7 +167,7 @@ private fun DeckTier(
         PeakPanel(data.socPercent, data.fuelPercent, Modifier.width(132.dp).fillMaxHeight())
         Column(Modifier.width(136.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             OperationPanel(music.isPlaying)
-            ModePanel(data.driveMode)
+            ModePanel(data.driveProfile, data.driveProfiles)
             CounterPanel(music)
         }
         TransportKeys(music.isPlaying, controls, Modifier.width(232.dp))
@@ -271,11 +271,19 @@ private fun OperationPanel(playing: Boolean) {
     }
 }
 
-/** EV / HEV / SPORT selector; only the reported mode is lit (SPORT is never reported). */
+/**
+ * ECO / NORMAL / SPORT selector: only the modes this car reports support for, the current one
+ * lit. A dash while the car has not answered (or has none of them).
+ */
 @Composable
-private fun ModePanel(mode: String?) {
+private fun ModePanel(mode: String?, modes: List<String>) {
     TitledPanel("РЕЖИМ", Modifier.fillMaxWidth()) {
-        listOf("EV", "HEV", "SPORT").forEach { m ->
+        if (modes.isEmpty()) {
+            Box(Modifier.padding(top = 4.dp).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Label("—", color = Ok.Dim, weight = FontWeight.SemiBold)
+            }
+        }
+        modes.forEach { m ->
             val on = m == mode
             Box(
                 Modifier.padding(top = 4.dp).fillMaxWidth().background(if (on) Ok.Amber else Color.Transparent)

@@ -72,7 +72,9 @@ private fun RetroHome(
         onDispose { NowPlayingSource.stopPolling() }
     }
     val music by NowPlayingSource.state.collectAsStateWithLifecycle()
-    val data = remember(state, live) { HomeData.from(state, live) }
+    LaunchedEffect(Unit) { com.bydmate.app.fork.DriveModeSupport.ensureProbed(context) }
+    val profiles by com.bydmate.app.fork.DriveModeSupport.supported.collectAsStateWithLifecycle()
+    val data = remember(state, live, profiles) { HomeData.from(state, live, profiles) }
     when (style) {
         HomeStyle.KENWOOD -> KenwoodHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.ONKYO -> OnkyoHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)

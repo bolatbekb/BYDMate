@@ -37,6 +37,10 @@ data class HomeData(
     val odometerKm: Int?,
     /** "EV", "HEV" or null. */
     val driveMode: String?,
+    /** Drive profile the car runs now: "ECO", "NORMAL", "SPORT", a terrain mode name, or null. */
+    val driveProfile: String?,
+    /** Everyday profiles this car has (ECO / NORMAL / SPORT, in that order); empty when unknown. */
+    val driveProfiles: List<String>,
     /** Share of traction on the front motor, 0..1; null when unknown. */
     val frontShare: Float?,
     val periodCost: String,
@@ -50,7 +54,11 @@ data class HomeData(
         private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
 
         @Suppress("CyclomaticComplexMethod") // a flat chain of null fallbacks, one per field
-        fun from(s: DashboardUiState, live: DiParsData?): HomeData {
+        fun from(
+            s: DashboardUiState,
+            live: DiParsData?,
+            supported: List<com.bydmate.app.data.vehicle.DriveMode>? = null,
+        ): HomeData {
             val ev = s.evRangeKm ?: live?.evRangeKm ?: s.estimatedRangeKm?.roundToInt()
             val fuel = s.fuelRangeKm ?: live?.fuelRangeKm
             val total = if (ev != null || fuel != null) (ev ?: 0) + (fuel ?: 0) else null
@@ -99,6 +107,8 @@ data class HomeData(
                 powerKw = live?.power,
                 odometerKm = (s.odometer ?: live?.mileage)?.roundToInt(),
                 driveMode = mode,
+                driveProfile = com.bydmate.app.fork.DriveModeSupport.current(live)?.name,
+                driveProfiles = supported.orEmpty().map { it.name },
                 frontShare = front,
                 periodCost = String.format(Locale.getDefault(), "%.0f %s", s.totalCost, s.currencySymbol),
                 periodKm = String.format(Locale.getDefault(), "%.1f км", s.totalKm),

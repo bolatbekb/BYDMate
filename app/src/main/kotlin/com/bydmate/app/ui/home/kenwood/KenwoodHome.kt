@@ -229,7 +229,10 @@ private fun StatusStrip(data: HomeData) {
     ) {
         KText("ПЕРИОД · ${data.periodKm} · ${data.periodCost}", 11f, Modifier.weight(1f), spacing = 1f)
         KText("РЕЖИМ ", 11f, spacing = 1f)
-        KText(data.driveMode ?: "—", 11f, color = Kw.vfd, weight = FontWeight.SemiBold, spacing = 1f)
+        // EV/HEV, then the drive profile when the car has that profile (ECO / NORMAL / SPORT).
+        val profile = data.driveProfile?.takeIf { it in data.driveProfiles }
+        val mode = listOfNotNull(data.driveMode, profile).joinToString(" · ").ifEmpty { "—" }
+        KText(mode, 11f, color = Kw.vfd, weight = FontWeight.SemiBold, spacing = 1f)
     }
 }
 
