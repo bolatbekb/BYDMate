@@ -70,6 +70,7 @@ class BYDMateApp : Application(), Configuration.Provider {
         super.onCreate()
         com.bydmate.app.ui.theme.SkinState.init(this)
         com.bydmate.app.ui.home.HomeStyleState.init(this)
+        com.bydmate.app.fork.DisplayInfo.init(this) // fork: window size for the diagnostic dump
         Trace.install(traceJournal)
         Trace.event(TraceArea.APP, "start", "version" to BuildConfig.VERSION_CODE, "name" to BuildConfig.VERSION_NAME)
         // Rarely runs on Android (a killed process gets no hooks), but costs nothing when it does.
