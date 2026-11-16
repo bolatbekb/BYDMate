@@ -124,7 +124,7 @@ private fun TotalColumn(value: String, unit: String, sub: String?, dot: Color?, 
         Text(
             buildAnnotatedString {
                 append(value)
-                withStyle(SpanStyle(fontSize = fs(9f), letterSpacing = fs(0f))) { append(" ") }
+                withStyle(SpanStyle(fontSize = fs(14f), letterSpacing = fs(0f))) { append(" ") }
                 withStyle(SpanStyle(fontSize = fs(22f), color = p.textSecondary, letterSpacing = fs(0f), fontWeight = FontWeight(400))) {
                     append(unit)
                 }
