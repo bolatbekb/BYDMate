@@ -156,22 +156,3 @@ object Regen {
         return wattMs / 3_600_000_000.0
     }
 }
-
-/**
- * Sum of [Regen.kwh] over finished trips, each trip's points read once: a finished trip's points
- * never change. Trips gone from the list (a new day) are dropped. Not thread-safe; one collector.
- */
-internal class RegenCache {
-    private val byTrip = HashMap<Long, Double?>()
-
-    suspend fun total(trips: List<TripEntity>, points: suspend (Long) -> List<TripPointEntity>): Double? {
-        val finished = trips.filter { it.endTs != null }
-        byTrip.keys.retainAll(finished.mapTo(HashSet()) { it.id })
-        var sum = 0.0; var any = false
-        for (t in finished) {
-            val kwh = if (byTrip.containsKey(t.id)) byTrip[t.id] else Regen.kwh(points(t.id)).also { byTrip[t.id] = it }
-            if (kwh != null) { sum += kwh; any = true }
-        }
-        return if (any) sum else null
-    }
-}

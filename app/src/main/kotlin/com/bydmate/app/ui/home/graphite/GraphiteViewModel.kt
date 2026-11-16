@@ -14,6 +14,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -96,11 +97,23 @@ class GraphiteViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private val regenCache = RegenCache()
+    private val minuteTick: Flow<Unit> = flow {
+        while (true) { emit(Unit); delay(60_000) }
+    }
 
-    /** Regen of today's finished trips; recomputed when the trip list changes, each trip's points read once. */
-    val regenKwh: StateFlow<Double?> = todayTrips
-        .map { trips -> withContext(Dispatchers.IO) { regenCache.total(trips, tripPointDao::getByTripId) } }
+    /** Regen of today's finished trips; recomputed when the trip list changes and once a minute. */
+    val regenKwh: StateFlow<Double?> = combine(todayTrips, minuteTick) { trips, _ -> trips }
+        .map { trips ->
+            withContext(Dispatchers.IO) {
+                var sum = 0.0; var any = false
+                for (t in trips) {
+                    if (t.endTs == null) continue
+                    Regen.kwh(tripPointDao.getByTripId(t.id))?.let { sum += it; any = true }
+                }
+                if (any) sum else null
+            }
+        }
+        .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val tankCapacityL: StateFlow<Double?> = flow { emit(runCatching { ledger.tankCapacityL() }.getOrNull()) }
