@@ -97,7 +97,7 @@ fun GraphiteHome(
                     }
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         GalleryCard(Modifier.fillMaxWidth().height(px(404)))
-                        EnergySlot(energy, period, vm::select, Modifier.fillMaxWidth().weight(1f))
+                        EnergyCard(energy, period, vm::select, Modifier.fillMaxWidth().weight(1f))
                     }
                     Column(Modifier.width(px(820)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         MediaSlot(music, controls, Modifier.fillMaxWidth().weight(1f))
@@ -127,12 +127,6 @@ private fun Modifier.grBackground(p: GrPalette): Modifier = drawWithCache {
 }
 
 /* ---------------------------------------------------------------- card slots (placeholders) */
-
-@Suppress("UNUSED_PARAMETER")
-@Composable
-private fun EnergySlot(series: EnergySeries?, period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit, modifier: Modifier) {
-    CardBody(modifier) { CardHeader(R.drawable.gr_ic_leaf, "Расход энергии") }
-}
 
 @Suppress("UNUSED_PARAMETER")
 @Composable
