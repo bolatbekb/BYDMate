@@ -58,9 +58,9 @@ import com.bydmate.app.ui.home.hybrid.MockupFrame
 import com.bydmate.app.ui.home.hybrid.px
 import com.bydmate.app.ui.theme.SkinState
 import kotlinx.coroutines.delay
-import java.time.LocalDateTime
+import java.time.LocalDate
 
-private const val CLOCK_TICK_MS = 10_000L
+private const val DATE_TICK_MS = 60_000L
 private const val LAMP_TICK_MS = 250L
 private const val ONLINE_TICK_MS = 5_000L
 
@@ -141,10 +141,10 @@ private fun backgroundModifier(p: GrPalette): Modifier = Modifier.drawWithCache 
 @Composable
 private fun TopBar(data: HomeData, online: Boolean, modifier: Modifier) {
     val p = LocalGr.current
-    val now = rememberNow()
+    val today = rememberToday()
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(px(14))) {
-        Text(grClock(now), maxLines = 1, softWrap = false, style = grStyle(46f, 300, -1f, p.textPrimary), modifier = Modifier.padding(end = px(6)))
-        Text(grDate(now.toLocalDate()), maxLines = 1, softWrap = false, style = grStyle(23f, 400, color = p.textSecondary), modifier = Modifier.padding(end = px(20)))
+        // No clock: the car's own status bar shows the time.
+        Text(grDate(today), maxLines = 1, softWrap = false, style = grStyle(23f, 400, color = p.textSecondary), modifier = Modifier.padding(end = px(20)))
         PowerChip(data.powerState)
         engineChip(data.engineRpm)?.let { text ->
             val (main, note) = splitNote(text)
@@ -234,16 +234,16 @@ private fun rememberOnline(): Boolean {
     return demo || (connected && fresh)
 }
 
-/** Local time, re-read every 10 s while the screen is started. */
+/** Local date, re-read once a minute while the screen is started. */
 @Composable
-private fun rememberNow(): LocalDateTime {
-    var now by remember { mutableStateOf(LocalDateTime.now()) }
+private fun rememberToday(): LocalDate {
+    var now by remember { mutableStateOf(LocalDate.now()) }
     val owner = LocalLifecycleOwner.current
     LaunchedEffect(owner) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
-                now = LocalDateTime.now()
-                delay(CLOCK_TICK_MS)
+                now = LocalDate.now()
+                delay(DATE_TICK_MS)
             }
         }
     }

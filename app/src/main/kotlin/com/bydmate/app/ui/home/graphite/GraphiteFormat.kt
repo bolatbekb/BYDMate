@@ -1,7 +1,6 @@
 package com.bydmate.app.ui.home.graphite
 
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 private const val NNBSP = ' '
 private const val MINUS = '−'
@@ -42,9 +41,6 @@ internal fun grDuration(minutes: Int): String {
     }
 }
 
-internal fun grClock(now: LocalDateTime): String =
-    "%02d:%02d".format(now.hour, now.minute)
-
 private val WEEKDAYS = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
 private val MONTHS = listOf(
     "января", "февраля", "марта", "апреля", "мая", "июня",
@@ -52,7 +48,7 @@ private val MONTHS = listOf(
 )
 
 internal fun grDate(now: LocalDate): String =
-    "${WEEKDAYS[now.dayOfWeek.value - 1]}, ${now.dayOfMonth} ${MONTHS[now.monthValue - 1]}"
+    "${WEEKDAYS[now.dayOfWeek.value - 1]}, ${now.dayOfMonth} ${MONTHS[now.monthValue - 1]} ${now.year}"
 
 internal fun grTrackTime(ms: Long?): String {
     if (ms == null) return "—:—"

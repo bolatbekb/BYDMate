@@ -1,7 +1,6 @@
 package com.bydmate.app.ui.home.graphite
 
 import java.time.LocalDate
-import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
@@ -29,11 +28,9 @@ class GraphiteFormatTest {
         assertEquals("2 ч", grDuration(120))
         assertEquals("45 мин", grDuration(45))
     }
-    @Test fun clockAndDate() {
-        assertEquals("18:42", grClock(LocalDateTime.of(2026, 11, 16, 18, 42)))
-        assertEquals("09:05", grClock(LocalDateTime.of(2026, 11, 16, 9, 5)))
-        assertEquals("Пн, 16 ноября", grDate(LocalDate.of(2026, 11, 16)))
-        assertEquals("Вс, 1 марта", grDate(LocalDate.of(2026, 3, 1)))
+    @Test fun date() {
+        assertEquals("Пн, 16 ноября 2026", grDate(LocalDate.of(2026, 11, 16)))
+        assertEquals("Вс, 1 марта 2026", grDate(LocalDate.of(2026, 3, 1)))
     }
     @Test fun trackTime() {
         assertEquals("1:47", grTrackTime(107_000))
