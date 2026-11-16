@@ -1,6 +1,7 @@
 package com.bydmate.app.ui.home.graphite
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import com.bydmate.app.ui.theme.SkinPalette
 
 /** Photo colour grading applied to the car photo. */
@@ -173,21 +174,29 @@ fun homePalette(skinId: String): GrPalette = when (skinId) {
     else -> GrDark
 }
 
-/** App-wide skin palette derived from a home palette. */
-fun GrPalette.toSkinPalette(): SkinPalette = SkinPalette(
-    navyDark = bg,
-    navyDeep = bgGlow,
-    navyMid = cardBottom,
-    cardSurface = cardTop,
-    cardSurfaceElevated = tabActive,
-    cardBorder = cardEdge,
-    accentGreen = electric,
-    accentOrange = fuel,
-    accentBlue = cold,
-    accentTeal = progressEnd,
-    textPrimary = textPrimary,
-    textSecondary = textSecondary,
-    textMuted = textTertiary,
-    chartGrid = divider,
-    navBarBackground = if (edgeStyle) cardTop else inset,
-)
+/**
+ * App-wide skin palette derived from a home palette. The author's screens take these as solid
+ * colours (CardSurfaceElevated is the dialog container and surfaceVariant), and every other skin
+ * is opaque, so a translucent home colour (Edge's 12 % TabActive, the 1 px edges, the grid) is
+ * flattened onto CardTop; an opaque one is kept as is. Edge's transparent Inset gives CardTop.
+ */
+fun GrPalette.toSkinPalette(): SkinPalette {
+    fun Color.solid(): Color = compositeOver(cardTop)
+    return SkinPalette(
+        navyDark = bg.solid(),
+        navyDeep = bgGlow.solid(),
+        navyMid = cardBottom.solid(),
+        cardSurface = cardTop,
+        cardSurfaceElevated = tabActive.solid(),
+        cardBorder = cardEdge.solid(),
+        accentGreen = electric.solid(),
+        accentOrange = fuel.solid(),
+        accentBlue = cold.solid(),
+        accentTeal = progressEnd.solid(),
+        textPrimary = textPrimary.solid(),
+        textSecondary = textSecondary.solid(),
+        textMuted = textTertiary.solid(),
+        chartGrid = divider.solid(),
+        navBarBackground = inset.solid(),
+    )
+}

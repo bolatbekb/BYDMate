@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.layout.layout
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.ExperimentalTextApi
@@ -52,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.offset
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.hybrid.fs
 import com.bydmate.app.ui.home.hybrid.px
@@ -134,13 +137,22 @@ private fun topHighlightPath(size: Size, radius: Float, u: Float): Path {
 
 /* ---------------------------------------------------------------- card */
 
+/*
+ * The draw helpers below are @Composable and remember their drawWithCache modifier per key: a
+ * fresh lambda on every call would make an unequal modifier, so each recomposition (the live
+ * cards recompose about once a second) would drop the cache and rebuild paints, paths and brushes.
+ */
+
 /**
  * The card surface (SPEC §5): CardTop→CardBottom gradient, 1 px CardEdge contour and CardEdgeTop
  * top highlight drawn over the content (so they stay on top of a photo), clipped to [radius].
  * Graphite / Dark cast a `0 24 48 −12` CardOuterGlow shadow; Edge has a 28 px CardOuterGlow glow
  * outside and a 40 px CardInnerGlow inside. All shapes and paints are built once per size.
  */
-fun Modifier.grCard(p: GrPalette, radius: Float = 34f): Modifier = this
+@Composable
+fun Modifier.grCard(p: GrPalette, radius: Float = 34f): Modifier = this then remember(p, radius) { cardModifier(p, radius) }
+
+private fun cardModifier(p: GrPalette, radius: Float): Modifier = Modifier
     .drawWithCache {
         val u = px(1).toPx()
         val r = px(radius).toPx()
@@ -181,7 +193,11 @@ fun Modifier.grCard(p: GrPalette, radius: Float = 34f): Modifier = this
  * A rounded fill with the variant's rim: a 1 px [edge] contour on Edge, a 1 px [edge] top
  * highlight elsewhere. Not clipped, so a glow inside may spill. Used by chips and the pressed menu key.
  */
-internal fun Modifier.grPill(fill: Color, edge: Color, edgeStyle: Boolean, radius: Float): Modifier = this
+@Composable
+internal fun Modifier.grPill(fill: Color, edge: Color, edgeStyle: Boolean, radius: Float): Modifier =
+    this then remember(fill, edge, edgeStyle, radius) { pillModifier(fill, edge, edgeStyle, radius) }
+
+private fun pillModifier(fill: Color, edge: Color, edgeStyle: Boolean, radius: Float): Modifier = Modifier
     .drawWithCache {
         val u = px(1).toPx()
         val r = px(radius).toPx()
@@ -274,7 +290,10 @@ fun InsetBox(radius: Float, modifier: Modifier = Modifier, content: @Composable 
     Box(modifier.clip(RoundedCornerShape(px(radius))).background(p.inset).insetRim(p, radius), content = content)
 }
 
-private fun Modifier.insetRim(p: GrPalette, radius: Float): Modifier = drawWithCache {
+@Composable
+private fun Modifier.insetRim(p: GrPalette, radius: Float): Modifier = this then remember(p, radius) { rimModifier(p, radius) }
+
+private fun rimModifier(p: GrPalette, radius: Float): Modifier = Modifier.drawWithCache {
     val u = px(1).toPx()
     val r = px(radius).toPx()
     if (p.edgeStyle) {
@@ -291,3 +310,17 @@ private fun Modifier.insetRim(p: GrPalette, radius: Float): Modifier = drawWithC
         onDrawBehind { drawNativePath(path, paint) }
     }
 }
+
+/**
+ * Lets [input] take touches [margin] mockup px above and below this element without moving or
+ * resizing anything: the element lays out at its own size and the input sits on a box taller by
+ * the margins. Compose clips touches only at clip layers, not at a parent's bounds.
+ */
+internal fun Modifier.touchMarginVertical(margin: Float, input: Modifier): Modifier = this
+    .layout { measurable, constraints ->
+        val m = px(margin).roundToPx()
+        val placeable = measurable.measure(constraints.offset(vertical = 2 * m))
+        layout(placeable.width, (placeable.height - 2 * m).coerceAtLeast(0)) { placeable.place(0, -m) }
+    }
+    .then(input)
+    .padding(vertical = px(margin))

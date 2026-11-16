@@ -1,12 +1,7 @@
 package com.bydmate.app.ui.home.graphite
 
 import androidx.compose.animation.Crossfade
-import androidx.compose.animation.core.LinearEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -22,7 +17,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.withFrameMillis
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -55,6 +52,16 @@ private val Photos = intArrayOf(
 
 private const val FadeMs = 1400
 private const val ZoomMs = 200_000
+private const val ZoomFrom = 1.02f
+private const val ZoomTo = 1.08f
+private const val ZoomStepMs = 300L
+
+/** Linear 1.02 -> 1.08 over 200 s and back, [elapsedMs] after the start. */
+internal fun galleryZoom(elapsedMs: Long): Float {
+    val phase = (elapsedMs % (2L * ZoomMs)).toFloat() / ZoomMs // 0..2
+    val t = if (phase <= 1f) phase else 2f - phase
+    return ZoomFrom + (ZoomTo - ZoomFrom) * t
+}
 
 /** 4x5 colour matrix (android.graphics.ColorMatrix layout): saturation, brightness, contrast about 0.5, then tint. */
 internal fun photoMatrix(look: PhotoLook, tint: Color): FloatArray {
@@ -113,11 +120,17 @@ fun GalleryCard(modifier: Modifier) {
         }
     }
     val filter = remember(p.look, p.photoTint) { ColorFilter.colorMatrix(ColorMatrix(photoMatrix(p.look, p.photoTint))) }
-    val zoom by rememberInfiniteTransition(label = "zoom").animateFloat(
-        initialValue = 1.02f, targetValue = 1.08f,
-        animationSpec = infiniteRepeatable(tween(ZoomMs, easing = LinearEasing), RepeatMode.Reverse),
-        label = "zoom",
-    )
+    // A step every 300 ms (0.00009 of scale, invisible) instead of a frame every vsync: the card
+    // is redrawn ~3 times a second, not 60. Read only in graphicsLayer, so
+    // no recomposition; the loop waits on the frame clock, which is paused while the screen is stopped.
+    var zoom by remember { mutableFloatStateOf(ZoomFrom) }
+    LaunchedEffect(Unit) {
+        val start = withFrameMillis { it }
+        while (true) {
+            zoom = galleryZoom(withFrameMillis { it } - start)
+            delay(ZoomStepMs)
+        }
+    }
 
     // grCard clips to the card and draws its rim over the content, so the rim sits above the photo.
     Box(modifier.grCard(p)) {

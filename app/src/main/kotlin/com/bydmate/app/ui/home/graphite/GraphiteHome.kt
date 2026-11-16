@@ -114,7 +114,10 @@ fun GraphiteHome(
  * Bg, plus the BgGlow radial where the variant has one: CSS `radial-gradient(1600px 900px at
  * 50% 40%, BgGlow, Bg 70%)`, i.e. an ellipse with radii 1600 × 900 reaching Bg at 70 %.
  */
-private fun Modifier.grBackground(p: GrPalette): Modifier = drawWithCache {
+@Composable
+private fun Modifier.grBackground(p: GrPalette): Modifier = this then remember(p) { backgroundModifier(p) }
+
+private fun backgroundModifier(p: GrPalette): Modifier = Modifier.drawWithCache {
     val u = px(1).toPx()
     val c = Offset(size.width * 0.5f, size.height * 0.4f)
     val rx = 1600 * u

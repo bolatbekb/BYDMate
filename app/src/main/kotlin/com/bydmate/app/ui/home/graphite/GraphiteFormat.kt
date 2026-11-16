@@ -20,6 +20,7 @@ internal fun grInt(v: Int): String =
     if (v < 0) "$MINUS" + group(-v.toLong()) else group(v.toLong())
 
 internal fun grDec(v: Double, digits: Int = 1): String {
+    if (!v.isFinite()) return "—"
     val neg = v < 0
     val plain = java.math.BigDecimal(Math.abs(v)).setScale(digits, java.math.RoundingMode.HALF_UP).toPlainString()
     val intPart = plain.substringBefore('.')

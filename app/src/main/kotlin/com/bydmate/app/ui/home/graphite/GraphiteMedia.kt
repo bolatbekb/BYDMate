@@ -27,7 +27,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -39,6 +38,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -72,22 +72,18 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
         Spacer(Modifier.height(px(6)))
         Controls(music, controls)
         Spacer(Modifier.weight(1f).heightIn(min = px(14)))
-        InsetBox(26f, Modifier.fillMaxWidth()) {
+        // The whole sunken block takes the touch, not just the 28 px bar.
+        InsetBox(26f, Modifier.fillMaxWidth().volumeInput(volume) { v -> GraphiteVolume.set(ctx, v) }) {
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = px(24), vertical = px(18)),
+                Modifier.fillMaxWidth().padding(horizontal = px(VolPad), vertical = px(18)),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(px(20)),
+                horizontalArrangement = Arrangement.spacedBy(px(VolGap)),
             ) {
-                GrIcon(R.drawable.gr_ic_volume, 32f, p.textSecondary)
-                VolumeSlider(volume.value, Modifier.weight(1f)) { v ->
-                    if (v != volume.value) {
-                        volume.value = v
-                        GraphiteVolume.set(ctx, v)
-                    }
-                }
+                GrIcon(R.drawable.gr_ic_volume, VolIcon, p.textSecondary)
+                VolumeBar(volume.value, Modifier.weight(1f))
                 Text(
                     volume.value.toString(), maxLines = 1, softWrap = false, textAlign = TextAlign.End,
-                    style = grStyle(26f, 500, color = p.textPrimary), modifier = Modifier.width(px(46)),
+                    style = grStyle(26f, 500, color = p.textPrimary), modifier = Modifier.width(px(VolNumber)),
                 )
             }
         }
@@ -230,21 +226,71 @@ private fun CtrlButton(icon: Int, size: Float, tint: Color, enabled: Boolean, on
     ) { GrIcon(icon, size, tint) }
 }
 
-/** Volume bar: a tap or a drag sets the value at once; the system poll stays the source of truth. */
+// Volume row geometry (mockup px): padding, icon, gap, bar, gap, number, padding.
+private const val VolPad = 24f
+private const val VolIcon = 32f
+private const val VolGap = 20f
+private const val VolNumber = 46f
+private const val VolKnob = 14f
+
+/** 0..100 at [x] along a bar starting at [start], [width] long; clamped at both ends. */
+internal fun volumeOnTrack(x: Float, start: Float, width: Float): Int =
+    if (width <= 0f) 0 else ((x - start) / width * 100f).roundToInt().coerceIn(0, 100)
+
+/** Whether [x] is on the bar or within [slop] of its ends (a tap on the icon or the number does nothing). */
+internal fun nearTrack(x: Float, start: Float, width: Float, slop: Float): Boolean =
+    x >= start - slop && x <= start + width + slop
+
+/** The bar inside the volume block, in this pointer scope's px: start, length, knob slop. */
+private class VolTrack(val start: Float, val width: Float, val slop: Float) {
+    fun near(x: Float) = nearTrack(x, start, width, slop)
+    fun at(x: Float) = volumeOnTrack(x, start, width)
+}
+
+private fun PointerInputScope.volTrack(): VolTrack {
+    val start = px(VolPad + VolIcon + VolGap).toPx()
+    val width = size.width - start - px(VolGap + VolNumber + VolPad).toPx()
+    return VolTrack(start, width, px(VolKnob).toPx())
+}
+
+/**
+ * Volume input for the whole block: a tap on the bar or a drag that starts on it sets the value
+ * at once; a drag then follows the finger past the ends. [GrVolume.dragging] holds the poll off.
+ */
+private fun Modifier.volumeInput(volume: GrVolume, set: (Int) -> Unit): Modifier {
+    fun setTo(v: Int) {
+        if (v != volume.value) {
+            volume.value = v
+            set(v)
+        }
+    }
+    return pointerInput(volume) {
+        detectTapGestures { volTrack().let { t -> if (t.near(it.x)) setTo(t.at(it.x)) } }
+    }.pointerInput(volume) {
+        var active = false
+        val stop = { active = false; volume.dragging = false }
+        detectHorizontalDragGestures(
+            onDragStart = {
+                val t = volTrack()
+                active = t.near(it.x)
+                if (active) {
+                    volume.dragging = true
+                    setTo(t.at(it.x))
+                }
+            },
+            onDragEnd = stop,
+            onDragCancel = stop,
+            onHorizontalDrag = { change, _ -> if (active) setTo(volTrack().at(change.position.x)) },
+        )
+    }
+}
+
+/** The volume bar, drawing only; [volumeInput] on the block handles the touch. */
 @Composable
-private fun VolumeSlider(value: Int, modifier: Modifier, onValue: (Int) -> Unit) {
+private fun VolumeBar(value: Int, modifier: Modifier) {
     val p = LocalGr.current
-    val latest = rememberUpdatedState(onValue)
-    fun pct(x: Float, w: Int): Int = if (w <= 0) 0 else (x / w * 100f).roundToInt().coerceIn(0, 100)
     Box(
         modifier.height(px(28))
-            .pointerInput(Unit) { detectTapGestures { latest.value(pct(it.x, size.width)) } }
-            .pointerInput(Unit) {
-                detectHorizontalDragGestures(
-                    onDragStart = { latest.value(pct(it.x, size.width)) },
-                    onHorizontalDrag = { change, _ -> latest.value(pct(change.position.x, size.width)) },
-                )
-            }
             .drawBehind {
                 val h = px(8).toPx()
                 val top = (size.height - h) / 2
@@ -257,8 +303,8 @@ private fun VolumeSlider(value: Int, modifier: Modifier, onValue: (Int) -> Unit)
                         Offset(0f, top), Size(w, h), r,
                     )
                 }
-                drawCircle(Color.Black.copy(alpha = 0.25f), px(14).toPx(), Offset(w, size.height / 2 + px(2).toPx()))
-                drawCircle(Color.White, px(14).toPx(), Offset(w, size.height / 2))
+                drawCircle(Color.Black.copy(alpha = 0.25f), px(VolKnob).toPx(), Offset(w, size.height / 2 + px(2).toPx()))
+                drawCircle(Color.White, px(VolKnob).toPx(), Offset(w, size.height / 2))
             },
     )
 }
@@ -290,8 +336,8 @@ fun TodayCard(todayKm: Double?, today: TodayStats?, modifier: Modifier) {
             Column(Modifier.weight(1.25f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(18), Alignment.CenterVertically)) {
                 for (row in cells.chunked(2)) {
                     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(px(26))) {
+                        // an odd last cell takes the whole row: a hidden stat leaves no hole
                         for (c in row) StatCell(c, Modifier.weight(1f))
-                        if (row.size == 1) Spacer(Modifier.weight(1f))
                     }
                 }
             }

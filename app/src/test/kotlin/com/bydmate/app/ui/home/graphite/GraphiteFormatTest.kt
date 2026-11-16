@@ -15,6 +15,11 @@ class GraphiteFormatTest {
         assertEquals("47,3", grDec(47.3))
         assertEquals("1 284,0", grDec(1284.0))
     }
+    @Test fun nonFiniteDecimalIsDash() {
+        assertEquals("—", grDec(Double.NaN))
+        assertEquals("—", grDec(Double.POSITIVE_INFINITY))
+        assertEquals("—", grDec(Double.NEGATIVE_INFINITY))
+    }
     @Test fun deg() {
         assertEquals("−7°", grDeg(-7))
         assertEquals("—", grDeg(null))

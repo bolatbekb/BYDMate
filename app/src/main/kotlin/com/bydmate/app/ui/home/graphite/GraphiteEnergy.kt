@@ -1,8 +1,7 @@
 package com.bydmate.app.ui.home.graphite
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +28,8 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
@@ -68,22 +70,48 @@ fun EnergyCard(series: EnergySeries?, period: ChartPeriod, onPeriod: (ChartPerio
 
 private val TAB_LABELS = listOf(ChartPeriod.DAY to "День", ChartPeriod.WEEK to "Неделя", ChartPeriod.MONTH to "Месяц")
 
+private const val TabsPad = 5f
+private const val TabsTouchMargin = 20f // the 54 px block takes touches over 94 px, up to the card top
+
+/** Index of the tab under [x]: tabs of [widths] side by side from [start]; the paddings go to the end tabs. */
+internal fun tabAt(x: Float, start: Float, widths: IntArray): Int {
+    var right = start
+    for (i in widths.indices) {
+        right += widths[i]
+        if (x < right) return i
+    }
+    return widths.lastIndex
+}
+
+/**
+ * Day / week / month. One tap handler over the whole block plus [TabsTouchMargin] above and
+ * below (the tabs themselves are only 44 px tall); the tab is picked by x.
+ */
 @Composable
 private fun PeriodTabs(period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit) {
     val p = LocalGr.current
-    InsetBox(22f, Modifier.wrapContentHeight(Alignment.CenterVertically, unbounded = true)) {
-        Row(Modifier.padding(px(5))) {
-            for ((value, label) in TAB_LABELS) {
-                val on = value == period
-                Text(
-                    label, maxLines = 1, softWrap = false,
-                    style = grStyle(20f, 400, color = if (on) p.textPrimary else p.textSecondary, tnum = false),
-                    modifier = Modifier
-                        .then(if (on) Modifier.grPill(p.tabActive, p.tabActiveEdge, p.edgeStyle, 17f) else Modifier)
-                        .clip(RoundedCornerShape(px(17)))
-                        .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { onPeriod(value) }
-                        .padding(horizontal = px(24), vertical = px(10)),
-                )
+    val widths = remember { IntArray(TAB_LABELS.size) }
+    val latest = rememberUpdatedState(onPeriod)
+    Box(
+        Modifier.wrapContentHeight(Alignment.CenterVertically, unbounded = true)
+            .touchMarginVertical(TabsTouchMargin, Modifier.pointerInput(Unit) {
+                detectTapGestures { latest.value(TAB_LABELS[tabAt(it.x, px(TabsPad).toPx(), widths)].first) }
+            }),
+    ) {
+        InsetBox(22f) {
+            Row(Modifier.padding(px(TabsPad))) {
+                TAB_LABELS.forEachIndexed { i, (value, label) ->
+                    val on = value == period
+                    Text(
+                        label, maxLines = 1, softWrap = false,
+                        style = grStyle(20f, 400, color = if (on) p.textPrimary else p.textSecondary, tnum = false),
+                        modifier = Modifier
+                            .onSizeChanged { widths[i] = it.width }
+                            .then(if (on) Modifier.grPill(p.tabActive, p.tabActiveEdge, p.edgeStyle, 17f) else Modifier)
+                            .clip(RoundedCornerShape(px(17)))
+                            .padding(horizontal = px(24), vertical = px(10)),
+                    )
+                }
             }
         }
     }

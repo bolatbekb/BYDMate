@@ -1,6 +1,7 @@
 package com.bydmate.app.ui.home.graphite
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame
@@ -28,6 +29,28 @@ class GraphiteSkinsTest {
         assertEquals(GrSoft.textTertiary, Skins.GRAPHITE_SOFT.palette.textMuted)
         assertEquals(GrEdge.cardTop, Skins.GRAPHITE_EDGE.palette.navBarBackground)
         assertEquals(GrDark.inset, Skins.GRAPHITE_DARK.palette.navBarBackground)
+    }
+
+    /** Every colour of a Graphite app skin is opaque, like the other skins (dialogs, surfaceVariant). */
+    @Test fun graphiteSkinColoursAreOpaque() {
+        for (skin in listOf(Skins.GRAPHITE_SOFT, Skins.GRAPHITE_DARK, Skins.GRAPHITE_EDGE)) {
+            val c = skin.palette
+            val all = mapOf(
+                "navyDark" to c.navyDark, "navyDeep" to c.navyDeep, "navyMid" to c.navyMid,
+                "cardSurface" to c.cardSurface, "cardSurfaceElevated" to c.cardSurfaceElevated, "cardBorder" to c.cardBorder,
+                "accentGreen" to c.accentGreen, "accentBlue" to c.accentBlue, "accentOrange" to c.accentOrange,
+                "accentTeal" to c.accentTeal, "textPrimary" to c.textPrimary, "textSecondary" to c.textSecondary,
+                "textMuted" to c.textMuted, "chartGrid" to c.chartGrid, "navBarBackground" to c.navBarBackground,
+                "navIndicator" to c.navIndicator, "socGreen" to c.socGreen, "socYellow" to c.socYellow, "socRed" to c.socRed,
+            )
+            for ((name, color) in all) assertEquals("${skin.id}.$name", 1f, color.alpha, 0f)
+        }
+    }
+
+    @Test fun opaqueColoursAreKept() {
+        assertEquals(GrSoft.tabActive, Skins.GRAPHITE_SOFT.palette.cardSurfaceElevated)
+        assertEquals(GrDark.tabActive, Skins.GRAPHITE_DARK.palette.cardSurfaceElevated)
+        assertEquals(GrEdge.tabActive.compositeOver(GrEdge.cardTop), Skins.GRAPHITE_EDGE.palette.cardSurfaceElevated)
     }
 
     @Test fun homePaletteFollowsSkin() {
