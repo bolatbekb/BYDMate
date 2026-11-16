@@ -59,6 +59,10 @@ data class HomeData(
     val acAuto: Boolean? = null,
     /** Kilometres driven today (see DayMileage). */
     val todayKm: Double? = null,
+    /** Gear: 1=P, 2=R, 3=N, 4=D; null when unknown. */
+    val gear: Int? = null,
+    /** Power state: 0=OFF, 1=ON, 2=DRIVE; null when unknown. */
+    val powerState: Int? = null,
 ) {
     companion object {
         private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -131,6 +135,8 @@ data class HomeData(
                 acOn = live?.acStatus?.let { it == 1 },
                 acAuto = live?.acCtrlMode?.let { it == 0 },
                 todayKm = todayKm,
+                gear = live?.gear,
+                powerState = live?.powerState,
             )
         }
     }
