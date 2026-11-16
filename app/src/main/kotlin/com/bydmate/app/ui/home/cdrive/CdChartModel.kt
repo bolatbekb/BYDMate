@@ -22,6 +22,8 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
@@ -65,35 +67,37 @@ object ChartBuckets {
             ChartPeriod.WEEK -> 7
             ChartPeriod.MONTH -> 30
         }
-        val starts = (0 until n).map {
-            if (period == ChartPeriod.DAY) start.plusHours(it.toLong()) else start.plusDays(it.toLong())
-        }
-        val end = if (period == ChartPeriod.DAY) start.plusDays(1) else windowEnd(now)
-
+        val startDate = start.toLocalDate()
         val kmE = DoubleArray(n); val kwh = DoubleArray(n); val hasE = BooleanArray(n)
         val kmF = DoubleArray(n); val liters = DoubleArray(n); val hasF = BooleanArray(n)
         var anyFuel = false
-        val s = start.toInstant().toEpochMilli()
-        val e = end.toInstant().toEpochMilli()
-        val bounds = LongArray(n + 1) { if (it < n) starts[it].toInstant().toEpochMilli() else e }
         for (t in trips) {
             val km = t.distanceKm ?: continue
-            if (km <= 0.0 || t.startTs < s || t.startTs >= e) continue
-            var i = 0
-            while (i < n - 1 && t.startTs >= bounds[i + 1]) i++
-            t.kwhConsumed?.let { kmE[i] += km; kwh[i] += it; hasE[i] = true }
-            t.fuelLiters?.let { kmF[i] += km; liters[i] += it; hasF[i] = true; anyFuel = true }
+            if (!(km > 0.0) || !km.isFinite()) continue
+            val local = Instant.ofEpochMilli(t.startTs).atZone(zone)
+            // Keyed by the local clock, so a DST day never shifts labels.
+            val i = if (period == ChartPeriod.DAY) {
+                if (local.toLocalDate() != startDate) continue
+                local.hour
+            } else {
+                val d = ChronoUnit.DAYS.between(startDate, local.toLocalDate())
+                if (d < 0 || d >= n) continue
+                d.toInt()
+            }
+            t.kwhConsumed?.takeIf { it.isFinite() }?.let { kmE[i] += km; kwh[i] += it; hasE[i] = true }
+            t.fuelLiters?.takeIf { it.isFinite() }?.let { kmF[i] += km; liters[i] += it; hasF[i] = true; anyFuel = true }
         }
-        val energy = List(n) { if (hasE[it] && kmE[it] > 0) kwh[it] / kmE[it] * 100.0 else null }
+        // Negative kWh (regen) stays in the sums; the plotted value never drops below zero.
+        val energy = List(n) { if (hasE[it]) (kwh[it] / kmE[it] * 100.0).coerceAtLeast(0.0) else null }
         val fuel = if (!anyFuel) null
-        else List(n) { if (hasF[it] && kmF[it] > 0) liters[it] / kmF[it] * 100.0 else null }
+        else List(n) { if (hasF[it]) (liters[it] / kmF[it] * 100.0).coerceAtLeast(0.0) else null }
 
         val labels = List(n) { i ->
             when (period) {
                 ChartPeriod.DAY -> if (i % 3 == 0) "%02d:00".format(i) else ""
-                ChartPeriod.WEEK -> WEEKDAYS[starts[i].dayOfWeek.value - 1]
+                ChartPeriod.WEEK -> WEEKDAYS[startDate.plusDays(i.toLong()).dayOfWeek.value - 1]
                 // Counted back from today, so today always carries a label.
-                ChartPeriod.MONTH -> if ((n - 1 - i) % 5 == 0) DM.format(starts[i]) else ""
+                ChartPeriod.MONTH -> if ((n - 1 - i) % 5 == 0) DM.format(startDate.plusDays(i.toLong())) else ""
             }
         }
         return ChartSeries(
@@ -129,7 +133,7 @@ class CdChartViewModel @Inject constructor(
     /** Emits the local date at once and again whenever it rolls over (checked once a minute). */
     private val today = flow {
         while (true) {
-            emit(java.time.LocalDate.now(ZoneId.systemDefault()))
+            emit(LocalDate.now(ZoneId.systemDefault()))
             delay(60_000)
         }
     }.distinctUntilChanged()
@@ -141,7 +145,7 @@ class CdChartViewModel @Inject constructor(
             val from = ChartBuckets.windowStart(p, now).toInstant().toEpochMilli()
             // getByDateRange is inclusive on both ends: pass end - 1 for a half-open window.
             val to = ChartBuckets.windowEnd(now).toInstant().toEpochMilli() - 1
-            tripDao.getByDateRange(from, to).map { ChartBuckets.build(it, p, ZonedDateTime.now(ZoneId.systemDefault())) }
+            tripDao.getByDateRange(from, to).map { ChartBuckets.build(it, p, now) }
         }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
