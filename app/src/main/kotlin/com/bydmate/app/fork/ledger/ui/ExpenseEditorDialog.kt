@@ -62,7 +62,8 @@ internal fun ExpenseEditorDialog(
     val choices = categories.filter { !it.archived || it.id == initial?.categoryId }
     val amountBad = amount.isBlank() || LedgerEditorState.bad(amount)
     val odoBad = LedgerEditorState.bad(odometer)
-    val cat = categoryId
+    // categories may arrive after the dialog opened: fall back to the first visible one
+    val cat = categoryId ?: choices.firstOrNull { !it.archived }?.id
     val result = if (amountBad || odoBad || cat == null) null else {
         val base = initial ?: ExpenseEntity(
             date = dateMs, odometerKm = null, categoryId = cat, amount = 0.0,
@@ -94,34 +95,34 @@ internal fun ExpenseEditorDialog(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                LedgerDateTimeRow(dateMs, fmt) { dateMs = it }
+                LedgerDateTimeRow(dateMs, fmt, parked) { dateMs = it }
                 Text(stringResource(R.string.ledger_field_category), color = TextSecondary, fontSize = 13.sp)
                 Row(
                     modifier = Modifier.horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     choices.forEach { c ->
-                        UnitChip(categoryLabel(c), selected = c.id == categoryId) { categoryId = c.id }
+                        UnitChip(categoryLabel(c), selected = c.id == cat) { if (parked) categoryId = c.id }
                     }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     LedgerField(
                         stringResource(R.string.ledger_field_amount, currency), amount, { amount = it },
-                        modifier = Modifier.weight(1f), error = amount.isNotBlank() && amountBad,
+                        modifier = Modifier.weight(1f), error = amount.isNotBlank() && amountBad, enabled = parked,
                     )
                     LedgerField(
                         stringResource(R.string.ledger_field_odometer), odometer,
                         { odometer = it; odometerEdited = true },
-                        modifier = Modifier.weight(1f), error = odoBad,
+                        modifier = Modifier.weight(1f), error = odoBad, enabled = parked,
                     )
                     LedgerField(
                         stringResource(R.string.ledger_field_title), title, { title = it },
-                        modifier = Modifier.weight(1.5f), numeric = false,
+                        modifier = Modifier.weight(1.5f), numeric = false, enabled = parked,
                     )
                 }
                 LedgerField(
                     stringResource(R.string.ledger_field_note), note, { note = it },
-                    modifier = Modifier.fillMaxWidth(), numeric = false,
+                    modifier = Modifier.fillMaxWidth(), numeric = false, enabled = parked,
                 )
             }
         },

@@ -79,7 +79,7 @@ internal fun LedgerSettingsTab(state: LedgerUiState, vm: LedgerViewModel) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         LedgerField(
             stringResource(R.string.ledger_category_add_hint), newName, { newName = it },
-            modifier = Modifier.weight(1f), numeric = false,
+            modifier = Modifier.weight(1f), numeric = false, enabled = state.parked,
         )
         LedgerButton(stringResource(R.string.ledger_category_add), enabled = state.parked && newName.isNotBlank()) {
             vm.saveCategory(ExpenseCategoryEntity(name = newName, builtinKey = null, color = null, sort = 0))
@@ -93,7 +93,9 @@ internal fun LedgerSettingsTab(state: LedgerUiState, vm: LedgerViewModel) {
             onDismissRequest = { renaming = null },
             containerColor = CardSurface,
             title = { Text(stringResource(R.string.ledger_category_rename), color = TextPrimary, fontSize = 16.sp) },
-            text = { LedgerField(stringResource(R.string.ledger_field_title), name, { name = it }, numeric = false) },
+            text = {
+                LedgerField(stringResource(R.string.ledger_field_title), name, { name = it }, numeric = false, enabled = state.parked)
+            },
             confirmButton = {
                 LedgerButton(stringResource(R.string.ledger_save), enabled = state.parked && name.isNotBlank()) {
                     vm.saveCategory(c.copy(name = name))
@@ -130,7 +132,10 @@ private fun NumberSetting(
             Text(title, color = TextPrimary, fontSize = 14.sp)
             Text(description, color = TextSecondary, fontSize = 12.sp, lineHeight = 16.sp)
         }
-        LedgerField(null, text, { text = it }, modifier = Modifier.width(140.dp), error = text.isNotBlank() && bad)
+        LedgerField(
+            null, text, { text = it }, modifier = Modifier.width(140.dp),
+            error = text.isNotBlank() && bad, enabled = parked,
+        )
         LedgerButton(stringResource(R.string.ledger_save), enabled = parked && !bad && text != current) { onSave(value) }
     }
 }

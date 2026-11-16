@@ -8,7 +8,11 @@ import java.math.RoundingMode
 import kotlin.math.abs
 import kotlin.math.round
 
-enum class RefuelField { ODOMETER, LITERS, TOTAL, PRICE }
+enum class RefuelField {
+    ODOMETER, LITERS, TOTAL, PRICE,
+    /** All three given but liters × price does not match total. */
+    MISMATCH,
+}
 
 /**
  * Refuel form: text fields as typed, plus the hidden car fuel counter. A prefill never
@@ -27,6 +31,8 @@ data class LedgerEditorState(
     val odometerEditedByUser: Boolean = false,
     /** The stored entry being edited (a draft or a confirmed refuel); null for a new one. */
     val base: RefuelEntity? = null,
+    /** Detector's liters estimate of a draft: a hint only, never receipt data. */
+    val sensorLiters: Double? = null,
 ) {
     fun applyPrefill(p: Prefill): LedgerEditorState = copy(
         odometer = if (odometerEditedByUser) odometer else p.odometerKm?.let(::plain).orEmpty(),
@@ -40,6 +46,14 @@ data class LedgerEditorState(
         if (bad(liters)) add(RefuelField.LITERS)
         if (bad(total)) add(RefuelField.TOTAL)
         if (bad(price)) add(RefuelField.PRICE)
+        if (isEmpty()) {
+            val l = num(liters)
+            val t = num(total)
+            val p = num(price)
+            if (l != null && t != null && p != null && abs(l * p - t) > maxOf(0.05, t * 0.005)) {
+                add(RefuelField.MISMATCH)
+            }
+        }
     }
 
     /** Null while a field is invalid or fewer than two of liters / total / price are given. */
@@ -74,10 +88,13 @@ data class LedgerEditorState(
             val t = e.totalCost
             val p = e.pricePerLiter
             val derived = t != null && p != null && e.liters > 0.0 && abs(r2(t / e.liters) - p) < 0.005
+            // a draft's liters come from the tank sensor, not a receipt
+            val draft = e.status == "draft"
             return LedgerEditorState(
                 dateMs = e.date,
                 odometer = e.odometerKm?.let(::plain).orEmpty(),
-                liters = if (e.liters > 0.0) plain(e.liters) else "",
+                liters = if (e.liters > 0.0 && !draft) plain(e.liters) else "",
+                sensorLiters = if (draft && e.liters > 0.0) e.liters else null,
                 total = t?.let(::plain).orEmpty(),
                 price = if (derived) "" else p?.let(::plain).orEmpty(),
                 fullTank = e.fullTank,

@@ -92,4 +92,6 @@
     <string name="ledger_cat_fines">Штрафы</string>
     <string name="ledger_cat_tuning">Цюнінг</string>
     <string name="ledger_cat_other">Іншае</string>
+    <string name="ledger_sensor_liters">≈ %1$s л па датчыку</string>
+    <string name="ledger_error_mismatch">Літры × цана не супадаюць з сумай.</string>
 </resources>

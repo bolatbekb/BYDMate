@@ -50,8 +50,8 @@ interface RefuelDao {
     @Query("SELECT * FROM refuels WHERE status = 'draft' ORDER BY date DESC, id DESC LIMIT 1")
     suspend fun openDraft(): RefuelEntity?
 
-    /** Half-open range [from, to). */
-    @Query("SELECT COALESCE(SUM(total_cost), 0.0) FROM refuels WHERE date >= :from AND date < :to")
+    /** Confirmed receipts only (drafts are not money spent yet); half-open range [from, to). */
+    @Query("SELECT COALESCE(SUM(total_cost), 0.0) FROM refuels WHERE status = 'confirmed' AND date >= :from AND date < :to")
     suspend fun sumCost(from: Long, to: Long): Double
 }
 

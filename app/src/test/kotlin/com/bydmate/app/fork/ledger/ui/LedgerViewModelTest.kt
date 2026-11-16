@@ -10,6 +10,7 @@ import com.bydmate.app.data.local.dao.TripDao
 import com.bydmate.app.data.local.dao.TripSummary
 import com.bydmate.app.data.remote.DiParsData
 import com.bydmate.app.data.repository.SettingsRepository
+import com.bydmate.app.fork.ledger.data.ExpenseCategoryEntity
 import com.bydmate.app.fork.ledger.data.ExpenseEntity
 import com.bydmate.app.fork.ledger.data.LedgerDatabase
 import com.bydmate.app.fork.ledger.data.LedgerRepository
@@ -18,7 +19,10 @@ import com.bydmate.app.fork.ledger.domain.LedgerPrefill
 import com.bydmate.app.fork.ledger.domain.car
 import io.mockk.coEvery
 import io.mockk.mockk
+import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,6 +32,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -64,11 +70,15 @@ class LedgerViewModelTest {
     }
 
     @After fun tearDown() {
+        // stop every viewModelScope before the database and Main go away
+        runBlocking { vms.forEach { it.viewModelScope.coroutineContext[Job]!!.cancelAndJoin() } }
         db.close()
         Dispatchers.resetMain()
     }
 
-    private fun vm() = LedgerViewModel(repo, chargeDao, tripDao, settings, LedgerPrefill(snaps), carData)
+    private val vms = mutableListOf<LedgerViewModel>()
+
+    private fun vm() = LedgerViewModel(repo, chargeDao, tripDao, settings, LedgerPrefill(snaps), carData).also { vms += it }
 
     private fun refuel(
         date: Long, odo: Double?, liters: Double, cost: Double? = null, full: Boolean = true,
@@ -95,6 +105,35 @@ class LedgerViewModelTest {
         ).join()
         assertTrue(repo.refuels.getAllAsc().isEmpty())
         assertTrue(db.expenseDao().sumByCategory(0, Long.MAX_VALUE).isEmpty())
+    }
+
+    @Test fun draftDeleteCategoryAndSettingsBlockedWhileDriving() = runBlocking {
+        val id = repo.refuels.insert(refuel(now, 1000.0, 20.0, full = false, status = "draft"))
+        val draft = repo.refuels.getById(id)!!
+        val wash = repo.categories.getByBuiltinKey("wash")!!
+        val categoriesBefore = repo.categories.getAll().size
+        carData.value = car(mileage = 1000.0).copy(speed = 40, gear = 4)
+        val vm = vm()
+        vm.confirmDraft(draft.copy(totalCost = 50.0)).join()
+        vm.deleteRefuel(draft).join()
+        vm.saveCategory(wash.copy(archived = true)).join()
+        vm.saveCategory(ExpenseCategoryEntity(name = "Mine", builtinKey = null, color = null, sort = 0)).join()
+        vm.setTankCapacity(50.0).join()
+        vm.setThresholds(20, 9.0).join()
+        assertEquals(draft, repo.refuels.getById(id))
+        assertFalse(repo.categories.getByBuiltinKey("wash")!!.archived)
+        assertEquals(categoriesBefore, repo.categories.getAll().size)
+        assertNull(repo.tankCapacityL())
+        assertEquals(LedgerRepository.DEFAULT_DETECT_THRESHOLD_PP, repo.detectThresholdPp())
+        assertEquals(LedgerRepository.DEFAULT_MISMATCH_THRESHOLD_PCT, repo.mismatchThresholdPct(), 0.0)
+    }
+
+    @Test fun draftReceiptIsNotCountedAsFuel() = runBlocking {
+        repo.refuels.insert(refuel(now, 1000.0, 20.0, cost = 999.0, full = false, status = "draft"))
+        repo.refuels.insert(refuel(now, 1000.0, 20.0, cost = 50.0))
+        val vm = vm()
+        val st = until("month rows", { vm.state.value }) { it.months.isNotEmpty() }
+        assertEquals(50.0, st.months.first().fuel, 0.001)
     }
 
     @Test fun confirmDraftTurnsDraftIntoConfirmed() = runBlocking {

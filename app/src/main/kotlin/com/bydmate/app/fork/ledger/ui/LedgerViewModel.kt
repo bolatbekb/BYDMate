@@ -26,6 +26,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -91,16 +92,19 @@ class LedgerViewModel @Inject constructor(
                 repo.expenses.observeAll(),
                 repo.categories.observeActive(),
                 settingsVersion,
-            ) { r, e, _, _ -> r to e }.collectLatest { (r, e) ->
-                try {
-                    val built = build(r, e)
-                    _state.update { built.copy(parked = it.parked) }
-                } catch (ce: CancellationException) {
-                    throw ce
-                } catch (ex: Exception) {
-                    Log.w(TAG, "ledger state build failed: ${ex.message}", ex)
+            ) { r, e, _, _ -> r to e }
+                // an upstream Room failure (e.g. the ledger file swapped by a restore) must not crash Main
+                .catch { ex -> Log.w(TAG, "ledger flows failed: ${ex.message}", ex) }
+                .collectLatest { (r, e) ->
+                    try {
+                        val built = build(r, e)
+                        _state.update { built.copy(parked = it.parked) }
+                    } catch (ce: CancellationException) {
+                        throw ce
+                    } catch (ex: Exception) {
+                        Log.w(TAG, "ledger state build failed: ${ex.message}", ex)
+                    }
                 }
-            }
         }
     }
 

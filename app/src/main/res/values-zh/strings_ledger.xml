@@ -92,4 +92,6 @@
     <string name="ledger_cat_fines">罚款</string>
     <string name="ledger_cat_tuning">改装</string>
     <string name="ledger_cat_other">其他</string>
+    <string name="ledger_sensor_liters">传感器估算 ≈ %1$s 升</string>
+    <string name="ledger_error_mismatch">升数 × 油价与金额不符。</string>
 </resources>

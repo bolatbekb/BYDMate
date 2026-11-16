@@ -86,4 +86,11 @@ class LedgerDaoTest {
         dao.insert(refuel(date = 200L, cost = 1000.0))
         assertEquals(110.0, dao.sumCost(100L, 200L), 0.0001)
     }
+
+    @Test fun sumCostSkipsDrafts() = runBlocking {
+        val dao = db.refuelDao()
+        dao.insert(refuel(date = 100L, cost = 10.0))
+        dao.insert(refuel(date = 150L, cost = 500.0, status = "draft"))
+        assertEquals(10.0, dao.sumCost(100L, 200L), 0.0001)
+    }
 }

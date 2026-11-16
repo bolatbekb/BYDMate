@@ -52,9 +52,9 @@ class LedgerEditorStateTest {
         assertNull(s.toRefuel())
     }
 
-    @Test fun editingKeepsDraftIdentityAndCounter() {
+    @Test fun editingKeepsIdentityAndCounter() {
         val s = fresh().applyPrefill(Prefill(500.0, 33.0, PrefillSource.DRAFT))
-        val base = s.copy(liters = "10", total = "25").toRefuel()!!.copy(id = 7, status = "draft", source = "detected")
+        val base = s.copy(liters = "10", total = "25").toRefuel()!!.copy(id = 7, source = "detected")
         val again = LedgerEditorState.from(base).copy(total = "26").toRefuel()!!
         assertEquals(7L, again.id)
         assertEquals("detected", again.source)
@@ -62,5 +62,33 @@ class LedgerEditorStateTest {
         assertEquals(500.0, again.odometerKm!!, 0.0)
         assertEquals(26.0, again.totalCost!!, 0.0)
         assertEquals(2.6, again.pricePerLiter!!, 0.0)
+    }
+
+    private fun draft() = fresh().copy(liters = "1", total = "1").toRefuel()!!.copy(
+        id = 9, liters = 25.0, totalCost = null, pricePerLiter = null, fullTank = false,
+        carFuelTotalL = 40.0, tankPercentBefore = 20, tankPercentAfter = 70, source = "detected", status = "draft",
+    )
+
+    @Test fun draftEstimateIsAHintNotLiters() {
+        val s = LedgerEditorState.from(draft())
+        assertEquals("", s.liters)
+        assertEquals(25.0, s.sensorLiters!!, 0.0)
+        // a total alone must not be priced against the sensor estimate
+        assertNull(s.copy(total = "60").toRefuel())
+        val r = s.copy(total = "60", liters = "24").toRefuel()!!
+        assertEquals(24.0, r.liters, 0.0)
+        assertEquals(2.5, r.pricePerLiter!!, 0.0)
+    }
+
+    @Test fun inconsistentTripleIsRejected() {
+        val s = fresh().copy(liters = "40", price = "2.5", total = "120")
+        assertEquals(setOf(RefuelField.MISMATCH), s.errors())
+        assertNull(s.toRefuel())
+    }
+
+    @Test fun tripleWithinRoundingIsAccepted() {
+        val r = fresh().copy(liters = "33.33", price = "3", total = "100").toRefuel()!!
+        assertEquals(100.0, r.totalCost!!, 0.0)
+        assertEquals(33.33, r.liters, 0.0)
     }
 }

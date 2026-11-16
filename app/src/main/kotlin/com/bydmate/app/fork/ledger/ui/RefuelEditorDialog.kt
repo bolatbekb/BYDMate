@@ -24,6 +24,7 @@ import com.bydmate.app.fork.ledger.domain.Prefill
 import com.bydmate.app.fork.ledger.domain.PrefillSource
 import com.bydmate.app.ui.components.AppAlertDialog
 import com.bydmate.app.ui.theme.CardSurface
+import com.bydmate.app.ui.theme.SocRed
 import com.bydmate.app.ui.theme.TextMuted
 import com.bydmate.app.ui.theme.TextPrimary
 import com.bydmate.app.ui.theme.TextSecondary
@@ -78,7 +79,7 @@ internal fun RefuelEditorDialog(
                 modifier = Modifier.fillMaxWidth().verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                LedgerDateTimeRow(form.dateMs, fmt) { form = form.copy(dateMs = it) }
+                LedgerDateTimeRow(form.dateMs, fmt, parked) { form = form.copy(dateMs = it) }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     LedgerField(
                         stringResource(R.string.ledger_field_odometer), form.odometer,
@@ -86,21 +87,25 @@ internal fun RefuelEditorDialog(
                         modifier = Modifier.weight(1f),
                         error = RefuelField.ODOMETER in errors,
                         supporting = odoHint,
+                        enabled = parked,
                     )
                     LedgerField(
                         stringResource(R.string.ledger_field_liters), form.liters,
                         { form = form.copy(liters = it) },
                         modifier = Modifier.weight(1f), error = RefuelField.LITERS in errors,
+                        supporting = form.sensorLiters?.takeIf { form.liters.isBlank() }
+                            ?.let { stringResource(R.string.ledger_sensor_liters, fmt.two(it)) },
+                        enabled = parked,
                     )
                     LedgerField(
                         stringResource(R.string.ledger_field_total, currency), form.total,
                         { form = form.copy(total = it) },
-                        modifier = Modifier.weight(1f), error = RefuelField.TOTAL in errors,
+                        modifier = Modifier.weight(1f), error = RefuelField.TOTAL in errors, enabled = parked,
                     )
                     LedgerField(
                         stringResource(R.string.ledger_field_price), form.price,
                         { form = form.copy(price = it) },
-                        modifier = Modifier.weight(1f), error = RefuelField.PRICE in errors,
+                        modifier = Modifier.weight(1f), error = RefuelField.PRICE in errors, enabled = parked,
                     )
                 }
                 if (result != null) {
@@ -112,18 +117,20 @@ internal fun RefuelEditorDialog(
                         ),
                         color = TextSecondary, fontSize = 13.sp,
                     )
+                } else if (RefuelField.MISMATCH in errors) {
+                    Text(stringResource(R.string.ledger_error_mismatch), color = SocRed, fontSize = 13.sp)
                 } else if (errors.isEmpty()) {
                     Text(stringResource(R.string.ledger_hint_two_of_three), color = TextMuted, fontSize = 13.sp)
                 }
                 Row {
-                    LedgerCheck(stringResource(R.string.ledger_full_tank), form.fullTank) { form = form.copy(fullTank = it) }
-                    LedgerCheck(stringResource(R.string.ledger_missed_before), form.missedBefore) {
+                    LedgerCheck(stringResource(R.string.ledger_full_tank), form.fullTank, parked) { form = form.copy(fullTank = it) }
+                    LedgerCheck(stringResource(R.string.ledger_missed_before), form.missedBefore, parked) {
                         form = form.copy(missedBefore = it)
                     }
                 }
                 LedgerField(
                     stringResource(R.string.ledger_field_note), form.note, { form = form.copy(note = it) },
-                    modifier = Modifier.fillMaxWidth(), numeric = false,
+                    modifier = Modifier.fillMaxWidth(), numeric = false, enabled = parked,
                 )
             }
         },

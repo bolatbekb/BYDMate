@@ -92,4 +92,6 @@
     <string name="ledger_cat_fines">Fines</string>
     <string name="ledger_cat_tuning">Tuning</string>
     <string name="ledger_cat_other">Other</string>
+    <string name="ledger_sensor_liters">≈ %1$s L by sensor</string>
+    <string name="ledger_error_mismatch">Liters × price does not match the total.</string>
 </resources>

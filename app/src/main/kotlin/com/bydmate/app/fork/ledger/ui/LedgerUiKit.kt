@@ -35,6 +35,7 @@ import com.bydmate.app.ui.theme.CardBorder
 import com.bydmate.app.ui.theme.CardSurfaceElevated
 import com.bydmate.app.ui.theme.NavyDark
 import com.bydmate.app.ui.theme.SocRed
+import com.bydmate.app.ui.theme.TextMuted
 import com.bydmate.app.ui.theme.TextPrimary
 import com.bydmate.app.ui.theme.TextSecondary
 import com.bydmate.app.util.appLocalizedContext
@@ -100,12 +101,14 @@ internal fun LedgerField(
     numeric: Boolean = true,
     error: Boolean = false,
     supporting: String? = null,
+    enabled: Boolean = true,
 ) {
     OutlinedTextField(
         value = value,
         onValueChange = onValueChange,
         label = label?.let { { Text(it, maxLines = 1) } },
         singleLine = true,
+        enabled = enabled,
         isError = error,
         supportingText = when {
             error -> { { Text(stringResource(R.string.ledger_error_positive)) } }
@@ -125,6 +128,10 @@ internal fun LedgerField(
             errorBorderColor = SocRed,
             errorLabelColor = SocRed,
             errorSupportingTextColor = SocRed,
+            disabledTextColor = TextMuted,
+            disabledBorderColor = CardBorder,
+            disabledLabelColor = TextMuted,
+            disabledSupportingTextColor = TextMuted,
         ),
         modifier = modifier,
     )
@@ -132,19 +139,19 @@ internal fun LedgerField(
 
 /** Date and time chips opening the platform pickers; [onChange] gets the new epoch millis. */
 @Composable
-internal fun LedgerDateTimeRow(ms: Long, fmt: LedgerFmt, onChange: (Long) -> Unit) {
+internal fun LedgerDateTimeRow(ms: Long, fmt: LedgerFmt, enabled: Boolean, onChange: (Long) -> Unit) {
     val context = LocalContext.current
     val at = LocalDateTime.ofInstant(Instant.ofEpochMilli(ms), ZoneId.systemDefault())
     fun push(next: LocalDateTime) = onChange(next.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli())
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        LedgerButton("${stringResource(R.string.ledger_field_date)}: ${fmt.date(ms)}", primary = false) {
+        LedgerButton("${stringResource(R.string.ledger_field_date)}: ${fmt.date(ms)}", primary = false, enabled = enabled) {
             DatePickerDialog(
                 context,
                 { _, y, m, d -> push(at.withYear(y).withMonth(m + 1).withDayOfMonth(d)) },
                 at.year, at.monthValue - 1, at.dayOfMonth,
             ).show()
         }
-        LedgerButton("${stringResource(R.string.ledger_field_time)}: ${fmt.time(ms)}", primary = false) {
+        LedgerButton("${stringResource(R.string.ledger_field_time)}: ${fmt.time(ms)}", primary = false, enabled = enabled) {
             TimePickerDialog(context, { _, h, min -> push(at.withHour(h).withMinute(min)) }, at.hour, at.minute, true).show()
         }
     }
@@ -171,14 +178,15 @@ internal fun LedgerButton(label: String, primary: Boolean = true, enabled: Boole
 }
 
 @Composable
-internal fun LedgerCheck(label: String, checked: Boolean, onChange: (Boolean) -> Unit) {
+internal fun LedgerCheck(label: String, checked: Boolean, enabled: Boolean, onChange: (Boolean) -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.clickable { onChange(!checked) },
+        modifier = Modifier.clickable(enabled = enabled) { onChange(!checked) },
     ) {
         Checkbox(
             checked = checked,
             onCheckedChange = onChange,
+            enabled = enabled,
             colors = CheckboxDefaults.colors(checkedColor = AccentGreen, uncheckedColor = CardBorder, checkmarkColor = NavyDark),
         )
         Text(label, color = TextPrimary, fontSize = 14.sp)
