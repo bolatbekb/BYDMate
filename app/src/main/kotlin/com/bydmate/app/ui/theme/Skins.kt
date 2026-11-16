@@ -8,6 +8,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
 import com.bydmate.app.ui.home.graphite.GrDark
 import com.bydmate.app.ui.home.graphite.GrEdge
+import com.bydmate.app.ui.home.graphite.GrCode
+import com.bydmate.app.ui.home.graphite.GrHub
+import com.bydmate.app.ui.home.graphite.GrMocha
+import com.bydmate.app.ui.home.graphite.GrOne
 import com.bydmate.app.ui.home.graphite.GrSoft
 import com.bydmate.app.ui.home.graphite.toSkinPalette
 
@@ -187,8 +191,13 @@ object Skins {
     val GRAPHITE_SOFT = Skin("graphite_soft", "Graphite Soft", GrSoft.toSkinPalette())
     val GRAPHITE_DARK = Skin("graphite_dark", "Graphite Dark", GrDark.toSkinPalette())
     val GRAPHITE_EDGE = Skin("graphite_edge", "Graphite Edge", GrEdge.toSkinPalette())
+    val GRAPHITE_MOCHA = Skin("graphite_mocha", "Graphite Mocha", GrMocha.toSkinPalette())
+    val GRAPHITE_HUB = Skin("graphite_hub", "Graphite Hub", GrHub.toSkinPalette())
+    val GRAPHITE_ONE = Skin("graphite_one", "Graphite One", GrOne.toSkinPalette())
+    val GRAPHITE_CODE = Skin("graphite_code", "Graphite Code", GrCode.toSkinPalette())
 
-    val ALL = listOf(CLASSIC, COCKPIT, GRAPHITE, VOLT, TELEMETRY, OLED, GRAPHITE_SOFT, GRAPHITE_DARK, GRAPHITE_EDGE)
+    val ALL = listOf(CLASSIC, COCKPIT, GRAPHITE, VOLT, TELEMETRY, OLED, GRAPHITE_SOFT, GRAPHITE_DARK, GRAPHITE_EDGE,
+        GRAPHITE_MOCHA, GRAPHITE_HUB, GRAPHITE_ONE, GRAPHITE_CODE)
 
     fun byId(id: String?): Skin = ALL.firstOrNull { it.id == id } ?: CLASSIC
 }

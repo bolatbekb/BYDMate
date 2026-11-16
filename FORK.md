@@ -9,7 +9,7 @@
 
 | Функция | Где в приложении | Код |
 |---|---|---|
-| Цветовые скины: Classic, Cockpit, Graphite Pro, Volt, Telemetry, OLED, Graphite Soft, Graphite Dark, Graphite Edge | Настройки → Приложение → «Оформление» | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt` |
+| Цветовые скины: Classic, Cockpit, Graphite Pro, Volt, Telemetry, OLED, Graphite Soft, Graphite Dark, Graphite Edge, Graphite Mocha, Graphite Hub, Graphite One, Graphite Code | Настройки → Приложение → «Оформление» | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt` |
 | Главная Graphite: карточки «Общий запас хода», «Температуры», галерея «Leopard 5» (фото сменяются раз в 2–4 минуты), «Расход энергии» с графиком за день/неделю/месяц, «Медиа» (обложка, управление, громкость), «Пробег сегодня»; всё нарисовано кодом (Compose), без подложки. Цвета главной — по скину Graphite Soft / Dark / Edge, при любом другом скине — Graphite Dark. Шрифт Inter только на этой главной | Настройки → Приложение → «Главный экран» | `ui/home/graphite/*`, `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_photo_*.webp`, `res/font/gr_inter.ttf` |
 | Демо-режим: имитация поездки и 90 дней истории в отдельной базе | Настройки → Приложение → «Демо» | `demo/*`, `ui/settings/DemoModeBlock.kt` |
 | Ретро-главные «Стойка KX» и «Стойка Integra»: кассетная дека с реалистичной кассетой и управлением музыкой; вместо нижней панели вкладок — клавиши-переключатель входов с гравированными значками. Свёрстаны под 1280×604 dp (экран Leopard 5 без панелей машины) | Настройки → Приложение → «Главный экран» | `ui/home/*` (общая кассета — `RetroParts.kt`), `ui/settings/HomeStylePickerBlock.kt` |

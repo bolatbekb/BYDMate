@@ -20,7 +20,11 @@ class GraphiteSkinsTest {
         assertEquals("Graphite Dark", Skins.byId("graphite_dark").title)
         assertEquals("Graphite Edge", Skins.byId("graphite_edge").title)
         assertEquals("Graphite Pro", Skins.byId("graphite").title)
-        assertEquals(9, Skins.ALL.size)
+        assertEquals("Graphite Mocha", Skins.byId("graphite_mocha").title)
+        assertEquals("Graphite Hub", Skins.byId("graphite_hub").title)
+        assertEquals("Graphite One", Skins.byId("graphite_one").title)
+        assertEquals("Graphite Code", Skins.byId("graphite_code").title)
+        assertEquals(13, Skins.ALL.size)
     }
 
     @Test fun mapping() {
@@ -33,7 +37,7 @@ class GraphiteSkinsTest {
 
     /** Every colour of a Graphite app skin is opaque, like the other skins (dialogs, surfaceVariant). */
     @Test fun graphiteSkinColoursAreOpaque() {
-        for (skin in listOf(Skins.GRAPHITE_SOFT, Skins.GRAPHITE_DARK, Skins.GRAPHITE_EDGE)) {
+        for (skin in listOf(Skins.GRAPHITE_SOFT, Skins.GRAPHITE_DARK, Skins.GRAPHITE_EDGE, Skins.GRAPHITE_MOCHA, Skins.GRAPHITE_HUB, Skins.GRAPHITE_ONE, Skins.GRAPHITE_CODE)) {
             val c = skin.palette
             val all = mapOf(
                 "navyDark" to c.navyDark, "navyDeep" to c.navyDeep, "navyMid" to c.navyMid,
@@ -59,5 +63,9 @@ class GraphiteSkinsTest {
         assertSame(GrDark, homePalette("graphite_dark"))
         assertSame(GrDark, homePalette("classic"))
         assertSame(GrDark, homePalette("graphite"))
+        assertSame(GrMocha, homePalette("graphite_mocha"))
+        assertSame(GrHub, homePalette("graphite_hub"))
+        assertSame(GrOne, homePalette("graphite_one"))
+        assertSame(GrCode, homePalette("graphite_code"))
     }
 }

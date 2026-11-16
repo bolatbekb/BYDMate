@@ -171,6 +171,10 @@ val GrEdge = GrPalette(
 fun homePalette(skinId: String): GrPalette = when (skinId) {
     "graphite_soft" -> GrSoft
     "graphite_edge" -> GrEdge
+    "graphite_mocha" -> GrMocha
+    "graphite_hub" -> GrHub
+    "graphite_one" -> GrOne
+    "graphite_code" -> GrCode
     else -> GrDark
 }
 
