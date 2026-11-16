@@ -92,8 +92,8 @@ fun GraphiteHome(
                 // The six cards. Tasks 6–9 swap each *Slot call here for its card (same arguments).
                 Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(px(20))) {
                     Column(Modifier.width(px(790)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
-                        RangeSlot(data, regenKwh, tankL, capacityKwh, Modifier.fillMaxWidth().weight(1f))
-                        TempsSlot(data, Modifier.fillMaxWidth().height(px(290)))
+                        RangeCard(data, regenKwh, tankL, capacityKwh, Modifier.fillMaxWidth().weight(1f))
+                        TempsCard(data, Modifier.fillMaxWidth().height(px(290)))
                     }
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         GallerySlot(Modifier.fillMaxWidth().height(px(404)))
@@ -127,18 +127,6 @@ private fun Modifier.grBackground(p: GrPalette): Modifier = drawWithCache {
 }
 
 /* ---------------------------------------------------------------- card slots (placeholders) */
-
-@Suppress("UNUSED_PARAMETER")
-@Composable
-private fun RangeSlot(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Double?, modifier: Modifier) {
-    CardBody(modifier) { CardHeader(R.drawable.gr_ic_gauge, "Общий запас хода") }
-}
-
-@Suppress("UNUSED_PARAMETER")
-@Composable
-private fun TempsSlot(data: HomeData, modifier: Modifier) {
-    CardBody(modifier) { CardHeader(R.drawable.gr_ic_therm, "Температуры") }
-}
 
 @Composable
 private fun GallerySlot(modifier: Modifier) {

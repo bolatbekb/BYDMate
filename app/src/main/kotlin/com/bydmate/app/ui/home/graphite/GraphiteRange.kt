@@ -1,0 +1,399 @@
+package com.bydmate.app.ui.home.graphite
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.text.style.TextOverflow
+import com.bydmate.app.R
+import com.bydmate.app.ui.home.HomeData
+import com.bydmate.app.ui.home.hybrid.fs
+import com.bydmate.app.ui.home.hybrid.px
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
+
+/* ---------------------------------------------------------------- «Общий запас хода» */
+
+@Composable
+fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Double?, modifier: Modifier) {
+    val p = LocalGr.current
+    val total = data.totalRangeKm?.takeIf { it > 0 }
+    CardBody(modifier) {
+        CardHeader(R.drawable.gr_ic_gauge, "Общий запас хода") {
+            data.odometerKm?.let {
+                Text(
+                    "Одометр ${grInt(it)} км", maxLines = 1, softWrap = false,
+                    style = grStyle(21f, 400, color = p.textTertiary, tnum = false),
+                )
+            }
+        }
+        Row(Modifier.padding(top = px(10))) {
+            Text(
+                total?.let { grInt(it) } ?: "—", maxLines = 1, softWrap = false,
+                style = grStyle(148f, 250, -6f, p.textPrimary),
+                modifier = Modifier.alignByBaseline(),
+            )
+            if (total != null) {
+                Spacer(Modifier.width(px(12)))
+                Text(
+                    "км", maxLines = 1, softWrap = false,
+                    style = grStyle(40f, 300, color = p.textSecondary, tnum = false),
+                    modifier = Modifier.alignByBaseline(),
+                )
+            }
+        }
+        RangeBar(total, data.evRangeKm, Modifier.padding(top = px(26)))
+        if (total != null) RangeScaleRow(rangeScale(total).ticks, total, Modifier.padding(top = px(12)))
+        Box(Modifier.padding(top = px(26)).fillMaxWidth().height(px(1)).background(p.divider))
+        Row(Modifier.fillMaxWidth().padding(top = px(24))) {
+            RangeGauge(
+                Modifier.weight(1f), R.drawable.gr_ic_battery, R.drawable.gr_ic_bolt, "Батарея", data.socPercent,
+                p.electric, p.electric,
+                kmLine(data.evRangeKm, "электро"),
+            )
+            Box(Modifier.width(px(26)))
+            Box(Modifier.width(px(1)).fillMaxHeight().background(p.divider))
+            Box(Modifier.width(px(26)))
+            RangeGauge(
+                Modifier.weight(1f), R.drawable.gr_ic_fuel, R.drawable.gr_ic_fuel, "Бензин", data.fuelPercent,
+                p.fuel, p.fuel,
+                kmLine(data.fuelRangeKm, litresFromPercent(data.fuelPercent, tankL)?.let { "($it л)" }),
+            )
+        }
+        RangeFooter(data, regenKwh, capacityKwh, Modifier.padding(top = px(24)))
+    }
+}
+
+private fun kmLine(km: Int?, tail: String?): Pair<String, String?> =
+    (if (km == null) "—" else "${grInt(km)} км") to tail
+
+@Composable
+private fun RangeBar(total: Int?, ev: Int?, modifier: Modifier) {
+    val p = LocalGr.current
+    val evKm = (ev ?: 0).coerceAtLeast(0)
+    val fuelKm = if (total == null) 0 else (total - evKm).coerceAtLeast(0)
+    Row(
+        modifier.fillMaxWidth().height(px(14)).clip(RoundedCornerShape(px(7))).then(
+            if (total == null) Modifier.background(p.track) else Modifier,
+        ),
+        horizontalArrangement = Arrangement.spacedBy(px(3)),
+    ) {
+        if (total != null) {
+            if (evKm > 0) {
+                Box(
+                    Modifier.weight(evKm.toFloat()).fillMaxHeight().background(p.electric),
+                )
+            }
+            if (fuelKm > 0) {
+                Box(
+                    Modifier.weight(fuelKm.toFloat()).fillMaxHeight()
+                        .background(Brush.horizontalGradient(listOf(p.fuel, p.fuelDeep))),
+                )
+            }
+        }
+    }
+}
+
+/** Tick labels at value/total of the width; the first hugs the left edge, the last the right. */
+@Composable
+private fun RangeScaleRow(ticks: List<Int>, total: Int, modifier: Modifier) {
+    val p = LocalGr.current
+    val style = grStyle(17f, 400, color = p.textTertiary)
+    Layout(
+        content = { ticks.forEach { Text(grInt(it), maxLines = 1, softWrap = false, style = style) } },
+        modifier = modifier.fillMaxWidth(),
+    ) { measurables, c ->
+        val placeables = measurables.map { it.measure(c.copy(minWidth = 0, minHeight = 0)) }
+        val w = c.maxWidth
+        val h = placeables.maxOfOrNull { it.height } ?: 0
+        layout(w, h) {
+            placeables.forEachIndexed { i, pl ->
+                val x = when (i) {
+                    0 -> 0
+                    placeables.lastIndex -> w - pl.width
+                    else -> (ticks[i].toFloat() / total * w - pl.width / 2f).toInt().coerceIn(0, w - pl.width)
+                }
+                pl.place(IntOffset(x, 0))
+            }
+        }
+    }
+}
+
+@Composable
+private fun RangeGauge(
+    modifier: Modifier,
+    labelIcon: Int,
+    centerIcon: Int,
+    label: String,
+    percent: Int?,
+    accent: Color,
+    iconTint: Color,
+    line: Pair<String, String?>,
+) {
+    val p = LocalGr.current
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        GaugeDial(percent, accent, centerIcon)
+        Spacer(Modifier.width(px(18)))
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                GrIcon(labelIcon, 22f, iconTint)
+                Spacer(Modifier.width(px(12)))
+                Text(
+                    label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                    style = grStyle(21f, 450, 0.1f, p.textSecondary, tnum = false),
+                )
+            }
+            Text(
+                percentText(percent, p), maxLines = 1, softWrap = false,
+                style = grStyle(58f, 300, -2f, p.textPrimary),
+                modifier = Modifier.padding(top = px(12)),
+            )
+            Text(
+                buildAnnotatedString {
+                    withStyle(SpanStyle(color = p.textPrimary, fontWeight = FontWeight(500))) { append(line.first) }
+                    line.second?.let { append(" $it") }
+                },
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                style = grStyle(22f, 400, color = p.textSecondary, tnum = false),
+                modifier = Modifier.padding(top = px(10)),
+            )
+        }
+    }
+}
+
+private fun percentText(percent: Int?, p: GrPalette): AnnotatedString = buildAnnotatedString {
+    append(percent?.toString() ?: "—")
+    if (percent != null) {
+        withStyle(SpanStyle(fontSize = fs(26f), color = p.textSecondary, fontWeight = FontWeight(400), letterSpacing = fs(0f))) {
+            append("%")
+        }
+    }
+}
+
+/** viewBox 150 → 164 box: arc r 62 / stroke 10 from -135° to +135°, 21 ticks r 44–49, hub r 30. */
+@Composable
+private fun GaugeDial(percent: Int?, accent: Color, centerIcon: Int) {
+    val p = LocalGr.current
+    val frac = ((percent ?: 0) / 100f).coerceIn(0f, 1f)
+    Box(Modifier.size(px(164)), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier.size(px(164)).drawWithCache {
+                val k = size.width / 150f
+                val c = Offset(75f * k, 75f * k)
+                val r = 62f * k
+                val sw = 10f * k
+                val tl = Offset(c.x - r, c.y - r)
+                val arcSize = Size(2 * r, 2 * r)
+                val glow = if (frac > 0f) {
+                    blurPaint(accent.copy(alpha = 0.53f), 6f * px(1).toPx()).apply {
+                        style = android.graphics.Paint.Style.STROKE
+                        strokeWidth = sw
+                        strokeCap = android.graphics.Paint.Cap.ROUND
+                    }
+                } else null
+                val oval = android.graphics.RectF(tl.x, tl.y, tl.x + 2 * r, tl.y + 2 * r)
+                val tick = p.textPrimary.copy(alpha = 0.18f)
+                onDrawBehind {
+                    drawArc(p.track, 135f, 270f, false, tl, arcSize, style = Stroke(sw, cap = StrokeCap.Round))
+                    if (frac > 0f) {
+                        glow?.let { g -> drawIntoCanvas { it.nativeCanvas.drawArc(oval, 135f, 270f * frac, false, g) } }
+                        drawArc(accent, 135f, 270f * frac, false, tl, arcSize, style = Stroke(sw, cap = StrokeCap.Round))
+                    }
+                    for (i in 0..20) {
+                        val a = (135.0 + 270.0 * i / 20) * PI / 180
+                        drawLine(
+                            tick,
+                            Offset(c.x + (44f * k) * cos(a).toFloat(), c.y + (44f * k) * sin(a).toFloat()),
+                            Offset(c.x + (49f * k) * cos(a).toFloat(), c.y + (49f * k) * sin(a).toFloat()),
+                            strokeWidth = 1.2f * k,
+                        )
+                    }
+                    drawCircle(p.inset, 30f * k, c)
+                    drawCircle(p.textPrimary.copy(alpha = 0.06f), 30f * k, c, style = Stroke(k))
+                }
+            },
+        )
+        GrIcon(centerIcon, 32f, accent)
+    }
+}
+
+@Composable
+private fun RangeFooter(data: HomeData, regenKwh: Double?, capacityKwh: Double?, modifier: Modifier) {
+    val p = LocalGr.current
+    val eta = ChargeEta.minutesToFull(
+        data.chargingStatus == 2, data.socPercent, data.liveCapacityKwh ?: capacityKwh, data.batteryPowerKw ?: data.powerKw,
+    )
+    val hold = when (data.autoPark) { 0 -> "выкл"; 1, 2 -> "вкл"; else -> null }
+    val cells = buildList<Triple<Int, String, String>> {
+        if (eta != null) add(Triple(R.drawable.gr_ic_plug, "До 100% ", grDuration(eta)))
+        if (regenKwh != null) add(Triple(R.drawable.gr_ic_leaf, "Рекуперация ", grDec(regenKwh) + " кВт·ч"))
+        if (hold != null) add(Triple(R.drawable.gr_ic_lock, "Hold ", hold))
+    }
+    if (cells.isEmpty()) return
+    InsetBox(22f, modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(horizontal = px(20), vertical = px(18))) {
+            cells.forEachIndexed { i, (icon, label, value) ->
+                Row(Modifier.weight(1f).fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+                    if (i > 0) {
+                        Box(Modifier.width(px(1)).fillMaxHeight().background(p.divider))
+                        Spacer(Modifier.width(px(18)))
+                    }
+                    GrIcon(icon, 22f, p.textTertiary)
+                    Spacer(Modifier.width(px(10)))
+                    Text(
+                        buildAnnotatedString {
+                            append(label)
+                            withStyle(SpanStyle(color = p.textPrimary, fontWeight = FontWeight(500))) { append(value) }
+                        },
+                        maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                        style = grStyle(19f, 400, color = p.textTertiary, tnum = false),
+                    )
+                }
+            }
+        }
+    }
+}
+
+/* ---------------------------------------------------------------- «Температуры» */
+
+@Composable
+fun TempsCard(data: HomeData, modifier: Modifier) {
+    val p = LocalGr.current
+    Row(modifier.grCard(p)) {
+        TempColumn(
+            Modifier.weight(1f), false, R.drawable.gr_ic_tree, "Снаружи",
+            data.outsideTemp?.let { grInt(it) }, data.outsideTemp?.let { tempFraction(TempKind.OUTSIDE, it) },
+            listOf(0f to p.coldDeep, 1f to p.cold), true,
+            outsideNote(data.outsideTemp)?.let { Triple(R.drawable.gr_ic_snow, it, p.cold) },
+        )
+        TempColumn(
+            Modifier.weight(1f), true, R.drawable.gr_ic_seat, "Салон",
+            data.insideTemp?.let { grDec(it.toDouble()) }, data.insideTemp?.let { tempFraction(TempKind.CABIN, it) },
+            listOf(0f to p.cold, 0.55f to p.fuel, 1f to p.heat), false,
+            cabinNote(data.acAuto, data.acOn, data.acTemp)?.let { Triple(R.drawable.gr_ic_fan, it, p.textTertiary) },
+        )
+        TempColumn(
+            Modifier.weight(1f), true, R.drawable.gr_ic_battery, "Батарея",
+            data.batteryTemp?.let { grInt(it) }, data.batteryTemp?.let { tempFraction(TempKind.BATTERY, it) },
+            listOf(0f to p.heat, 1f to p.heat), true, null,
+        )
+    }
+}
+
+@Composable
+private fun TempColumn(
+    modifier: Modifier,
+    divider: Boolean,
+    icon: Int,
+    title: String,
+    value: String?,
+    fraction: Float?,
+    stops: List<Pair<Float, Color>>,
+    trackAfter: Boolean,
+    note: Triple<Int, String, Color>?,
+) {
+    val p = LocalGr.current
+    Column(
+        modifier
+            .drawBehind {
+                if (divider) {
+                    val u = px(1).toPx()
+                    drawRect(p.divider, Offset(0f, px(30).toPx()), Size(u, size.height - px(60).toPx()))
+                }
+            }
+            .padding(horizontal = px(30), vertical = px(30)),
+    ) {
+        Row(Modifier.fillMaxWidth().height(px(34)), verticalAlignment = Alignment.CenterVertically) {
+            GrIcon(icon, 24f, p.textTertiary)
+            Spacer(Modifier.width(px(12)))
+            Text(
+                title, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                style = grStyle(23f, 450, 0.1f, p.textSecondary, tnum = false),
+            )
+        }
+        Row(Modifier.padding(top = px(22))) {
+            Text(
+                value ?: "—", maxLines = 1, softWrap = false,
+                style = grStyle(72f, 250, -3f, p.textPrimary),
+            )
+            if (value != null) {
+                Text(
+                    "°C", maxLines = 1, softWrap = false,
+                    style = grStyle(34f, 400, color = p.textSecondary, tnum = false),
+                    modifier = Modifier.padding(top = px(10)),
+                )
+            }
+        }
+        TempBar(fraction, stops, trackAfter, Modifier.padding(top = px(26)))
+        if (note != null) {
+            Row(Modifier.padding(top = px(18)), verticalAlignment = Alignment.CenterVertically) {
+                GrIcon(note.first, 20f, note.third)
+                Spacer(Modifier.width(px(8)))
+                Text(
+                    note.second, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                    style = grStyle(20f, 400, color = p.textTertiary, tnum = false),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * 6 px bar. [trackAfter]: the gradient [stops] span only 0..[fraction] and Track fills the rest;
+ * otherwise they span the whole bar. The 16 px knob has a 4 px ring in the card colour.
+ */
+@Composable
+private fun TempBar(fraction: Float?, stops: List<Pair<Float, Color>>, trackAfter: Boolean, modifier: Modifier) {
+    val p = LocalGr.current
+    Canvas(modifier.fillMaxWidth().height(px(6))) {
+        val r = CornerRadius(px(3).toPx())
+        drawRoundRect(p.track, size = size, cornerRadius = r)
+        val w = if (trackAfter) size.width * (fraction ?: 0f) else size.width
+        if (w > 0f) {
+            val brush = Brush.horizontalGradient(*stops.toTypedArray(), startX = 0f, endX = w)
+            clipRect(0f, 0f, w, size.height) { drawRoundRect(brush, size = size, cornerRadius = r) }
+        }
+        if (fraction != null) {
+            val c = Offset(size.width * fraction, size.height / 2)
+            drawCircle(p.cardTop, px(12).toPx(), c)
+            drawCircle(p.textPrimary, px(8).toPx(), c)
+        }
+    }
+}
