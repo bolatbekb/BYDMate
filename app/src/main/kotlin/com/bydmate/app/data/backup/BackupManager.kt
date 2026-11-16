@@ -600,8 +600,8 @@ class BackupManager(
                 error(strings.get(R.string.backup_error_version_mismatch))
             }
             // fork: ledger — validated into a temp file before anything is replaced; swapped in after.
-            val ledger = try { LedgerBackup.prepareRestore(context, file, selected) }
-                catch (e: Throwable) { BackupDatabaseFiles.deleteWithSideFiles(tmpDbFile); throw e }
+            val ledger = try { LedgerBackup.prepareRestore(context, file, selected) } // fork: ledger
+                catch (e: Throwable) { BackupDatabaseFiles.deleteWithSideFiles(tmpDbFile); throw e } // fork: ledger
 
             if (selected == BackupPart.ALL) {
                 // An archive of v3.17.5 or older carries when each rule last fired on the source

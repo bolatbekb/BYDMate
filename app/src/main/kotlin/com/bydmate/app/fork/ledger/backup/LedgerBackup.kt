@@ -33,6 +33,7 @@ object LedgerBackup {
 
     /** Largest `fork_ledger.db` a restore reads; a real ledger is well under a megabyte. */
     private const val MAX_ENTRY_BYTES = 64L * 1024 * 1024
+    private const val RETRY_SLEEP_MS = 150L
 
     private const val RESTORE_TMP = "fork_ledger.db.restore.tmp"
 
@@ -65,6 +66,8 @@ object LedgerBackup {
         val dbFile = File(requireNotNull(support.path) { "ledger database has no file" })
         val walFile = File(dbFile.path + "-wal")
         for (attempt in 1..3) {
+            // a reader or writer holding the WAL usually lets go within a moment
+            if (attempt > 1) Thread.sleep(RETRY_SLEEP_MS)
             val checkpointed = try {
                 support.query("PRAGMA wal_checkpoint(TRUNCATE)").use { c -> c.moveToFirst() && c.getInt(0) == 0 }
             } catch (e: Exception) {

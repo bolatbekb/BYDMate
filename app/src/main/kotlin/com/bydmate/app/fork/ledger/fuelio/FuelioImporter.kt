@@ -106,7 +106,7 @@ class FuelioImporter(private val repo: LedgerRepository) {
     private suspend fun existingKeysOfExpenses(): Set<String> =
         repo.expenses.observeAll().first().mapNotNull { it.importKey }.toSet()
 
-    private fun String.cleaned() = replace("﻿", "").trim()
+    private fun String.cleaned() = replace("\uFEFF", "").trim()
 
     private fun noon(d: LocalDate): Long =
         d.atTime(LocalTime.NOON).atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()

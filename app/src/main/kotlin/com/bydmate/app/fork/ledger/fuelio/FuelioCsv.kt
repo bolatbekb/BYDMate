@@ -78,13 +78,13 @@ object FuelioCsv {
 
     /** Lowercase, drop BOM, take the part before " (" — "Price (optional)" -> "price". */
     private fun normalize(h: String): String =
-        h.replace("﻿", "").trim().substringBefore(" (").trim().lowercase()
+        h.replace("\uFEFF", "").trim().substringBefore(" (").trim().lowercase()
 
     private fun splitSections(records: List<List<String>>): Map<String, Section> {
         val result = LinkedHashMap<String, Section>()
         var i = 0
         while (i < records.size) {
-            val first = records[i].firstOrNull()?.replace("﻿", "")?.trim().orEmpty()
+            val first = records[i].firstOrNull()?.replace("\uFEFF", "")?.trim().orEmpty()
             if (records[i].size == 1 && first.startsWith("##")) {
                 val name = first.removePrefix("##").trim().lowercase()
                 val header = records.getOrNull(i + 1)
@@ -92,7 +92,7 @@ object FuelioCsv {
                 i += if (header != null) 2 else 1
                 val data = ArrayList<List<String>>()
                 while (i < records.size &&
-                    !(records[i].size == 1 && records[i][0].replace("﻿", "").trim().startsWith("##"))
+                    !(records[i].size == 1 && records[i][0].replace("\uFEFF", "").trim().startsWith("##"))
                 ) {
                     data.add(records[i]); i++
                 }
@@ -159,13 +159,13 @@ object FuelioCsv {
     // ---- helpers ----
 
     private fun String?.isTrue(): Boolean = (this?.trim()?.toDoubleOrNull() ?: 0.0) != 0.0
-    private fun String.clean(): String = replace("﻿", "").trim()
+    private fun String.clean(): String = replace("\uFEFF", "").trim()
     private fun String.blankToNull(): String? = trim().ifEmpty { null }
     private fun String.num(): Double? = trim().replace(',', '.').toDoubleOrNull()
     private fun round2(v: Double): Double = round(v * 100.0) / 100.0
 
     private fun parseDate(raw: String?): LocalDate? {
-        val s = raw?.replace("﻿", "")?.trim().orEmpty()
+        val s = raw?.replace("\uFEFF", "")?.trim().orEmpty()
         if (s.length < 10) return null
         return runCatching { LocalDate.parse(s.substring(0, 10)) }.getOrNull()
     }
