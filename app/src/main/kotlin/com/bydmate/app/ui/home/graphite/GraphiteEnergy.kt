@@ -1,5 +1,9 @@
 package com.bydmate.app.ui.home.graphite
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
@@ -15,6 +19,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
@@ -28,6 +33,7 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.text.TextLayoutResult
@@ -50,13 +56,15 @@ import kotlin.math.roundToInt
 /* ---------------------------------------------------------------- «Расход энергии» */
 
 @Composable
-fun EnergyCard(series: EnergySeries?, period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit, modifier: Modifier) {
+fun EnergyCard(
+    series: EnergySeries?, period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit, hasFuelTank: Boolean, modifier: Modifier,
+) {
     val p = LocalGr.current
     CardBody(modifier) {
         CardHeader(R.drawable.gr_ic_leaf, "Расход энергии") { PeriodTabs(period, onPeriod) }
-        if (series != null) EnergyTotals(series)
+        if (series != null) EnergyTotals(series, hasFuelTank)
         Box(Modifier.fillMaxWidth().padding(top = if (series == null) px(22) else 0.dp)) {
-            EnergyChart(series)
+            EnergyChart(series, hasFuelTank)
             if (series?.empty == true) {
                 Text(
                     "Нет поездок за период", maxLines = 1, softWrap = false,
@@ -118,16 +126,17 @@ private fun PeriodTabs(period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit) {
 }
 
 @Composable
-private fun EnergyTotals(s: EnergySeries) {
+private fun EnergyTotals(s: EnergySeries, hasFuelTank: Boolean) {
     val p = LocalGr.current
     Row(Modifier.fillMaxWidth().padding(top = px(22), bottom = px(18))) {
         TotalColumn(
             if (s.empty) "0" else grDec(s.totalKwh), "кВт·ч", s.kwhPer100?.let { grDec(it) + " кВт·ч / 100 км" }, p.electric,
             Modifier.weight(1.1f), first = true,
         )
-        if (s.totalLitres != null) {
+        // A car with a tank always shows its litres, «0» for a window without fuel.
+        if (s.totalLitres != null || hasFuelTank) {
             TotalColumn(
-                if (s.empty) "0" else grDec(s.totalLitres), "л", s.litresPer100?.let { grDec(it) + " л / 100 км" }, p.fuel,
+                if (s.empty || s.totalLitres == null) "0" else grDec(s.totalLitres), "л", s.litresPer100?.let { grDec(it) + " л / 100 км" }, p.fuel,
                 Modifier.weight(1f), first = false,
             )
         }
@@ -195,21 +204,35 @@ internal fun barPair(slotLeft: Float, slot: Float, n: Int, hasFuel: Boolean): Ba
     return BarPair(x, w, x + w + PAIR_GAP, w)
 }
 
+/**
+ * The chart; its bars grow in from the baseline whenever a series for another period arrives
+ * (and on the first one). [grow] holds the elapsed ms of that grow-in, read only while drawing.
+ */
 @Composable
-private fun EnergyChart(series: EnergySeries?) {
+private fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
     val p = LocalGr.current
     val measurer = rememberTextMeasurer()
+    val grow = remember { Animatable(0f) }
+    val shownPeriod = series?.period
+    val n = series?.kwh?.size ?: 0
+    LaunchedEffect(shownPeriod) {
+        if (shownPeriod == null) return@LaunchedEffect
+        val total = growTotalMs(n)
+        grow.snapTo(0f)
+        grow.animateTo(total.toFloat(), tween(total, easing = LinearEasing))
+    }
     Canvas(
         Modifier
             .fillMaxWidth()
             .height(px(266))
             .drawWithCache {
                 if (series == null) return@drawWithCache onDrawBehind {}
-                buildChart(this, measurer, series, p)
+                buildChart(this, measurer, series, hasFuelTank, p) { grow.value }
             },
     ) {}
 }
 
+private const val VALUE_FADE_MS = 150f
 private const val AXIS_L = 64f
 private const val AXIS_R = 56f
 
@@ -218,14 +241,16 @@ private const val AXIS_R = 56f
  * baseline; each series is scaled to its own max × 1.12. Without litres: one centred kWh bar.
  */
 private fun buildChart(
-    scope: androidx.compose.ui.draw.CacheDrawScope, tm: TextMeasurer, s: EnergySeries, p: GrPalette,
+    scope: androidx.compose.ui.draw.CacheDrawScope, tm: TextMeasurer, s: EnergySeries, hasFuelTank: Boolean, p: GrPalette,
+    growMs: () -> Float,
 ): androidx.compose.ui.draw.DrawResult = with(scope) {
     val u = px(1).toPx()
     val W = size.width / u
     val H = size.height / u
     val n = s.kwh.size
-    val litres = s.litres
-    val hasFuel = litres != null
+    // A car with a tank keeps the litres axis (0..1, no bars) for a window without fuel.
+    val hasFuel = s.litres != null || hasFuelTank
+    val litres = s.litres ?: if (hasFuel) List(n) { 0.0 } else null
     val padL = AXIS_L; val padR = if (hasFuel) AXIS_R else 8f; val padB = 34f; val top = 28f
     val cw = W - padL - padR
     val base = H - padB
@@ -238,7 +263,7 @@ private fun buildChart(
     val dash = PathEffect.dashPathEffect(floatArrayOf(2 * u, 6 * u))
     val baseC = p.textPrimary.copy(alpha = 0.22f)
 
-    class Lbl(val l: TextLayoutResult, val x: Float, val baseline: Float, val align: Int)
+    class Lbl(val l: TextLayoutResult, val x: Float, val baseline: Float, val align: Int, val value: Boolean = false)
     val labels = ArrayList<Lbl>()
     fun layout(text: String, size: Float, weight: Int, color: Color): TextLayoutResult =
         tm.measure(text, grStyle(size, weight, color = color, tnum = false))
@@ -262,13 +287,14 @@ private fun buildChart(
         if (hasFuel) addLbl("л", 16f, 400, p.textTertiary, rx, top - 12, 2)
     }
 
-    val bars = ArrayList<Triple<Path, Color, Float>>()
-    fun bar(x: Float, w: Float, h: Float, color: Color, alpha: Float) {
+    class Bar(val path: Path, val color: Color, val alpha: Float, val index: Int)
+    val bars = ArrayList<Bar>()
+    fun bar(i: Int, x: Float, w: Float, h: Float, color: Color, alpha: Float) {
         val rr = min(min(w / 2, 6f), h) * u
-        bars.add(Triple(Path().apply {
+        bars.add(Bar(Path().apply {
             addRoundRect(RoundRect(x * u, (base - 2 - h) * u, (x + w) * u, (base - 2) * u,
                 CornerRadius(rr), CornerRadius(rr), CornerRadius.Zero, CornerRadius.Zero))
-        }, color, alpha))
+        }, color, alpha, i))
     }
     val x1 = padL; val x2 = W - padR
     for (i in 0 until n) {
@@ -281,13 +307,13 @@ private fun buildChart(
         val l = litres?.getOrNull(i) ?: 0.0
         val hk = (k / maxK * plotH).toFloat()
         val hl = (l / maxL * plotH).toFloat()
-        if (hk > 0f) bar(pair.kwhX, pair.kwhW, hk, p.electric, op)
-        if (hasFuel && hl > 0f) bar(pair.fuelX, pair.fuelW, hl, p.fuel, op)
+        if (hk > 0f) bar(i, pair.kwhX, pair.kwhW, hk, p.electric, op)
+        if (hasFuel && hl > 0f) bar(i, pair.fuelX, pair.fuelW, hl, p.fuel, op)
         if (cur) valueLabels(
             if (k > 0) layout(grDec(k), 18f, 600, p.electric) else null,
             if (hasFuel && l > 0) layout(grDec(l), 18f, 600, p.fuel) else null,
-            pair, base - 2 - hk - 14, base - 2 - hl - 14, u, x1, x2, ::addLbl,
-        )
+            pair, base - 2 - hk - 14, base - 2 - hl - 14, u, x1, x2,
+        ) { l, x, y, align -> labels.add(Lbl(l, x * u, y * u, align, value = true)) }
         if (n <= 12 || i % 3 == 0 || i == n - 1) {
             addLbl(s.labels.getOrElse(i) { "" }, 18f, if (cur) 600 else 400, if (cur) p.textPrimary else p.textTertiary, cx, H - 6, 0)
         }
@@ -298,11 +324,23 @@ private fun buildChart(
             drawLine(grid, Offset(x1 * u, y * u), Offset(x2 * u, y * u), u, pathEffect = dash)
         }
         drawLine(baseC, Offset(x1 * u, base * u), Offset(x2 * u, base * u), u)
-        for ((path, color, a) in bars) drawPath(path, color, alpha = a)
+        // Each bar scales up from the baseline by its own eased growth; the cached paths stay.
+        val ms = growMs()
+        val total = growTotalMs(n).toFloat()
+        val pivot = Offset(0f, (base - 2) * u)
+        for (b in bars) {
+            val g = FastOutSlowInEasing.transform(barGrowth(ms, b.index, n))
+            if (g <= 0f) continue
+            if (g >= 1f) drawPath(b.path, b.color, alpha = b.alpha)
+            else scale(1f, g, pivot) { drawPath(b.path, b.color, alpha = b.alpha) }
+        }
+        // The current values fade in over the last 150 ms of the grow-in.
+        val valueAlpha = ((ms - (total - VALUE_FADE_MS)) / VALUE_FADE_MS).coerceIn(0f, 1f)
         for (l in labels) {
+            if (l.value && valueAlpha <= 0f) continue
             val w = l.l.size.width
             val left = when (l.align) { 1 -> l.x - w; 2 -> l.x; else -> l.x - w / 2f }
-            drawText(l.l, topLeft = Offset(left, l.baseline - l.l.firstBaseline))
+            drawText(l.l, topLeft = Offset(left, l.baseline - l.l.firstBaseline), alpha = if (l.value) valueAlpha else Float.NaN)
         }
     }
 }

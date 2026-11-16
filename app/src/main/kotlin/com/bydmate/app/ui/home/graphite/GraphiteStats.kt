@@ -21,6 +21,8 @@ data class EnergySeries(
     val litresPer100: Double?,
     val electricShare: Int?,
     val empty: Boolean,
+    /** The period these buckets are for; the chart grows in again when it changes. */
+    val period: ChartPeriod,
 )
 
 private fun TripEntity.km(): Double? = distanceKm?.takeIf { it.isFinite() && it > 0.0 }
@@ -97,6 +99,7 @@ object EnergyBuckets {
             litresPer100 = if (anyFuel && litKm > 0.0) litSum / litKm * 100.0 else null,
             electricShare = if (anyFuel) electricShare(used) else null,
             empty = used.isEmpty(),
+            period = period,
         )
     }
 }

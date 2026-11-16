@@ -17,6 +17,7 @@ object DemoCar {
     private const val ODOMETER_START_KM = 17_057.4
     private const val LIFETIME_KWH_START = 2_650.0
     private const val SOC_START = 78.0
+    private const val ENGINE_PERIOD_MS = 10_000L
 
     private val startMs = System.currentTimeMillis()
     private var lastMs = startMs
@@ -42,6 +43,7 @@ object DemoCar {
     fun snapshot(nowMs: Long = System.currentTimeMillis()): DiParsData {
         val (speed, powerKw, t) = step(nowMs)
         val hvVoltage = 395 + (soc / 10).roundToInt()
+        val rpm = engineRpm(nowMs)
         return DiParsData(
             soc = soc.roundToInt(),
             speed = speed.roundToInt(),
@@ -74,7 +76,7 @@ object DemoCar {
             lockFL = 2,
             tirePressFL = 248, tirePressFR = 250, tirePressRL = 245, tirePressRR = 246,
             driveMode = 3,
-            workMode = 1,
+            workMode = if (rpm > 0) 3 else 1,
             autoPark = 0,
             rain = 0,
             lightLow = 1,
@@ -86,6 +88,7 @@ object DemoCar {
             keyBatteryStatus = 0,
             turnSignal = 1,
             insulationKohm = 2_800,
+            engineRpm = rpm,
             motorTempFront = 52, motorTempRear = 61,
             inverterTempFront = 44, inverterTempRear = 47,
             hvVoltage = hvVoltage,
@@ -110,6 +113,13 @@ object DemoCar {
             evRangeKm = (soc / 100 * 125).roundToInt(),
         )
     }
+
+    /**
+     * The engine runs every other 10 s (by wall clock), idling around 1 150–1 450 rpm, so the
+     * HEV chip and the fuel dial's rpm ring can be seen switching on an emulator.
+     */
+    internal fun engineRpm(nowMs: Long): Int =
+        if ((nowMs / ENGINE_PERIOD_MS) % 2 == 0L) 0 else (1_300 + 150 * sin(nowMs / 3_000.0)).roundToInt()
 
     fun battery(nowMs: Long = System.currentTimeMillis()): BatteryReading {
         step(nowMs)

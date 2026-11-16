@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -140,10 +141,11 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
 @Composable
 private fun Progress(music: NowPlaying) {
     val p = LocalGr.current
-    val fraction = mediaFraction(music.positionMs, music.durationMs)
+    val eased by animatedValue(mediaFraction(music.positionMs, music.durationMs), "mediaProgress")
     Column(Modifier.fillMaxWidth()) {
         Box(
             Modifier.fillMaxWidth().height(px(20)).drawBehind {
+                val fraction = eased
                 val h = px(6).toPx()
                 val top = (size.height - h) / 2
                 val r = CornerRadius(h / 2)
