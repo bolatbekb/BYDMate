@@ -12,11 +12,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
@@ -24,7 +21,6 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.withFrameNanos
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
@@ -37,13 +33,11 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import com.bydmate.app.R
@@ -58,14 +52,8 @@ import com.bydmate.app.ui.home.labelLine
 import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.cos
-import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
-
-private const val MOCK_W = 2560
-private const val MOCK_H = 1208
-private val DesignW = px(MOCK_W)
-private val DesignH = px(MOCK_H)
 
 /**
  * Retro home screen "RS stack": the owner's mockup of a black hi-fi control centre, used as the
@@ -84,25 +72,17 @@ fun HybridHome(
     tabs: List<RetroTab> = emptyList(),
     onTab: (RetroTab) -> Unit = {},
 ) {
-    BoxWithConstraints(Modifier.fillMaxSize().background(Rs.Letterbox), contentAlignment = Alignment.Center) {
-        val sw = if (constraints.hasBoundedWidth) maxWidth / DesignW else 1f
-        val sh = if (constraints.hasBoundedHeight) maxHeight / DesignH else sw
-        val scale = min(sw, sh)
-        val base = LocalDensity.current
-        CompositionLocalProvider(LocalDensity provides Density(base.density * scale, 1f)) {
-            Box(Modifier.size(DesignW, DesignH)) {
-                Image(
-                    painterResource(R.drawable.rs_base), contentDescription = null,
-                    modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds,
-                )
-                ModeKeys(data.driveProfile)
-                Deck(music, controls)
-                CarData(data)
-                VolumeMarker(rememberMusicVolume())
-                Meters(data)
-                TabKeys(tabs, onTab)
-            }
-        }
+    MockupFrame {
+        Image(
+            painterResource(R.drawable.rs_base), contentDescription = null,
+            modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds,
+        )
+        ModeKeys(data.driveProfile)
+        Deck(music, controls)
+        CarData(data)
+        VolumeMarker(rememberMusicVolume())
+        Meters(data)
+        TabKeys(tabs, onTab)
     }
 }
 
@@ -311,7 +291,7 @@ internal fun groupThousands(n: Int): String = String.format(Locale.US, "%,d", n)
 
 /** Music volume 0..1, read from the system once a second; null when unavailable. */
 @Composable
-private fun rememberMusicVolume(): Float? {
+internal fun rememberMusicVolume(): Float? {
     val context = LocalContext.current
     val v = remember { mutableStateOf<Float?>(null) }
     LaunchedEffect(Unit) {

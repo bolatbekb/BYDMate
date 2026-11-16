@@ -22,6 +22,7 @@ import com.bydmate.app.ui.dashboard.DashboardViewModel
 import com.bydmate.app.ui.home.kenwood.KenwoodHome
 import com.bydmate.app.ui.home.onkyo.OnkyoHome
 import com.bydmate.app.ui.home.hybrid.HybridHome
+import com.bydmate.app.ui.home.cdrive.CdHome
 
 /** True on the Dashboard tab while a retro home is on: it draws the tabs itself (AppNavigation hook). */
 fun hidesBottomBar(route: String?): Boolean =
@@ -81,6 +82,7 @@ private fun RetroHome(
         HomeStyle.KENWOOD -> KenwoodHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.ONKYO -> OnkyoHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.HYBRID -> HybridHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
+        HomeStyle.CDRIVE -> CdHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.STANDARD -> Unit
     }
 }

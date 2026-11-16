@@ -1,12 +1,17 @@
 package com.bydmate.app.ui.home.hybrid
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -15,15 +20,18 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlin.math.min
 
 /*
  * The RS stack is the mockup itself (res/drawable-nodpi/rs_base.webp, 2560 x 1208, twice the car's
@@ -40,6 +48,26 @@ internal fun fs(v: Float): TextUnit = (v * K).sp
 
 /** Placed at mockup pixel ([x], [y]) with mockup size [w] x [h]. */
 internal fun Modifier.at(x: Int, y: Int, w: Int, h: Int): Modifier = offset(px(x), px(y)).size(px(w), px(h))
+
+private val DesignW = px(2560)
+private val DesignH = px(1208)
+
+/**
+ * The frame of a 2560 x 1208 mockup home: [content] is laid out on the mockup's grid (1280 x 604
+ * dp) and scaled uniformly to fit, letterboxed in black.
+ */
+@Composable
+internal fun MockupFrame(content: @Composable BoxScope.() -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(Rs.Letterbox), contentAlignment = Alignment.Center) {
+        val sw = if (constraints.hasBoundedWidth) maxWidth / DesignW else 1f
+        val sh = if (constraints.hasBoundedHeight) maxHeight / DesignH else sw
+        val scale = min(sw, sh)
+        val base = LocalDensity.current
+        CompositionLocalProvider(LocalDensity provides Density(base.density * scale, 1f)) {
+            Box(Modifier.size(DesignW, DesignH), content = content)
+        }
+    }
+}
 
 internal object Rs {
     val Letterbox = Color(0xFF0B0B0C)
@@ -123,7 +151,7 @@ private fun valueStyle(size: Float, color: Color) = TextStyle(
  * with a grey outline. All dark when unknown.
  */
 @Composable
-internal fun SegmentBar(pct: Int?, color: Color, modifier: Modifier) {
+internal fun SegmentBar(pct: Int?, color: Color, modifier: Modifier, unlitRim: Color = Color(0xFF6B6F6D)) {
     Canvas(modifier) {
         val n = 10
         val gap = size.width * 0.012f
@@ -138,19 +166,27 @@ internal fun SegmentBar(pct: Int?, color: Color, modifier: Modifier) {
                 drawRect(Color.White.copy(alpha = 0.55f), Offset(x, 0f), Size(w, size.height), style = Stroke(px1))
             } else {
                 drawRect(Color(0xFF0B0F0D), Offset(x, 0f), Size(w, size.height))
-                drawRect(Color(0xFF6B6F6D), Offset(x, 0f), Size(w, size.height), style = Stroke(px1))
+                drawRect(unlitRim, Offset(x, 0f), Size(w, size.height), style = Stroke(px1))
             }
         }
     }
 }
 
-/** The AUTO badge of the climate: an outlined pill. */
+/** The AUTO badge of the climate: an outlined pill, [w] x [h] mockup pixels from ([x], [cy] − h/2). */
 @Composable
-internal fun AutoBadge(x: Int, cy: Int) {
-    Canvas(Modifier.at(x, cy - 17, 88, 34)) {
+internal fun AutoBadge(
+    x: Int,
+    cy: Int,
+    w: Int = 88,
+    h: Int = 34,
+    textSize: Float = 24f,
+    rim: Color = Rs.Cyan.copy(alpha = 0.6f),
+    textColor: Color = Rs.Cyan,
+) {
+    Canvas(Modifier.at(x, cy - h / 2, w, h)) {
         val r = CornerRadius(size.height / 2)
         drawRoundRect(Color(0xFF0B3036), cornerRadius = r)
-        drawRoundRect(Rs.Cyan.copy(alpha = 0.6f), cornerRadius = r, style = Stroke(1.dp.toPx()))
+        drawRoundRect(rim, cornerRadius = r, style = Stroke(1.dp.toPx()))
     }
-    Txt("AUTO", x + 44, cy, 24f, Rs.Cyan, centre = true, width = 88)
+    Txt("AUTO", x + w / 2, cy, textSize, textColor, centre = true, width = w)
 }
