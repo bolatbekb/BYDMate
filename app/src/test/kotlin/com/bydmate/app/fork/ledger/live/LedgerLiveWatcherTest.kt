@@ -7,11 +7,14 @@ import com.bydmate.app.data.nativestack.VehicleKind
 import com.bydmate.app.data.remote.DiParsData
 import com.bydmate.app.fork.ledger.data.LedgerDatabase
 import com.bydmate.app.fork.ledger.data.LedgerRepository
+import com.bydmate.app.fork.ledger.data.RefuelDao
+import com.bydmate.app.fork.ledger.data.RefuelEntity
 import com.bydmate.app.fork.ledger.domain.car
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
@@ -36,6 +39,29 @@ class LedgerLiveWatcherTest {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val time = AtomicLong(1000L)
 
+    /** Counting / failure-injecting repository: plain subclass, no mocking of Room. */
+    private inner class TestRepo : LedgerRepository(db) {
+        val setStateCalls = java.util.concurrent.atomic.AtomicInteger()
+        val getStateCalls = java.util.concurrent.atomic.AtomicInteger()
+        @Volatile var failThreshold = false
+        @Volatile var failInsertOnce = false
+        override suspend fun setDetectorState(json: String?) { setStateCalls.incrementAndGet(); super.setDetectorState(json) }
+        override suspend fun detectorState(): String? { getStateCalls.incrementAndGet(); return super.detectorState() }
+        override suspend fun detectThresholdPp(): Int {
+            if (failThreshold) throw IllegalStateException("db down")
+            return super.detectThresholdPp()
+        }
+        override val refuels: RefuelDao get() {
+            val real = super.refuels
+            return object : RefuelDao by real {
+                override suspend fun insert(e: RefuelEntity): Long {
+                    if (failInsertOnce) { failInsertOnce = false; throw IllegalStateException("disk full") }
+                    return real.insert(e)
+                }
+            }
+        }
+    }
+
     @Before fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         db = Room.inMemoryDatabaseBuilder(ctx, LedgerDatabase::class.java)
@@ -43,7 +69,10 @@ class LedgerLiveWatcherTest {
         repo = LedgerRepository(db)
     }
 
-    @After fun tearDown() { scope.cancel(); db.close() }
+    @After fun tearDown() {
+        runBlocking { scope.coroutineContext[Job]!!.cancelAndJoin() }
+        db.close()
+    }
 
     private fun watcher(r: LedgerRepository = repo) = LedgerLiveWatcher(r, data, kind, scope) { time.addAndGet(1000L) }.also { it.start() }
 
@@ -131,17 +160,17 @@ class LedgerLiveWatcherTest {
     }
 
     @Test fun throttleLimitsWritesWhenNothingChanges() {
-        val spy = io.mockk.spyk(repo)
+        val spy = TestRepo()
         watcher(spy)
         emit(30)
         until("first write") { repo.detectorState() != null }
         // same baseline, tiny gauge-neutral changes (fuel counter only) for 10 s of injected clock
         for (i in 1..9) { data.value = car(mileage = 100.0, fuelPercent = 30, fuelTotalL = 10.0 + i / 100.0); runBlocking { delay(30) } }
         runBlocking { delay(200) }
-        io.mockk.coVerify(exactly = 1) { spy.setDetectorState(any()) }
+        assertEquals(1, spy.setStateCalls.get())
         time.addAndGet(40_000L)
         emit(30, total = 11.0)
-        until("write after 30 s") { runCatching { io.mockk.coVerify(exactly = 2) { spy.setDetectorState(any()) } }.isSuccess }
+        until("write after 30 s") { spy.setStateCalls.get() == 2 }
     }
 
     @Test fun loweredBaselineReachesDiskImmediately() {
@@ -184,28 +213,24 @@ class LedgerLiveWatcherTest {
     }
 
     @Test fun dbFailureThenRecoveryKeepsCollecting() {
-        val spy = io.mockk.spyk(repo)
-        var fail = true
-        io.mockk.coEvery { spy.detectThresholdPp() } coAnswers {
-            if (fail) throw IllegalStateException("db down") else callOriginal()
-        }
+        val spy = TestRepo().also { it.failThreshold = true }
         watcher(spy)
         emit(30)
         runBlocking { delay(200) }
         assertNull(runBlocking { repo.detectorState() })
-        fail = false
+        spy.failThreshold = false
         emit(31)
         until("recovered") { repo.detectorState() != null }
     }
 
     @Test fun secondStartDoesNotDoubleCollect() {
-        val spy = io.mockk.spyk(repo)
+        val spy = TestRepo()
         val w = watcher(spy)
         w.start()
         emit(30)
         until("first write") { repo.detectorState() != null }
         runBlocking { delay(200) }
-        io.mockk.coVerify(exactly = 1) { spy.detectorState() }
+        assertEquals(1, spy.getStateCalls.get())
     }
 
     @Test fun userTypedLitersSurviveLaterGaugeRise() {
@@ -223,13 +248,7 @@ class LedgerLiveWatcherTest {
     }
 
     @Test fun failedInsertIsRetriedOnNextSample() {
-        val spy = io.mockk.spyk(repo)
-        val dao = io.mockk.spyk(db.refuelDao())
-        io.mockk.every { spy.refuels } returns dao
-        var fail = true
-        io.mockk.coEvery { dao.insert(any()) } coAnswers {
-            if (fail) { fail = false; throw IllegalStateException("disk full") } else callOriginal()
-        }
+        val spy = TestRepo().also { it.failInsertOnce = true }
         watcher(spy)
         emit(30)
         until("baseline") { repo.detectorState() != null }
