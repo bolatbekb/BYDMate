@@ -18,10 +18,10 @@ import androidx.compose.ui.semantics.Role
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
-import com.bydmate.app.ui.home.hybrid.K
-import com.bydmate.app.ui.home.hybrid.PressArea
-import com.bydmate.app.ui.home.hybrid.Txt
-import com.bydmate.app.ui.home.hybrid.at
+import com.bydmate.app.ui.home.common.K
+import com.bydmate.app.ui.home.common.PressArea
+import com.bydmate.app.ui.home.common.Txt
+import com.bydmate.app.ui.home.common.at
 import com.bydmate.app.ui.home.labelLine
 import java.util.Locale
 import kotlin.math.roundToInt

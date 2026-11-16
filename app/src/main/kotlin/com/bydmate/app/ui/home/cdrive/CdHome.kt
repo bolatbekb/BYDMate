@@ -41,18 +41,18 @@ import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.RetroTab
-import com.bydmate.app.ui.home.hybrid.AutoBadge
-import com.bydmate.app.ui.home.hybrid.K
-import com.bydmate.app.ui.home.hybrid.MockupFrame
-import com.bydmate.app.ui.home.hybrid.SegmentBar
-import com.bydmate.app.ui.home.hybrid.Txt
-import com.bydmate.app.ui.home.hybrid.ValueUnit
-import com.bydmate.app.ui.home.hybrid.at
-import com.bydmate.app.ui.home.hybrid.fs
-import com.bydmate.app.ui.home.hybrid.px
-import com.bydmate.app.ui.home.hybrid.celsius
-import com.bydmate.app.ui.home.hybrid.groupThousands
-import com.bydmate.app.ui.home.hybrid.rememberMusicVolume
+import com.bydmate.app.ui.home.common.AutoBadge
+import com.bydmate.app.ui.home.common.K
+import com.bydmate.app.ui.home.common.MockupFrame
+import com.bydmate.app.ui.home.common.SegmentBar
+import com.bydmate.app.ui.home.common.Txt
+import com.bydmate.app.ui.home.common.ValueUnit
+import com.bydmate.app.ui.home.common.at
+import com.bydmate.app.ui.home.common.fs
+import com.bydmate.app.ui.home.common.px
+import com.bydmate.app.ui.home.common.celsius
+import com.bydmate.app.ui.home.common.groupThousands
+import com.bydmate.app.ui.home.common.rememberMusicVolume
 import java.util.Locale
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -61,7 +61,8 @@ import kotlin.math.sin
 /**
  * Retro home screen "C-Drive stack": the owner's Technics-style mockup as the backplate
  * (res/drawable-nodpi/cd_base, built by tools/cdrive/CdBackplate.java) with the live parts drawn
- * over it at the places listed in tools/cdrive/LAYOUT.md. Scaled and letterboxed like the RS stack.
+ * over it at the places listed in tools/cdrive/LAYOUT.md. Scaled uniformly to fit, letterboxed in
+ * black.
  *
  * The keys on the left, power, the jack and the round keys under the knob are printed only; the
  * knob only shows the music volume.
@@ -106,7 +107,7 @@ private val SocBar = Color(0xFF11FF5F)
 private val FuelBar = Color(0xFFFFD951)
 private val BarRim = Color(0xFF5E928E)
 
-/** The same values and formats as the RS stack's data screen, on this screen's places. */
+/** The car's values on this screen's data screen, at its places. */
 @Composable
 private fun CdCarData(d: HomeData) {
     Txt(d.socPercent?.let { "$it%" } ?: "—", 1232, 231, 41f, SocCyan, glow = true, width = 120)

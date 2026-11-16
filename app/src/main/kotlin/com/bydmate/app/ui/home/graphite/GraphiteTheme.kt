@@ -62,8 +62,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.offset
 import com.bydmate.app.R
-import com.bydmate.app.ui.home.hybrid.fs
-import com.bydmate.app.ui.home.hybrid.px
+import com.bydmate.app.ui.home.common.fs
+import com.bydmate.app.ui.home.common.px
 
 /*
  * The Graphite home's visual language: palette, Inter, the card and its parts. Every size is in

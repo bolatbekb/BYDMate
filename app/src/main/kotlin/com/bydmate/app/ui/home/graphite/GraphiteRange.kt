@@ -50,8 +50,8 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.HomeData
-import com.bydmate.app.ui.home.hybrid.fs
-import com.bydmate.app.ui.home.hybrid.px
+import com.bydmate.app.ui.home.common.fs
+import com.bydmate.app.ui.home.common.px
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.sin

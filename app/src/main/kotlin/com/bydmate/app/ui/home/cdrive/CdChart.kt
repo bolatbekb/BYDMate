@@ -35,10 +35,10 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.R
-import com.bydmate.app.ui.home.hybrid.K
-import com.bydmate.app.ui.home.hybrid.PressArea
-import com.bydmate.app.ui.home.hybrid.at
-import com.bydmate.app.ui.home.hybrid.fs
+import com.bydmate.app.ui.home.common.K
+import com.bydmate.app.ui.home.common.PressArea
+import com.bydmate.app.ui.home.common.at
+import com.bydmate.app.ui.home.common.fs
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.floor

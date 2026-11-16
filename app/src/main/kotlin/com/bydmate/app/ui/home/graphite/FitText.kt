@@ -20,7 +20,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.isSpecified
-import com.bydmate.app.ui.home.hybrid.fs
+import com.bydmate.app.ui.home.common.fs
 
 internal fun fitFontSize(maxSize: Float, minSize: Float, step: Float = 2f, fits: (Float) -> Boolean): Float {
     var s = maxSize

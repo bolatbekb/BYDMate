@@ -1,6 +1,13 @@
-package com.bydmate.app.ui.home.hybrid
+@file:Suppress("TooManyFunctions") // the shared kit of the mockup homes: small parts, one place
 
+package com.bydmate.app.ui.home.common
+
+import android.content.Context
+import android.media.AudioManager
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -12,6 +19,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -20,7 +31,11 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -31,12 +46,14 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import java.util.Locale
 import kotlin.math.min
 
 /*
- * The RS stack is the mockup itself (res/drawable-nodpi/rs_base.webp, 2560 x 1208, twice the car's
- * 1280 x 604 dp content area) with the live parts erased (tools/rs/RsBackplate.java). Everything
- * the app draws on top is placed on the mockup's pixel grid, converted by [K].
+ * Shared by the mockup homes (C-Drive, Graphite): each is laid out on a 2560 x 1208 mockup, twice
+ * the car's 1280 x 604 dp content area. Everything is placed on the mockup's pixel grid, converted
+ * by [K].
  */
 
 /** Mockup pixel to dp. */
@@ -58,7 +75,7 @@ private val DesignH = px(1208)
  */
 @Composable
 internal fun MockupFrame(content: @Composable BoxScope.() -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxSize().background(Rs.Letterbox), contentAlignment = Alignment.Center) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(MockupInk.Letterbox), contentAlignment = Alignment.Center) {
         val sw = if (constraints.hasBoundedWidth) maxWidth / DesignW else 1f
         val sh = if (constraints.hasBoundedHeight) maxHeight / DesignH else sw
         val scale = min(sw, sh)
@@ -69,19 +86,12 @@ internal fun MockupFrame(content: @Composable BoxScope.() -> Unit) {
     }
 }
 
-internal object Rs {
+/** The default inks of the shared parts: letterbox, display cyan and white, the lit-key green. */
+internal object MockupInk {
     val Letterbox = Color(0xFF0B0B0C)
     val Cyan = Color(0xFF3CDDF2)
-    val CyanTrack = Color(0xFF123A40)
     val White = Color(0xFFECECEA)
-    val Cream = Color(0xFFF1E8D2)
-    val Green = Color(0xFF2EE070)
     val GreenLed = Color(0xFF35E04A)
-    val Yellow = Color(0xFFF2D83A)
-    val Lime = Color(0xFFC9EE45)
-    val Amber = Color(0xFFFF8E22)
-    val Dim = Color(0xFF8A908C)
-    val Screen = Color(0xFF06130C)
 }
 
 /**
@@ -94,7 +104,7 @@ internal fun Txt(
     x: Int,
     cy: Int,
     size: Float,
-    color: Color = Rs.White,
+    color: Color = MockupInk.White,
     glow: Boolean = false,
     centre: Boolean = false,
     right: Boolean = false,
@@ -132,7 +142,7 @@ internal fun Txt(
 
 /** Value and its unit on one baseline, e.g. "824" + " км". */
 @Composable
-internal fun ValueUnit(value: String, unit: String, x: Int, cy: Int, size: Float, unitSize: Float, color: Color = Rs.Cyan) {
+internal fun ValueUnit(value: String, unit: String, x: Int, cy: Int, size: Float, unitSize: Float, color: Color = MockupInk.Cyan) {
     Box(Modifier.at(x, cy - (size * 0.7f).toInt(), 700, (size * 1.4f).toInt()), contentAlignment = Alignment.CenterStart) {
         androidx.compose.foundation.layout.Row(verticalAlignment = Alignment.Bottom) {
             Text(value, maxLines = 1, softWrap = false, style = valueStyle(size, color))
@@ -180,8 +190,8 @@ internal fun AutoBadge(
     w: Int = 88,
     h: Int = 34,
     textSize: Float = 24f,
-    rim: Color = Rs.Cyan.copy(alpha = 0.6f),
-    textColor: Color = Rs.Cyan,
+    rim: Color = MockupInk.Cyan.copy(alpha = 0.6f),
+    textColor: Color = MockupInk.Cyan,
 ) {
     Canvas(Modifier.at(x, cy - h / 2, w, h)) {
         val r = CornerRadius(size.height / 2)
@@ -189,4 +199,62 @@ internal fun AutoBadge(
         drawRoundRect(rim, cornerRadius = r, style = Stroke(1.dp.toPx()))
     }
     Txt("AUTO", x + w / 2, cy, textSize, textColor, centre = true, width = w)
+}
+
+/** An invisible touch area over a printed key: darker while held, or lit green for a tab key. */
+@Composable
+internal fun PressArea(
+    modifier: Modifier,
+    name: String,
+    onClick: () -> Unit,
+    litOnPress: Boolean = false,
+    role: Role? = Role.Button, // fork: null for a key that only answers the touch
+) {
+    val source = remember { MutableInteractionSource() }
+    val pressed by source.collectIsPressedAsState()
+    Box(
+        modifier
+            .semantics { contentDescription = name }
+            .clickable(interactionSource = source, indication = null, role = role, onClick = onClick),
+    ) {
+        if (pressed) {
+            Canvas(Modifier.fillMaxSize()) {
+                val r = CornerRadius(6f * K * density)
+                if (litOnPress) {
+                    drawRoundRect(MockupInk.GreenLed.copy(alpha = 0.22f), cornerRadius = r)
+                    drawRoundRect(MockupInk.GreenLed.copy(alpha = 0.8f), cornerRadius = r, style = Stroke(3f * K * density))
+                } else {
+                    drawRoundRect(Color.Black.copy(alpha = 0.35f), cornerRadius = r)
+                }
+            }
+        }
+    }
+}
+
+/** "22°C", "−3°C" (a true minus sign) or "—". */
+internal fun Int?.celsius(): String = when {
+    this == null -> "—"
+    this < 0 -> "−${-this}°C"
+    else -> "$this°C"
+}
+
+/** "73 482" with a thin space between thousands. */
+internal fun groupThousands(n: Int): String = String.format(Locale.US, "%,d", n).replace(',', ' ')
+
+/** Music volume 0..1, read from the system once a second; null when unavailable. */
+@Composable
+internal fun rememberMusicVolume(): Float? {
+    val context = LocalContext.current
+    val v = remember { mutableStateOf<Float?>(null) }
+    LaunchedEffect(Unit) {
+        val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return@LaunchedEffect
+        while (true) {
+            v.value = runCatching {
+                val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                if (max > 0) am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / max else null
+            }.getOrNull()
+            delay(1000)
+        }
+    }
+    return v.value
 }

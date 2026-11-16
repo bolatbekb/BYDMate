@@ -54,8 +54,8 @@ import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.cdrive.ReadyLamp
 import com.bydmate.app.ui.home.cdrive.ReadyShown
-import com.bydmate.app.ui.home.hybrid.MockupFrame
-import com.bydmate.app.ui.home.hybrid.px
+import com.bydmate.app.ui.home.common.MockupFrame
+import com.bydmate.app.ui.home.common.px
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 

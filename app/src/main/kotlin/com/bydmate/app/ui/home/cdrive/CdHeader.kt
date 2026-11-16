@@ -27,9 +27,9 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.HomeData
-import com.bydmate.app.ui.home.hybrid.K
-import com.bydmate.app.ui.home.hybrid.Txt
-import com.bydmate.app.ui.home.hybrid.at
+import com.bydmate.app.ui.home.common.K
+import com.bydmate.app.ui.home.common.Txt
+import com.bydmate.app.ui.home.common.at
 import kotlinx.coroutines.delay
 import kotlin.math.PI
 import kotlin.math.sin

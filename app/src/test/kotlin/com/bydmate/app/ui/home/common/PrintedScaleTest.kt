@@ -1,4 +1,4 @@
-package com.bydmate.app.ui.home.hybrid
+package com.bydmate.app.ui.home.common
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -22,11 +22,5 @@ class PrintedScaleTest {
         assertEquals(140f, scale.angleOf(null), 0.001f)
         assertEquals(140f, scale.angleOf(-4.0), 0.001f)
         assertEquals(40f, scale.angleOf(9.0), 0.001f)
-    }
-
-    @Test
-    fun `compressor scale tops out at its last printed number`() {
-        assertEquals(35.4f, CompressorScale.angleOf(5.0), 0.001f)
-        assertEquals(87.4f, CompressorScale.angleOf(2.0), 0.001f)
     }
 }

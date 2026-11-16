@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.sample
 import com.bydmate.app.ui.dashboard.DashboardViewModel
 import com.bydmate.app.ui.home.kenwood.KenwoodHome
 import com.bydmate.app.ui.home.onkyo.OnkyoHome
-import com.bydmate.app.ui.home.hybrid.HybridHome
 import com.bydmate.app.ui.home.cdrive.CdHome
 import com.bydmate.app.ui.home.graphite.GraphiteHome
 
@@ -82,7 +81,6 @@ private fun RetroHome(
     when (style) {
         HomeStyle.KENWOOD -> KenwoodHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.ONKYO -> OnkyoHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
-        HomeStyle.HYBRID -> HybridHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.CDRIVE -> CdHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
         HomeStyle.GRAPHITE -> GraphiteHome(data, music, NowPlayingSource, tabs, onTab)
         HomeStyle.STANDARD -> Unit

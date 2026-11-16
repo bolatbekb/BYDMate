@@ -82,7 +82,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
-import com.bydmate.app.ui.home.hybrid.px
+import com.bydmate.app.ui.home.common.px
 import java.util.Locale
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay

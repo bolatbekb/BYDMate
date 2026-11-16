@@ -36,7 +36,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.bydmate.app.R
-import com.bydmate.app.ui.home.hybrid.px
+import com.bydmate.app.ui.home.common.px
 import kotlinx.coroutines.delay
 import kotlin.random.Random
 

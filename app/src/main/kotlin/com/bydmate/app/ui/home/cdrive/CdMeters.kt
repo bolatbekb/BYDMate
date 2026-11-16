@@ -23,14 +23,14 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.home.HomeData
-import com.bydmate.app.ui.home.hybrid.K
-import com.bydmate.app.ui.home.hybrid.MeterNeedle
-import com.bydmate.app.ui.home.hybrid.NeedlePainter
-import com.bydmate.app.ui.home.hybrid.PrintedScale
-import com.bydmate.app.ui.home.hybrid.at
-import com.bydmate.app.ui.home.hybrid.fs
-import com.bydmate.app.ui.home.hybrid.groupThousands
-import com.bydmate.app.ui.home.hybrid.px
+import com.bydmate.app.ui.home.common.K
+import com.bydmate.app.ui.home.common.MeterNeedle
+import com.bydmate.app.ui.home.common.NeedlePainter
+import com.bydmate.app.ui.home.common.PrintedScale
+import com.bydmate.app.ui.home.common.at
+import com.bydmate.app.ui.home.common.fs
+import com.bydmate.app.ui.home.common.groupThousands
+import com.bydmate.app.ui.home.common.px
 import java.util.Locale
 
 /** Engine speed 0…6 ×1000 rpm: the needle angle of each printed number, measured from the hub. */

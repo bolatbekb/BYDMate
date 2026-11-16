@@ -11,9 +11,17 @@ enum class HomeStyle(val id: String, val title: String) {
     STANDARD("standard", "Стандартная"),
     KENWOOD("kenwood", "Стойка KX"),
     ONKYO("onkyo", "Стойка Integra"),
-    HYBRID("hybrid", "Стойка RS"),
     CDRIVE("cdrive", "Стойка C-Drive"),
     GRAPHITE("graphite", "Graphite"),
+    ;
+
+    companion object {
+        /** «Стойка RS» (hybrid) was removed in favour of C-Drive; anything unknown is the author's screen. */
+        fun fromId(id: String?): HomeStyle =
+            if (id == REMOVED_RS) CDRIVE else entries.firstOrNull { it.id == id } ?: STANDARD
+
+        internal const val REMOVED_RS = "hybrid"
+    }
 }
 
 object HomeStyleState {
@@ -27,9 +35,9 @@ object HomeStyleState {
         val id = runCatching {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
         }.getOrNull()
-        current = HomeStyle.entries.firstOrNull { it.id == id } ?: HomeStyle.STANDARD
+        current = HomeStyle.fromId(id)
+        if (id == HomeStyle.REMOVED_RS) select(context, current)
         CassetteRotation.init(context)
-        ReelCassetteRotation.init(context)
         DayMileage.init(context)
         GraphiteLookState.init(context)
     }
