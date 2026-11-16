@@ -8,7 +8,7 @@ BIN="${CWEBP_DIR:?set CWEBP_DIR to the folder with cwebp and dwebp}"
 RES="$(cd "$(dirname "$0")/.." && pwd)/app/src/main/res/drawable-nodpi"
 TMP="$(mktemp -d)"; trap 'rm -rf "$TMP"' EXIT
 before=0; after=0
-for png in "$RES"/cassette_*.png "$RES"/rs_*.png; do
+for png in "$RES"/cassette_*.png "$RES"/rs_*.png "$RES"/cd_*.png; do
   [ -e "$png" ] || continue
   name="$(basename "$png" .png)"; webp="$RES/$name.webp"
   "$BIN/cwebp" -quiet -lossless -exact -z 9 -metadata none "$png" -o "$TMP/$name.webp"
