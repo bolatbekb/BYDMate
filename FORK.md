@@ -17,8 +17,14 @@
 | Скриншот всего экрана вместе с панелями машины, через ADB `screencap`, с задержкой 5 с | Настройки → Приложение | `fork/ScreenshotTaker.kt`, `ui/settings/ScreenshotBlock.kt` |
 | Размер окна, панели машины и плотность (dpi) в шапке диагностического лога | Настройки → запись лога | `fork/DisplayInfo.kt` |
 | Обновления из релизов форка, а не автора | автопроверка и кнопка в настройках | `fork/ForkConfig.kt` |
+| Учёт заправок и расходов: журнал заправок по чеку, сверка расхода по полным бакам, черновики заправок по уровню бака, расходы, сводка за месяц, импорт из Fuelio (CSV). Своя база `fork_ledger.db`, входит в бэкап | Настройки → «Расходы» | `fork/ledger/*`, `ui/settings/LedgerSection.kt` |
 | Оптимизации опроса машины (см. ниже) | — | правки в `data/*` |
 | Сборка подписанного APK и релиз в GitHub Actions | — | `.github/workflows/fork-release.yml` |
+
+### Своя база учёта `fork_ledger.db`
+Учёт заправок и расходов хранится в отдельной Room-базе `fork_ledger.db` (`fork/ledger/data`, свой `LedgerDatabase`, не связанный с `AppDatabase`). Схему автора форк не трогает: миграции автора не конфликтуют с учётом, а версия схемы (25) остаётся авторской. В демо-режиме учёт работает на отдельной демо-копии и в бэкап не попадает.
+
+Бэкап: `BackupManager` делает снимок этой базы до создания архива, кладёт её в zip как `fork_ledger.db`, а при восстановлении сначала проверяет её во временном файле и подменяет только после того, как восстановилась база автора. Всё это сделано через `LedgerBackup` (`fork/ledger/backup`); в `BackupManager.kt` добавлены 7 строк с меткой `fork`: импорт, снимок перед zip, запись после `manifest.json`, подготовка восстановления перед подменой, фиксация после неё. Слежение за уровнем бака (`LedgerLiveWatcher`) запускается в `BYDMateApp.onCreate`, кроме демо-режима.
 
 ### Картинки ретро-стоек
 Фото кассет и всё для «Стойки RS» лежат в `res/drawable-nodpi` в WebP без потерь. После того как `tools/rs/RsBackplate.java` заново собрал подложку (он пишет PNG), запусти `CWEBP_DIR=<папка с cwebp и dwebp из libwebp> tools/webp.sh`: он переводит PNG в WebP без потерь, сверяет каждый пиксель и удаляет PNG.
@@ -47,15 +53,16 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 
 ### Где возможен конфликт: правки в файлах автора
 
-Всего 17 файлов, порядка 150–170 строк. При конфликте ищи в них метку `fork`.
+Всего 18 файлов, порядка 160–180 строк. При конфликте ищи в них метку `fork`.
 
 | Файл | Что изменено |
 |---|---|
 | `app/build.gradle.kts` | `versionCode` и `versionName` форка: **конфликт при каждом релизе автора**, см. «Версии» |
-| `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init` в `onCreate` |
+| `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) |
 | `ui/theme/Color.kt` | цвета стали геттерами из `SkinState`, чтобы скин менялся на лету |
 | `ui/theme/Theme.kt` | `DarkColorScheme` стал геттером |
-| `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером |
+| `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером; пункт `LEDGER` в `SettingsSection` и его ветка в `when` (раздел «Расходы») |
+| `data/backup/BackupManager.kt` | 7 строк `fork`: учёт в бэкапе (снимок, запись в zip, проверка и подмена при восстановлении) |
 | `ui/settings/SettingsAppVoice.kt` | вызовы блоков скина, главной, демо и скриншота в разделе «Приложение» |
 | `ui/navigation/AppNavigation.kt` | `DashboardScreen` обёрнут в `ForkHome(onOpenTab) { … }`; нижняя панель скрыта, пока на главной ретро-стойка (`hidesBottomBar`); всплывающая просьба о донате выключена (`ForkConfig.DONATION_PROMPT`) |
 | `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса |
