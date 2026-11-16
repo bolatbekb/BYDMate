@@ -35,6 +35,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.nativeCanvas
@@ -109,15 +110,19 @@ fun GraphiteHome(
     }
 }
 
-/** Bg, plus the BgGlow radial (1600 × 900, centre 50 % / 40 %, Bg from 70 %) where the variant has one. */
+/**
+ * Bg, plus the BgGlow radial where the variant has one: CSS `radial-gradient(1600px 900px at
+ * 50% 40%, BgGlow, Bg 70%)`, i.e. an ellipse with radii 1600 × 900 reaching Bg at 70 %.
+ */
 private fun Modifier.grBackground(p: GrPalette): Modifier = drawWithCache {
     val u = px(1).toPx()
     val c = Offset(size.width * 0.5f, size.height * 0.4f)
-    val rx = 800 * u
+    val rx = 1600 * u
     val glow = if (p.bgGlow == p.bg) null else Brush.radialGradient(0f to p.bgGlow, 0.7f to p.bg, 1f to p.bg, center = c, radius = rx)
     onDrawBehind {
         drawRect(p.bg)
-        if (glow != null) scale(1f, 900f / 1600f, pivot = c) { drawCircle(glow, radius = rx, center = c) }
+        // the ellipse is wider than the frame: clip so it never paints the letterbox
+        if (glow != null) clipRect { scale(1f, 900f / 1600f, pivot = c) { drawCircle(glow, radius = rx, center = c) } }
     }
 }
 
@@ -182,7 +187,8 @@ private fun TopBar(data: HomeData, modifier: Modifier) {
         data.todayKm?.let { km ->
             Chip("${grDec(km)} км", note = "сегодня", lead = { GrIcon(R.drawable.gr_ic_route, 24f, p.textSecondary) })
         }
-        Links()
+        val links = rememberLinks()
+        if (links.bt || links.wifi || links.cell) Links(links)
     }
 }
 
@@ -228,9 +234,8 @@ private fun StatusDot(color: Color, glow: Boolean) {
 
 /** Bluetooth, Wi-Fi and mobile icons 26 TextSecondary, then the mobile type; only what is on. */
 @Composable
-private fun Links() {
+private fun Links(links: GraphiteLinks.Links) {
     val p = LocalGr.current
-    val links = rememberLinks()
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(px(22))) {
         if (links.bt) GrIcon(R.drawable.gr_ic_bt, 26f, p.textSecondary)
         if (links.wifi) GrIcon(R.drawable.gr_ic_wifi, 26f, p.textSecondary)
