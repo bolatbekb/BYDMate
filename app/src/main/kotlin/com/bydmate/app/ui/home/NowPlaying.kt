@@ -79,7 +79,6 @@ object NowPlayingSource : MusicControls {
 
     // Album art: only the current one is kept, scaled once per track.
     private var artKey: String? = null
-    private var artSrc: Bitmap? = null
     private var artBitmap: Bitmap? = null
     private val labelCache = HashMap<String, String?>()
 
@@ -173,12 +172,14 @@ object NowPlayingSource : MusicControls {
             it.action.contains(word, ignoreCase = true) || it.name?.toString()?.contains(word, ignoreCase = true) == true
         }?.action
 
-    private fun artFor(md: MediaMetadata?, key: String): Bitmap? {
-        if (md == null) { artKey = null; artSrc = null; artBitmap = null; return null }
-        if (key != artKey) { artKey = key; artSrc = null; artBitmap = null }
-        // The cover may arrive after the text with the same key: rescale whenever a new source appears.
-        val src = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md.getBitmap(MediaMetadata.METADATA_KEY_ART)
-        if (src != null && src !== artSrc) { artSrc = src; artBitmap = scaleArt(src) }
+    /** Scaled once per «title|artist|album»; the first non-null cover for a key wins (each poll unparcels a new Bitmap). */
+    internal fun artFor(md: MediaMetadata?, key: String): Bitmap? {
+        if (md == null) { artKey = null; artBitmap = null; return null }
+        if (key != artKey) { artKey = key; artBitmap = null }
+        if (artBitmap == null) {
+            val src = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md.getBitmap(MediaMetadata.METADATA_KEY_ART)
+            artBitmap = src?.let { scaleArt(it) }
+        }
         return artBitmap
     }
 
