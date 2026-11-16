@@ -141,7 +141,7 @@ class LedgerLiveWatcherTest {
         io.mockk.coVerify(exactly = 1) { spy.setDetectorState(any()) }
         time.addAndGet(40_000L)
         emit(30, total = 11.0)
-        until("write after 30 s") { runBlocking { io.mockk.coVerify(exactly = 2) { spy.setDetectorState(any()) }; true } }
+        until("write after 30 s") { runCatching { io.mockk.coVerify(exactly = 2) { spy.setDetectorState(any()) } }.isSuccess }
     }
 
     @Test fun loweredBaselineReachesDiskImmediately() {
@@ -220,5 +220,32 @@ class LedgerLiveWatcherTest {
         emit(85)
         until("percent updated") { db.refuelDao().openDraft()?.tankPercentAfter == 85 }
         assertEquals(41.5, runBlocking { db.refuelDao().openDraft()!!.liters }, 0.0)
+    }
+
+    @Test fun failedInsertIsRetriedOnNextSample() {
+        val spy = io.mockk.spyk(repo)
+        val dao = io.mockk.spyk(db.refuelDao())
+        io.mockk.every { spy.refuels } returns dao
+        var fail = true
+        io.mockk.coEvery { dao.insert(any()) } coAnswers {
+            if (fail) { fail = false; throw IllegalStateException("disk full") } else callOriginal()
+        }
+        watcher(spy)
+        emit(30)
+        until("baseline") { repo.detectorState() != null }
+        emit(80)
+        runBlocking { delay(200) }
+        assertNull(runBlocking { db.refuelDao().openDraft() })
+        emit(81)
+        until("draft after retry") { db.refuelDao().openDraft() != null }
+        assertEquals(1, runBlocking { db.refuelDao().getAllAsc().size })
+    }
+
+    @Test fun unrelatedOpenDraftIsNotAdopted() {
+        seedDraft(odo = 5000.0)
+        runBlocking { repo.setDetectorState(state().toJson()) }
+        watcher()
+        emit(88)
+        until("second draft") { runBlocking { db.refuelDao().getAllAsc().size } == 2 }
     }
 }

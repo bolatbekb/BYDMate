@@ -59,7 +59,7 @@ class LedgerLiveWatcher(
         val (next, action) = RefuelDetector.step(
             old, d.fuelPercent, d.fuelTotalL, d.mileage, ts, repo.detectThresholdPp(),
         )
-        state = next
+        if (action is DetectorAction.None) state = next
         var acted = false
         when (action) {
             is DetectorAction.None -> {}
@@ -67,7 +67,10 @@ class LedgerLiveWatcher(
                 acted = true
                 val open = repo.refuels.openDraft()
                 val od = open?.odometerKm
-                if (open != null && od != null && abs(od - action.before.baselineOdo) < ADOPT_KM) {
+                if (open != null && od != null && open.status == "draft" && open.source == "detected" &&
+                    open.tankPercentBefore == action.before.baselinePercent &&
+                    abs(od - action.before.baselineOdo) < ADOPT_KM
+                ) {
                     // insert happened but the state never reached disk: adopt, don't duplicate
                     state = action.before.copy(draftId = open.id)
                     updateDraft(open.id, action.afterPercent, action.before.baselinePercent)
@@ -116,9 +119,9 @@ class LedgerLiveWatcher(
         val before = baselinePercent ?: draft.tankPercentBefore ?: after
         val newEst = estimate(before, after)
         val prevEst = draft.tankPercentAfter?.let { estimate(before, it) }
-        val ownLiters = draft.liters == 0.0 || (prevEst != null && draft.liters == prevEst)
-        val rows = if (newEst != null && ownLiters) {
-            repo.refuels.updateDraftPercentAndLiters(id, after, newEst)
+        val rows = if (newEst != null) {
+            val guarded = repo.refuels.updateDraftPercentAndLiters(id, after, newEst, prevEst ?: -1.0)
+            if (guarded > 0) guarded else repo.refuels.updateDraftPercent(id, after)
         } else {
             repo.refuels.updateDraftPercent(id, after)
         }
