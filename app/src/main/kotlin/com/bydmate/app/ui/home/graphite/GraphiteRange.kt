@@ -63,10 +63,10 @@ fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Do
                 )
             }
         }
-        Row(Modifier.padding(top = px(10))) {
+        Row(Modifier.padding(top = px(10)).height(px(148))) {
             Text(
                 total?.let { grInt(it) } ?: "—", maxLines = 1, softWrap = false,
-                style = grStyle(148f, 250, -6f, p.textPrimary),
+                style = grStyle(148f, 250, -6f, p.textPrimary).copy(lineHeight = fs(148f)),
                 modifier = Modifier.alignByBaseline(),
             )
             if (total != null) {
@@ -180,7 +180,7 @@ private fun RangeGauge(
             }
             Text(
                 percentText(percent, p), maxLines = 1, softWrap = false,
-                style = grStyle(58f, 300, -2f, p.textPrimary),
+                style = grStyle(58f, 300, -2f, p.textPrimary).copy(lineHeight = fs(58f)),
                 modifier = Modifier.padding(top = px(12)),
             )
             FitText(
