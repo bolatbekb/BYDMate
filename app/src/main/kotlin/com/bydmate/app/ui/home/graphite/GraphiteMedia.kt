@@ -1,5 +1,25 @@
 package com.bydmate.app.ui.home.graphite
 
+import android.os.SystemClock
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -7,6 +27,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,7 +35,6 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,27 +42,39 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.PointerInputScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import com.bydmate.app.R
@@ -51,6 +83,8 @@ import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.hybrid.px
 import java.util.Locale
 import kotlin.math.roundToInt
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 private val Side = 264f
 
@@ -64,9 +98,23 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
         val label = music.sourceLabel
         CardHeader(R.drawable.gr_ic_note, label ?: "Медиа")
         Spacer(Modifier.height(px(22)))
-        Row(Modifier.fillMaxWidth().height(px(Side)), horizontalArrangement = Arrangement.spacedBy(px(30))) {
-            Cover(music)
-            Meta(music, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)))
+        val slide = with(LocalDensity.current) { px(12).roundToPx() }
+        // A new track cross-fades the cover and the text, the new one rising 12 px; the same
+        // track (play / pause, position) updates in place.
+        AnimatedContent(
+            targetState = music,
+            contentKey = { it.trackKey() },
+            transitionSpec = {
+                (fadeIn(tween(TRACK_MS)) + slideInVertically(tween(TRACK_MS)) { slide }) togetherWith fadeOut(tween(TRACK_MS)) using
+                    SizeTransform(clip = false)
+            },
+            modifier = Modifier.fillMaxWidth().height(px(Side)).coverGlow(music.isPlaying && music.hasTrack),
+            label = "track",
+        ) { m ->
+            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(px(30))) {
+                Cover(m)
+                Meta(m, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)))
+            }
         }
         Spacer(Modifier.height(px(28)))
         Progress(music)
@@ -90,6 +138,50 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
         }
     }
 }
+
+private const val TRACK_MS = 400
+
+/** What makes a track a new one for the cross-fade. */
+private fun NowPlaying.trackKey(): Triple<String?, String?, String?> = Triple(title, artist, album)
+
+/**
+ * A soft glow behind the cover (its 24-radius square, blur 28) whose alpha breathes 0.10 ↔ 0.28
+ * every 4 s while [on]; off, it fades out in 400 ms and the infinite transition is gone.
+ * Electric, or ProgressEnd on Soft, where Electric is mint.
+ */
+@Composable
+private fun Modifier.coverGlow(on: Boolean): Modifier {
+    val p = LocalGr.current
+    val color = if (p == GrSoft) p.progressEnd else p.electric
+    val fade by animateFloatAsState(if (on) 1f else 0f, tween(GLOW_FADE_MS), label = "glowFade")
+    val breath: State<Float>? = if (on) {
+        rememberInfiniteTransition(label = "glow").animateFloat(
+            GLOW_MIN, GLOW_MAX,
+            infiniteRepeatable(tween(GLOW_HALF_MS, easing = FastOutSlowInEasing), RepeatMode.Reverse),
+            label = "breath",
+        )
+    } else null
+    val last = remember { floatArrayOf(GLOW_MIN) } // the breath to fade out from
+    return this.drawWithCache {
+        val u = px(1).toPx()
+        val side = px(Side).toPx()
+        val r = 24 * u
+        val paint = blurPaint(color, 28 * u)
+        onDrawBehind {
+            val b = breath?.value?.also { last[0] = it } ?: last[0]
+            val a = b * fade
+            if (a > 0.001f) {
+                paint.color = color.copy(alpha = a).toArgb()
+                drawIntoCanvas { it.nativeCanvas.drawRoundRect(0f, 0f, side, side, r, r, paint) }
+            }
+        }
+    }
+}
+
+private const val GLOW_MIN = 0.10f
+private const val GLOW_MAX = 0.28f
+private const val GLOW_HALF_MS = 2_000
+private const val GLOW_FADE_MS = 400
 
 @Composable
 private fun Cover(music: NowPlaying) {
@@ -119,11 +211,16 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
             FitText("Нет музыки", grStyle(50f, 500, -1f, p.textSecondary, tnum = false), 50f, 36f, Modifier)
             return@Column
         }
-        Text(
-            (if (music.isPlaying) "Сейчас играет" else "Пауза").uppercase(Locale.getDefault()),
-            maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-            style = grStyle(20f, 400, 2f, p.textTertiary, tnum = false),
-        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                (if (music.isPlaying) "Сейчас играет" else "Пауза").uppercase(Locale.getDefault()),
+                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
+                style = grStyle(20f, 400, 2f, p.textTertiary, tnum = false),
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            Spacer(Modifier.width(px(10)))
+            Equalizer(music.isPlaying, p.electric)
+        }
         Spacer(Modifier.height(px(12)))
         FitText(music.title.orEmpty(), grStyle(50f, 500, -1f, p.textPrimary, tnum = false), 50f, 36f, Modifier)
         if (!music.artist.isNullOrBlank()) {
@@ -138,14 +235,103 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
     }
 }
 
+/**
+ * Equalizer after «Сейчас играет»: 4 bars 4 × 14, 3 apart, radius 2. Playing, each follows its
+ * own curve ([eqLevel]) at ~12 fps through a float state read only while drawing; paused, they
+ * ease to 0.2 in 300 ms and the loop ends.
+ */
+@Composable
+private fun Equalizer(playing: Boolean, color: Color) {
+    val clock = remember { mutableFloatStateOf(0f) }
+    val live = remember { Animatable(if (playing) 1f else 0f) }
+    LaunchedEffect(playing) {
+        if (playing) {
+            launch { live.animateTo(1f, tween(EQ_EASE_MS)) }
+            val start = SystemClock.elapsedRealtime() - (clock.floatValue * 1000).toLong()
+            while (true) {
+                clock.floatValue = (SystemClock.elapsedRealtime() - start) / 1000f
+                delay(EQ_TICK_MS)
+            }
+        } else {
+            live.animateTo(0f, tween(EQ_EASE_MS))
+        }
+    }
+    Canvas(Modifier.size(px(4 * EQ_BAR + 3 * EQ_GAP), px(EQ_H))) {
+        val u = px(1).toPx()
+        val t = clock.floatValue
+        val k = live.value
+        val r = CornerRadius(2 * u)
+        for (i in 0 until 4) {
+            val f = EQ_REST + (eqLevel(i, t) - EQ_REST) * k
+            val h = size.height * f
+            drawRoundRect(color, Offset(i * (EQ_BAR + EQ_GAP) * u, size.height - h), Size(EQ_BAR * u, h), r)
+        }
+    }
+}
+
+private const val EQ_BAR = 4f
+private const val EQ_GAP = 3f
+private const val EQ_H = 14f
+private const val EQ_REST = 0.2f
+private const val EQ_TICK_MS = 83L
+private const val EQ_EASE_MS = 300
+
+/** The anchor of the shown position: the poll it runs from, on the elapsedRealtime clock. */
+private class PositionClock {
+    var polledMs = 0L
+    var atMs = 0L
+    var playing = false
+    var durationMs: Long? = null
+}
+
+/**
+ * The position to show: the last poll, run forward in real time every 250 ms while playing with a
+ * known duration. A poll re-anchors it when play state or track length changed, or when it is a
+ * seek ([isSeek]); a poll within the tolerance leaves the running clock alone (no jitter).
+ */
+@Composable
+private fun rememberShownPosition(music: NowPlaying): State<Long?> {
+    val clock = remember { PositionClock() }
+    val shown = remember { mutableStateOf(music.positionMs) }
+    val pos = music.positionMs
+    val dur = music.durationMs
+    val playing = music.isPlaying
+    LaunchedEffect(pos, playing, dur) {
+        if (pos == null) {
+            shown.value = null
+            return@LaunchedEffect
+        }
+        val now = SystemClock.elapsedRealtime()
+        val running = extrapolatePosition(clock.polledMs, clock.atMs, now, dur, playing)
+        if (!playing || clock.playing != playing || clock.durationMs != dur || shown.value == null || isSeek(pos, running)) {
+            clock.polledMs = pos
+            clock.atMs = now
+            clock.playing = playing
+            clock.durationMs = dur
+        }
+        shown.value = extrapolatePosition(clock.polledMs, clock.atMs, now, dur, playing)
+        if (!playing || dur == null) return@LaunchedEffect
+        while (true) {
+            delay(POSITION_TICK_MS)
+            shown.value = extrapolatePosition(clock.polledMs, clock.atMs, SystemClock.elapsedRealtime(), dur, true)
+        }
+    }
+    return shown
+}
+
+private const val POSITION_TICK_MS = 250L
+
 @Composable
 private fun Progress(music: NowPlaying) {
     val p = LocalGr.current
-    val eased by animatedValue(mediaFraction(music.positionMs, music.durationMs), "mediaProgress")
+    val shown = rememberShownPosition(music)
+    val dur = music.durationMs
+    // The label changes once a second; the bar reads the position only while drawing.
+    val elapsed by remember(shown) { derivedStateOf { grTrackTime(shown.value) } }
     Column(Modifier.fillMaxWidth()) {
         Box(
             Modifier.fillMaxWidth().height(px(20)).drawBehind {
-                val fraction = eased
+                val fraction = mediaFraction(shown.value, dur)
                 val h = px(6).toPx()
                 val top = (size.height - h) / 2
                 val r = CornerRadius(h / 2)
@@ -165,7 +351,7 @@ private fun Progress(music: NowPlaying) {
         Spacer(Modifier.height(px(12)))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             val st = grStyle(20f, 400, color = p.textTertiary)
-            Text(grTrackTime(music.positionMs), maxLines = 1, softWrap = false, style = st)
+            Text(elapsed, maxLines = 1, softWrap = false, style = st)
             Text(grTrackTime(music.durationMs), maxLines = 1, softWrap = false, style = st)
         }
     }
@@ -183,25 +369,59 @@ private fun Controls(music: NowPlaying, controls: MusicControls) {
         val repeat = music.repeatAction
         CtrlButton(R.drawable.gr_ic_shuffle, 34f, p.textTertiary, shuffle != null) { shuffle?.let(controls::custom) }
         CtrlButton(R.drawable.gr_ic_prev, 44f, p.textPrimary, true) { controls.previous() }
+        val playSource = remember { MutableInteractionSource() }
         Box(
-            Modifier.size(px(112)).clip(CircleShape)
+            Modifier.size(px(112)).pressScale(playSource, true).clip(CircleShape)
                 .background(Brush.verticalGradient(listOf(p.playTop, p.playBottom)))
-                .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) { controls.playPause() },
+                .clickable(interactionSource = playSource, indication = null) { controls.playPause() },
             contentAlignment = Alignment.Center,
         ) {
-            GrIcon(if (music.isPlaying) R.drawable.gr_ic_pause else R.drawable.gr_ic_play, 50f, p.bg)
+            // Play ⇄ pause: a 200 ms cross-fade, the icons turning and growing into place.
+            AnimatedContent(
+                targetState = music.isPlaying,
+                transitionSpec = {
+                    (fadeIn(tween(ICON_MS)) + scaleIn(tween(ICON_MS), initialScale = 0.8f)) togetherWith
+                        (fadeOut(tween(ICON_MS)) + scaleOut(tween(ICON_MS), targetScale = 0.8f))
+                },
+                label = "playPause",
+            ) { playing ->
+                val turn by transition.animateFloat({ tween(ICON_MS) }, label = "turn") { state ->
+                    when (state) {
+                        EnterExitState.PreEnter -> -45f
+                        EnterExitState.Visible -> 0f
+                        EnterExitState.PostExit -> 45f
+                    }
+                }
+                Box(Modifier.graphicsLayer { rotationZ = turn }) {
+                    GrIcon(if (playing) R.drawable.gr_ic_pause else R.drawable.gr_ic_play, 50f, p.bg)
+                }
+            }
         }
         CtrlButton(R.drawable.gr_ic_next, 44f, p.textPrimary, true) { controls.next() }
         CtrlButton(R.drawable.gr_ic_repeat, 34f, p.textTertiary, repeat != null) { repeat?.let(controls::custom) }
     }
 }
 
+private const val ICON_MS = 200
+
+/** Shrinks to 0.92 while [source] is pressed and springs back; nothing when not [enabled]. */
+@Composable
+private fun Modifier.pressScale(source: MutableInteractionSource, enabled: Boolean): Modifier {
+    val pressed by source.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (enabled && pressed) 0.92f else 1f, spring(dampingRatio = 0.5f), label = "press")
+    return this.graphicsLayer {
+        scaleX = scale
+        scaleY = scale
+    }
+}
+
 @Composable
 private fun CtrlButton(icon: Int, size: Float, tint: Color, enabled: Boolean, onClick: () -> Unit) {
+    val source = remember { MutableInteractionSource() }
     Box(
-        Modifier.size(px(88)).clip(CircleShape).alpha(if (enabled) 1f else 0.4f)
+        Modifier.size(px(88)).pressScale(source, enabled).clip(CircleShape).alpha(if (enabled) 1f else 0.4f)
             .then(
-                if (enabled) Modifier.clickable(interactionSource = remember { MutableInteractionSource() }, indication = null, onClick = onClick)
+                if (enabled) Modifier.clickable(interactionSource = source, indication = null, onClick = onClick)
                 else Modifier,
             ),
         contentAlignment = Alignment.Center,
