@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -98,7 +99,8 @@ private fun SourcePill(label: String) {
     val p = LocalGr.current
     Row(Modifier.height(px(34)), verticalAlignment = Alignment.CenterVertically) {
         Row(
-            Modifier.grPill(p.chip, p.chipEdge, p.edgeStyle, 18f)
+            Modifier.wrapContentHeight(Alignment.CenterVertically, unbounded = true)
+                .grPill(p.chip, p.chipEdge, p.edgeStyle, 18f)
                 .padding(start = px(12), end = px(16), top = px(8), bottom = px(8)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(px(10)),
@@ -267,24 +269,25 @@ fun TodayCard(todayKm: Double?, today: TodayStats?, modifier: Modifier) {
     val p = LocalGr.current
     val cells = todayCells(today, p.electric, p.textPrimary)
     CardBody(modifier) {
-        Row(Modifier.fillMaxWidth().weight(1f), verticalAlignment = Alignment.CenterVertically) {
-            Column(Modifier.weight(1f)) {
+        Row(Modifier.fillMaxWidth().weight(1f)) {
+            Column(Modifier.weight(1f).fillMaxHeight()) {
                 CardHeader(R.drawable.gr_ic_route, "Пробег сегодня")
-                Spacer(Modifier.height(px(16)))
-                Row(verticalAlignment = Alignment.Bottom) {
-                    FitText(
-                        todayKm?.let { grDec(it) } ?: "—",
-                        grStyle(96f, 250, -4f, p.textPrimary), 96f, 56f, Modifier.weight(1f, fill = false),
-                    )
-                    Text(
-                        "км", maxLines = 1, softWrap = false,
-                        style = grStyle(34f, 400, color = p.textSecondary, tnum = false),
-                        modifier = Modifier.padding(start = px(6), bottom = px(12)),
-                    )
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        FitText(
+                            todayKm?.let { grDec(it) } ?: "—",
+                            grStyle(96f, 250, -4f, p.textPrimary), 96f, 56f, Modifier.weight(1f, fill = false),
+                        )
+                        Text(
+                            "км", maxLines = 1, softWrap = false,
+                            style = grStyle(34f, 400, color = p.textSecondary, tnum = false),
+                            modifier = Modifier.padding(start = px(6), bottom = px(12)),
+                        )
+                    }
                 }
             }
             Spacer(Modifier.width(px(28)))
-            Column(Modifier.weight(1.25f), verticalArrangement = Arrangement.spacedBy(px(18))) {
+            Column(Modifier.weight(1.25f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(18), Alignment.CenterVertically)) {
                 for (row in cells.chunked(2)) {
                     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(px(26))) {
                         for (c in row) StatCell(c, Modifier.weight(1f))

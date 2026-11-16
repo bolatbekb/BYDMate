@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,7 +71,7 @@ private val TAB_LABELS = listOf(ChartPeriod.DAY to "День", ChartPeriod.WEEK 
 @Composable
 private fun PeriodTabs(period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit) {
     val p = LocalGr.current
-    InsetBox(22f) {
+    InsetBox(22f, Modifier.wrapContentHeight(Alignment.CenterVertically, unbounded = true)) {
         Row(Modifier.padding(px(5))) {
             for ((value, label) in TAB_LABELS) {
                 val on = value == period
@@ -168,7 +169,7 @@ private fun buildChart(
     val n = s.kwh.size
     val padL = 64f; val padR = 8f; val padB = 34f; val top = 8f
     val cw = W - padL - padR; val ch = H - padB - top
-    val base = top + ch * 0.62f
+    val base = if (s.litres == null) top + ch else top + ch * 0.62f
     val upH = base - top - 4f; val dnH = top + ch - base - 4f
     val maxK = (s.kwh.maxOrNull() ?: 0.0).let { if (it > 0) it * 1.12 else 1.0 }
     val litres = s.litres
