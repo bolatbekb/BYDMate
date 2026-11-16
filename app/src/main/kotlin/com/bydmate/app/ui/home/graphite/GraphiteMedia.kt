@@ -572,14 +572,17 @@ internal data class TodayCell(val value: String, val label: String, val color: C
  * The four «Пробег сегодня» cells, always all four so the card never looks empty before the
  * first trip: no data reads «0» for time and energy and «—» for share and speed.
  */
-internal fun todayCells(today: TodayStats?, hasFuelTank: Boolean, electric: Color, primary: Color): List<TodayCell> {
-    val kwh = grDec(today?.kwh ?: 0.0).let { if (today?.kwh == null) "0" else it }
-    val litres = grDec(today?.litres ?: 0.0).let { if (today?.litres == null) "0" else it }
+internal fun todayCells(
+    today: TodayStats?, hasFuelTank: Boolean, electric: Color, primary: Color, lang: GrLang = GrLang.RU,
+): List<TodayCell> {
+    val w = lang.words
+    val kwh = grDec(today?.kwh ?: 0.0, lang = lang).let { if (today?.kwh == null) "0" else it }
+    val litres = grDec(today?.litres ?: 0.0, lang = lang).let { if (today?.litres == null) "0" else it }
     return listOf(
-        TodayCell(grDuration(today?.minutes ?: 0), "в пути", primary),
-        TodayCell(today?.electricShare?.let { "$it%" } ?: "—", "электротяга", electric),
-        TodayCell(today?.avgKmh?.let { "$it км/ч" } ?: "—", "средняя скорость", primary),
-        if (hasFuelTank) TodayCell("$kwh · $litres", "кВт·ч · л", primary) else TodayCell(kwh, "кВт·ч", primary),
+        TodayCell(grDuration(today?.minutes ?: 0, lang), w.onTheRoad, primary),
+        TodayCell(today?.electricShare?.let { "$it%" } ?: "—", w.electricDrive, electric),
+        TodayCell(today?.avgKmh?.let { "$it ${w.kmh}" } ?: "—", w.avgSpeed, primary),
+        if (hasFuelTank) TodayCell("$kwh · $litres", "${w.kwh} · ${w.litre}", primary) else TodayCell(kwh, w.kwh, primary),
     )
 }
 

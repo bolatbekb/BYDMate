@@ -33,24 +33,25 @@ internal enum class TempKind(val min: Int, val max: Int) {
 internal fun tempFraction(kind: TempKind, c: Int): Float =
     ((c - kind.min).toFloat() / (kind.max - kind.min)).coerceIn(0f, 1f)
 
-internal fun outsideNote(c: Int?): String? = if (c != null && c <= 3) "Гололёд" else null
+internal fun outsideNote(c: Int?, lang: GrLang = GrLang.RU): String? = if (c != null && c <= 3) lang.words.ice else null
 
-internal fun cabinNote(acAuto: Boolean?, acOn: Boolean?, acTemp: Int?): String? {
+internal fun cabinNote(acAuto: Boolean?, acOn: Boolean?, acTemp: Int?, lang: GrLang = GrLang.RU): String? {
     if (acOn != true || acTemp == null) return null
-    val t = grDec(acTemp.toDouble()) + "°"
-    return if (acAuto == true) "Авто · $t" else "Климат · $t"
+    val t = grDec(acTemp.toDouble(), lang = lang) + "°"
+    return (if (acAuto == true) lang.words.acAuto else lang.words.climate) + " · $t"
 }
 
-internal fun powerChip(powerState: Int?): String? = when (powerState) {
-    2 -> "Включен · Ready"
-    1 -> "Включен"
-    0 -> "Выключен"
+/** «Ready» stays as the car shows it. */
+internal fun powerChip(powerState: Int?, lang: GrLang = GrLang.RU): String? = when (powerState) {
+    2 -> lang.words.powerOn + " · Ready"
+    1 -> lang.words.powerOn
+    0 -> lang.words.powerOff
     else -> null
 }
 
 /** The rpm itself is on the fuel dial, so the chip only says the engine runs. */
-internal fun engineChip(rpm: Int?): String? =
-    if (rpm != null && rpm > 0) "Двигатель заведён" else null
+internal fun engineChip(rpm: Int?, lang: GrLang = GrLang.RU): String? =
+    if (rpm != null && rpm > 0) lang.words.engineRunning else null
 
 internal fun modeChip(driveMode: String?, profile: String?): String? {
     val base = when (driveMode) {
@@ -78,38 +79,41 @@ internal fun litresFromPercent(percent: Int?, tankL: Double?): Int? =
 internal enum class Tone { ELECTRIC, FUEL, HEAT }
 
 /** PM2.5 grade 1..6 (the SDK's levels) to its word and colour; null outside the grades. */
-internal fun pm25Quality(level: Int?): Pair<String, Tone>? = when (level) {
-    1 -> "отлично" to Tone.ELECTRIC
-    2 -> "хорошо" to Tone.ELECTRIC
-    3 -> "средне" to Tone.FUEL
-    4, 5, 6 -> "плохо" to Tone.HEAT
-    else -> null
+internal fun pm25Quality(level: Int?, lang: GrLang = GrLang.RU): Pair<String, Tone>? {
+    val words = lang.words.pm25
+    return when (level) {
+        1 -> words[0] to Tone.ELECTRIC
+        2 -> words[1] to Tone.ELECTRIC
+        3 -> words[2] to Tone.FUEL
+        4, 5, 6 -> words[3] to Tone.HEAT
+        else -> null
+    }
 }
 
 internal data class Pm25Side(val label: String, val value: Int, val quality: String, val tone: Tone)
 
 /** The sides of the PM2.5 line, cabin first; a side needs a value and a grade. Null when none. */
-internal fun pm25Sides(pm: Pm25?): List<Pm25Side>? {
+internal fun pm25Sides(pm: Pm25?, lang: GrLang = GrLang.RU): List<Pm25Side>? {
     if (pm == null) return null
     val sides = listOfNotNull(
-        pm25Side("Салон", pm.inside, pm.levelIn),
-        pm25Side("Снаружи", pm.outside, pm.levelOut),
+        pm25Side(lang.words.cabin, pm.inside, pm.levelIn, lang),
+        pm25Side(lang.words.outside, pm.outside, pm.levelOut, lang),
     )
     return sides.ifEmpty { null }
 }
 
-private fun pm25Side(label: String, value: Int?, level: Int?): Pm25Side? {
-    val (word, tone) = pm25Quality(level) ?: return null
+private fun pm25Side(label: String, value: Int?, level: Int?, lang: GrLang): Pm25Side? {
+    val (word, tone) = pm25Quality(level, lang) ?: return null
     return Pm25Side(label, value ?: return null, word, tone)
 }
 
 internal fun sohText(soh: Float): String = "${soh.roundToInt()} %"
 
-internal fun voltageText(volts: Double): String = grDec(volts)
+internal fun voltageText(volts: Double, lang: GrLang = GrLang.RU): String = grDec(volts, lang = lang)
 
 /** kΩ as «3 500 кОм»; from 10 000 kΩ on, «12,5 МОм». */
-internal fun insulationText(kohm: Int): String =
-    if (kohm >= 10_000) grDec(kohm / 1000.0) + " МОм" else grInt(kohm) + " кОм"
+internal fun insulationText(kohm: Int, lang: GrLang = GrLang.RU): String =
+    if (kohm >= 10_000) grDec(kohm / 1000.0, lang = lang) + " " + lang.words.mohm else grInt(kohm, lang) + " " + lang.words.kohm
 
 /** Longer than the slowest poll (60 s backoff), so a parked car between reads stays online. */
 internal const val LIVE_FRESH_MS = 90_000L

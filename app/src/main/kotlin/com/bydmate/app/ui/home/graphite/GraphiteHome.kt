@@ -267,14 +267,17 @@ private fun rememberReadyLamp(powerState: Int?): ReadyShown {
 
 /* ---------------------------------------------------------------- bottom menu */
 
-/** Icon and label of a menu key by route; an unknown route keeps its own label with sliders. */
-internal fun menuItem(route: String, label: String): Pair<Int, String> = when (route) {
-    "tech_panel" -> R.drawable.gr_ic_car to "Машина"
-    "trips" -> R.drawable.gr_ic_route to "Поездки"
-    "charges" -> R.drawable.gr_ic_plug to "Зарядки"
-    "automation" -> R.drawable.gr_ic_flow to "Автоматизации"
-    "settings" -> R.drawable.gr_ic_sliders to "Настройки"
-    else -> R.drawable.gr_ic_sliders to label
+/** Icon and label of a menu key by route, in [lang]; an unknown route keeps its own label with sliders. */
+internal fun menuItem(route: String, label: String, lang: GrLang = GrLang.RU): Pair<Int, String> {
+    val w = lang.words
+    return when (route) {
+        "tech_panel" -> R.drawable.gr_ic_car to w.menuCar
+        "trips" -> R.drawable.gr_ic_route to w.menuTrips
+        "charges" -> R.drawable.gr_ic_plug to w.menuCharges
+        "automation" -> R.drawable.gr_ic_flow to w.menuAutomation
+        "settings" -> R.drawable.gr_ic_sliders to w.menuSettings
+        else -> R.drawable.gr_ic_sliders to label
+    }
 }
 
 /**

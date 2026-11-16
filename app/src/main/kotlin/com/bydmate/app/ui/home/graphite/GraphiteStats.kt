@@ -40,9 +40,8 @@ private fun electricShare(trips: List<TripEntity>): Int? {
 }
 
 object EnergyBuckets {
-    private val WEEKDAYS = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
-
-    fun build(trips: List<TripEntity>, period: ChartPeriod, now: ZonedDateTime): EnergySeries {
+    /** [lang] names the week's days; the other periods label with numbers. */
+    fun build(trips: List<TripEntity>, period: ChartPeriod, now: ZonedDateTime, lang: GrLang = GrLang.RU): EnergySeries {
         val zone = now.zone
         val startDate = ChartBuckets.windowStart(period, now).toLocalDate()
         val n = when (period) {
@@ -77,7 +76,7 @@ object EnergyBuckets {
         val labels = List(n) { i ->
             when (period) {
                 ChartPeriod.DAY -> "%02d".format(i * 2)
-                ChartPeriod.WEEK -> WEEKDAYS[startDate.plusDays(i.toLong()).dayOfWeek.value - 1]
+                ChartPeriod.WEEK -> lang.words.weekdays[startDate.plusDays(i.toLong()).dayOfWeek.value - 1]
                 ChartPeriod.MONTH -> startDate.plusDays(i.toLong()).dayOfMonth.toString()
             }
         }

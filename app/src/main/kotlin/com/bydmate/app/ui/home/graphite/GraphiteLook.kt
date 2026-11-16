@@ -28,14 +28,20 @@ enum class GrScheme(val id: String, val title: String, val palette: GrPalette) {
     }
 }
 
-/** The surface of every card: a texture over the fill (glass: a glare over the content). */
-enum class GrMaterial(val id: String, val title: String) {
-    NONE("none", "Без материала"),
-    GLASS("glass", "Стекло"),
-    METAL("metal", "Металл"),
-    SAND_FINE("sand_fine", "Песок мелкий"),
-    CONCRETE("concrete", "Бетон"),
+/** The surface of every card: a texture over the fill (glass: a glare over the content). [id] is stored. */
+enum class GrMaterial(val id: String) {
+    NONE("none"),
+    GLASS("glass"),
+    METAL("metal"),
+    SAND_FINE("sand_fine"),
+    CONCRETE("concrete"),
     ;
+
+    /** The name shown in Settings, in [lang]. */
+    fun title(lang: GrLang): String = lang.words.materials[ordinal]
+
+    /** The Russian name. */
+    val title: String get() = title(GrLang.RU)
 
     companion object {
         /** The removed coarse sand reads as fine sand. */
@@ -44,12 +50,18 @@ enum class GrMaterial(val id: String, val title: String) {
     }
 }
 
-/** How the cards are shaped by light. */
-enum class GrRelief(val id: String, val title: String) {
-    FLAT("flat", "Плоский"),
-    CONVEX("convex", "Выпуклый"),
-    CONCAVE("concave", "Вогнутый"),
+/** How the cards are shaped by light. [id] is stored. */
+enum class GrRelief(val id: String) {
+    FLAT("flat"),
+    CONVEX("convex"),
+    CONCAVE("concave"),
     ;
+
+    /** The name shown in Settings, in [lang]. */
+    fun title(lang: GrLang): String = lang.words.reliefs[ordinal]
+
+    /** The Russian name. */
+    val title: String get() = title(GrLang.RU)
 
     companion object {
         fun fromId(id: String?): GrRelief = entries.firstOrNull { it.id == id } ?: FLAT
