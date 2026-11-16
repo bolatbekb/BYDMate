@@ -59,6 +59,7 @@ object LedgerBackup {
      * then the file is read inside a write transaction (no writer can commit meanwhile) and only
      * if the WAL stayed empty. Three attempts, then [IllegalStateException]: the export fails whole.
      */
+    @Suppress("TooGenericExceptionCaught") // why: a failed checkpoint only means "try again"; any failure is logged and retried, as before
     fun snapshot(parts: Set<BackupPart>, strings: AppStrings): Snapshot? {
         if (BackupPart.TABLES !in parts) return null
         val db = provider?.invoke() ?: return null
@@ -71,6 +72,9 @@ object LedgerBackup {
             val checkpointed = try {
                 support.query("PRAGMA wal_checkpoint(TRUNCATE)").use { c -> c.moveToFirst() && c.getInt(0) == 0 }
             } catch (e: SQLiteException) {
+                Log.w(TAG, "wal_checkpoint failed: ${e.message}")
+                false
+            } catch (e: Exception) {
                 Log.w(TAG, "wal_checkpoint failed: ${e.message}")
                 false
             }

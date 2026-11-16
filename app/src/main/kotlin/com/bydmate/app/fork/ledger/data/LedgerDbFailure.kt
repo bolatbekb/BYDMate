@@ -4,11 +4,12 @@ import android.database.sqlite.SQLiteException
 import kotlinx.coroutines.CancellationException
 
 /**
- * [block], or null when a database fails under it: an SQLite error (disk full, a constraint, a
- * damaged file) or a closed database (a restore swapped the file); [onFailure] gets the error.
- * Cancellation and any other exception pass through.
+ * [block], or null when it fails: typically the database under it (an SQLite error such as disk
+ * full, a constraint or a damaged file, or a closed database after a restore swapped the file),
+ * but any other exception too; [onFailure] gets the error. Only cancellation passes through.
  */
-internal inline fun <T> unlessDbFails(onFailure: (RuntimeException) -> Unit, block: () -> T): T? =
+@Suppress("TooGenericExceptionCaught") // why: the ledger must never crash the UI; unknown failures are logged like before
+internal inline fun <T> unlessDbFails(onFailure: (Exception) -> Unit, block: () -> T): T? =
     try {
         block()
     } catch (ce: CancellationException) {
@@ -17,6 +18,9 @@ internal inline fun <T> unlessDbFails(onFailure: (RuntimeException) -> Unit, blo
         onFailure(e)
         null
     } catch (e: IllegalStateException) {
+        onFailure(e)
+        null
+    } catch (e: Exception) {
         onFailure(e)
         null
     }

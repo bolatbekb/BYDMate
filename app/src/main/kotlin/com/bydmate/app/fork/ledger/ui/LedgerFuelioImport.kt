@@ -60,6 +60,7 @@ internal class LedgerFuelioImport(
         return scope.launch { runPreview(file) }.also { previewJob = it }
     }
 
+    @Suppress("TooGenericExceptionCaught") // why: the ledger must never crash the UI; an unknown failure reads as a read error, as before
     private suspend fun runPreview(file: File) {
         pending = null
         try {
@@ -84,10 +85,13 @@ internal class LedgerFuelioImport(
             failed("fuelio preview", ex, R.string.ledger_import_err_read)
         } catch (ex: IllegalStateException) {
             failed("fuelio preview", ex, R.string.ledger_import_err_read)
+        } catch (ex: Exception) {
+            failed("fuelio preview", ex, R.string.ledger_import_err_read)
         }
     }
 
     /** Writes the previewed file; a write, so refused while driving. */
+    @Suppress("TooGenericExceptionCaught") // why: the ledger must never crash the UI; an unknown failure keeps the file and reads as a read error, as before
     fun commit(): Job = write {
         // take the file first: a second tap while this commit runs finds nothing and does nothing
         val file = pending ?: return@write
@@ -101,6 +105,9 @@ internal class LedgerFuelioImport(
             pending = file
             failed("fuelio import", ex, R.string.ledger_import_err_read)
         } catch (ex: IllegalStateException) {
+            pending = file
+            failed("fuelio import", ex, R.string.ledger_import_err_read)
+        } catch (ex: Exception) {
             pending = file
             failed("fuelio import", ex, R.string.ledger_import_err_read)
         }
