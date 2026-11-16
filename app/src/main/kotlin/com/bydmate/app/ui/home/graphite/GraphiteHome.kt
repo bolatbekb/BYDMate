@@ -145,16 +145,15 @@ private fun TopBar(data: HomeData, online: Boolean, modifier: Modifier) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(px(14))) {
         // No clock: the car's own status bar shows the time.
         Text(grDate(today), maxLines = 1, softWrap = false, style = grStyle(23f, 400, color = p.textSecondary), modifier = Modifier.padding(end = px(20)))
-        PowerChip(data.powerState)
         engineChip(data.engineRpm)?.let { text ->
-            val (main, note) = splitNote(text)
-            Chip(main, note = note, lead = { GrIcon(R.drawable.gr_ic_engine, 26f, p.fuel) })
+            Chip(text, lead = { GrIcon(R.drawable.gr_ic_engine, 26f, p.fuel) })
         }
         modeChip(data.driveMode, data.driveProfile)?.let { text ->
             Chip(text, lead = { GrIcon(R.drawable.gr_ic_leaf, 24f, p.electric) })
         }
         Spacer(Modifier.weight(1f))
-        LinkStatus(online)
+        // The car's power state is the link cue too: no link, no state to trust.
+        if (online) PowerChip(data.powerState) else OfflineChip()
     }
 }
 
@@ -198,18 +197,11 @@ private fun StatusDot(color: Color, glow: Boolean) {
     )
 }
 
-/** «Онлайн» with a glowing Electric dot while the car answers, «Нет связи» with a dim one otherwise. */
+/** In place of the power chip while the car does not answer: a dim dot and «Нет связи». */
 @Composable
-private fun LinkStatus(online: Boolean) {
+private fun OfflineChip() {
     val p = LocalGr.current
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        StatusDot(if (online) p.electric else p.textTertiary, glow = online)
-        Spacer(Modifier.width(px(12)))
-        Text(
-            if (online) "Онлайн" else "Нет связи", maxLines = 1, softWrap = false,
-            style = grStyle(22f, 500, color = if (online) p.textPrimary else p.textSecondary, tnum = false),
-        )
-    }
+    Chip("Нет связи", lead = { StatusDot(p.textTertiary, glow = false) })
 }
 
 /**

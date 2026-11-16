@@ -48,8 +48,9 @@ internal fun powerChip(powerState: Int?): String? = when (powerState) {
     else -> null
 }
 
+/** The rpm itself is on the fuel dial, so the chip only says the engine runs. */
 internal fun engineChip(rpm: Int?): String? =
-    if (rpm != null && rpm > 0) "Двигатель заведён · ${grInt(rpm)} об/мин" else null
+    if (rpm != null && rpm > 0) "Двигатель заведён" else null
 
 internal fun modeChip(driveMode: String?, profile: String?): String? {
     val base = when (driveMode) {
@@ -57,14 +58,8 @@ internal fun modeChip(driveMode: String?, profile: String?): String? {
         "HEV" -> "HEV"
         else -> return null
     }
-    val p = when (profile) {
-        null -> return base
-        "ECO" -> "Эко"
-        "NORMAL" -> "Норма"
-        "SPORT" -> "Спорт"
-        else -> profile.lowercase().replaceFirstChar { it.uppercase() }
-    }
-    return "$base · $p"
+    // Profiles read as the car names them: ECO, NORMAL, SPORT, SNOW…
+    return if (profile == null) base else "$base · $profile"
 }
 
 internal object ChargeEta {

@@ -91,12 +91,15 @@ fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: D
         RangeBar(total, data.evRangeKm, Modifier.padding(top = px(g.bar)))
         if (total != null) RangeScaleRow(rangeScale(total).ticks, total, Modifier.padding(top = px(g.scale)))
         Box(Modifier.padding(top = px(g.divider)).fillMaxWidth().height(px(1)).background(p.divider))
+        // A car with a tank keeps room for the rpm line under both gauges.
+        val rpmSlot = data.fuelPercent != null
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = px(g.gauges))) {
             RangeGauge(
                 Modifier.weight(1f), R.drawable.gr_ic_battery, R.drawable.gr_ic_bolt, "Батарея", data.socPercent,
                 p.electric,
                 kmLine(data.evRangeKm, null),
                 shimmer = data.chargingStatus == 2,
+                rpmSlot = rpmSlot,
             )
             Box(Modifier.width(px(26)))
             Box(Modifier.width(px(1)).fillMaxHeight().background(p.divider))
@@ -106,6 +109,7 @@ fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: D
                 p.fuel,
                 kmLine(data.fuelRangeKm, litresFromPercent(data.fuelPercent, tankL)?.let { "($it л)" }),
                 rpm = data.engineRpm,
+                rpmSlot = rpmSlot,
             )
         }
         RangeFooter(data, sohPercent, capacityKwh, g.footerPad, Modifier.padding(top = px(g.footer)))
@@ -187,6 +191,7 @@ private fun RangeGauge(
     line: Pair<String, String?>,
     shimmer: Boolean = false,
     rpm: Int? = null,
+    rpmSlot: Boolean = false,
 ) {
     val p = LocalGr.current
     val engineOn = rpm != null && rpm > 0
@@ -215,15 +220,19 @@ private fun RangeGauge(
                 grStyle(22f, 400, color = p.textSecondary, tnum = false), 22f, 18f,
                 Modifier.padding(top = px(10)),
             )
-            if (engineOn) {
-                FitText(
-                    buildAnnotatedString {
-                        append("ДВС ")
-                        withStyle(SpanStyle(fontWeight = FontWeight(500))) { append("${grInt(rpm!!)} об/мин") }
-                    },
-                    grStyle(19f, 400, color = p.fuel, tnum = false), 19f, 15f,
-                    Modifier.padding(top = px(6)),
-                )
+            // The rpm line has a fixed slot (in both gauges), so the engine starting moves nothing.
+            if (rpmSlot || engineOn) {
+                Box(Modifier.padding(top = px(6)).height(px(RPM_LINE_H)).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                    if (engineOn) {
+                        FitText(
+                            buildAnnotatedString {
+                                append("ДВС ")
+                                withStyle(SpanStyle(fontWeight = FontWeight(500))) { append("${grInt(rpm!!)} об/мин") }
+                            },
+                            grStyle(19f, 400, color = p.fuel, tnum = false), 19f, 15f, Modifier,
+                        )
+                    }
+                }
             }
         }
     }
@@ -320,6 +329,7 @@ private fun GaugeDial(percent: Int?, accent: Color, centerIcon: Int, shimmer: Bo
 }
 
 private const val SHIMMER_MS = 2_400
+private const val RPM_LINE_H = 19f * 1.2f
 
 @Composable
 private fun RangeFooter(data: HomeData, sohPercent: Float?, capacityKwh: Double?, padV: Int, modifier: Modifier) {
