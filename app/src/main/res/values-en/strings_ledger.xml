@@ -94,4 +94,19 @@
     <string name="ledger_cat_other">Other</string>
     <string name="ledger_sensor_liters">≈ %1$s L by sensor</string>
     <string name="ledger_error_mismatch">Liters × price does not match the total.</string>
+    <string name="ledger_import_title">Import from Fuelio</string>
+    <string name="ledger_import_desc">CSV file from the Downloads folder: refuels and expenses. Importing again never duplicates anything.</string>
+    <string name="ledger_import_choose">Choose file</string>
+    <string name="ledger_import_pick">Choose a CSV file from Downloads</string>
+    <string name="ledger_import_none">No CSV files in the Downloads folder.</string>
+    <string name="ledger_import_counts">%1$d refuels, %2$d expenses, %3$d already present</string>
+    <string name="ledger_import_newcats">New categories: %1$s</string>
+    <string name="ledger_import_skipped">%1$d rows skipped: could not be read</string>
+    <string name="ledger_import_run">Import</string>
+    <string name="ledger_import_parked">Import is available only while parked.</string>
+    <string name="ledger_import_done">Added: %1$d refuels, %2$d expenses</string>
+    <string name="ledger_import_close">Close</string>
+    <string name="ledger_import_err_format">This is not a Fuelio file.</string>
+    <string name="ledger_import_err_too_big">The file is larger than 5 MB.</string>
+    <string name="ledger_import_err_read">Could not read the file.</string>
 </resources>

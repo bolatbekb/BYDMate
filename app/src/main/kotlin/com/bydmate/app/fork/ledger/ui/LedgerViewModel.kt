@@ -1,5 +1,7 @@
 package com.bydmate.app.fork.ledger.ui
 
+import android.content.Context
+import android.os.Environment
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,8 +22,18 @@ import com.bydmate.app.fork.ledger.domain.Prefill
 import com.bydmate.app.fork.ledger.domain.PrefillSource
 import com.bydmate.app.fork.ledger.domain.RefuelSegment
 import com.bydmate.app.fork.ledger.domain.RefuelSegments
+import com.bydmate.app.R
+import com.bydmate.app.fork.ledger.fuelio.FuelioCsv
+import com.bydmate.app.fork.ledger.fuelio.FuelioFile
+import com.bydmate.app.fork.ledger.fuelio.FuelioFormatException
+import com.bydmate.app.fork.ledger.fuelio.FuelioImporter
+import com.bydmate.app.fork.ledger.fuelio.FuelioPreview
+import com.bydmate.app.fork.ledger.fuelio.FuelioResult
+import com.bydmate.app.util.appLocalizedContext
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -33,6 +45,8 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import java.time.Instant
 import java.time.YearMonth
 import java.time.ZoneId
@@ -61,6 +75,13 @@ data class LedgerUiState(
     val mismatchThresholdPct: Double = LedgerRepository.DEFAULT_MISMATCH_THRESHOLD_PCT,
 )
 
+sealed interface FuelioImportState {
+    data object Idle : FuelioImportState
+    data class Preview(val preview: FuelioPreview) : FuelioImportState
+    data class Done(val result: FuelioResult) : FuelioImportState
+    data class Error(val message: String) : FuelioImportState
+}
+
 /** Settings › Expenses. Every write is ignored while the car is moving. */
 @HiltViewModel
 class LedgerViewModel @Inject constructor(
@@ -70,10 +91,16 @@ class LedgerViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val prefill: LedgerPrefill,
     @Named("ledgerCarData") private val carData: @JvmSuppressWildcards StateFlow<DiParsData?>,
+    @ApplicationContext private val appContext: Context,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(LedgerUiState(parked = LedgerParking.isParked(carData.value)))
     val state: StateFlow<LedgerUiState> = _state.asStateFlow()
+
+    private val importer = FuelioImporter(repo)
+    private val _importState = MutableStateFlow<FuelioImportState>(FuelioImportState.Idle)
+    val importState: StateFlow<FuelioImportState> = _importState.asStateFlow()
+    private var pendingFuelio: FuelioFile? = null
 
     /** Bumped after a ledger setting changes so the state re-reads it. */
     private val settingsVersion = MutableStateFlow(0)
@@ -158,6 +185,61 @@ class LedgerViewModel @Inject constructor(
         Prefill(null, null, PrefillSource.NONE)
     }
 
+    /** `*.csv` in [dir] (File API, SAF fails on some firmwares), newest first. */
+    fun listCsvFiles(
+        dir: File = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+    ): List<File> =
+        (dir.listFiles() ?: emptyArray())
+            .filter { it.isFile && it.name.endsWith(".csv", ignoreCase = true) }
+            .sortedByDescending { it.lastModified() }
+
+    /** Reads and parses [file] off the main thread; nothing is written until [applyFuelio]. */
+    fun previewFuelio(file: File): Job = viewModelScope.launch {
+        pendingFuelio = null
+        try {
+            val parsed = withContext(Dispatchers.IO) {
+                if (file.length() > MAX_IMPORT_BYTES) throw FuelioTooBig()
+                FuelioCsv.parse(file.readText())
+            }
+            val preview = importer.preview(parsed)
+            pendingFuelio = parsed
+            _importState.value = FuelioImportState.Preview(preview)
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (ex: Exception) {
+            Log.w(TAG, "fuelio preview failed: ${ex.message}", ex)
+            val res = when (ex) {
+                is FuelioTooBig -> R.string.ledger_import_err_too_big
+                is FuelioFormatException -> R.string.ledger_import_err_format
+                else -> R.string.ledger_import_err_read
+            }
+            _importState.value = FuelioImportState.Error(appContext.appLocalizedContext().getString(res))
+        }
+    }
+
+    /** Writes the previewed file; a write, so refused while driving. */
+    fun applyFuelio(): Job = write {
+        val file = pendingFuelio ?: return@write
+        try {
+            _importState.value = FuelioImportState.Done(importer.apply(file))
+            pendingFuelio = null
+        } catch (ce: CancellationException) {
+            throw ce
+        } catch (ex: Exception) {
+            Log.w(TAG, "fuelio import failed: ${ex.message}", ex)
+            _importState.value = FuelioImportState.Error(
+                appContext.appLocalizedContext().getString(R.string.ledger_import_err_read)
+            )
+        }
+    }
+
+    fun resetImport() {
+        pendingFuelio = null
+        _importState.value = FuelioImportState.Idle
+    }
+
+    private class FuelioTooBig : Exception()
+
     private fun write(block: suspend () -> Unit): Job = viewModelScope.launch {
         if (!LedgerParking.isParked(carData.value)) return@launch
         try {
@@ -238,6 +320,7 @@ class LedgerViewModel @Inject constructor(
     private fun Long.toYearMonth(): YearMonth = YearMonth.from(Instant.ofEpochMilli(this).atZone(ZoneId.systemDefault()))
 
     private companion object {
+        const val MAX_IMPORT_BYTES = 5L * 1024 * 1024
         const val TAG = "LedgerViewModel"
         /** Guards against a bogus (epoch-zero) date turning the summary into hundreds of months. */
         const val MAX_YEARS = 30L

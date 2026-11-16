@@ -78,7 +78,7 @@ class LedgerViewModelTest {
 
     private val vms = mutableListOf<LedgerViewModel>()
 
-    private fun vm() = LedgerViewModel(repo, chargeDao, tripDao, settings, LedgerPrefill(snaps), carData).also { vms += it }
+    private fun vm() = LedgerViewModel(repo, chargeDao, tripDao, settings, LedgerPrefill(snaps), carData, ApplicationProvider.getApplicationContext()).also { vms += it }
 
     private fun refuel(
         date: Long, odo: Double?, liters: Double, cost: Double? = null, full: Boolean = true,

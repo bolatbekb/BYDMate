@@ -94,4 +94,19 @@
     <string name="ledger_cat_other">Inne</string>
     <string name="ledger_sensor_liters">≈ %1$s l wg czujnika</string>
     <string name="ledger_error_mismatch">Litry × cena nie zgadzają się z kwotą.</string>
+    <string name="ledger_import_title">Import z Fuelio</string>
+    <string name="ledger_import_desc">Plik CSV z folderu Pobrane: tankowania i wydatki. Ponowny import niczego nie dubluje.</string>
+    <string name="ledger_import_choose">Wybierz plik</string>
+    <string name="ledger_import_pick">Wybierz plik CSV z folderu Pobrane</string>
+    <string name="ledger_import_none">Brak plików CSV w folderze Pobrane.</string>
+    <string name="ledger_import_counts">%1$d tankowań, %2$d wydatków, %3$d już istnieje</string>
+    <string name="ledger_import_newcats">Nowe kategorie: %1$s</string>
+    <string name="ledger_import_skipped">Pominięto wierszy: %1$d — nie udało się odczytać</string>
+    <string name="ledger_import_run">Importuj</string>
+    <string name="ledger_import_parked">Import jest dostępny tylko na postoju.</string>
+    <string name="ledger_import_done">Dodano: %1$d tankowań, %2$d wydatków</string>
+    <string name="ledger_import_close">Zamknij</string>
+    <string name="ledger_import_err_format">To nie jest plik Fuelio.</string>
+    <string name="ledger_import_err_too_big">Plik jest większy niż 5 MB.</string>
+    <string name="ledger_import_err_read">Nie udało się odczytać pliku.</string>
 </resources>

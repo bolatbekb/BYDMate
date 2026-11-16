@@ -10,6 +10,8 @@ data class FuelioFile(
     val refuels: List<FuelioRefuel>,
     val categories: Map<Int, String>,
     val costs: List<FuelioCost>,
+    /** Log / cost rows dropped because their date or amount could not be read. */
+    val skippedRows: Int = 0,
 )
 
 data class FuelioRefuel(
@@ -54,9 +56,10 @@ object FuelioCsv {
             val name = r["name"]?.clean()
             if (id != null && !name.isNullOrEmpty()) categories[id] = name
         }
-        val refuels = sections["log"]?.let(::parseLog).orEmpty()
-        val costs = sections["costs"]?.let(::parseCosts).orEmpty()
-        return FuelioFile(vehicle, refuels, categories, costs)
+        var skipped = 0
+        val refuels = sections["log"]?.let { parseLog(it) { skipped++ } }.orEmpty()
+        val costs = sections["costs"]?.let { parseCosts(it) { skipped++ } }.orEmpty()
+        return FuelioFile(vehicle, refuels, categories, costs, skipped)
     }
 
     // ---- sections ----
@@ -101,7 +104,7 @@ object FuelioCsv {
 
     // ---- Log ----
 
-    private fun parseLog(s: Section): List<FuelioRefuel> {
+    private fun parseLog(s: Section, onSkip: () -> Unit): List<FuelioRefuel> {
         val keys = s.header
         val odoMiles = keys.any { it.trim().lowercase().startsWith("odo") && it.lowercase().contains("(mi") }
         val fuelHeader = keys.firstOrNull { normalize(it) == "fuel" }?.lowercase().orEmpty()
@@ -112,8 +115,8 @@ object FuelioCsv {
         }
         val odoFactor = if (odoMiles) MILE_KM else 1.0
         return s.rows().mapNotNull { r ->
-            val date = parseDate(r["date"] ?: r["data"]) ?: return@mapNotNull null
-            val liters = r["fuel"]?.num() ?: return@mapNotNull null
+            val date = parseDate(r["date"] ?: r["data"]) ?: run { onSkip(); return@mapNotNull null }
+            val liters = r["fuel"]?.num() ?: run { onSkip(); return@mapNotNull null }
             val ppl = r["volumeprice"]?.num()
             FuelioRefuel(
                 date = date,
@@ -134,13 +137,13 @@ object FuelioCsv {
 
     // ---- Costs ----
 
-    private fun parseCosts(s: Section): List<FuelioCost> {
+    private fun parseCosts(s: Section, onSkip: () -> Unit): List<FuelioCost> {
         val odoMiles = s.header.any { it.trim().lowercase().startsWith("odo") && it.lowercase().contains("(mi") }
         val odoFactor = if (odoMiles) MILE_KM else 1.0
         return s.rows().mapNotNull { r ->
             if (r["istemplate"].isTrue() || r["isincome"].isTrue()) return@mapNotNull null
-            val date = parseDate(r["date"] ?: r["data"]) ?: return@mapNotNull null
-            val amount = r["cost"]?.num() ?: return@mapNotNull null
+            val date = parseDate(r["date"] ?: r["data"]) ?: run { onSkip(); return@mapNotNull null }
+            val amount = r["cost"]?.num() ?: run { onSkip(); return@mapNotNull null }
             FuelioCost(
                 title = r["costtitle"]?.clean()?.blankToNull(),
                 date = date,

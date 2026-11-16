@@ -86,4 +86,26 @@ class FuelioCsvTest {
     fun rejectsNonFuelioText() {
         FuelioCsv.parse("hello,world\n1,2\n")
     }
+
+    @Test fun countsRowsWithUnreadableDateOrAmount() {
+        val text = """
+            "## Log"
+            "Date","Odo (km)","Fuel (l)","Full","Price"
+            "2025-01-10","100","30.0","1","60.0"
+            "garbage","200","30.0","1","60.0"
+            "2025-01-11","300","abc","1","60.0"
+            "## Costs"
+            "CostTitle","Date","Cost","CostTypeID","isTemplate","isIncome"
+            "ok","2025-02-20","10","1","0","0"
+            "bad","2025-02-21","x","1","0","0"
+            "tpl","nodate","5","1","1","0"
+        """.trimIndent()
+        val f = FuelioCsv.parse(text)
+        assertEquals(1, f.refuels.size)
+        assertEquals(1, f.costs.size)
+        assertEquals(3, f.skippedRows)
+        assertEquals(0, sampleSkipped())
+    }
+
+    private fun sampleSkipped() = FuelioCsv.parse(sample).skippedRows
 }

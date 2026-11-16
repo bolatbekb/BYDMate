@@ -94,4 +94,19 @@
     <string name="ledger_cat_other">其他</string>
     <string name="ledger_sensor_liters">传感器估算 ≈ %1$s 升</string>
     <string name="ledger_error_mismatch">升数 × 油价与金额不符。</string>
+    <string name="ledger_import_title">从 Fuelio 导入</string>
+    <string name="ledger_import_desc">来自“下载”文件夹的 CSV 文件：加油和支出。重复导入不会产生重复记录。</string>
+    <string name="ledger_import_choose">选择文件</string>
+    <string name="ledger_import_pick">从“下载”中选择 CSV 文件</string>
+    <string name="ledger_import_none">“下载”文件夹中没有 CSV 文件。</string>
+    <string name="ledger_import_counts">%1$d 条加油、%2$d 条支出、%3$d 条已存在</string>
+    <string name="ledger_import_newcats">新分类：%1$s</string>
+    <string name="ledger_import_skipped">已跳过 %1$d 行：无法读取</string>
+    <string name="ledger_import_run">导入</string>
+    <string name="ledger_import_parked">仅在停车时可导入。</string>
+    <string name="ledger_import_done">已添加：%1$d 条加油、%2$d 条支出</string>
+    <string name="ledger_import_close">关闭</string>
+    <string name="ledger_import_err_format">这不是 Fuelio 文件。</string>
+    <string name="ledger_import_err_too_big">文件大于 5 MB。</string>
+    <string name="ledger_import_err_read">无法读取文件。</string>
 </resources>

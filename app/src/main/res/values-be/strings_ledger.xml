@@ -94,4 +94,19 @@
     <string name="ledger_cat_other">Іншае</string>
     <string name="ledger_sensor_liters">≈ %1$s л па датчыку</string>
     <string name="ledger_error_mismatch">Літры × цана не супадаюць з сумай.</string>
+    <string name="ledger_import_title">Імпарт з Fuelio</string>
+    <string name="ledger_import_desc">Файл CSV з папкі «Загрузкі»: запраўкі і выдаткі. Паўторны імпарт нічога не дубліруе.</string>
+    <string name="ledger_import_choose">Выбраць файл</string>
+    <string name="ledger_import_pick">Выберыце файл CSV з «Загрузак»</string>
+    <string name="ledger_import_none">У папцы «Загрузкі» няма файлаў CSV.</string>
+    <string name="ledger_import_counts">%1$d запраўак, %2$d выдаткаў, %3$d ужо ёсць</string>
+    <string name="ledger_import_newcats">Новыя катэгорыі: %1$s</string>
+    <string name="ledger_import_skipped">%1$d радкоў прапушчана: не ўдалося прачытаць</string>
+    <string name="ledger_import_run">Імпартаваць</string>
+    <string name="ledger_import_parked">Імпарт даступны толькі на стаянцы.</string>
+    <string name="ledger_import_done">Дададзена: %1$d запраўак, %2$d выдаткаў</string>
+    <string name="ledger_import_close">Закрыць</string>
+    <string name="ledger_import_err_format">Гэта не файл Fuelio.</string>
+    <string name="ledger_import_err_too_big">Файл большы за 5 МБ.</string>
+    <string name="ledger_import_err_read">Не ўдалося прачытаць файл.</string>
 </resources>

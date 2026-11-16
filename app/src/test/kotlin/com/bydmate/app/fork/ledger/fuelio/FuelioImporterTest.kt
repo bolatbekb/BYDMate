@@ -93,4 +93,14 @@ class FuelioImporterTest {
         assertEquals(LocalDate.of(2025, 1, 10), local.toLocalDate())
         assertEquals(LocalTime.NOON, local.toLocalTime())
     }
+
+    @Test fun identicalRowsInOneFileAreCountedAndWrittenOnce() = runBlocking {
+        val r = file.refuels[0].copy(uniqueId = null)
+        val c = FuelioCost("t", LocalDate.of(2025, 6, 1), null, 1, null, 5.0, null)
+        val f = FuelioFile(null, listOf(r, r), mapOf(1 to "Service"), listOf(c, c))
+        assertEquals(FuelioPreview(1, 1, 1, 1, emptyList()), importer.preview(f))
+        assertEquals(FuelioResult(1, 1), importer.apply(f))
+        assertEquals(1, repo.refuels.getAllAsc().size)
+        assertEquals(1, repo.expenses.observeAll().first().size)
+    }
 }

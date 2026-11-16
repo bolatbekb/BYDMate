@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -84,6 +85,21 @@ internal fun LedgerSettingsTab(state: LedgerUiState, vm: LedgerViewModel) {
         LedgerButton(stringResource(R.string.ledger_category_add), enabled = state.parked && newName.isNotBlank()) {
             vm.saveCategory(ExpenseCategoryEntity(name = newName, builtinKey = null, color = null, sort = 0))
             newName = ""
+        }
+    }
+
+    SettingSubhead(stringResource(R.string.ledger_import_title))
+    Text(stringResource(R.string.ledger_import_desc), color = TextSecondary, fontSize = 12.sp, lineHeight = 16.sp)
+    var importing by remember { mutableStateOf(false) }
+    LedgerButton(stringResource(R.string.ledger_import_choose), primary = false) {
+        vm.resetImport()
+        importing = true
+    }
+    if (importing) {
+        val importState by vm.importState.collectAsState()
+        FuelioImportDialog(importState, state.parked, vm) {
+            importing = false
+            vm.resetImport()
         }
     }
 

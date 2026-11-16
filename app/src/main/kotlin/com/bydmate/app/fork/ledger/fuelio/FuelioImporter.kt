@@ -15,13 +15,15 @@ data class FuelioPreview(
     val newCosts: Int,
     val duplicateCosts: Int,
     val newCategories: List<String>,
+    val skippedRows: Int = 0,
 )
 
 data class FuelioResult(val addedRefuels: Int, val addedCosts: Int)
 
 class FuelioImporter(private val repo: LedgerRepository) {
 
-    suspend fun preview(file: FuelioFile): FuelioPreview {
+    suspend fun preview(raw: FuelioFile): FuelioPreview {
+        val file = dedupe(raw)
         val existingRefuel = repo.refuels.getAllAsc().mapNotNull { it.importKey }.toSet()
         val existingCost = existingKeysOfExpenses()
         val newR = file.refuels.count { refuelKey(it) !in existingRefuel }
@@ -34,10 +36,14 @@ class FuelioImporter(private val repo: LedgerRepository) {
                 known.none { it.name.equals(name, ignoreCase = true) }
             ) newCats.putIfAbsent(name.lowercase(), name)
         }
-        return FuelioPreview(newR, file.refuels.size - newR, newC, file.costs.size - newC, newCats.values.toList())
+        return FuelioPreview(
+            newR, raw.refuels.size - newR, newC, raw.costs.size - newC,
+            newCats.values.toList(), raw.skippedRows,
+        )
     }
 
-    suspend fun apply(file: FuelioFile): FuelioResult {
+    suspend fun apply(raw: FuelioFile): FuelioResult {
+        val file = dedupe(raw)
         var addedR = 0
         for (r in file.refuels) {
             val id = repo.refuels.insert(
@@ -70,6 +76,12 @@ class FuelioImporter(private val repo: LedgerRepository) {
         }
         return FuelioResult(addedR, addedC)
     }
+
+    /** Rows sharing an import key inside one file count (and are written) once. */
+    private fun dedupe(f: FuelioFile) = f.copy(
+        refuels = f.refuels.distinctBy(::refuelKey),
+        costs = f.costs.distinctBy(::costKey),
+    )
 
     private suspend fun resolveCategory(rawName: String?): Long {
         val all = repo.categories.getAll()
