@@ -145,7 +145,8 @@ Inside the layers, icons sit in x 80–137 and words in x 138–232.
 ## Meters
 
 Meter screens: RPM 1384, 612, 541, 296; compressor 1928, 612, 560, 296 (the divider at x 1925–1926 is kept).
-The ◀ ▶ keys beside the meters are erased (glass). Needles, hubs and the big values were cleared.
+The ◀ ▶ keys beside the meters are erased (glass) with their drop shadow (x 1404–1472 and 2399–2467, y 719–806).
+Needles, hubs and the big values were cleared.
 
 | | Обороты (0…6 ×1000) | Компрессор (0.0…3.0 кВт) |
 |---|---|---|

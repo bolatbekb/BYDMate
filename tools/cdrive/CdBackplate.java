@@ -111,7 +111,7 @@ public class CdBackplate extends Backplate {
     texFill(img,89,978,169,1008,30,220);
     label(img,xFont(SANS,13),"Наушники",129,1000);
     // ---- the meters' ◀ ▶ keys, back to the screen's glass
-    fillMed(img,1404,719,1472,797); fillMed(img,2399,719,2467,797);
+    fillMed(img,1404,719,1472,806); fillMed(img,2399,719,2467,806);   // to 806: the keys' faint drop shadow too
     // ---- the deck's green ▶ becomes a plain key like its neighbours (the app lays cd_play_lit over it while playing)
     playKey(orig,img);
     save(crop(orig,693,433,824,499),out+"/cd_play_lit.png");      // 131 x 66, lands at 693, 423
