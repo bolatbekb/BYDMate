@@ -130,8 +130,9 @@ fun GalleryCard(modifier: Modifier) {
         }
     }
 
-    // grCard clips to the card and draws its rim over the content, so the rim sits above the photo.
-    Box(modifier.grCard(p)) {
+    // grCard clips to the card and draws its rim, relief, glass and bevel over the content, so they
+    // sit above the photo; a texture under it would never show.
+    Box(modifier.grCard(p, photo = true)) {
         Crossfade(
             targetState = index, animationSpec = tween(FadeMs), label = "photo",
             modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = zoom; scaleY = zoom },

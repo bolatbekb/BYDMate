@@ -31,6 +31,12 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.ImageShader
+import androidx.compose.ui.graphics.ShaderBrush
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.PathOperation
@@ -64,7 +70,7 @@ import com.bydmate.app.ui.home.hybrid.px
  * mockup pixels (tools/graphite/design/SPEC.md), converted by px()/fs() inside MockupFrame.
  */
 
-/** The home palette of the active skin; GraphiteHome provides it. */
+/** The home palette of the chosen Graphite scheme; GraphiteHome provides it. */
 val LocalGr = staticCompositionLocalOf { GrDark }
 
 private val InterWeights = intArrayOf(250, 300, 400, 450, 500, 600)
@@ -135,6 +141,13 @@ private fun topHighlightPath(size: Size, radius: Float, u: Float): Path {
     return Path().apply { op(box, shifted, PathOperation.Difference) }
 }
 
+/** The mirror of [topHighlightPath]: the 1 px band along the bottom. */
+private fun bottomHighlightPath(size: Size, radius: Float, u: Float): Path {
+    val box = roundRectPath(Rect(Offset.Zero, size), radius)
+    val shifted = roundRectPath(Rect(Offset(0f, -u), size), radius)
+    return Path().apply { op(box, shifted, PathOperation.Difference) }
+}
+
 /* ---------------------------------------------------------------- card */
 
 /*
@@ -148,11 +161,18 @@ private fun topHighlightPath(size: Size, radius: Float, u: Float): Path {
  * top highlight drawn over the content (so they stay on top of a photo), clipped to [radius].
  * Graphite / Dark cast a `0 24 48 −12` CardOuterGlow shadow; Edge has a 28 px CardOuterGlow glow
  * outside and a 40 px CardInnerGlow inside. All shapes and paints are built once per size.
+ *
+ * The look from the settings ([LocalGrLook]) adds a material texture over the fill and under the
+ * content (glass: a glare over it), the relief's light and shade, and the 2.5D bevel. A [photo]
+ * card (the gallery) is covered by its picture: the relief lies over it and only glass shows.
  */
 @Composable
-fun Modifier.grCard(p: GrPalette, radius: Float = 34f): Modifier = this then remember(p, radius) { cardModifier(p, radius) }
+fun Modifier.grCard(p: GrPalette, radius: Float = 34f, photo: Boolean = false): Modifier {
+    val look = LocalGrLook.current
+    return this then remember(p, radius, look, photo) { cardModifier(p, radius, look, photo) }
+}
 
-private fun cardModifier(p: GrPalette, radius: Float): Modifier = Modifier
+private fun cardModifier(p: GrPalette, radius: Float, look: GrLook, photo: Boolean): Modifier = Modifier
     .drawWithCache {
         val u = px(1).toPx()
         val r = px(radius).toPx()
@@ -172,38 +192,153 @@ private fun cardModifier(p: GrPalette, radius: Float): Modifier = Modifier
     .drawWithCache {
         val u = px(1).toPx()
         val r = px(radius).toPx()
-        val fill = Brush.verticalGradient(listOf(p.cardTop, p.cardBottom))
-        val highlight = topHighlightPath(size, r, u)
+        val fill = Brush.verticalGradient(reliefFill(p, look.relief))
+        val texture = if (photo) null else materialBrush(look.material)
+        val sheen = if (!photo && look.material == GrMaterial.METAL) METAL_SHEEN else null
+        val relief = reliefShade(look.relief)
+        val glare = if (look.material == GrMaterial.GLASS) glassGlare(size) else null
+        val glassRim = if (look.material == GrMaterial.GLASS) glassRim(size) else null
+        val topRim = if (look.relief == GrRelief.CONCAVE) null else topHighlightPath(size, r, u)
+        val bottomRim = if (look.relief == GrRelief.CONCAVE) bottomHighlightPath(size, r, u) else null
+        val bevel = if (look.edges25d) bevelBrushes(size) else null
         val inner = if (p.edgeStyle && p.cardInnerGlow.alpha > 0f) {
             insetShadowPath(size, r, 0f, 80 * u) to blurPaint(p.cardInnerGlow, 40 * u)
         } else null
         onDrawWithContent {
             drawRect(fill)
+            texture?.let { drawRect(it) }
+            sheen?.let { drawRect(it) }
+            if (!photo) relief?.let { drawRect(it) }
             drawContent()
+            if (photo) relief?.let { drawRect(it) }
+            glare?.let { drawRect(it) }
             inner?.let { (path, paint) -> drawNativePath(path, paint) }
             drawRoundRect(
                 p.cardEdge, topLeft = Offset(u / 2, u / 2), size = Size(size.width - u, size.height - u),
                 cornerRadius = CornerRadius(r - u / 2), style = Stroke(u),
             )
-            drawPath(highlight, p.cardEdgeTop)
+            topRim?.let { drawPath(it, p.cardEdgeTop) }
+            bottomRim?.let { drawPath(it, p.cardEdgeTop.copy(alpha = p.cardEdgeTop.alpha * 0.6f)) }
+            glassRim?.let { drawRim(it, 1.5f * u, r) }
+            bevel?.let { (band, line) ->
+                drawRim(band, 10 * u, r)
+                drawRim(line, u, r)
+            }
         }
     }
+
+/** A rounded stroke of [width] whose outer edge lies on the card's edge. */
+private fun DrawScope.drawRim(brush: Brush, width: Float, radius: Float) {
+    val h = width / 2
+    drawRoundRect(
+        brush, topLeft = Offset(h, h), size = Size(size.width - width, size.height - width),
+        cornerRadius = CornerRadius((radius - h).coerceAtLeast(0f)), style = Stroke(width),
+    )
+}
+
+/** The card fill: convex lifts the top a little and sinks the bottom. */
+private fun reliefFill(p: GrPalette, relief: GrRelief): List<Color> = when (relief) {
+    GrRelief.CONVEX -> listOf(lerp(p.cardTop, Color.White, 0.035f), lerp(p.cardBottom, Color.Black, 0.18f))
+    else -> listOf(p.cardTop, p.cardBottom)
+}
+
+/** Light and shade of the relief across the card height; null when flat. */
+private fun reliefShade(relief: GrRelief): Brush? = when (relief) {
+    GrRelief.FLAT -> null
+    GrRelief.CONVEX -> Brush.verticalGradient(
+        0f to Color.White.copy(alpha = 0.045f), 0.45f to Color.Transparent,
+        0.7f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.18f),
+    )
+    GrRelief.CONCAVE -> Brush.verticalGradient(
+        0f to Color.Black.copy(alpha = 0.22f), 0.25f to Color.Transparent,
+        0.7f to Color.Transparent, 1f to Color.White.copy(alpha = 0.03f),
+    )
+}
+
+/** Brushed metal's broad soft sheen across the upper third. */
+private val METAL_SHEEN = Brush.verticalGradient(
+    0f to Color.Transparent, 0.16f to Color.White.copy(alpha = 0.04f), 0.34f to Color.Transparent,
+)
+
+/** The texture tile of [material], repeated; null for none and glass. */
+private fun materialBrush(material: GrMaterial): Brush? {
+    val image = when (material) {
+        GrMaterial.NONE, GrMaterial.GLASS -> return null
+        GrMaterial.METAL -> TextureImages.metal
+        GrMaterial.SAND_FINE -> TextureImages.sandFine
+        GrMaterial.SAND_COARSE -> TextureImages.sandCoarse
+        GrMaterial.CONCRETE -> TextureImages.concrete
+    }
+    return ShaderBrush(ImageShader(image, TileMode.Repeated, TileMode.Repeated))
+}
+
+/** Glass: a soft diagonal glare band at 16–27 % of the diagonal and a faint one near 52 %. */
+private fun glassGlare(size: Size): Brush {
+    val clear = Color.White.copy(alpha = 0f)
+    return Brush.linearGradient(
+        0f to clear, 0.155f to clear,
+        0.16f to Color.White.copy(alpha = 0.075f), 0.27f to Color.White.copy(alpha = 0.03f),
+        0.285f to clear, 0.5f to clear,
+        0.51f to Color.White.copy(alpha = 0.03f), 0.54f to Color.White.copy(alpha = 0.012f),
+        0.55f to clear, 1f to clear,
+        start = Offset.Zero, end = Offset(size.width, size.height),
+    )
+}
+
+/** Glass rim: white 30 % at the top left fading out towards the bottom right. */
+private fun glassRim(size: Size): Brush = Brush.linearGradient(
+    0f to Color.White.copy(alpha = 0.3f), 1f to Color.White.copy(alpha = 0f),
+    start = Offset.Zero, end = Offset(size.width, size.height),
+)
+
+/**
+ * The 2.5D bevel: a 10 px band along the edge, lighter on the top-left, darker on the
+ * bottom-right, and a 1 px bright line on the outer top-left edge.
+ */
+private fun bevelBrushes(size: Size): Pair<Brush, Brush> {
+    val end = Offset(size.width, size.height)
+    val band = Brush.linearGradient(
+        0f to Color.White.copy(alpha = 0.10f), 0.5f to Color.White.copy(alpha = 0f), 1f to Color.Black.copy(alpha = 0.20f),
+        start = Offset.Zero, end = end,
+    )
+    val line = Brush.linearGradient(
+        0f to Color.White.copy(alpha = 0.32f), 0.5f to Color.White.copy(alpha = 0f),
+        start = Offset.Zero, end = end,
+    )
+    return band to line
+}
+
+/** The material tiles as bitmaps, each built on first use and kept. */
+private object TextureImages {
+    val sandFine by lazy { GrTextures.sandFine().toImage() }
+    val sandCoarse by lazy { GrTextures.sandCoarse().toImage() }
+    val metal by lazy { GrTextures.metal().toImage() }
+    val concrete by lazy { GrTextures.concrete().toImage() }
+
+    private fun GrTile.toImage(): ImageBitmap =
+        android.graphics.Bitmap.createBitmap(argb, width, height, android.graphics.Bitmap.Config.ARGB_8888).asImageBitmap()
+}
 
 /**
  * A rounded fill with the variant's rim: a 1 px [edge] contour on Edge, a 1 px [edge] top
  * highlight elsewhere. Not clipped, so a glow inside may spill. Used by chips and the pressed menu key.
+ * The relief shows in a reduced form: a lighter top when convex, an inner top shadow when concave.
  */
 @Composable
-internal fun Modifier.grPill(fill: Color, edge: Color, edgeStyle: Boolean, radius: Float): Modifier =
-    this then remember(fill, edge, edgeStyle, radius) { pillModifier(fill, edge, edgeStyle, radius) }
+internal fun Modifier.grPill(fill: Color, edge: Color, edgeStyle: Boolean, radius: Float): Modifier {
+    val relief = LocalGrLook.current.relief
+    return this then remember(fill, edge, edgeStyle, radius, relief) { pillModifier(fill, edge, edgeStyle, radius, relief) }
+}
 
-private fun pillModifier(fill: Color, edge: Color, edgeStyle: Boolean, radius: Float): Modifier = Modifier
+private fun pillModifier(fill: Color, edge: Color, edgeStyle: Boolean, radius: Float, relief: GrRelief): Modifier = Modifier
     .drawWithCache {
         val u = px(1).toPx()
         val r = px(radius).toPx()
         val highlight = if (edgeStyle) null else topHighlightPath(size, r, u)
+        val shade = smallRelief(relief)
         onDrawBehind {
             drawRoundRect(fill, cornerRadius = CornerRadius(r))
+            shade?.let { drawRoundRect(it, cornerRadius = CornerRadius(r)) }
             if (highlight != null) {
                 drawPath(highlight, edge)
             } else {
@@ -214,6 +349,13 @@ private fun pillModifier(fill: Color, edge: Color, edgeStyle: Boolean, radius: F
             }
         }
     }
+
+/** The reduced relief of pills and sunken blocks; null when flat. */
+private fun smallRelief(relief: GrRelief): Brush? = when (relief) {
+    GrRelief.FLAT -> null
+    GrRelief.CONVEX -> Brush.verticalGradient(0f to Color.White.copy(alpha = 0.06f), 0.5f to Color.Transparent)
+    GrRelief.CONCAVE -> Brush.verticalGradient(0f to Color.Black.copy(alpha = 0.22f), 0.4f to Color.Transparent)
+}
 
 /**
  * Card with the common padding (30 top/bottom, 34 sides): every header sits at the same height.
@@ -285,7 +427,7 @@ private fun chipText(text: String, note: String?, p: GrPalette): AnnotatedString
 
 /**
  * A sunken block (volume, tabs, footer): Inset fill; on Graphite / Dark an `inset 0 1px 3px`
- * InsetEdge shadow, on Edge a 1 px InsetEdge contour.
+ * InsetEdge shadow, on Edge a 1 px InsetEdge contour; the relief in its reduced form.
  */
 @Composable
 fun InsetBox(radius: Float, modifier: Modifier = Modifier, content: @Composable BoxScope.() -> Unit) {
@@ -294,13 +436,18 @@ fun InsetBox(radius: Float, modifier: Modifier = Modifier, content: @Composable 
 }
 
 @Composable
-private fun Modifier.insetRim(p: GrPalette, radius: Float): Modifier = this then remember(p, radius) { rimModifier(p, radius) }
+private fun Modifier.insetRim(p: GrPalette, radius: Float): Modifier {
+    val relief = LocalGrLook.current.relief
+    return this then remember(p, radius, relief) { rimModifier(p, radius, relief) }
+}
 
-private fun rimModifier(p: GrPalette, radius: Float): Modifier = Modifier.drawWithCache {
+private fun rimModifier(p: GrPalette, radius: Float, relief: GrRelief): Modifier = Modifier.drawWithCache {
     val u = px(1).toPx()
     val r = px(radius).toPx()
+    val shade = smallRelief(relief)
     if (p.edgeStyle) {
         onDrawWithContent {
+            shade?.let { drawRect(it) }
             drawContent()
             drawRoundRect(
                 p.insetEdge, topLeft = Offset(u / 2, u / 2), size = Size(size.width - u, size.height - u),
@@ -310,7 +457,10 @@ private fun rimModifier(p: GrPalette, radius: Float): Modifier = Modifier.drawWi
     } else {
         val path = insetShadowPath(size, r, u, 8 * u)
         val paint = blurPaint(p.insetEdge, 3 * u)
-        onDrawBehind { drawNativePath(path, paint) }
+        onDrawBehind {
+            shade?.let { drawRect(it) }
+            drawNativePath(path, paint)
+        }
     }
 }
 
