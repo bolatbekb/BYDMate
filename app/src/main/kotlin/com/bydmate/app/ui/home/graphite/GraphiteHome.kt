@@ -147,9 +147,6 @@ private fun TopBar(data: HomeData, modifier: Modifier) {
             Chip(text, lead = { GrIcon(R.drawable.gr_ic_leaf, 24f, p.electric) })
         }
         Spacer(Modifier.weight(1f))
-        data.outsideTemp?.let { t ->
-            Chip(grDeg(t), note = "снаружи", lead = { GrIcon(R.drawable.gr_ic_tree, 24f, p.cold) })
-        }
         data.todayKm?.let { km ->
             Chip("${grDec(km)} км", note = "сегодня", lead = { GrIcon(R.drawable.gr_ic_route, 24f, p.textSecondary) })
         }

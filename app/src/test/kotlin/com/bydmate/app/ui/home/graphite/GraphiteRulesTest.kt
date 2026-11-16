@@ -11,6 +11,11 @@ class GraphiteRulesTest {
         assertEquals(listOf(0, 20, 40, 64), rangeScale(64).ticks)
         assertEquals(listOf(0), rangeScale(0).ticks)
     }
+    @Test fun longRangeKeepsScaleReadable() {
+        assertEquals(listOf(0, 200, 400, 600, 800, 1000, 1200), rangeScale(1200).ticks)
+        assertEquals(listOf(0, 200, 400, 600, 700), rangeScale(700).ticks)
+        assertEquals(listOf(0, 500, 1000, 1500, 2100), rangeScale(2100).ticks)
+    }
     @Test fun temps() {
         assertEquals(0.2875f, tempFraction(TempKind.OUTSIDE, -7), 0.0001f)
         assertEquals(1f, tempFraction(TempKind.CABIN, 99), 0f)
@@ -20,8 +25,8 @@ class GraphiteRulesTest {
         assertEquals("Гололёд", outsideNote(3))
         assertNull(outsideNote(4))
         assertNull(outsideNote(null))
-        assertEquals("Авто · 22°", cabinNote(true, true, 22))
-        assertEquals("Климат · 22°", cabinNote(false, true, 22))
+        assertEquals("Авто · 22,0°", cabinNote(true, true, 22))
+        assertEquals("Климат · 22,0°", cabinNote(false, true, 22))
         assertNull(cabinNote(null, false, 22))
         assertNull(cabinNote(true, false, 22))
     }

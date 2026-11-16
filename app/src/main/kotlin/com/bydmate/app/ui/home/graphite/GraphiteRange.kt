@@ -85,7 +85,7 @@ fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Do
             RangeGauge(
                 Modifier.weight(1f), R.drawable.gr_ic_battery, R.drawable.gr_ic_bolt, "Батарея", data.socPercent,
                 p.electric,
-                kmLine(data.evRangeKm, "электро"),
+                kmLine(data.evRangeKm, null),
             )
             Box(Modifier.width(px(26)))
             Box(Modifier.width(px(1)).fillMaxHeight().background(p.divider))
@@ -301,7 +301,7 @@ fun TempsCard(data: HomeData, modifier: Modifier) {
     Row(modifier.grCard(p)) {
         TempColumn(
             Modifier.weight(1f), false, R.drawable.gr_ic_tree, "Снаружи",
-            data.outsideTemp?.let { grInt(it) }, data.outsideTemp?.let { tempFraction(TempKind.OUTSIDE, it) },
+            data.outsideTemp?.let { grDec(it.toDouble()) }, data.outsideTemp?.let { tempFraction(TempKind.OUTSIDE, it) },
             listOf(0f to p.coldDeep, 1f to p.cold), true,
             outsideNote(data.outsideTemp)?.let { Triple(R.drawable.gr_ic_snow, it, p.cold) },
         )
@@ -313,7 +313,7 @@ fun TempsCard(data: HomeData, modifier: Modifier) {
         )
         TempColumn(
             Modifier.weight(1f), true, R.drawable.gr_ic_battery, "Батарея",
-            data.batteryTemp?.let { grInt(it) }, data.batteryTemp?.let { tempFraction(TempKind.BATTERY, it) },
+            data.batteryTemp?.let { grDec(it.toDouble()) }, data.batteryTemp?.let { tempFraction(TempKind.BATTERY, it) },
             listOf(0f to p.heat, 1f to p.heat), true, null,
         )
     }

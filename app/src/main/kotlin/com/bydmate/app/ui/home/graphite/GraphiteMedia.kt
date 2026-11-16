@@ -61,7 +61,7 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
     val ctx = LocalContext.current
     CardBody(modifier) {
         val label = music.sourceLabel
-        if (label != null) SourcePill(label) else CardHeader(R.drawable.gr_ic_note, "Медиа")
+        CardHeader(R.drawable.gr_ic_note, label ?: "Медиа")
         Spacer(Modifier.height(px(22)))
         Row(Modifier.fillMaxWidth().height(px(Side)), horizontalArrangement = Arrangement.spacedBy(px(30))) {
             Cover(music)
@@ -86,26 +86,6 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
                     style = grStyle(26f, 500, color = p.textPrimary), modifier = Modifier.width(px(VolNumber)),
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun SourcePill(label: String) {
-    val p = LocalGr.current
-    Row(Modifier.height(px(34)), verticalAlignment = Alignment.CenterVertically) {
-        Row(
-            Modifier.wrapContentHeight(Alignment.CenterVertically, unbounded = true)
-                .grPill(p.chip, p.chipEdge, p.edgeStyle, 18f)
-                .padding(start = px(12), end = px(16), top = px(8), bottom = px(8)),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(px(10)),
-        ) {
-            GrIcon(R.drawable.gr_ic_note, 22f, p.spotify)
-            Text(
-                label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-                style = grStyle(21f, 500, color = p.textPrimary, tnum = false),
-            )
         }
     }
 }

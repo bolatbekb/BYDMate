@@ -31,11 +31,9 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
-import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.hybrid.px
@@ -165,13 +163,7 @@ fun GalleryCard(modifier: Modifier) {
             },
         )
         Column(Modifier.fillMaxSize().padding(horizontal = px(34), vertical = px(30))) {
-            val u = with(LocalDensity.current) { px(1).toPx() }
-            val shadow = Shadow(Color(0x99000000), Offset(0f, 2f * u), 12f * u)
-            CardHeader(
-                R.drawable.gr_ic_car, "Leopard 5",
-                titleStyle = grStyle(26f, 600, -0.2f, Color.White, tnum = false).copy(shadow = shadow),
-                iconTint = Color.White.copy(alpha = 0.85f),
-            )
+            CardHeader(R.drawable.gr_ic_car, "Leopard 5")
         }
         Row(
             Modifier.align(Alignment.BottomEnd).padding(end = px(30), bottom = px(22)),

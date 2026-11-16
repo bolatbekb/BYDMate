@@ -7,7 +7,10 @@ import kotlin.math.roundToInt
 internal data class RangeScale(val ticks: List<Int>)
 
 internal fun rangeScale(totalKm: Int): RangeScale {
+    // At most ~7 labels, so a 1 200 km range does not crowd the scale.
     val step = when {
+        totalKm >= 2000 -> 500
+        totalKm >= 700 -> 200
         totalKm >= 300 -> 100
         totalKm >= 100 -> 50
         else -> 20
@@ -33,7 +36,8 @@ internal fun outsideNote(c: Int?): String? = if (c != null && c <= 3) "Голо�
 
 internal fun cabinNote(acAuto: Boolean?, acOn: Boolean?, acTemp: Int?): String? {
     if (acOn != true || acTemp == null) return null
-    return if (acAuto == true) "Авто · $acTemp°" else "Климат · $acTemp°"
+    val t = grDec(acTemp.toDouble()) + "°"
+    return if (acAuto == true) "Авто · $t" else "Климат · $t"
 }
 
 internal fun powerChip(powerState: Int?): String? = when (powerState) {
