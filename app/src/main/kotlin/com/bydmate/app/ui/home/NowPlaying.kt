@@ -79,6 +79,7 @@ object NowPlayingSource : MusicControls {
 
     // Album art: only the current one is kept, scaled once per track.
     private var artKey: String? = null
+    private var artSrc: Bitmap? = null
     private var artBitmap: Bitmap? = null
     private val labelCache = HashMap<String, String?>()
 
@@ -151,8 +152,8 @@ object NowPlayingSource : MusicControls {
         val album = md?.getString(MediaMetadata.METADATA_KEY_ALBUM)
         val actions = pb?.customActions.orEmpty()
         _state.value = NowPlaying(
-            artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST),
-            title = md?.getString(MediaMetadata.METADATA_KEY_TITLE),
+            artist = artist,
+            title = title,
             isPlaying = playing,
             positionMs = pos,
             durationMs = md?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.takeIf { it > 0 },
@@ -173,19 +174,22 @@ object NowPlayingSource : MusicControls {
         }?.action
 
     private fun artFor(md: MediaMetadata?, key: String): Bitmap? {
-        if (md == null) { artKey = null; artBitmap = null; return null }
-        if (key == artKey) return artBitmap
+        if (md == null) { artKey = null; artSrc = null; artBitmap = null; return null }
+        if (key != artKey) { artKey = key; artSrc = null; artBitmap = null }
+        // The cover may arrive after the text with the same key: rescale whenever a new source appears.
         val src = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md.getBitmap(MediaMetadata.METADATA_KEY_ART)
-        artKey = key
-        artBitmap = src?.let { scaleArt(it) }
+        if (src != null && src !== artSrc) { artSrc = src; artBitmap = scaleArt(src) }
         return artBitmap
     }
 
-    private fun labelFor(ctx: Context, pkg: String): String? = labelCache.getOrPut(pkg) {
-        runCatching {
+    private fun labelFor(ctx: Context, pkg: String): String? {
+        if (labelCache.containsKey(pkg)) return labelCache[pkg]
+        val label = runCatching {
             val pm = ctx.packageManager
             pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString().takeIf { it.isNotBlank() }
         }.getOrNull()
+        labelCache[pkg] = label
+        return label
     }
 
     private fun demo(): Boolean = appContext?.let { DemoMode.isOn(it) } == true

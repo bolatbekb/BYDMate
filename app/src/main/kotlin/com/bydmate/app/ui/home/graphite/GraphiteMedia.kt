@@ -26,6 +26,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -78,8 +79,10 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
             ) {
                 GrIcon(R.drawable.gr_ic_volume, 32f, p.textSecondary)
                 VolumeSlider(volume.value, Modifier.weight(1f)) { v ->
-                    volume.value = v
-                    GraphiteVolume.set(ctx, v)
+                    if (v != volume.value) {
+                        volume.value = v
+                        GraphiteVolume.set(ctx, v)
+                    }
                 }
                 Text(
                     volume.value.toString(), maxLines = 1, softWrap = false, textAlign = TextAlign.End,
@@ -159,7 +162,7 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
 @Composable
 private fun Progress(music: NowPlaying) {
     val p = LocalGr.current
-    val fraction = music.progress
+    val fraction = mediaFraction(music.positionMs, music.durationMs)
     Column(Modifier.fillMaxWidth()) {
         Box(
             Modifier.fillMaxWidth().height(px(20)).drawBehind {
@@ -229,7 +232,7 @@ private fun CtrlButton(icon: Int, size: Float, tint: Color, enabled: Boolean, on
 @Composable
 private fun VolumeSlider(value: Int, modifier: Modifier, onValue: (Int) -> Unit) {
     val p = LocalGr.current
-    val latest = androidx.compose.runtime.rememberUpdatedState(onValue)
+    val latest = rememberUpdatedState(onValue)
     fun pct(x: Float, w: Int): Int = if (w <= 0) 0 else (x / w * 100f).roundToInt().coerceIn(0, 100)
     Box(
         modifier.height(px(28))
@@ -321,4 +324,10 @@ private fun StatCell(c: TodayCell, modifier: Modifier) {
         FitText(c.value, grStyle(30f, 500, color = c.color), 30f, 22f, Modifier)
         FitText(c.label, grStyle(19f, 400, color = p.textTertiary, tnum = false), 19f, 15f, Modifier)
     }
+}
+
+/** 0..1 through the track; 0 when position or duration is unknown (the bar stays empty). */
+internal fun mediaFraction(positionMs: Long?, durationMs: Long?): Float {
+    if (positionMs == null || durationMs == null || durationMs <= 0) return 0f
+    return (positionMs.toFloat() / durationMs).coerceIn(0f, 1f)
 }
