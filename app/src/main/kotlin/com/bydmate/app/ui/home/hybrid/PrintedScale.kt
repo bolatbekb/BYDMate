@@ -10,6 +10,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.translate
 import kotlin.math.PI
 import kotlin.math.cos
@@ -43,12 +44,25 @@ internal data class PrintedScale(
 }
 
 /**
+ * Draws a needle of [scale] from the pivot [pivot] along the unit vector [dir] (canvas pixels,
+ * y down), [s] canvas pixels per mockup pixel, faded to [alpha].
+ */
+internal typealias NeedlePainter = DrawScope.(scale: PrintedScale, pivot: Offset, dir: Offset, s: Float, alpha: Float) -> Unit
+
+/**
  * The needle of [scale] at [value], drawn over the meter screen whose top-left is mockup pixel
- * ([originX], [originY]): a tapered cream blade with a brown root and a soft shadow, like the
- * mockup's. Dimmed and parked at zero while the value is unknown.
+ * ([originX], [originY]) by [painter] (the RS blade by default). Dimmed and parked at zero while
+ * the value is unknown.
  */
 @Composable
-internal fun MeterNeedle(scale: PrintedScale, value: Double?, originX: Int, originY: Int, modifier: Modifier) {
+internal fun MeterNeedle(
+    scale: PrintedScale,
+    value: Double?,
+    originX: Int,
+    originY: Int,
+    modifier: Modifier,
+    painter: NeedlePainter = RsNeedle, // fork: C-Drive draws its own needle
+) {
     // read in the draw phase only: the swing redraws this canvas, never recomposes the screen
     val angleState = animateFloatAsState(scale.angleOf(value), tween(700), label = "needle")
     Canvas(modifier.clipToBounds()) {
@@ -56,28 +70,31 @@ internal fun MeterNeedle(scale: PrintedScale, value: Double?, originX: Int, orig
         val s = K * density // px per mockup pixel
         val c = Offset((scale.cx - originX) * s, (scale.cy - originY) * s)
         val a = angle * PI.toFloat() / 180f
-        val dir = Offset(cos(a), -sin(a))
-        val side = Offset(-dir.y, dir.x)
-        val tip = c + dir * (scale.outer * s)
-        val root = c + dir * (scale.inner * s)
-        val blade = Path().apply {
-            moveTo(tip.x, tip.y)
-            lineTo(root.x + side.x * 5f * s, root.y + side.y * 5f * s)
-            lineTo(root.x - side.x * 5f * s, root.y - side.y * 5f * s)
-            close()
-        }
-        val alpha = if (value == null) 0.45f else 1f
-        translate(9f * s, 6f * s) { drawPath(blade, Color.Black.copy(alpha = 0.45f * alpha)) }
-        drawPath(
-            blade,
-            Brush.linearGradient(
-                0f to Color(0xFF6E4B2A), 0.35f to Color(0xFFC9A77C), 0.7f to Color(0xFFF4EBDD), 1f to Color.White,
-                start = root, end = tip,
-            ),
-            alpha = alpha,
-        )
-        drawLine(Color.White.copy(alpha = 0.6f * alpha), root + side * (1.5f * s), tip, 1.2f * s)
+        painter(scale, c, Offset(cos(a), -sin(a)), s, if (value == null) 0.45f else 1f)
     }
+}
+
+/** A tapered cream blade with a brown root and a soft shadow, like the RS mockup's. */
+private val RsNeedle: NeedlePainter = { scale, c, dir, s, alpha ->
+    val side = Offset(-dir.y, dir.x)
+    val tip = c + dir * (scale.outer * s)
+    val root = c + dir * (scale.inner * s)
+    val blade = Path().apply {
+        moveTo(tip.x, tip.y)
+        lineTo(root.x + side.x * 5f * s, root.y + side.y * 5f * s)
+        lineTo(root.x - side.x * 5f * s, root.y - side.y * 5f * s)
+        close()
+    }
+    translate(9f * s, 6f * s) { drawPath(blade, Color.Black.copy(alpha = 0.45f * alpha)) }
+    drawPath(
+        blade,
+        Brush.linearGradient(
+            0f to Color(0xFF6E4B2A), 0.35f to Color(0xFFC9A77C), 0.7f to Color(0xFFF4EBDD), 1f to Color.White,
+            start = root, end = tip,
+        ),
+        alpha = alpha,
+    )
+    drawLine(Color.White.copy(alpha = 0.6f * alpha), root + side * (1.5f * s), tip, 1.2f * s)
 }
 
 /** Engine speed: 0..8 ×1000 rpm, the numbers as printed. */

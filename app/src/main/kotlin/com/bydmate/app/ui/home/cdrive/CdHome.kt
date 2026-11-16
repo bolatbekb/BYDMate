@@ -34,6 +34,8 @@ import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
@@ -82,7 +84,12 @@ fun CdHome(
         CdDeck(music, controls)
         CdCarData(data)
         CdVolumeMarker(rememberMusicVolume())
-        // Task 7: the period keys, the trip chart and the two meters.
+        val chart: CdChartViewModel = hiltViewModel()
+        val period by chart.period.collectAsStateWithLifecycle()
+        val series by chart.series.collectAsStateWithLifecycle()
+        CdPeriodKeys(period, chart::select)
+        CdTripChart(series)
+        CdMeters(data)
         CdTabKeys(tabs, onTab)
     }
 }
@@ -255,14 +262,21 @@ private fun LitKey(k: TabKey, icons: ImageBitmap, words: ImageBitmap) {
 }
 
 /** One glyph layer, placed where it was cut from, in a canvas that covers key [k]. */
-private fun DrawScope.glyphs(layer: ImageBitmap, k: TabKey, filter: ColorFilter?) {
+private fun DrawScope.glyphs(layer: ImageBitmap, k: TabKey, filter: ColorFilter?) =
+    glyphLayer(layer, Offset((GLYPHS_X - k.x).toFloat(), (GLYPHS_Y - KEY_Y).toFloat()), GLYPHS_W, GLYPHS_H, filter)
+
+/**
+ * A glyph layer [w] x [h] mockup pixels whose top-left sits [at] (mockup pixels) from the
+ * canvas's top-left, drawn through [filter].
+ */
+internal fun DrawScope.glyphLayer(layer: ImageBitmap, at: Offset, w: Int, h: Int, filter: ColorFilter?) {
     val s = K * density
     drawImage(
         layer,
         srcOffset = IntOffset.Zero,
         srcSize = IntSize(layer.width, layer.height),
-        dstOffset = IntOffset(((GLYPHS_X - k.x) * s).roundToInt(), ((GLYPHS_Y - KEY_Y) * s).roundToInt()),
-        dstSize = IntSize((GLYPHS_W * s).roundToInt(), (GLYPHS_H * s).roundToInt()),
+        dstOffset = IntOffset((at.x * s).roundToInt(), (at.y * s).roundToInt()),
+        dstSize = IntSize((w * s).roundToInt(), (h * s).roundToInt()),
         colorFilter = filter,
     )
 }
