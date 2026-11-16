@@ -97,6 +97,7 @@ fun GraphiteHome(
                 TopBar(data, online, Modifier.fillMaxWidth().height(px(68)))
                 // The six cards. Tasks 6–9 swap each *Slot call here for its card (same arguments).
                 Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(px(20))) {
+                    val hasFuelTank = data.fuelPercent != null || tankL != null
                     Column(Modifier.width(px(790)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         // The PM2.5 line makes the temperatures 76 taller; the range card above gives the room.
                         RangeCard(data, soh, tankL, capacityKwh, compact = pmSides != null, Modifier.fillMaxWidth().weight(1f))
@@ -104,11 +105,11 @@ fun GraphiteHome(
                     }
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         GalleryCard(Modifier.fillMaxWidth().height(px(404)))
-                        EnergyCard(energy, period, vm::select, data.fuelPercent != null || tankL != null, Modifier.fillMaxWidth().weight(1f))
+                        EnergyCard(energy, period, vm::select, hasFuelTank, Modifier.fillMaxWidth().weight(1f))
                     }
                     Column(Modifier.width(px(820)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         MediaCard(music, controls, Modifier.fillMaxWidth().weight(1f))
-                        TodayCard(data.todayKm, today, Modifier.fillMaxWidth().height(px(252)))
+                        TodayCard(data.todayKm, today, hasFuelTank, Modifier.fillMaxWidth().height(px(252)))
                     }
                 }
                 BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)))

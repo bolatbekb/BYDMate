@@ -532,9 +532,9 @@ private fun VolumeBar(value: Int, modifier: Modifier) {
 
 /** «Пробег сегодня» card: km today on the left, up to four stats in a 2x2 grid on the right. */
 @Composable
-fun TodayCard(todayKm: Double?, today: TodayStats?, modifier: Modifier) {
+fun TodayCard(todayKm: Double?, today: TodayStats?, hasFuelTank: Boolean, modifier: Modifier) {
     val p = LocalGr.current
-    val cells = todayCells(today, p.electric, p.textPrimary)
+    val cells = todayCells(today, hasFuelTank, p.electric, p.textPrimary)
     CardBody(modifier) {
         Row(Modifier.fillMaxWidth().weight(1f)) {
             Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -568,20 +568,19 @@ fun TodayCard(todayKm: Double?, today: TodayStats?, modifier: Modifier) {
 
 internal data class TodayCell(val value: String, val label: String, val color: Color)
 
-internal fun todayCells(today: TodayStats?, electric: Color, primary: Color): List<TodayCell> {
-    if (today == null) return emptyList()
-    val out = ArrayList<TodayCell>(4)
-    if (today.minutes > 0) out += TodayCell(grDuration(today.minutes), "в пути", primary)
-    today.electricShare?.let { out += TodayCell("$it%", "электротяга", electric) }
-    today.avgKmh?.let { out += TodayCell("$it км/ч", "средняя скорость", primary) }
-    val kwh = today.kwh
-    val l = today.litres
-    when {
-        kwh != null && l != null -> out += TodayCell("${grDec(kwh)} · ${grDec(l)}", "кВт·ч · л", primary)
-        kwh != null -> out += TodayCell(grDec(kwh), "кВт·ч", primary)
-        l != null -> out += TodayCell(grDec(l), "л", primary)
-    }
-    return out
+/**
+ * The four «Пробег сегодня» cells, always all four so the card never looks empty before the
+ * first trip: no data reads «0» for time and energy and «—» for share and speed.
+ */
+internal fun todayCells(today: TodayStats?, hasFuelTank: Boolean, electric: Color, primary: Color): List<TodayCell> {
+    val kwh = grDec(today?.kwh ?: 0.0).let { if (today?.kwh == null) "0" else it }
+    val litres = grDec(today?.litres ?: 0.0).let { if (today?.litres == null) "0" else it }
+    return listOf(
+        TodayCell(grDuration(today?.minutes ?: 0), "в пути", primary),
+        TodayCell(today?.electricShare?.let { "$it%" } ?: "—", "электротяга", electric),
+        TodayCell(today?.avgKmh?.let { "$it км/ч" } ?: "—", "средняя скорость", primary),
+        if (hasFuelTank) TodayCell("$kwh · $litres", "кВт·ч · л", primary) else TodayCell(kwh, "кВт·ч", primary),
+    )
 }
 
 @Composable
