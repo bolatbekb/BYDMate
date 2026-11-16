@@ -176,9 +176,13 @@ class LedgerViewModel @Inject constructor(
         settingsVersion.update { it + 1 }
     }
 
-    /** Odometer and car fuel counter for an entry at [entryTs]; NONE on any failure. */
-    suspend fun prefillFor(entryTs: Long): Prefill = try {
-        prefill.forEntry(entryTs, System.currentTimeMillis(), carData.value, repo.refuels.openDraft())
+    /**
+     * Odometer and car fuel counter for an entry at [entryTs]; NONE on any failure.
+     * [useDraft] false: the open draft is a different refuel and must not lend its values.
+     */
+    suspend fun prefillFor(entryTs: Long, useDraft: Boolean = true): Prefill = try {
+        val draft = if (useDraft) repo.refuels.openDraft() else null
+        prefill.forEntry(entryTs, System.currentTimeMillis(), carData.value, draft)
     } catch (ce: CancellationException) {
         throw ce
     } catch (ex: Exception) {

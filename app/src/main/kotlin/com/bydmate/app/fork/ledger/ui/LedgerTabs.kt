@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -49,8 +50,10 @@ import java.time.ZoneId
 import kotlin.math.abs
 
 private sealed interface LedgerEditor {
-    data object NewRefuel : LedgerEditor
-    data class EditRefuel(val e: RefuelEntity) : LedgerEditor
+    /** [skipDraft]: the user said the open draft is another refuel, so it must not prefill this one. */
+    data class NewRefuel(val skipDraft: Boolean = false) : LedgerEditor
+    /** [viaAdd]: an open draft opened by "+ Refuel", which may still turn out to be another refuel. */
+    data class EditRefuel(val e: RefuelEntity, val viaAdd: Boolean = false) : LedgerEditor
     data object NewExpense : LedgerEditor
     data class EditExpense(val e: ExpenseEntity) : LedgerEditor
 }
@@ -74,7 +77,10 @@ fun LedgerTabs(vm: LedgerViewModel) {
     }
     when (tab) {
         0 -> SummaryTab(state, fmt)
-        1 -> RefuelsTab(state, fmt, onAdd = { editor = LedgerEditor.NewRefuel }) { editor = LedgerEditor.EditRefuel(it) }
+        1 -> RefuelsTab(state, fmt, onAdd = {
+            val draft = LedgerEditorState.forNewRefuel(state.refuels, System.currentTimeMillis()).base
+            editor = draft?.let { LedgerEditor.EditRefuel(it, viaAdd = true) } ?: LedgerEditor.NewRefuel()
+        }) { editor = LedgerEditor.EditRefuel(it) }
         2 -> ExpensesTab(state, fmt, onAdd = { editor = LedgerEditor.NewExpense }) { editor = LedgerEditor.EditExpense(it) }
         else -> LedgerSettingsTab(state, vm)
     }
@@ -82,18 +88,21 @@ fun LedgerTabs(vm: LedgerViewModel) {
     val close = { editor = null }
     when (val ed = editor) {
         null -> {}
-        LedgerEditor.NewRefuel, is LedgerEditor.EditRefuel -> {
+        is LedgerEditor.NewRefuel, is LedgerEditor.EditRefuel -> key(ed) {
             val base = (ed as? LedgerEditor.EditRefuel)?.e
             RefuelEditorDialog(
                 initial = base?.let(LedgerEditorState::from) ?: LedgerEditorState.new(System.currentTimeMillis()),
                 currency = state.currencySymbol,
                 parked = state.parked,
-                prefill = vm::prefillFor,
+                prefill = { ts -> vm.prefillFor(ts, useDraft = (ed as? LedgerEditor.NewRefuel)?.skipDraft != true) },
                 onSave = { r ->
                     if (base?.status == "draft") vm.confirmDraft(r) else vm.saveRefuel(r)
                     close()
                 },
                 onDelete = base?.let { b -> { vm.deleteRefuel(b); close() } },
+                onOtherRefuel = if ((ed as? LedgerEditor.EditRefuel)?.viaAdd == true) {
+                    { editor = LedgerEditor.NewRefuel(skipDraft = true) }
+                } else null,
                 onDismiss = close,
             )
         }
@@ -105,7 +114,7 @@ fun LedgerTabs(vm: LedgerViewModel) {
                 categories = state.categories,
                 currency = state.currencySymbol,
                 parked = state.parked,
-                prefill = vm::prefillFor,
+                prefill = { ts -> vm.prefillFor(ts) },
                 onSave = { e -> vm.saveExpense(e); close() },
                 onDelete = base?.let { b -> { vm.deleteExpense(b); close() } },
                 onDismiss = close,
@@ -233,7 +242,9 @@ private fun DraftRow(d: RefuelEntity, fmt: LedgerFmt, parked: Boolean, onConfirm
 @Composable
 private fun RefuelRow(r: RefuelEntity, fmt: LedgerFmt, currency: String, parked: Boolean, onClick: () -> Unit) {
     EntryRow(clickable = parked, onClick = onClick) {
-        Text("${fmt.date(r.date)} ${fmt.time(r.date)}", color = TextPrimary, fontSize = 14.sp, modifier = Modifier.weight(1.4f))
+        // a Fuelio row has no real time of day (its 12:00 is made up)
+        val whenText = if (r.source == "fuelio") fmt.date(r.date) else "${fmt.date(r.date)} ${fmt.time(r.date)}"
+        Text(whenText, color = TextPrimary, fontSize = 14.sp, modifier = Modifier.weight(1.4f))
         Text(r.odometerKm?.let { stringResource(R.string.ledger_unit_km, fmt.km(it)) } ?: "—", color = TextSecondary, fontSize = 13.sp, modifier = Modifier.weight(1f))
         Text(stringResource(R.string.ledger_unit_l, fmt.two(r.liters)), color = TextPrimary, fontSize = 13.sp, modifier = Modifier.weight(0.8f))
         Text(r.totalCost?.let { "${fmt.money(it)} $currency" } ?: "—", color = TextPrimary, fontSize = 13.sp, modifier = Modifier.weight(1f))

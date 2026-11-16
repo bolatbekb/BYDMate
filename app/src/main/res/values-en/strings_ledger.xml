@@ -39,6 +39,7 @@
     <string name="ledger_refuel_new">New refuel</string>
     <string name="ledger_refuel_edit">Refuel</string>
     <string name="ledger_refuel_confirm_title">Confirm refuel</string>
+    <string name="ledger_refuel_other">This is another refuel</string>
     <string name="ledger_expense_new">New expense</string>
     <string name="ledger_expense_edit">Expense</string>
     <string name="ledger_field_date">Date</string>
@@ -66,7 +67,7 @@
     <string name="ledger_seg_car">%1$s L/100 by car</string>
     <string name="ledger_seg_mismatch">mismatch %1$s</string>
     <string name="ledger_seg_cost_km">%1$s %2$s/km</string>
-    <string name="ledger_seg_incomplete">no odometer — not calculated</string>
+    <string name="ledger_seg_incomplete">odometer missing or not increasing — not calculated</string>
     <string name="ledger_settings_tank">Tank volume, L</string>
     <string name="ledger_settings_tank_desc">Used to estimate liters of a detected refuel.</string>
     <string name="ledger_settings_detect">Auto-detect threshold, pp</string>

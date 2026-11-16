@@ -52,7 +52,7 @@ class LedgerPrefillTest {
 
     @Test fun lateEntryFallsBackToSnapshot() = runBlocking {
         val entry = now - 7 * 24 * hour
-        coEvery { snaps.nearest(entry, 12 * hour) } returns snap(entry)
+        coEvery { snaps.nearest(entry, hour) } returns snap(entry)
         val p = prefill.forEntry(entry, now, car(mileage = 1000.0), draft(entry + 30 * hour))
         assertEquals(PrefillSource.SNAPSHOT, p.source)
         assertEquals(321.0, p.odometerKm)
@@ -63,5 +63,27 @@ class LedgerPrefillTest {
         coEvery { snaps.nearest(any(), any()) } returns snap(now)
         assertEquals(PrefillSource.SNAPSHOT, prefill.forEntry(now, now, null, null).source)
         assertEquals(PrefillSource.SNAPSHOT, prefill.forEntry(now, now, car(mileage = null), null).source)
+    }
+
+    @Test fun nearbyDraftBeatsLive() = runBlocking {
+        // refuelled, drove home for 20 min, then tapped + Refuel: the station values win
+        val p = prefill.forEntry(now, now, car(mileage = 1012.0, fuelTotalL = 41.0), draft(now - 20 * 60_000L))
+        assertEquals(PrefillSource.DRAFT, p.source)
+        assertEquals(500.0, p.odometerKm)
+        assertEquals(40.0, p.carFuelTotalL)
+    }
+
+    @Test fun draftOlderThanTwoHoursLosesToLive() = runBlocking {
+        val p = prefill.forEntry(now, now, car(mileage = 1012.0, fuelTotalL = 41.0), draft(now - 3 * hour))
+        assertEquals(PrefillSource.LIVE, p.source)
+    }
+
+    @Test fun snapshotWindowIsOneHour() = runBlocking {
+        val entry = now - 7 * 24 * hour
+        // only a wider window would find the 5 h old snapshot
+        coEvery { snaps.nearest(any(), any()) } returns snap(entry - 5 * hour)
+        coEvery { snaps.nearest(entry, hour) } returns null
+        val p = prefill.forEntry(entry, now, null, null)
+        assertEquals(PrefillSource.NONE, p.source)
     }
 }

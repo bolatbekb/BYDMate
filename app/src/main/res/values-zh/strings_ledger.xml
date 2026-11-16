@@ -39,6 +39,7 @@
     <string name="ledger_refuel_new">新加油记录</string>
     <string name="ledger_refuel_edit">加油</string>
     <string name="ledger_refuel_confirm_title">确认加油</string>
+    <string name="ledger_refuel_other">这是另一次加油</string>
     <string name="ledger_expense_new">新费用</string>
     <string name="ledger_expense_edit">费用</string>
     <string name="ledger_field_date">日期</string>
@@ -66,7 +67,7 @@
     <string name="ledger_seg_car">车辆 %1$s 升/百公里</string>
     <string name="ledger_seg_mismatch">偏差 %1$s</string>
     <string name="ledger_seg_cost_km">%1$s %2$s/km</string>
-    <string name="ledger_seg_incomplete">无里程——未计算</string>
+    <string name="ledger_seg_incomplete">里程缺失或未增加——未计算</string>
     <string name="ledger_settings_tank">油箱容量，升</string>
     <string name="ledger_settings_tank_desc">用于估算检测到的加油升数。</string>
     <string name="ledger_settings_detect">自动检测阈值，百分点</string>

@@ -39,6 +39,7 @@
     <string name="ledger_refuel_new">Novo abastecimento</string>
     <string name="ledger_refuel_edit">Abastecimento</string>
     <string name="ledger_refuel_confirm_title">Confirmar abastecimento</string>
+    <string name="ledger_refuel_other">É outro abastecimento</string>
     <string name="ledger_expense_new">Nova despesa</string>
     <string name="ledger_expense_edit">Despesa</string>
     <string name="ledger_field_date">Data</string>
@@ -66,7 +67,7 @@
     <string name="ledger_seg_car">%1$s L/100 pelo carro</string>
     <string name="ledger_seg_mismatch">diferença %1$s</string>
     <string name="ledger_seg_cost_km">%1$s %2$s/km</string>
-    <string name="ledger_seg_incomplete">sem hodômetro — não calculado</string>
+    <string name="ledger_seg_incomplete">hodômetro ausente ou não aumenta — não calculado</string>
     <string name="ledger_settings_tank">Capacidade do tanque, L</string>
     <string name="ledger_settings_tank_desc">Usada para estimar os litros de um abastecimento detectado.</string>
     <string name="ledger_settings_detect">Limite de detecção, p.p.</string>

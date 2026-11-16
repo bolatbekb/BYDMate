@@ -33,13 +33,26 @@ data class LedgerEditorState(
     val base: RefuelEntity? = null,
     /** Detector's liters estimate of a draft: a hint only, never receipt data. */
     val sensorLiters: Double? = null,
+    /** Odometer and car counter read at the same moment; the counter holds only near that odometer. */
+    val pairedOdometerKm: Double? = null,
+    val pairedCarFuelTotalL: Double? = null,
 ) {
-    fun applyPrefill(p: Prefill): LedgerEditorState = copy(
-        odometer = if (odometerEditedByUser) odometer else p.odometerKm?.let(::plain).orEmpty(),
-        carFuelTotalL = p.carFuelTotalL,
-    )
+    fun applyPrefill(p: Prefill): LedgerEditorState {
+        val odo = if (odometerEditedByUser) odometer else p.odometerKm?.let(::plain).orEmpty()
+        return copy(odometer = odo, pairedOdometerKm = p.odometerKm, pairedCarFuelTotalL = p.carFuelTotalL)
+            .withPairedCounter()
+    }
 
-    fun onOdometerTyped(text: String): LedgerEditorState = copy(odometer = text, odometerEditedByUser = true)
+    fun onOdometerTyped(text: String): LedgerEditorState =
+        copy(odometer = text, odometerEditedByUser = true).withPairedCounter()
+
+    /** An odometer more than 1 km off the paired one makes the entry receipt-only (no car counter). */
+    private fun withPairedCounter(): LedgerEditorState {
+        val typed = num(odometer)
+        val paired = pairedOdometerKm
+        val matches = paired == null || (typed != null && abs(typed - paired) <= PAIR_KM)
+        return copy(carFuelTotalL = if (matches) pairedCarFuelTotalL else null)
+    }
 
     fun errors(): Set<RefuelField> = buildSet {
         if (bad(odometer)) add(RefuelField.ODOMETER)
@@ -83,6 +96,13 @@ data class LedgerEditorState(
     companion object {
         fun new(nowMs: Long) = LedgerEditorState(dateMs = nowMs)
 
+        /** "+ Refuel" while a detected draft is open confirms that draft; otherwise a blank entry. */
+        fun forNewRefuel(refuels: List<RefuelEntity>, nowMs: Long): LedgerEditorState =
+            refuels.filter { it.status == "draft" && it.source == "detected" }
+                .maxByOrNull { it.date }?.let(::from) ?: new(nowMs)
+
+        private const val PAIR_KM = 1.0
+
         /** Price is left blank (derived) when it matches total / liters, so editing one field recomputes it. */
         fun from(e: RefuelEntity): LedgerEditorState {
             val t = e.totalCost
@@ -102,6 +122,8 @@ data class LedgerEditorState(
                 note = e.note.orEmpty(),
                 carFuelTotalL = e.carFuelTotalL,
                 base = e,
+                pairedOdometerKm = e.odometerKm,
+                pairedCarFuelTotalL = e.carFuelTotalL,
             )
         }
 

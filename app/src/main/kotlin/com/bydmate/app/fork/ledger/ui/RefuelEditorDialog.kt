@@ -32,7 +32,7 @@ import com.bydmate.app.ui.theme.TextSecondary
 /**
  * New refuel, edit of a stored one, or confirmation of a draft ([initial].base.status == "draft").
  * Only a new entry is prefilled (again on every date change); a stored entry keeps its odometer
- * and car counter.
+ * and car counter. [onOtherRefuel] (a draft opened by "+ Refuel") drops the draft for a blank entry.
  */
 @Composable
 internal fun RefuelEditorDialog(
@@ -43,6 +43,7 @@ internal fun RefuelEditorDialog(
     onSave: (RefuelEntity) -> Unit,
     onDelete: (() -> Unit)?,
     onDismiss: () -> Unit,
+    onOtherRefuel: (() -> Unit)? = null,
 ) {
     val fmt = rememberLedgerFmt()
     var form by remember { mutableStateOf(initial) }
@@ -141,6 +142,7 @@ internal fun RefuelEditorDialog(
         },
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (onOtherRefuel != null) LedgerButton(stringResource(R.string.ledger_refuel_other), primary = false, onClick = onOtherRefuel)
                 if (onDelete != null) LedgerButton(stringResource(R.string.ledger_delete), primary = false, enabled = parked, onClick = onDelete)
                 LedgerButton(stringResource(R.string.ledger_cancel), primary = false, onClick = onDismiss)
             }

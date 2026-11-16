@@ -16,6 +16,7 @@ import com.bydmate.app.fork.ledger.data.LedgerDatabase
 import com.bydmate.app.fork.ledger.data.LedgerRepository
 import com.bydmate.app.fork.ledger.data.RefuelEntity
 import com.bydmate.app.fork.ledger.domain.LedgerPrefill
+import com.bydmate.app.fork.ledger.domain.PrefillSource
 import com.bydmate.app.fork.ledger.domain.car
 import io.mockk.coEvery
 import io.mockk.mockk
@@ -134,6 +135,18 @@ class LedgerViewModelTest {
         val vm = vm()
         val st = until("month rows", { vm.state.value }) { it.months.isNotEmpty() }
         assertEquals(50.0, st.months.first().fuel, 0.001)
+    }
+
+    @Test fun prefillPrefersNearbyDraftUnlessItIsAnotherRefuel() = runBlocking {
+        repo.refuels.insert(refuel(now - 20 * 60_000L, 1000.0, 20.0, full = false, car = 55.0, status = "draft"))
+        carData.value = car(mileage = 1012.0, fuelTotalL = 56.0)
+        val vm = vm()
+        val station = vm.prefillFor(now)
+        assertEquals(PrefillSource.DRAFT, station.source)
+        assertEquals(55.0, station.carFuelTotalL!!, 0.0)
+        val other = vm.prefillFor(now, useDraft = false)
+        assertEquals(PrefillSource.LIVE, other.source)
+        assertEquals(1012.0, other.odometerKm!!, 0.0)
     }
 
     @Test fun confirmDraftTurnsDraftIntoConfirmed() = runBlocking {

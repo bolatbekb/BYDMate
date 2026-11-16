@@ -55,6 +55,25 @@ class RefuelDetectorTest {
         assertEquals(DetectorState(25, 11.0, 100.0, 9L, null), s)
     }
 
+    @Test fun fuelDropMovesBaselineOdometerToo() {
+        val (s, _) = step(base, 25, odo = 101.5, ts = 9L, total = 11.0)
+        assertEquals(DetectorState(25, 11.0, 101.5, 9L, null), s)
+    }
+
+    @Test fun zeroReadingIsIgnored() {
+        var s: DetectorState? = base.copy(baselinePercent = 45)
+        val actions = listOf(0, 45).map { p -> step(s, p).also { s = it.first }.second }
+        assertEquals(listOf<DetectorAction>(DetectorAction.None, DetectorAction.None), actions)
+        assertEquals(45, s!!.baselinePercent)
+    }
+
+    @Test fun slowDropStillLowersBaseline() {
+        var s: DetectorState? = base.copy(baselinePercent = 45)
+        for (p in 45 downTo 20) s = step(s, p).first
+        assertEquals(20, s!!.baselinePercent)
+        assertEquals(DetectorAction.None, step(s, 25).second)
+    }
+
     @Test fun sentinel255Ignored() {
         val (s, a) = step(base, 255)
         assertEquals(base, s)

@@ -59,12 +59,15 @@ object RefuelDetector {
         ts: Long,
         thresholdPp: Int,
     ): Pair<DetectorState?, DetectorAction> {
-        if (percent == null || percent !in 0..100 || odo == null) return state to DetectorAction.None
+        // 0 % is a glitch (or a dead-empty tank we cannot tell from one): never a baseline
+        if (percent == null || percent !in 1..100 || odo == null) return state to DetectorAction.None
         fun fresh() = DetectorState(percent, fuelTotal, odo, ts, null)
         if (state == null) return fresh() to DetectorAction.None
         if (abs(odo - state.baselineOdo) >= MOVED_KM) return fresh() to DetectorAction.None
         if (percent < state.baselinePercent) {
-            return state.copy(baselinePercent = percent, baselineFuelTotal = fuelTotal, baselineTs = ts) to DetectorAction.None
+            return state.copy(
+                baselinePercent = percent, baselineFuelTotal = fuelTotal, baselineOdo = odo, baselineTs = ts,
+            ) to DetectorAction.None
         }
         if (percent - state.baselinePercent >= thresholdPp && !state.dismissed) {
             val id = state.draftId

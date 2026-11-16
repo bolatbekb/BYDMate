@@ -39,6 +39,7 @@
     <string name="ledger_refuel_new">Новая запраўка</string>
     <string name="ledger_refuel_edit">Запраўка</string>
     <string name="ledger_refuel_confirm_title">Пацвярджэнне запраўкі</string>
+    <string name="ledger_refuel_other">Гэта іншая запраўка</string>
     <string name="ledger_expense_new">Новы выдатак</string>
     <string name="ledger_expense_edit">Выдатак</string>
     <string name="ledger_field_date">Дата</string>
@@ -66,7 +67,7 @@
     <string name="ledger_seg_car">%1$s л/100 па машыне</string>
     <string name="ledger_seg_mismatch">разыходжанне %1$s</string>
     <string name="ledger_seg_cost_km">%1$s %2$s/км</string>
-    <string name="ledger_seg_incomplete">без прабегу — не палічаны</string>
+    <string name="ledger_seg_incomplete">прабег не пазначаны або не расце — не палічаны</string>
     <string name="ledger_settings_tank">Аб’ём бака, л</string>
     <string name="ledger_settings_tank_desc">Патрэбны, каб ацаніць літры знойдзенай запраўкі.</string>
     <string name="ledger_settings_detect">Парог аўтапошуку, п.п.</string>

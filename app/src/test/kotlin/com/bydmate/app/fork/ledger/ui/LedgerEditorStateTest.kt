@@ -24,8 +24,8 @@ class LedgerEditorStateTest {
         val s = fresh().onOdometerTyped("15000").applyPrefill(Prefill(15123.0, 41.0, PrefillSource.SNAPSHOT))
         assertEquals("15000", s.odometer)
         assertTrue(s.odometerEditedByUser)
-        // the hidden car counter still follows the prefill
-        assertEquals(41.0, s.carFuelTotalL!!, 0.0)
+        // 123 km away from the prefilled odometer: the car counter belongs to another moment
+        assertNull(s.carFuelTotalL)
     }
 
     @Test fun twoOfThreeFieldsMakeRefuel() {
@@ -65,7 +65,7 @@ class LedgerEditorStateTest {
     }
 
     private fun draft() = fresh().copy(liters = "1", total = "1").toRefuel()!!.copy(
-        id = 9, liters = 25.0, totalCost = null, pricePerLiter = null, fullTank = false,
+        id = 9, odometerKm = 500.0, liters = 25.0, totalCost = null, pricePerLiter = null, fullTank = false,
         carFuelTotalL = 40.0, tankPercentBefore = 20, tankPercentAfter = 70, source = "detected", status = "draft",
     )
 
@@ -90,5 +90,35 @@ class LedgerEditorStateTest {
         val r = fresh().copy(liters = "33.33", price = "3", total = "100").toRefuel()!!
         assertEquals(100.0, r.totalCost!!, 0.0)
         assertEquals(33.33, r.liters, 0.0)
+    }
+
+    @Test fun retypedOdometerDropsCounter() {
+        val s = fresh().applyPrefill(Prefill(15123.0, 40.5, PrefillSource.LIVE)).onOdometerTyped("15100")
+        assertNull(s.carFuelTotalL)
+        assertNull(s.copy(liters = "40", total = "100").toRefuel()!!.carFuelTotalL)
+    }
+
+    @Test fun retypeWithinOneKmKeepsCounter() {
+        val s = fresh().applyPrefill(Prefill(15123.0, 40.5, PrefillSource.LIVE))
+        assertEquals(40.5, s.onOdometerTyped("15123,8").carFuelTotalL!!, 0.0)
+        // cleared and typed back: the counter returns
+        assertEquals(40.5, s.onOdometerTyped("").onOdometerTyped("15123").carFuelTotalL!!, 0.0)
+    }
+
+    @Test fun storedEntryRetypedOdometerDropsCounter() {
+        val s = LedgerEditorState.from(draft())
+        assertEquals(40.0, s.carFuelTotalL!!, 0.0)
+        assertNull(s.onOdometerTyped("530").carFuelTotalL)
+    }
+
+    @Test fun newRefuelOpensTheOpenDraft() {
+        val d = draft()
+        val confirmed = d.copy(id = 3, status = "confirmed", source = "manual")
+        val s = LedgerEditorState.forNewRefuel(listOf(confirmed, d), now)
+        assertEquals(d, s.base)
+        assertEquals(25.0, s.sensorLiters!!, 0.0)
+        val blank = LedgerEditorState.forNewRefuel(listOf(confirmed), now)
+        assertNull(blank.base)
+        assertEquals(now, blank.dateMs)
     }
 }

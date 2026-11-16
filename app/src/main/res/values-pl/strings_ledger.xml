@@ -39,6 +39,7 @@
     <string name="ledger_refuel_new">Nowe tankowanie</string>
     <string name="ledger_refuel_edit">Tankowanie</string>
     <string name="ledger_refuel_confirm_title">Potwierdzenie tankowania</string>
+    <string name="ledger_refuel_other">To inne tankowanie</string>
     <string name="ledger_expense_new">Nowy wydatek</string>
     <string name="ledger_expense_edit">Wydatek</string>
     <string name="ledger_field_date">Data</string>
@@ -66,7 +67,7 @@
     <string name="ledger_seg_car">%1$s l/100 wg auta</string>
     <string name="ledger_seg_mismatch">rozbieżność %1$s</string>
     <string name="ledger_seg_cost_km">%1$s %2$s/km</string>
-    <string name="ledger_seg_incomplete">brak przebiegu — nie policzono</string>
+    <string name="ledger_seg_incomplete">brak przebiegu lub nie rośnie — nie policzono</string>
     <string name="ledger_settings_tank">Pojemność baku, l</string>
     <string name="ledger_settings_tank_desc">Potrzebna do oszacowania litrów wykrytego tankowania.</string>
     <string name="ledger_settings_detect">Próg wykrywania, pp</string>
