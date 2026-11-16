@@ -8,9 +8,11 @@ import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
 import android.os.SystemClock
+import android.util.Log
 import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.media.MediaSessionListenerService
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,6 +20,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** What the retro home screens show on the tape: the active media session, or nothing. */
 data class NowPlaying(
@@ -82,6 +85,10 @@ object NowPlayingSource : MusicControls {
     // Album art: only the current one is kept, scaled once per track.
     private var artKey: String? = null
     private var artBitmap: Bitmap? = null
+    // Art published only as a URI: loaded once per track off the main thread; logged once per track.
+    private val uriArt = UriArtState()
+    private var loggedArtKey: String? = null
+    private var scope: CoroutineScope? = null
     private val labelCache = HashMap<String, String?>()
 
     // DEMO playlist
@@ -98,6 +105,7 @@ object NowPlayingSource : MusicControls {
 
     fun start(context: Context, scope: CoroutineScope) {
         appContext = context.applicationContext
+        this.scope = scope
         if (job?.isActive == true) return
         job = scope.launch {
             while (isActive) {
@@ -162,7 +170,7 @@ object NowPlayingSource : MusicControls {
             source = c.packageName,
             album = album,
             year = md?.getLong(MediaMetadata.METADATA_KEY_YEAR)?.takeIf { it > 0 }?.toInt(),
-            art = artFor(md, "$title|$artist|$album"),
+            art = artFor(md, "$title|$artist|$album", c.packageName),
             sourceLabel = labelFor(ctx, c.packageName),
             shuffleAction = findAction(actions, "shuffle"),
             repeatAction = findAction(actions, "repeat"),
@@ -175,16 +183,63 @@ object NowPlayingSource : MusicControls {
             it.action.contains(word, ignoreCase = true) || it.name?.toString()?.contains(word, ignoreCase = true) == true
         }?.action
 
-    /** Scaled once per «title|artist|album»; the first non-null cover for a key wins (each poll unparcels a new Bitmap). */
-    internal fun artFor(md: MediaMetadata?, key: String): Bitmap? {
+    /**
+     * Scaled once per «title|artist|album»; the first non-null cover for a key wins (each poll
+     * unparcels a new Bitmap). Bitmaps first (ALBUM_ART → ART → DISPLAY_ICON), then a URI
+     * (ALBUM_ART_URI → ART_URI → DISPLAY_ICON_URI), loaded once per track in the background.
+     */
+    internal fun artFor(md: MediaMetadata?, key: String, pkg: String = ""): Bitmap? {
         if (md == null) { artKey = null; artBitmap = null; return null }
         if (key != artKey) { artKey = key; artBitmap = null }
         if (artBitmap == null) {
-            val src = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md.getBitmap(MediaMetadata.METADATA_KEY_ART)
-            artBitmap = src?.let { scaleArt(it) }
+            val pick = pickArt(md)
+            val bitmapKey = pick.bitmapKey
+            val uri = pick.uri
+            when {
+                bitmapKey != null -> {
+                    artBitmap = md.getBitmap(bitmapKey)?.let { scaleArt(it) }
+                    logArt(key, pkg, pick, "bitmap")
+                }
+                uri != null -> when (uriArt.request(key)) {
+                    UriArtState.Step.START -> loadUriArt(key, pkg, pick, uri)
+                    UriArtState.Step.READY -> artBitmap = uriArt.bitmap(key)
+                    UriArtState.Step.PENDING, UriArtState.Step.FAILED -> Unit
+                }
+                else -> logArt(key, pkg, pick, "none")
+            }
         }
         return artBitmap
     }
+
+    /** Loads [uri] on IO; the cover shows when the track is still the same. */
+    private fun loadUriArt(key: String, pkg: String, pick: ArtPick, uri: String) {
+        val ctx = appContext ?: return
+        val s = scope ?: return
+        s.launch {
+            // Cancelled with the screen before it finished: let the next poll start it again.
+            val r = try {
+                withContext(Dispatchers.IO) { loadArtUri(ctx, uri) }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                uriArt.forget(key)
+                throw e
+            }
+            uriArt.done(key, r.bitmap)
+            logArt(key, pkg, pick, r.reason)
+            if (key == artKey && r.bitmap != null) {
+                artBitmap = r.bitmap
+                _state.value = _state.value.copy(art = r.bitmap)
+            }
+        }
+    }
+
+    /** Once per track: where its cover came from (URIs by scheme only, never the address). */
+    private fun logArt(key: String, pkg: String, pick: ArtPick, outcome: String) {
+        if (key == loggedArtKey) return
+        loggedArtKey = key
+        Log.d(TAG, artLogLine(pkg, pick, outcome))
+    }
+
+    private const val TAG = "NowPlaying"
 
     private fun labelFor(ctx: Context, pkg: String): String? {
         if (labelCache.containsKey(pkg)) return labelCache[pkg]
