@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="ledger_backup_error_corrupt">Файл учёта заправок и расходов в бэкапе повреждён. Восстановление отменено, данные не изменены.</string>
+    <string name="ledger_backup_error_newer">Учёт заправок и расходов в бэкапе создан более новой версией приложения (схема %1$d, текущая %2$d). Обновите приложение перед восстановлением.</string>
+    <string name="ledger_backup_error_busy">База учёта заправок и расходов занята, экспорт прерван. Повторите попытку позже.</string>
+</resources>

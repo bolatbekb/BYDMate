@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="ledger_backup_error_corrupt">The fuel and expenses ledger in the backup is damaged. Restore cancelled, nothing was changed.</string>
+    <string name="ledger_backup_error_newer">The fuel and expenses ledger in the backup was made by a newer app version (schema %1$d, current %2$d). Update the app before restoring.</string>
+    <string name="ledger_backup_error_busy">The fuel and expenses ledger is busy, export aborted. Try again later.</string>
+</resources>

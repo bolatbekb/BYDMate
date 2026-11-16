@@ -13,6 +13,7 @@ import com.bydmate.app.cluster.ClusterProjectionManager
 import com.bydmate.app.data.automation.AutomationEngine
 import com.bydmate.app.data.autoservice.AdbRestorePreferencesImpl
 import com.bydmate.app.data.local.database.AppDatabase
+import com.bydmate.app.fork.ledger.backup.LedgerBackup // fork: ledger
 import com.bydmate.app.hud.HudAmapClusterLoop
 import com.bydmate.app.hud.HudController
 import com.bydmate.app.service.A11yRecoveryGate
@@ -438,6 +439,7 @@ class BackupManager(
             put("createdAt", manifest.createdAt)
             put(MANIFEST_PARTS, JSONArray(BackupPart.entries.filter { it in parts }.map { it.id }))
         }.toString()
+        val ledger = LedgerBackup.snapshot(parts, strings) // fork: ledger, taken before the zip exists
 
         // 6. Write zip to Downloads
         val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
@@ -457,6 +459,7 @@ class BackupManager(
             zip.putNextEntry(ZipEntry(ENTRY_MANIFEST))
             zip.write(manifestJson.toByteArray(Charsets.UTF_8))
             zip.closeEntry()
+            ledger?.writeTo(zip) // fork: ledger
         }
 
         return zipFile
@@ -596,18 +599,24 @@ class BackupManager(
                 BackupDatabaseFiles.deleteWithSideFiles(tmpDbFile)
                 error(strings.get(R.string.backup_error_version_mismatch))
             }
+            // fork: ledger — validated into a temp file before anything is replaced; swapped in after.
+            val ledger = try { LedgerBackup.prepareRestore(context, file, selected) }
+                catch (e: Throwable) { BackupDatabaseFiles.deleteWithSideFiles(tmpDbFile); throw e }
 
-            if (selected == BackupPart.ALL) {
-                // An archive of v3.17.5 or older carries when each rule last fired on the source
-                // device: a later clock there would hold cooldown rules back here.
-                SQLiteDatabase.openDatabase(tmpDbFile.path, null, SQLiteDatabase.OPEN_READWRITE)
-                    .use { it.execSQL("UPDATE automation_rules SET last_triggered_at = NULL") }
-                // Under the export lock: an auto backup running at this moment must not
-                // checkpoint or read the database while it is closed and swapped.
-                synchronized(exportLock) { swapIn(tmpDbFile, prefsMap) }
-            } else {
-                mergeAndSwap(tmpDbFile, selected, prefsMap.takeIf { BackupPart.SETTINGS in selected })
-            }
+            try { // fork: ledger
+                if (selected == BackupPart.ALL) {
+                    // An archive of v3.17.5 or older carries when each rule last fired on the source
+                    // device: a later clock there would hold cooldown rules back here.
+                    SQLiteDatabase.openDatabase(tmpDbFile.path, null, SQLiteDatabase.OPEN_READWRITE)
+                        .use { it.execSQL("UPDATE automation_rules SET last_triggered_at = NULL") }
+                    // Under the export lock: an auto backup running at this moment must not
+                    // checkpoint or read the database while it is closed and swapped.
+                    synchronized(exportLock) { swapIn(tmpDbFile, prefsMap) }
+                } else {
+                    mergeAndSwap(tmpDbFile, selected, prefsMap.takeIf { BackupPart.SETTINGS in selected })
+                }
+            } catch (e: Throwable) { ledger?.discard(); throw e } // fork: ledger
+            ledger?.let { synchronized(exportLock) { it.commit() } } // fork: ledger, never throws
             // Caller is responsible for restarting the process after this returns.
         }
     }
