@@ -6,7 +6,24 @@ Rects are `x, y, w, h` with the top-left pixel included. Angles are degrees in t
 "Ink" is where the mockup drew the value: put the app's text there. "Cleared" is the area the tool repainted.
 The figures come from the mockup's pixels, so where the artwork is uneven they are uneven too.
 
-Task 2 moves the deck and the data screen to a common height. When it does, it must update the rows marked ⇕.
+The deck block is moved to the data screen's height (owner's edit 4): both frames have their top highlight on row 173
+and their bottom highlight on row 506 (the tool prints both). The deck's display and everything above row 416 of the
+mockup moved up 12 px, the transport keys and the frame bottom up 10 px (2 rows of metal between them were stretched).
+The rects below are already in `cd_base` coordinates.
+
+Printed by the tool and not live: BYDMATE (twice), the left keys «Статистика / Поездки / Система» with their icons,
+«Громкость», «Наушники», the Fangchengbao badge on the plaque at the bottom right, the plain ▶ transport key.
+Erased for good: «Stereo Car Deck RS-C900» and the meters' ◀ ▶ keys.
+
+## Left keys (printed)
+
+Statistics, trips, system: printed with their icons and words, nothing live on them. Touch areas:
+
+| Key | Rect | Word baseline |
+|---|---|---|
+| Статистика | 71, 174, 137, 94 | 252 |
+| Поездки | 71, 293, 137, 98 | 375 |
+| Система | 71, 416, 137, 95 | 495 |
 
 ## Header (top right, black panel)
 
@@ -31,33 +48,35 @@ Task 2 moves the deck and the data screen to a common height. When it does, it m
 | Rows | 7, centre y = 23.5 + 13.08·j (j = 0…6) |
 | LED | ≈ 12 px across. A column is 14.41 px wide: 562 + 14.41·i … +14.41 |
 
-## Deck display ⇕
+## Deck display
 
 | Element | Rect / value | Notes |
 |---|---|---|
-| Display inside | 302, 213, 762, 194 | lum ≈ 16 |
-| Note icon (kept) | 362, 247, 54, 63 | |
-| Title line ink | 485, 234, 429, 37 | cyan #8CFFFF, cap ≈ 27. Cleared 470–930 × 225–280. Keep it right of x 470 and left of the display edge (1063) |
-| Big time ink | 505, 289, 157, 43 | cyan #8BFFFF, seven-segment italic "03:24". Cleared 495–672 × 281–342 |
-| Status ink (▶ PLAYING) | 740, 302, 139, 21 | ▶ 740–757, word 772–878, #B6FFFF. Cleared 730–890 × 293–332 |
-| Thin rule (kept) | 343, 351, 682, 3 | |
-| Progress bar | 344, 366, 681, 18 | cleared 338–1030 × 358–391 |
+| Display inside | 302, 201, 762, 194 | lum ≈ 16 |
+| Note icon (kept) | 362, 235, 54, 63 | |
+| Title line ink | 485, 222, 429, 37 | cyan #8CFFFF, cap ≈ 27. Cleared 470–930 × 213–268. Keep it right of x 470 and left of the display edge (1063) |
+| Big time ink | 505, 277, 157, 43 | cyan #8BFFFF, seven-segment italic "03:24". Cleared 495–672 × 269–330 |
+| Status ink (▶ PLAYING) | 740, 290, 139, 21 | ▶ 740–757, word 772–878, #B6FFFF. Cleared 730–890 × 281–320 |
+| Thin rule (kept) | 343, 339, 682, 3 | |
+| Progress bar | 344, 354, 681, 18 | cleared 338–1030 × 346–379 |
 | Segments | 20, pitch 34.05: segment i at x 344 + 34.05·i, width 32, height 18 | lit #55FFFF, unlit is an outline #30817A |
 
-Transport keys (printed, kept). The ▶ key's triangle is printed green, as in the mockup.
+Transport keys (printed, kept; 10 px higher than in the mockup). All six are plain: the ▶ key, printed lit green in the
+mockup, has a grey ▶ like its neighbours. While music plays, lay `cd_play_lit` (opaque, 131 × 66, the mockup's lit key
+with its green ▶ and glow) at **693, 423**.
 
 | Key | Rect | Glyph centre |
 |---|---|---|
-| ⏪ | 301, 435, 127, 59 | 362, 465 |
-| ⏹ | 433, 435, 126, 59 | 495, 465 |
-| ⏸ | 564, 435, 127, 59 | 627, 465 |
-| ▶ | 696, 435, 125, 59 | 759, 465 |
-| ⏩ | 826, 435, 126, 59 | 888, 465 |
-| ⏏ | 983, 435, 86, 59 | 1025, 465 |
+| ⏪ | 301, 425, 127, 59 | 362, 455 |
+| ⏹ | 433, 425, 126, 59 | 495, 455 |
+| ⏸ | 564, 425, 127, 59 | 627, 455 |
+| ▶ | 696, 425, 125, 59 | 759, 455 |
+| ⏩ | 826, 425, 126, 59 | 888, 455 |
+| ⏏ | 983, 425, 86, 59 | 1025, 455 |
 
-## Car-data screen ⇕
+## Car-data screen
 
-Screen inside: 1122, 177, 950, 326. Labels, icons, the (i) and the dividers stay printed.
+Screen inside: 1122, 177, 950, 326 (not moved: it is the reference for the deck). Labels, icons, the (i) and the dividers stay printed.
 
 | Value | Ink (mockup) | Cleared | Colour |
 |---|---|---|---|
@@ -126,7 +145,7 @@ Inside the layers, icons sit in x 80–137 and words in x 138–232.
 ## Meters
 
 Meter screens: RPM 1384, 612, 541, 296; compressor 1928, 612, 560, 296 (the divider at x 1925–1926 is kept).
-The arrows ◀ ▶ are still printed (Task 2 removes them). Needles, hubs and the big values were cleared.
+The ◀ ▶ keys beside the meters are erased (glass). Needles, hubs and the big values were cleared.
 
 | | Обороты (0…6 ×1000) | Компрессор (0.0…3.0 кВт) |
 |---|---|---|
@@ -178,3 +197,4 @@ The lamp strip is y 978–1004 (black lines at 976–977 and 1005). The lamp its
 | `cd_tab_icons`, `cd_tab_words` | 1302 × 99 | the bottom keys' printed icons / words, alpha (white strokes, black outlines) |
 | `cd_period_icons`, `cd_period_words` | 153 × 210 | the period keys' printed icons / words, alpha |
 | `cd_led_green`, `cd_led_amber` | 101 × 27 | a lamp with its glow on the lamp strip, opaque |
+| `cd_play_lit` | 131 × 66 | the ▶ transport key lit (green ▶ with glow), opaque, at 693, 423 |
