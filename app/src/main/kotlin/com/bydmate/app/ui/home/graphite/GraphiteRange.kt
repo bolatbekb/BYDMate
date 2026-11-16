@@ -43,7 +43,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import com.bydmate.app.R
@@ -210,10 +209,8 @@ private fun RangeGauge(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 GrIcon(labelIcon, 22f, accent)
                 Spacer(Modifier.width(px(12)))
-                Text(
-                    label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-                    style = grStyle(21f, 450, 0.1f, p.textSecondary, tnum = false),
-                )
+                // Line boxes here and in the footer: Chinese lines must not grow the card (see FitText).
+                FitText(label, grStyle(21f, 450, 0.1f, p.textSecondary, tnum = false), 21f, 21f, Modifier, lineBox = true)
             }
             Text(
                 percentText(percent, p), maxLines = 1, softWrap = false,
@@ -226,7 +223,7 @@ private fun RangeGauge(
                     line.second?.let { append(" $it") }
                 },
                 grStyle(22f, 400, color = p.textSecondary, tnum = false), 22f, 18f,
-                Modifier.padding(top = px(10)),
+                Modifier.padding(top = px(10)), lineBox = true,
             )
             // The rpm line has a fixed slot (in both gauges), so the engine starting moves nothing.
             if (rpmSlot || engineOn) {
@@ -378,6 +375,7 @@ private fun RangeFooter(data: HomeData, sohPercent: Float?, capacityKwh: Double?
                             withStyle(SpanStyle(color = p.textPrimary, fontWeight = FontWeight(500))) { append(value) }
                         },
                         grStyle(19f, 400, color = p.textTertiary, tnum = false), 19f, 15f, Modifier.weight(1f),
+                        lineBox = true,
                     )
                 }
             }
