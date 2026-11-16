@@ -11,11 +11,13 @@ internal const val SEEK_TOLERANCE_MS = 1_500L
 
 /**
  * The position to show at [nowMs]: [polledMs] as of [polledAtMs] (same clock), plus the time
- * since while [playing]; at most [durationMs] when known, never below 0, never rewound by a
- * clock that went backwards.
+ * since × [speed] while [playing]; at most [durationMs] when known, never below 0, never rewound
+ * by a clock that went backwards.
  */
-internal fun extrapolatePosition(polledMs: Long, polledAtMs: Long, nowMs: Long, durationMs: Long?, playing: Boolean): Long {
-    val run = if (playing) (nowMs - polledAtMs).coerceAtLeast(0L) else 0L
+internal fun extrapolatePosition(
+    polledMs: Long, polledAtMs: Long, nowMs: Long, durationMs: Long?, playing: Boolean, speed: Float = 1f,
+): Long {
+    val run = if (playing) ((nowMs - polledAtMs).coerceAtLeast(0L) * speed.coerceAtLeast(0f)).toLong() else 0L
     val pos = (polledMs + run).coerceAtLeast(0L)
     return if (durationMs != null && durationMs > 0) pos.coerceAtMost(durationMs) else pos
 }

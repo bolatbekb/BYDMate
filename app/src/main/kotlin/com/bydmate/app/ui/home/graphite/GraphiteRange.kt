@@ -7,7 +7,6 @@ import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
@@ -39,6 +38,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.text.AnnotatedString
@@ -194,9 +194,10 @@ private fun RangeGauge(
     rpmSlot: Boolean = false,
 ) {
     val p = LocalGr.current
-    val engineOn = rpm != null && rpm > 0
+    val running = rpm?.takeIf { it > 0 }
+    val engineOn = running != null
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
-        GaugeDial(percent, accent, centerIcon, shimmer, if (engineOn) rpm else null)
+        GaugeDial(percent, accent, centerIcon, shimmer, running)
         Spacer(Modifier.width(px(18)))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -223,11 +224,11 @@ private fun RangeGauge(
             // The rpm line has a fixed slot (in both gauges), so the engine starting moves nothing.
             if (rpmSlot || engineOn) {
                 Box(Modifier.padding(top = px(6)).height(px(RPM_LINE_H)).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                    if (engineOn) {
+                    if (running != null) {
                         FitText(
                             buildAnnotatedString {
                                 append("ДВС ")
-                                withStyle(SpanStyle(fontWeight = FontWeight(500))) { append("${grInt(rpm!!)} об/мин") }
+                                withStyle(SpanStyle(fontWeight = FontWeight(500))) { append("${grInt(running)} об/мин") }
                             },
                             grStyle(19f, 400, color = p.fuel, tnum = false), 19f, 15f, Modifier,
                         )
@@ -266,7 +267,8 @@ private fun GaugeDial(percent: Int?, accent: Color, centerIcon: Int, shimmer: Bo
     } else null
     Box(Modifier.size(px(164)), contentAlignment = Alignment.Center) {
         Box(
-            Modifier.size(px(164)).drawWithCache {
+            // Its own layer: the shimmer and the rpm ring redraw only this box.
+            Modifier.size(px(164)).graphicsLayer().drawWithCache {
                 val k = size.width / 150f
                 val c = Offset(75f * k, 75f * k)
                 val r = 62f * k

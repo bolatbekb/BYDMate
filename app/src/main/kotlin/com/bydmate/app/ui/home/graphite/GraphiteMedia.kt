@@ -42,7 +42,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
@@ -77,6 +76,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
@@ -101,19 +103,23 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
         val slide = with(LocalDensity.current) { px(12).roundToPx() }
         // A new track cross-fades the cover and the text, the new one rising 12 px; the same
         // track (play / pause, position) updates in place.
-        AnimatedContent(
-            targetState = music,
-            contentKey = { it.trackKey() },
-            transitionSpec = {
-                (fadeIn(tween(TRACK_MS)) + slideInVertically(tween(TRACK_MS)) { slide }) togetherWith fadeOut(tween(TRACK_MS)) using
-                    SizeTransform(clip = false)
-            },
-            modifier = Modifier.fillMaxWidth().height(px(Side)).coverGlow(music.isPlaying && music.hasTrack),
-            label = "track",
-        ) { m ->
-            Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(px(30))) {
-                Cover(m)
-                Meta(m, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)))
+        Box(Modifier.fillMaxWidth().height(px(Side))) {
+            // The glow breathes in its own layer behind the cover (unclipped, so the blur shows).
+            Box(Modifier.size(px(Side)).graphicsLayer().coverGlow(music.isPlaying && music.hasTrack))
+            AnimatedContent(
+                targetState = music,
+                contentKey = { it.trackKey() },
+                transitionSpec = {
+                    (fadeIn(tween(TRACK_MS)) + slideInVertically(tween(TRACK_MS)) { slide }) togetherWith fadeOut(tween(TRACK_MS)) using
+                        SizeTransform(clip = false)
+                },
+                modifier = Modifier.fillMaxSize(),
+                label = "track",
+            ) { m ->
+                Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(px(30))) {
+                    Cover(m)
+                    Meta(m, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)))
+                }
             }
         }
         Spacer(Modifier.height(px(28)))
@@ -244,19 +250,23 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
 private fun Equalizer(playing: Boolean, color: Color) {
     val clock = remember { mutableFloatStateOf(0f) }
     val live = remember { Animatable(if (playing) 1f else 0f) }
-    LaunchedEffect(playing) {
+    val owner = LocalLifecycleOwner.current
+    LaunchedEffect(playing, owner) {
         if (playing) {
             launch { live.animateTo(1f, tween(EQ_EASE_MS)) }
-            val start = SystemClock.elapsedRealtime() - (clock.floatValue * 1000).toLong()
-            while (true) {
-                clock.floatValue = (SystemClock.elapsedRealtime() - start) / 1000f
-                delay(EQ_TICK_MS)
+            // Ticks only while the screen is started (not under navigation).
+            owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                val start = SystemClock.elapsedRealtime() - (clock.floatValue * 1000).toLong()
+                while (true) {
+                    clock.floatValue = (SystemClock.elapsedRealtime() - start) / 1000f
+                    delay(EQ_TICK_MS)
+                }
             }
         } else {
             live.animateTo(0f, tween(EQ_EASE_MS))
         }
     }
-    Canvas(Modifier.size(px(4 * EQ_BAR + 3 * EQ_GAP), px(EQ_H))) {
+    Canvas(Modifier.size(px(4 * EQ_BAR + 3 * EQ_GAP), px(EQ_H)).graphicsLayer()) {
         val u = px(1).toPx()
         val t = clock.floatValue
         val k = live.value
@@ -282,6 +292,7 @@ private class PositionClock {
     var atMs = 0L
     var playing = false
     var durationMs: Long? = null
+    var speed = 1f
 }
 
 /**
@@ -296,24 +307,32 @@ private fun rememberShownPosition(music: NowPlaying): State<Long?> {
     val pos = music.positionMs
     val dur = music.durationMs
     val playing = music.isPlaying
-    LaunchedEffect(pos, playing, dur) {
+    val speed = music.playbackSpeed
+    val owner = LocalLifecycleOwner.current
+    LaunchedEffect(pos, playing, dur, speed, owner) {
         if (pos == null) {
             shown.value = null
             return@LaunchedEffect
         }
         val now = SystemClock.elapsedRealtime()
-        val running = extrapolatePosition(clock.polledMs, clock.atMs, now, dur, playing)
-        if (!playing || clock.playing != playing || clock.durationMs != dur || shown.value == null || isSeek(pos, running)) {
+        val running = extrapolatePosition(clock.polledMs, clock.atMs, now, dur, playing, clock.speed)
+        if (!playing || clock.playing != playing || clock.durationMs != dur || clock.speed != speed ||
+            shown.value == null || isSeek(pos, running)
+        ) {
             clock.polledMs = pos
             clock.atMs = now
             clock.playing = playing
             clock.durationMs = dur
+            clock.speed = speed
         }
-        shown.value = extrapolatePosition(clock.polledMs, clock.atMs, now, dur, playing)
+        shown.value = extrapolatePosition(clock.polledMs, clock.atMs, now, dur, playing, speed)
         if (!playing || dur == null) return@LaunchedEffect
-        while (true) {
-            delay(POSITION_TICK_MS)
-            shown.value = extrapolatePosition(clock.polledMs, clock.atMs, SystemClock.elapsedRealtime(), dur, true)
+        // Runs only while the screen is started; it picks up the real time again on return.
+        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                shown.value = extrapolatePosition(clock.polledMs, clock.atMs, SystemClock.elapsedRealtime(), dur, true, speed)
+                delay(POSITION_TICK_MS)
+            }
         }
     }
     return shown
@@ -330,7 +349,7 @@ private fun Progress(music: NowPlaying) {
     val elapsed by remember(shown) { derivedStateOf { grTrackTime(shown.value) } }
     Column(Modifier.fillMaxWidth()) {
         Box(
-            Modifier.fillMaxWidth().height(px(20)).drawBehind {
+            Modifier.fillMaxWidth().height(px(20)).graphicsLayer().drawBehind {
                 val fraction = mediaFraction(shown.value, dur)
                 val h = px(6).toPx()
                 val top = (size.height - h) / 2

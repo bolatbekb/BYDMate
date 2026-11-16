@@ -12,6 +12,7 @@ import com.bydmate.app.data.repository.SettingsRepository
 import java.util.Calendar
 import kotlin.math.cos
 import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 import kotlin.math.sin
 import kotlin.random.Random
 
@@ -47,7 +48,9 @@ object DemoSeeder {
             set(Calendar.HOUR_OF_DAY, 0); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0)
         }.timeInMillis
 
-        db.tariffPeriodDao().insert(TariffPeriodEntity(startTs = day0, homeRate = HOME_RATE, dcRate = DC_RATE))
+        db.tariffPeriodDao().insert(
+            TariffPeriodEntity(startTs = day0, homeRate = HOME_RATE, dcRate = DC_RATE, fuelPricePerLiter = FUEL_PRICE),
+        )
 
         val legs = mutableListOf<Leg>()
         var soc = 82.0
@@ -130,14 +133,16 @@ object DemoSeeder {
         // Odometers run up to where the simulated car starts (DemoCar).
         var odo = 17_057.4 - legs.sumOf { it.km }
         legs.forEachIndexed { i, leg ->
+            // As CostCalculator: cost is the trip total, fuelCost its fuel part (rounded to 0.01).
+            val fuelCost = leg.liters.takeIf { it > 0 }?.let { (it * FUEL_PRICE * 100.0).roundToLong() / 100.0 }
             val tripId = db.tripDao().insert(TripEntity(
                 startTs = leg.start, endTs = leg.end, distanceKm = leg.km, kwhConsumed = leg.kwh,
                 kwhPer100km = leg.kwh / leg.km * 100, socStart = leg.socStart, socEnd = leg.socEnd,
                 avgSpeedKmh = leg.avgSpeed, batTempAvg = 24.0, batTempMax = 27.0, batTempMin = 22.0,
-                cost = leg.kwh * HOME_RATE, exteriorTemp = leg.extStart, exteriorTempEnd = leg.extEnd,
+                cost = leg.kwh * HOME_RATE + (fuelCost ?: 0.0), exteriorTemp = leg.extStart, exteriorTempEnd = leg.extEnd,
                 odometerStartKm = odo, odometerEndKm = odo + leg.km, source = "demo",
                 fuelLiters = leg.liters.takeIf { it > 0 }, hevKm = leg.hevKm,
-                fuelCost = leg.liters.takeIf { it > 0 }?.let { it * FUEL_PRICE },
+                fuelCost = fuelCost,
             ))
             odo += leg.km
             if (i >= legs.size - ROUTE_TRIPS) db.tripPointDao().insertAll(route(tripId, leg, rnd))

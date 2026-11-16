@@ -1,6 +1,7 @@
 package com.bydmate.app.ui.home.graphite
 
 import android.content.Context
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bydmate.app.data.autoservice.Pm25
@@ -95,13 +96,21 @@ class GraphiteViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /** Battery SOH, %: read at once, then every 10 min; a failed read keeps the last value. */
+    // The last good SOH and when it was read: kept across WhileSubscribed restarts, so returning to
+    // the screen neither re-reads before 10 min nor loses the value to a failed read.
+    @Volatile private var sohLast: Float? = null
+    @Volatile private var sohReadAt = 0L
+
+    /** Battery SOH, %: read at once, then every 10 min; a failed read keeps the last good value. */
     val sohPercent: StateFlow<Float?> = flow {
-        var last: Float? = null
         while (true) {
-            last = runCatching { battery.refresh().sohPercent }.getOrNull() ?: last
-            emit(last)
-            delay(SOH_POLL_MS)
+            val now = SystemClock.elapsedRealtime()
+            if (sohReadAt == 0L || now - sohReadAt >= SOH_POLL_MS) {
+                runCatching { battery.refresh().sohPercent }.getOrNull()?.takeIf { it.isFinite() }?.let { sohLast = it }
+                sohReadAt = now
+            }
+            emit(sohLast)
+            delay((SOH_POLL_MS - (SystemClock.elapsedRealtime() - sohReadAt)).coerceAtLeast(1_000L))
         }
     }
         .flowOn(Dispatchers.IO)

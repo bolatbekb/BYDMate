@@ -37,6 +37,8 @@ data class NowPlaying(
     /** Custom-action ids of the session, for the Graphite shuffle / repeat buttons. */
     val shuffleAction: String? = null,
     val repeatAction: String? = null,
+    /** PlaybackState speed (1 = normal), for running the position between polls. */
+    val playbackSpeed: Float = 1f,
 ) {
     /** 0..1 through the track; 0.5 when unknown, so the two tape packs look even. */
     val progress: Float
@@ -164,6 +166,7 @@ object NowPlayingSource : MusicControls {
             sourceLabel = labelFor(ctx, c.packageName),
             shuffleAction = findAction(actions, "shuffle"),
             repeatAction = findAction(actions, "repeat"),
+            playbackSpeed = pb?.playbackSpeed?.takeIf { it > 0f } ?: 1f,
         )
     }
 

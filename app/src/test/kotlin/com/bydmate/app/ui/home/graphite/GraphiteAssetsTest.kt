@@ -21,8 +21,8 @@ class GraphiteAssetsTest {
 
     private val icons = listOf(
         "car", "route", "plug", "flow", "sliders", "battery", "fuel", "engine", "power", "gauge",
-        "bolt", "leaf", "lock", "tree", "seat", "therm", "snow", "flame", "fan", "note", "bt",
-        "wifi", "signal", "phone", "play", "pause", "prev", "next", "shuffle", "repeat", "heart",
+        "bolt", "leaf", "tree", "seat", "therm", "snow", "flame", "fan", "note",
+        "phone", "play", "pause", "prev", "next", "shuffle", "repeat", "heart",
         "volume", "wheel", "speed", "clock",
     )
     private val photos = listOf("hill", "desert", "front", "side_night", "lights")
@@ -49,7 +49,7 @@ class GraphiteAssetsTest {
 
     @Test
     fun iconsInflate() {
-        assertEquals(35, icons.size)
+        assertEquals(31, icons.size)
         val density = ctx.resources.displayMetrics.density
         for (n in icons) {
             val id = ctx.resources.getIdentifier("gr_ic_$n", "drawable", ctx.packageName)

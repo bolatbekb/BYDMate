@@ -25,6 +25,12 @@ class MediaMotionTest {
         assertEquals(10_000L, extrapolatePosition(10_000, 5_000, 1_000, null, playing = true))
     }
 
+    @Test fun playbackSpeedScalesElapsed() {
+        assertEquals(36_000L, extrapolatePosition(30_000, 1_000, 5_000, 200_000, playing = true, speed = 1.5f))
+        assertEquals(32_000L, extrapolatePosition(30_000, 1_000, 5_000, 200_000, playing = true, speed = 0.5f))
+        assertEquals(30_000L, extrapolatePosition(30_000, 1_000, 5_000, 200_000, playing = false, speed = 2f))
+    }
+
     @Test fun seekOnlyPastTolerance() {
         assertFalse(isSeek(polledMs = 10_000, shownMs = 11_400))
         assertTrue(isSeek(polledMs = 10_000, shownMs = 11_600))

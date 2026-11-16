@@ -104,7 +104,7 @@ fun GraphiteHome(
                     }
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         GalleryCard(Modifier.fillMaxWidth().height(px(404)))
-                        EnergyCard(energy, period, vm::select, data.fuelPercent != null, Modifier.fillMaxWidth().weight(1f))
+                        EnergyCard(energy, period, vm::select, data.fuelPercent != null || tankL != null, Modifier.fillMaxWidth().weight(1f))
                     }
                     Column(Modifier.width(px(820)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         MediaCard(music, controls, Modifier.fillMaxWidth().weight(1f))

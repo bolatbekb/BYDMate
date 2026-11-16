@@ -212,13 +212,13 @@ internal fun barPair(slotLeft: Float, slot: Float, n: Int, hasFuel: Boolean): Ba
 private fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
     val p = LocalGr.current
     val measurer = rememberTextMeasurer()
-    val grow = remember { Animatable(0f) }
     val shownPeriod = series?.period
     val n = series?.kwh?.size ?: 0
-    LaunchedEffect(shownPeriod) {
+    // A fresh Animatable per period: the new series' first frame already draws at 0 (no flash).
+    val grow = remember(shownPeriod) { Animatable(0f) }
+    LaunchedEffect(grow) {
         if (shownPeriod == null) return@LaunchedEffect
         val total = growTotalMs(n)
-        grow.snapTo(0f)
         grow.animateTo(total.toFloat(), tween(total, easing = LinearEasing))
     }
     Canvas(
@@ -313,7 +313,7 @@ private fun buildChart(
             if (k > 0) layout(grDec(k), 18f, 600, p.electric) else null,
             if (hasFuel && l > 0) layout(grDec(l), 18f, 600, p.fuel) else null,
             pair, base - 2 - hk - 14, base - 2 - hl - 14, u, x1, x2,
-        ) { l, x, y, align -> labels.add(Lbl(l, x * u, y * u, align, value = true)) }
+        ) { lay, x, y, align -> labels.add(Lbl(lay, x * u, y * u, align, value = true)) }
         if (n <= 12 || i % 3 == 0 || i == n - 1) {
             addLbl(s.labels.getOrElse(i) { "" }, 18f, if (cur) 600 else 400, if (cur) p.textPrimary else p.textTertiary, cx, H - 6, 0)
         }
@@ -363,7 +363,9 @@ private fun valueLabels(
         val kx = clampCentre(kc, kwh); val lx = clampCentre(lc, lit)
         val apartX = kx + w(kwh) / 2 + 4 <= lx - w(lit) / 2
         val apartY = kotlin.math.abs(yk - yl) >= max(h(kwh), h(lit))
-        if (apartX || apartY) {
+        // The label over the shorter bar sits lower: it must not run into the taller bar beside it.
+        val crosses = if (yk > yl) kx + w(kwh) / 2 + 2 > pair.fuelX else lx - w(lit) / 2 - 2 < pair.kwhX + pair.kwhW
+        if (!crosses && (apartX || apartY)) {
             add(kwh, kx, yk, 0); add(lit, lx, yl, 0)
         } else {
             val y = min(yk, yl)
