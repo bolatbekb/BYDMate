@@ -131,4 +131,23 @@ class FuelioImportFlowTest {
         assertEquals(listOf(b, a), vm().listCsvFiles(tmp.root))
         assertTrue(vm().listCsvFiles(File(tmp.root, "missing")).isEmpty())
     }
+
+    @Test fun secondTapOnImportIsIgnored() = runBlocking {
+        val text = """
+            "## CostCategories"
+            "CostTypeID","Name"
+            "10","Charging Gear"
+            "## Costs"
+            "CostTitle","Date","Cost","CostTypeID","isTemplate","isIncome","UniqueId"
+            "a","2025-02-20","10","10","0","0","1"
+            "b","2025-02-21","20","10","0","0","2"
+        """.trimIndent()
+        val vm = vm()
+        vm.previewFuelio(csv(text)).join()
+        val first = vm.applyFuelio()
+        val second = vm.applyFuelio()
+        first.join(); second.join()
+        assertEquals(FuelioImportState.Done(FuelioResult(0, 2)), vm.importState.value)
+        assertEquals(1, repo.categories.getAll().count { it.name == "Charging Gear" })
+    }
 }

@@ -101,6 +101,7 @@ class LedgerViewModel @Inject constructor(
     private val _importState = MutableStateFlow<FuelioImportState>(FuelioImportState.Idle)
     val importState: StateFlow<FuelioImportState> = _importState.asStateFlow()
     private var pendingFuelio: FuelioFile? = null
+    private var previewJob: Job? = null
 
     /** Bumped after a ledger setting changes so the state re-reads it. */
     private val settingsVersion = MutableStateFlow(0)
@@ -194,7 +195,12 @@ class LedgerViewModel @Inject constructor(
             .sortedByDescending { it.lastModified() }
 
     /** Reads and parses [file] off the main thread; nothing is written until [applyFuelio]. */
-    fun previewFuelio(file: File): Job = viewModelScope.launch {
+    fun previewFuelio(file: File): Job {
+        previewJob?.cancel()
+        return viewModelScope.launch { runPreview(file) }.also { previewJob = it }
+    }
+
+    private suspend fun runPreview(file: File) {
         pendingFuelio = null
         try {
             val parsed = withContext(Dispatchers.IO) {
@@ -219,13 +225,16 @@ class LedgerViewModel @Inject constructor(
 
     /** Writes the previewed file; a write, so refused while driving. */
     fun applyFuelio(): Job = write {
+        // take the file first: a second tap while this apply runs finds nothing and does nothing
         val file = pendingFuelio ?: return@write
+        pendingFuelio = null
         try {
             _importState.value = FuelioImportState.Done(importer.apply(file))
-            pendingFuelio = null
         } catch (ce: CancellationException) {
+            pendingFuelio = file
             throw ce
         } catch (ex: Exception) {
+            pendingFuelio = file
             Log.w(TAG, "fuelio import failed: ${ex.message}", ex)
             _importState.value = FuelioImportState.Error(
                 appContext.appLocalizedContext().getString(R.string.ledger_import_err_read)
@@ -234,6 +243,7 @@ class LedgerViewModel @Inject constructor(
     }
 
     fun resetImport() {
+        previewJob?.cancel()
         pendingFuelio = null
         _importState.value = FuelioImportState.Idle
     }
