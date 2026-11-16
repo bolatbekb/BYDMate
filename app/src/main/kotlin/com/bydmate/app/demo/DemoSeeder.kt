@@ -16,8 +16,9 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * Fills an empty demo database with three months of a plausible EV life: commutes and weekend
- * trips with GPS routes, home AC charges and the odd DC stop, battery snapshots, night drain.
+ * Fills an empty demo database with three months of a plausible plug-in hybrid life: commutes and
+ * weekend trips with GPS routes (long ones and some evening rides partly on the engine, with
+ * litres burnt), home AC charges and the odd DC stop, battery snapshots, night drain.
  * Deterministic (fixed seed) so screenshots compare across runs.
  */
 object DemoSeeder {
@@ -25,6 +26,7 @@ object DemoSeeder {
     private const val DAYS = 90
     private const val HOME_RATE = 25.0
     private const val DC_RATE = 120.0
+    private const val FUEL_PRICE = 300.0        // tenge per litre
     private const val ROUTE_TRIPS = 30          // only the most recent trips get a GPS track
     private const val HOME_LAT = 43.2380
     private const val HOME_LON = 76.8890
@@ -32,7 +34,8 @@ object DemoSeeder {
     private const val MIN = 60_000L
 
     private data class Leg(val start: Long, val end: Long, val km: Double, val kwh: Double, val socStart: Int,
-                           val socEnd: Int, val avgSpeed: Double, val extStart: Int, val extEnd: Int)
+                           val socEnd: Int, val avgSpeed: Double, val extStart: Int, val extEnd: Int,
+                           val hevKm: Double = 0.0, val liters: Double = 0.0)
 
     @Suppress("LongMethod", "CyclomaticComplexMethod") // one linear script of the demo history
     suspend fun seedIfEmpty(db: AppDatabase) {
@@ -56,17 +59,25 @@ object DemoSeeder {
             val ext = (2 + d * 0.18 + rnd.nextDouble(-3.0, 3.0)).roundToInt()
             val starts = if (weekend) listOf(11.0 + rnd.nextDouble(0.0, 2.0), 17.0 + rnd.nextDouble(0.0, 2.0))
             else listOf(8.0 + rnd.nextDouble(0.0, 0.7), 13.0 + rnd.nextDouble(0.0, 1.0), 18.2 + rnd.nextDouble(0.0, 1.2))
-            for (h in starts) {
+            for ((k, h) in starts.withIndex()) {
                 val start = dayStart + (h * HOUR).toLong()
                 if (start > now - 20 * MIN) continue
                 val km = if (weekend) rnd.nextDouble(18.0, 85.0) else rnd.nextDouble(3.5, 24.0)
                 val speed = if (km > 40) rnd.nextDouble(62.0, 88.0) else rnd.nextDouble(26.0, 44.0)
                 // Colder and shorter means hungrier: 14..24 kWh/100 km.
                 val per100 = 15.0 + (12 - ext).coerceAtLeast(0) * 0.35 + (if (km < 6) 4.5 else 0.0) + (if (speed > 75) 3.0 else 0.0) + rnd.nextDouble(-2.5, 4.0)
-                val kwh = km * per100 / 100
+                // Engine share: long highway runs and every other evening ride burn some fuel.
+                val hevShare = when {
+                    km > 40 -> rnd.nextDouble(0.3, 0.6)
+                    k == starts.lastIndex && d % 2 == 0 -> rnd.nextDouble(0.15, 0.4)
+                    else -> 0.0
+                }
+                val hevKm = km * hevShare
+                val liters = hevKm * rnd.nextDouble(6.0, 7.6) / 100
+                val kwh = (km - hevKm) * per100 / 100
                 val end = start + (km / speed * HOUR).toLong()
                 val socEnd = soc - kwh / CAPACITY * 100
-                legs += Leg(start, end, km, kwh, soc.roundToInt(), socEnd.roundToInt(), speed, ext, ext + rnd.nextInt(0, 2))
+                legs += Leg(start, end, km, kwh, soc.roundToInt(), socEnd.roundToInt(), speed, ext, ext + rnd.nextInt(0, 2), hevKm, liters)
                 soc = socEnd
             }
             // Night: home AC charge when low, otherwise a bit of idle drain.
@@ -125,6 +136,8 @@ object DemoSeeder {
                 avgSpeedKmh = leg.avgSpeed, batTempAvg = 24.0, batTempMax = 27.0, batTempMin = 22.0,
                 cost = leg.kwh * HOME_RATE, exteriorTemp = leg.extStart, exteriorTempEnd = leg.extEnd,
                 odometerStartKm = odo, odometerEndKm = odo + leg.km, source = "demo",
+                fuelLiters = leg.liters.takeIf { it > 0 }, hevKm = leg.hevKm,
+                fuelCost = leg.liters.takeIf { it > 0 }?.let { it * FUEL_PRICE },
             ))
             odo += leg.km
             if (i >= legs.size - ROUTE_TRIPS) db.tripPointDao().insertAll(route(tripId, leg, rnd))
@@ -132,7 +145,7 @@ object DemoSeeder {
 
         db.settingsDao().setAll(listOf(
             SettingsRepository.KEY_BATTERY_CAPACITY to CAPACITY.toString(),
-            SettingsRepository.KEY_VEHICLE_KIND to "EV",
+            SettingsRepository.KEY_VEHICLE_KIND to "HYBRID",
             SettingsRepository.KEY_HOME_TARIFF to HOME_RATE.toString(),
             SettingsRepository.KEY_DC_TARIFF to DC_RATE.toString(),
             // The demo prices are in tenge.
