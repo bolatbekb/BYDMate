@@ -25,9 +25,12 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.withContext
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import javax.inject.Inject
@@ -66,8 +69,16 @@ class GraphiteViewModel @Inject constructor(
         ChartBuckets.windowEnd(now).toInstant().toEpochMilli() - 1,
     )
 
+    /** Local hour start; changes when the hour (or date) rolls over, so the DAY `current` bucket advances. */
+    private val hour = flow {
+        while (true) {
+            emit(LocalDateTime.now().truncatedTo(ChronoUnit.HOURS))
+            delay(60_000)
+        }
+    }.distinctUntilChanged()
+
     @OptIn(ExperimentalCoroutinesApi::class)
-    val energy: StateFlow<EnergySeries?> = combine(_period, date) { p, _ -> p }
+    val energy: StateFlow<EnergySeries?> = combine(_period, hour) { p, _ -> p }
         .flatMapLatest { p ->
             val now = ZonedDateTime.now(ZoneId.systemDefault())
             window(p, now).map { EnergyBuckets.build(it, p, now) }
@@ -75,11 +86,12 @@ class GraphiteViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    // One collector of today's trips, shared by `today` and `regenKwh`.
+    @OptIn(ExperimentalCoroutinesApi::class)
     private val todayTrips = date.flatMapLatest {
         window(ChartPeriod.DAY, ZonedDateTime.now(ZoneId.systemDefault()))
-    }
+    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
 
-    @OptIn(ExperimentalCoroutinesApi::class)
     val today: StateFlow<TodayStats?> = todayTrips
         .map { trips -> TodayStatsCalc.from(trips, trips.sumOf { it.distanceKm ?: 0.0 }.takeIf { it > 0.0 }) }
         .flowOn(Dispatchers.Default)
@@ -90,7 +102,6 @@ class GraphiteViewModel @Inject constructor(
     }
 
     /** Regen of today's finished trips; recomputed when the trip list changes and once a minute. */
-    @OptIn(ExperimentalCoroutinesApi::class)
     val regenKwh: StateFlow<Double?> = combine(todayTrips, minuteTick) { trips, _ -> trips }
         .map { trips ->
             withContext(Dispatchers.IO) {
@@ -105,11 +116,11 @@ class GraphiteViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    val tankCapacityL: StateFlow<Double?> = flow { emit(ledger.tankCapacityL()) }
+    val tankCapacityL: StateFlow<Double?> = flow { emit(runCatching { ledger.tankCapacityL() }.getOrNull()) }
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    val batteryCapacityKwh: StateFlow<Double?> = flow { emit(settings.getBatteryCapacity()) }
+    val batteryCapacityKwh: StateFlow<Double?> = flow { emit(runCatching { settings.getBatteryCapacity() }.getOrNull()) }
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

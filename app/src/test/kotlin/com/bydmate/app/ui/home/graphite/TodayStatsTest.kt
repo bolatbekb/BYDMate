@@ -25,12 +25,19 @@ class TodayStatsTest {
         )
         val s = TodayStatsCalc.from(t, 35.0)
         assertEquals(60, s.minutes)
-        assertEquals(35, s.avgKmh) // todayKm / timed hours
+        assertEquals(30, s.avgKmh)
     }
 
     @Test fun noTripsGivesNoSpeed() {
         val s = TodayStatsCalc.from(emptyList(), null)
         assertEquals(0, s.minutes)
         assertNull(s.avgKmh); assertNull(s.kwh); assertNull(s.litres); assertNull(s.electricShare)
+    }
+
+    @Test fun electricShareFromTripsWithFuel() {
+        val t = listOf(TripEntity(startTs = 0, endTs = 60 * min, distanceKm = 100.0, fuelLiters = 4.0, hevKm = 39.0))
+        assertEquals(61, TodayStatsCalc.from(t, 100.0).electricShare)
+        val noFuel = listOf(TripEntity(startTs = 0, endTs = 60 * min, distanceKm = 100.0, hevKm = 0.0))
+        assertNull(TodayStatsCalc.from(noFuel, 100.0).electricShare)
     }
 }

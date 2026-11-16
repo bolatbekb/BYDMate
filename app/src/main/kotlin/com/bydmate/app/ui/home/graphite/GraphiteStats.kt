@@ -113,21 +113,21 @@ data class TodayStats(
 
 object TodayStatsCalc {
     fun from(trips: List<TripEntity>, todayKm: Double?): TodayStats {
-        var ms = 0L
+        var ms = 0L; var kmDriven = 0.0
         var kwh = 0.0; var anyKwh = false
         var lit = 0.0; var anyFuel = false
         for (t in trips) {
             val end = t.endTs
             if (end != null && end > t.startTs) {
                 ms += end - t.startTs
+                t.km()?.let { kmDriven += it }
             }
             t.kwhConsumed?.takeIf { it.isFinite() }?.let { kwh += it; anyKwh = true }
             t.fuelLiters?.takeIf { it.isFinite() }?.let { lit += it; anyFuel = true }
         }
         val minutes = (ms / 60_000.0).roundToInt()
-        val avg = if (minutes > 0 && todayKm != null && todayKm > 0.0) {
-            (todayKm / (ms / 3_600_000.0)).roundToInt()
-        } else null
+        // Finished trips only: km and hours must cover the same trips. todayKm is kept for callers.
+        val avg = if (minutes > 0 && kmDriven > 0.0) (kmDriven / (ms / 3_600_000.0)).roundToInt() else null
         return TodayStats(
             minutes = minutes,
             avgKmh = avg,
