@@ -30,6 +30,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
+import android.os.Environment
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import java.io.File
@@ -208,5 +209,46 @@ class LedgerBackupTest {
 
         manager().restore(withLedger)
         assertTrue(refuels().isEmpty())
+    }
+
+    @Test
+    fun failedAuthorSwapLeavesLedgerUncommitted() {
+        runBlocking { ledger.refuelDao().insert(refuel()) }
+        val zip = manager().export(BackupPart.ALL)
+        runBlocking { ledger.refuelDao().delete(refuels().single()) }
+        val liveBefore = liveDb.readBytes()
+        // The merge snapshot of bydmate.db can never fold its WAL: mergeAndSwap throws before its swap.
+        every { appDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)", null) } answers { BackupFixtures.checkpointCursor(busy = 1) }
+
+        assertThrows(IllegalStateException::class.java) { manager().restore(zip, setOf(BackupPart.TABLES)) }
+
+        assertArrayEquals(liveBefore, liveDb.readBytes())
+        assertTrue(refuels().isEmpty())
+        assertEquals(LedgerDatabase.SCHEMA_VERSION, ledger.openHelper.writableDatabase.version)
+
+        // The temp file left behind does not get in the way of the next restore.
+        every { appDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)", null) } answers { BackupFixtures.checkpointCursor() }
+        manager().restore(zip)
+        ledger.close()
+        ledger = openLedger()
+        assertEquals(1, refuels().size)
+        assertTrue(liveDb.parentFile!!.list()!!.none { it.endsWith(".tmp") })
+    }
+
+    @Test
+    fun busyLedgerAbortsExportWithoutArchive() {
+        val support = mockk<SupportSQLiteDatabase>(relaxed = true)
+        every { support.path } returns context.getDatabasePath(LedgerDatabase.FILE_NAME).path
+        every { support.query("PRAGMA wal_checkpoint(TRUNCATE)") } answers { BackupFixtures.checkpointCursor(busy = 1) }
+        val busy = mockk<LedgerDatabase>(relaxed = true)
+        every { busy.openHelper.writableDatabase } returns support
+        LedgerBackup.provider = { busy }
+        val downloads = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        val before = BackupManager.listBackupFiles(downloads).map { it.name }.toSet()
+
+        val error = assertThrows(IllegalStateException::class.java) { manager().export(BackupPart.ALL) }
+
+        assertEquals(AppStrings(context).get(com.bydmate.app.R.string.ledger_backup_error_busy), error.message)
+        assertEquals(before, BackupManager.listBackupFiles(downloads).map { it.name }.toSet())
     }
 }

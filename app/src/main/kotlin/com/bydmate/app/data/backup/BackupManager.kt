@@ -603,19 +603,17 @@ class BackupManager(
             val ledger = try { LedgerBackup.prepareRestore(context, file, selected) }
                 catch (e: Throwable) { BackupDatabaseFiles.deleteWithSideFiles(tmpDbFile); throw e }
 
-            try { // fork: ledger
-                if (selected == BackupPart.ALL) {
-                    // An archive of v3.17.5 or older carries when each rule last fired on the source
-                    // device: a later clock there would hold cooldown rules back here.
-                    SQLiteDatabase.openDatabase(tmpDbFile.path, null, SQLiteDatabase.OPEN_READWRITE)
-                        .use { it.execSQL("UPDATE automation_rules SET last_triggered_at = NULL") }
-                    // Under the export lock: an auto backup running at this moment must not
-                    // checkpoint or read the database while it is closed and swapped.
-                    synchronized(exportLock) { swapIn(tmpDbFile, prefsMap) }
-                } else {
-                    mergeAndSwap(tmpDbFile, selected, prefsMap.takeIf { BackupPart.SETTINGS in selected })
-                }
-            } catch (e: Throwable) { ledger?.discard(); throw e } // fork: ledger
+            if (selected == BackupPart.ALL) {
+                // An archive of v3.17.5 or older carries when each rule last fired on the source
+                // device: a later clock there would hold cooldown rules back here.
+                SQLiteDatabase.openDatabase(tmpDbFile.path, null, SQLiteDatabase.OPEN_READWRITE)
+                    .use { it.execSQL("UPDATE automation_rules SET last_triggered_at = NULL") }
+                // Under the export lock: an auto backup running at this moment must not
+                // checkpoint or read the database while it is closed and swapped.
+                synchronized(exportLock) { swapIn(tmpDbFile, prefsMap) }
+            } else {
+                mergeAndSwap(tmpDbFile, selected, prefsMap.takeIf { BackupPart.SETTINGS in selected })
+            }
             ledger?.let { synchronized(exportLock) { it.commit() } } // fork: ledger, never throws
             // Caller is responsible for restarting the process after this returns.
         }

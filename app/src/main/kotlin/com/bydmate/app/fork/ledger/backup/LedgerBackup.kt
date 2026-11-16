@@ -178,7 +178,10 @@ object LedgerBackup {
         if (problem != null) throw problem
     }
 
-    /** A validated ledger temp file; exactly one of [commit] or [discard] is called. */
+    /**
+     * A validated ledger temp file, committed once the author's swap has returned normally. When
+     * that swap throws, the temp file stays behind; the next [prepareRestore] deletes it first.
+     */
     class PreparedLedger internal constructor(
         private val tmp: File,
         private val target: File,
@@ -208,10 +211,6 @@ object LedgerBackup {
             } catch (e: Throwable) {
                 Log.w(TAG, "ledger swap failed", e)
             }
-        }
-
-        fun discard() {
-            deleteWithSideFiles(tmp)
         }
     }
 
