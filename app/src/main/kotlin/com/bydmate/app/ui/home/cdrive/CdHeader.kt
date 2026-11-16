@@ -3,15 +3,20 @@
 package com.bydmate.app.ui.home.cdrive
 
 import android.os.SystemClock
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
@@ -20,9 +25,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.HomeData
+import com.bydmate.app.ui.home.hybrid.K
 import com.bydmate.app.ui.home.hybrid.Txt
 import com.bydmate.app.ui.home.hybrid.at
 import kotlinx.coroutines.delay
+import kotlin.math.PI
+import kotlin.math.sin
 
 private val ModeWhite = Color(0xFFF2FFF4)
 private val GearWhite = Color(0xFFEBFFFF)
@@ -89,4 +97,93 @@ private fun rememberReadyLamp(powerState: Int?): ReadyShown {
         }
     }
     return shown
+}
+
+/* ---------------------------------------------------------------- spectrum */
+
+/** The printed LED matrix: 107 columns, 14.41 px apart, inside 562, 16, 1543 x 94 (LAYOUT.md). */
+internal const val SPECTRUM_COLUMNS = 107
+private const val SPEC_X = 562f
+private const val SPEC_Y = 16
+private const val SPEC_W = 1543
+private const val SPEC_H = 94
+private const val SPEC_PITCH = 14.41f
+
+/** Dim while paused or silent: the print at 80 % brightness. */
+private const val PAUSED_DIM = 0.2f
+private const val MIN_SWING = 0.08f
+private const val MAX_SWING = 0.15f
+private const val MIN_PERIOD_S = 2.0
+private const val MAX_PERIOD_S = 4.0
+/** The phase wobble that keeps a column from beating like a metronome: depth (rad) and period ratio. */
+private const val WOBBLE = 0.5
+private const val WOBBLE_RATIO = 2.7
+
+/** At most 30 redraws a second; the frames between are skipped. */
+private const val MIN_FRAME_NS = 33_000_000L
+
+/** A fixed pseudo-random number in [0, 1) for column [c] and channel [k]. */
+private fun hash01(c: Int, k: Int): Double {
+    var h = c * 0x9E3779B1.toInt() xor (k * 0x85EBCA77.toInt())
+    h = h xor (h ushr 16)
+    h *= 0x7FEB352D
+    h = h xor (h ushr 15)
+    h *= 0x846CA68B.toInt()
+    h = h xor (h ushr 16)
+    return (h.toLong() and 0xFFFFFFFFL) / 4_294_967_296.0
+}
+
+/**
+ * How much column [column] of the printed matrix is darkened at [timeSec], 0..1 (0 = the print as is).
+ *
+ * Playing: each column swings between 0 and its own depth (8–15 %) with its own period (2–4 s) and
+ * phase; a slow phase wobble makes the motion a smooth noise rather than a metronome. Paused or
+ * silent: a static [PAUSED_DIM].
+ */
+internal fun spectrumDim(timeSec: Double, column: Int, playing: Boolean): Float {
+    if (!playing) return PAUSED_DIM
+    val swing = MIN_SWING + (MAX_SWING - MIN_SWING) * hash01(column, 1).toFloat()
+    val period = MIN_PERIOD_S + (MAX_PERIOD_S - MIN_PERIOD_S) * hash01(column, 2)
+    val phase = 2 * PI * hash01(column, 3)
+    val wobblePhase = 2 * PI * hash01(column, 4)
+    val w = 2 * PI / period
+    val wave = sin(w * timeSec + phase + WOBBLE * sin(w / WOBBLE_RATIO * timeSec + wobblePhase))
+    return (swing * (0.5 + 0.5 * wave)).toFloat().coerceIn(0f, swing)
+}
+
+/**
+ * Lays a translucent black strip over each column of the printed LED matrix, so the print's own
+ * colours stay and only their brightness moves. Animates while [playing], at most 30 frames a
+ * second, only while composed and the screen is started; otherwise one static dim frame.
+ */
+@Composable
+internal fun CdSpectrum(playing: Boolean) {
+    val time = remember { mutableDoubleStateOf(0.0) }
+    val owner = LocalLifecycleOwner.current
+    if (playing) {
+        LaunchedEffect(owner) {
+            owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                var last = 0L
+                while (true) {
+                    withFrameNanos { now ->
+                        if (now - last >= MIN_FRAME_NS) {
+                            last = now
+                            time.doubleValue = now / 1e9
+                        }
+                    }
+                }
+            }
+        }
+    }
+    Canvas(Modifier.at(SPEC_X.toInt(), SPEC_Y, SPEC_W, SPEC_H)) {
+        val s = K * density
+        val t = time.doubleValue // read in the draw phase: a tick redraws, it does not recompose
+        val colW = SPEC_PITCH * s
+        for (c in 0 until SPECTRUM_COLUMNS) {
+            val dim = spectrumDim(t, c, playing)
+            if (dim > 0f) {
+                drawRect(Color.Black.copy(alpha = dim), Offset(c * colW, 0f), Size(colW, size.height))
+            }
+        }
+    }
 }

@@ -77,8 +77,9 @@ fun CdHome(
             painterResource(R.drawable.cd_base), contentDescription = null,
             modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds,
         )
+        CdSpectrum(music.isPlaying)
         CdHeader(data)
-        // Task 6: the spectrum over the printed LED matrix and the music deck (music, controls).
+        CdDeck(music, controls)
         CdCarData(data)
         CdVolumeMarker(rememberMusicVolume())
         // Task 7: the period keys, the trip chart and the two meters.
@@ -141,18 +142,26 @@ private const val FIT_SLACK = 4
 @Composable
 private fun SmallKm(km: Int?, x: Int, cy: Int, width: Int) {
     val text = "${km ?: "—"} км"
+    Txt(text, x, cy, rememberFitSize(text, width, SmallKmSizes), SmallCyan, glow = true, width = width)
+}
+
+/**
+ * The largest of [sizes] (largest first, mockup pixels) at which [text] in [Txt]'s face leaves
+ * [FIT_SLACK] free in a box [width] mockup pixels wide; the last one when none fits.
+ */
+@Composable
+internal fun rememberFitSize(text: String, width: Int, sizes: List<Float>): Float {
     val measurer = rememberTextMeasurer()
     val density = LocalDensity.current
-    val size = remember(text, width, density) {
+    return remember(text, width, sizes, density) {
         val room = with(density) { px(width - FIT_SLACK).toPx() }
-        SmallKmSizes.firstOrNull { sz ->
+        sizes.firstOrNull { sz ->
             measurer.measure(
                 text, TextStyle(fontSize = fs(sz), fontFamily = FontFamily.SansSerif, letterSpacing = 0.sp),
                 maxLines = 1, softWrap = false, density = density,
             ).size.width <= room
-        } ?: SmallKmSizes.last()
+        } ?: sizes.last()
     }
-    Txt(text, x, cy, size, SmallCyan, glow = true, width = width)
 }
 
 /* ---------------------------------------------------------------- volume */
