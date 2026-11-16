@@ -96,7 +96,7 @@ fun GraphiteHome(
                         TempsCard(data, Modifier.fillMaxWidth().height(px(290)))
                     }
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
-                        GallerySlot(Modifier.fillMaxWidth().height(px(404)))
+                        GalleryCard(Modifier.fillMaxWidth().height(px(404)))
                         EnergySlot(energy, period, vm::select, Modifier.fillMaxWidth().weight(1f))
                     }
                     Column(Modifier.width(px(820)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
@@ -127,11 +127,6 @@ private fun Modifier.grBackground(p: GrPalette): Modifier = drawWithCache {
 }
 
 /* ---------------------------------------------------------------- card slots (placeholders) */
-
-@Composable
-private fun GallerySlot(modifier: Modifier) {
-    CardBody(modifier) { CardHeader(R.drawable.gr_ic_car, "Leopard 5") }
-}
 
 @Suppress("UNUSED_PARAMETER")
 @Composable

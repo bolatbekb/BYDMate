@@ -215,15 +215,17 @@ fun CardHeader(
     title: String,
     modifier: Modifier = Modifier,
     titleColor: Color? = null,
+    titleStyle: TextStyle? = null,
+    iconTint: Color? = null,
     trailing: @Composable RowScope.() -> Unit = {},
 ) {
     val p = LocalGr.current
     Row(modifier.fillMaxWidth().height(px(34)), verticalAlignment = Alignment.CenterVertically) {
-        GrIcon(icon, 26f, p.textTertiary)
+        GrIcon(icon, 26f, iconTint ?: p.textTertiary)
         Spacer(Modifier.width(px(12)))
         Text(
             title, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-            style = grStyle(23f, 450, 0.1f, titleColor ?: p.textSecondary, tnum = false),
+            style = titleStyle ?: grStyle(23f, 450, 0.1f, titleColor ?: p.textSecondary, tnum = false),
             modifier = Modifier.weight(1f),
         )
         trailing()
