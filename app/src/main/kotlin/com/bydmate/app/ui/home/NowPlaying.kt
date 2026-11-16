@@ -2,6 +2,7 @@ package com.bydmate.app.ui.home
 
 import android.content.ComponentName
 import android.content.Context
+import android.graphics.Bitmap
 import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
@@ -28,6 +29,14 @@ data class NowPlaying(
     /** Short-lived: true right after Prev/Next, so the reels spin fast like a tape winding. */
     val winding: Boolean = false,
     val source: String? = null,
+    val album: String? = null,
+    val year: Int? = null,
+    val art: Bitmap? = null,
+    /** Human-readable name of the playing app (null: unknown). */
+    val sourceLabel: String? = null,
+    /** Custom-action ids of the session, for the Graphite shuffle / repeat buttons. */
+    val shuffleAction: String? = null,
+    val repeatAction: String? = null,
 ) {
     /** 0..1 through the track; 0.5 when unknown, so the two tape packs look even. */
     val progress: Float
@@ -48,6 +57,8 @@ interface MusicControls {
     fun stop()
     fun next()
     fun previous()
+    /** Sends a session custom action (shuffle / repeat). */
+    fun custom(action: String) {}
 }
 
 /**
@@ -66,12 +77,18 @@ object NowPlayingSource : MusicControls {
     private var controller: MediaController? = null
     private var windingUntil = 0L
 
+    // Album art: only the current one is kept, scaled once per track.
+    private var artKey: String? = null
+    private var artBitmap: Bitmap? = null
+    private val labelCache = HashMap<String, String?>()
+
     // DEMO playlist
     private val demoTracks = listOf(
         Triple("КИНО", "Группа крови", 287_000L),
         Triple("Сплин", "Выхода нет", 238_000L),
         Triple("Ляпис Трубецкой", "Воины света", 219_000L),
     )
+    private val demoAlbums = listOf("Группа крови" to 1988, "Гранатовый альбом" to 1998, "Золотая коллекция" to 2005)
     private var demoIdx = 0
     private var demoPos = 134_000L
     private var demoPlaying = true
@@ -103,7 +120,10 @@ object NowPlayingSource : MusicControls {
             val (artist, title, dur) = demoTracks[demoIdx]
             if (demoPos >= dur) { demoIdx = (demoIdx + 1) % demoTracks.size; demoPos = 0 }
             val t = demoTracks[demoIdx]
-            _state.value = NowPlaying(t.first, t.second, demoPlaying, demoPos, t.third, winding, "Моя волна")
+            _state.value = NowPlaying(
+                t.first, t.second, demoPlaying, demoPos, t.third, winding, "Моя волна",
+                album = demoAlbums[demoIdx].first, year = demoAlbums[demoIdx].second, sourceLabel = "Моя волна",
+            )
             return
         }
         val msm = ctx.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager ?: return
@@ -126,6 +146,10 @@ object NowPlayingSource : MusicControls {
             if (st.position < 0) null
             else st.position + if (playing) ((now - st.lastPositionUpdateTime) * st.playbackSpeed).toLong() else 0L
         }
+        val title = md?.getString(MediaMetadata.METADATA_KEY_TITLE)
+        val artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
+        val album = md?.getString(MediaMetadata.METADATA_KEY_ALBUM)
+        val actions = pb?.customActions.orEmpty()
         _state.value = NowPlaying(
             artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST),
             title = md?.getString(MediaMetadata.METADATA_KEY_TITLE),
@@ -134,7 +158,34 @@ object NowPlayingSource : MusicControls {
             durationMs = md?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.takeIf { it > 0 },
             winding = winding,
             source = c.packageName,
+            album = album,
+            year = md?.getLong(MediaMetadata.METADATA_KEY_YEAR)?.takeIf { it > 0 }?.toInt(),
+            art = artFor(md, "$title|$artist|$album"),
+            sourceLabel = labelFor(ctx, c.packageName),
+            shuffleAction = findAction(actions, "shuffle"),
+            repeatAction = findAction(actions, "repeat"),
         )
+    }
+
+    private fun findAction(actions: List<PlaybackState.CustomAction>, word: String): String? =
+        actions.firstOrNull {
+            it.action.contains(word, ignoreCase = true) || it.name?.toString()?.contains(word, ignoreCase = true) == true
+        }?.action
+
+    private fun artFor(md: MediaMetadata?, key: String): Bitmap? {
+        if (md == null) { artKey = null; artBitmap = null; return null }
+        if (key == artKey) return artBitmap
+        val src = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART) ?: md.getBitmap(MediaMetadata.METADATA_KEY_ART)
+        artKey = key
+        artBitmap = src?.let { scaleArt(it) }
+        return artBitmap
+    }
+
+    private fun labelFor(ctx: Context, pkg: String): String? = labelCache.getOrPut(pkg) {
+        runCatching {
+            val pm = ctx.packageManager
+            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString().takeIf { it.isNotBlank() }
+        }.getOrNull()
     }
 
     private fun demo(): Boolean = appContext?.let { DemoMode.isOn(it) } == true
@@ -161,6 +212,11 @@ object NowPlayingSource : MusicControls {
         refresh()
     }
 
+    override fun custom(action: String) {
+        if (!demo()) controller?.transportControls?.sendCustomAction(action, null)
+        refresh()
+    }
+
     override fun next() {
         if (demo()) { demoIdx = (demoIdx + 1) % demoTracks.size; demoPos = 0; demoPlaying = true }
         else controller?.transportControls?.skipToNext()
@@ -172,4 +228,14 @@ object NowPlayingSource : MusicControls {
         else controller?.transportControls?.skipToPrevious()
         wind()
     }
+}
+
+/** Downscales [src] so its longer side is at most [max], keeping the aspect; never upscales (same instance). */
+internal fun scaleArt(src: Bitmap, max: Int = 264): Bitmap {
+    val longest = maxOf(src.width, src.height)
+    if (longest <= max) return src
+    val k = max.toFloat() / longest
+    return Bitmap.createScaledBitmap(
+        src, (src.width * k).toInt().coerceAtLeast(1), (src.height * k).toInt().coerceAtLeast(1), true,
+    )
 }

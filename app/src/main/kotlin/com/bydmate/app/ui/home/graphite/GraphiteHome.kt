@@ -100,8 +100,8 @@ fun GraphiteHome(
                         EnergyCard(energy, period, vm::select, Modifier.fillMaxWidth().weight(1f))
                     }
                     Column(Modifier.width(px(820)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
-                        MediaSlot(music, controls, Modifier.fillMaxWidth().weight(1f))
-                        TodaySlot(data.todayKm, today, Modifier.fillMaxWidth().height(px(252)))
+                        MediaCard(music, controls, Modifier.fillMaxWidth().weight(1f))
+                        TodayCard(data.todayKm, today, Modifier.fillMaxWidth().height(px(252)))
                     }
                 }
                 BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)))
@@ -124,20 +124,6 @@ private fun Modifier.grBackground(p: GrPalette): Modifier = drawWithCache {
         // the ellipse is wider than the frame: clip so it never paints the letterbox
         if (glow != null) clipRect { scale(1f, 900f / 1600f, pivot = c) { drawCircle(glow, radius = rx, center = c) } }
     }
-}
-
-/* ---------------------------------------------------------------- card slots (placeholders) */
-
-@Suppress("UNUSED_PARAMETER")
-@Composable
-private fun MediaSlot(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
-    CardBody(modifier) { CardHeader(R.drawable.gr_ic_note, "Медиа") }
-}
-
-@Suppress("UNUSED_PARAMETER")
-@Composable
-private fun TodaySlot(todayKm: Double?, today: TodayStats?, modifier: Modifier) {
-    CardBody(modifier) { CardHeader(R.drawable.gr_ic_route, "Пробег сегодня") }
 }
 
 /* ---------------------------------------------------------------- top bar */
