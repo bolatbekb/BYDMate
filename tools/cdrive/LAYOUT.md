@@ -2,7 +2,7 @@
 
 Everything here is in pixels of `cd_base` (2560 × 1208, the same as the mockup; `px()` = half a dp).
 Rects are `x, y, w, h` with the top-left pixel included. Angles are degrees in the maths convention
-(counter-clockwise from +x, y up), as `PrintedScale` in `ui/home/hybrid/PrintedScale.kt` takes them.
+(counter-clockwise from +x, y up), as `PrintedScale` in `ui/home/common/PrintedScale.kt` takes them.
 "Ink" is where the mockup drew the value: put the app's text there. "Cleared" is the area the tool repainted.
 The figures come from the mockup's pixels, so where the artwork is uneven they are uneven too.
 
