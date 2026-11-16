@@ -88,7 +88,7 @@ fun CdHome(
         val period by chart.period.collectAsStateWithLifecycle()
         val series by chart.series.collectAsStateWithLifecycle()
         CdPeriodKeys(period, chart::select)
-        CdTripChart(series)
+        CdTripChart(series, carHasFuel = data.fuelPercent != null || data.fuelRangeKm != null)
         CdMeters(data)
         CdTabKeys(tabs, onTab)
     }

@@ -138,6 +138,16 @@ internal fun axisTicks(energyMax: Double, fuelMax: Double?): AxisTicks =
         t.energyTop / energyMax + (if (fuelMax != null) t.fuelTop / fuelMax else 0.0)
     }
 
+/**
+ * What the chart shows on the fuel side. The right axis and the printed «л/100 км» belong to the
+ * car ([carHasFuel], from its live data), not to the period: a hybrid keeps them on a day without
+ * trips. Only the yellow line depends on the period having fuel data.
+ */
+internal data class FuelSide(val rightAxis: Boolean, val coverTitle: Boolean, val line: Boolean)
+
+internal fun fuelSide(carHasFuel: Boolean, series: ChartSeries?): FuelSide =
+    FuelSide(rightAxis = carHasFuel, coverTitle = !carHasFuel, line = carHasFuel && series?.fuel != null)
+
 /** "10", "2.5": an axis number without a zero fraction. */
 internal fun axisText(v: Double): String =
     if (abs(v - Math.round(v)) < 1e-6) Math.round(v).toString() else String.format(Locale.US, "%.1f", v)
@@ -194,6 +204,11 @@ private const val PLOT_TOP = 716f
 private const val PLOT_BASE = 855f
 private const val POINT_L = 391f // the first bucket, under the mockup's "00:00"
 private const val POINT_R = 1280f // the last bucket
+
+// decorative vertical grid at the mockup's pitch, independent of the buckets
+private const val GRID_V_FIRST = 426.5f
+private const val GRID_V_PITCH = 59.2f
+private const val GRID_V_COUNT = 15
 
 // the printed "л/100 км" title, covered while the car has no fuel line
 private const val FUEL_TITLE_X = 1232
@@ -286,16 +301,16 @@ private fun TextMeasurer.label(text: String, size: Float, color: Color, density:
 /**
  * «Trip Computer & Energy Monitor»: the grid and axis numbers, the energy line (cyan, filled down
  * to zero) and the fuel line (yellow) as monotone curves broken at empty buckets, the period's
- * time labels; «Нет поездок за период» when the period has none. Hides the right axis for a car
- * without fuel. The paths are built once per series, the canvas sits on its own layer.
+ * time labels; «Нет поездок за период» when the period has none. The right axis follows
+ * [carHasFuel] (see [fuelSide]). The paths are built once per series, the canvas sits on its own layer.
  */
 @Composable
-internal fun CdTripChart(series: ChartSeries?) {
+internal fun CdTripChart(series: ChartSeries?, carHasFuel: Boolean) {
     val measurer = rememberTextMeasurer()
     val dens = LocalDensity.current
-    val scene = remember(series, dens) { buildScene(series, measurer, dens) }
-    val hasFuel = series?.fuel != null
-    if (series != null && !hasFuel) {
+    val side = fuelSide(carHasFuel, series)
+    val scene = remember(series, side, dens) { buildScene(series, side, measurer, dens) }
+    if (side.coverTitle) {
         Canvas(Modifier.at(FUEL_TITLE_X, FUEL_TITLE_Y, FUEL_TITLE_W, FUEL_TITLE_H)) { drawRect(Panel) }
     }
     Canvas(Modifier.at(CHART_X, CHART_Y, CHART_W, CHART_H).graphicsLayer().clipToBounds()) {
@@ -305,8 +320,11 @@ internal fun CdTripChart(series: ChartSeries?) {
             translate(-CHART_X.toFloat(), -CHART_Y.toFloat())
         }) {
             for (y in scene.rows.dropLast(1)) drawLine(GridLine, Offset(GRID_L, y), Offset(GRID_R, y), 2f)
-            for (x in scene.columns) {
+            for (k in 0 until GRID_V_COUNT) {
+                val x = GRID_V_FIRST + GRID_V_PITCH * k
                 drawLine(GridLine, Offset(x, PLOT_TOP), Offset(x, PLOT_BASE), 1.5f)
+            }
+            for (x in scene.columns) {
                 drawLine(Baseline.copy(alpha = 0.7f), Offset(x, PLOT_BASE), Offset(x, PLOT_BASE + 6f), 2f)
             }
             drawLine(Baseline.copy(alpha = 0.75f), Offset(GRID_L, PLOT_BASE), Offset(GRID_R, PLOT_BASE), 2f)
@@ -354,14 +372,14 @@ private fun DrawScope.drawCurve(c: Curve, color: Color) {
     }
 }
 
-private fun buildScene(series: ChartSeries?, measurer: TextMeasurer, density: Density): ChartScene {
-    val fuel = series?.fuel
-    val ticks = axisTicks(series?.energyMax ?: 30.0, if (series == null) 12.0 else series.fuelMax.takeIf { fuel != null })
+private fun buildScene(series: ChartSeries?, side: FuelSide, measurer: TextMeasurer, density: Density): ChartScene {
+    val fuel = series?.fuel?.takeIf { side.line }
+    val ticks = axisTicks(series?.energyMax ?: 30.0, if (side.rightAxis) series?.fuelMax ?: 12.0 else null)
     val rows = (ticks.n downTo 0).map { PLOT_BASE - (PLOT_BASE - PLOT_TOP) * it / ticks.n }
     val left = (ticks.n downTo 0).mapIndexed { i, k ->
         measurer.label(axisText(ticks.energyTop * k / ticks.n), AXIS_SIZE, EnergyAxis, density) to rows[i]
     }
-    val right = if (series != null && fuel == null) emptyList()
+    val right = if (!side.rightAxis) emptyList()
     else (ticks.n downTo 0).mapIndexed { i, k ->
         measurer.label(axisText(ticks.fuelTop * k / ticks.n), AXIS_SIZE, FuelAxis, density) to rows[i]
     }
@@ -374,7 +392,7 @@ private fun buildScene(series: ChartSeries?, measurer: TextMeasurer, density: De
         columns += x
         time += measurer.label(l, TIME_SIZE, TimeLabel, density) to x
     }
-    val noTrips = series != null && series.energy.all { it == null } && (fuel == null || fuel.all { it == null })
+    val noTrips = series != null && series.energy.all { it == null } && series.fuel.orEmpty().all { it == null }
     return ChartScene(
         ticks = ticks,
         rows = rows,

@@ -22,6 +22,8 @@ class CdMeterTextTest {
         assertEquals("0.0", kwText(0.0))
         assertEquals("—", kwText(null))
         assertEquals("—", kwText(Double.NaN))
+        assertEquals("0.0", kwText(-0.01))
+        assertEquals("0.0", kwText(-0.0))
     }
 
     @Test fun `axis numbers drop a zero fraction`() {
@@ -36,5 +38,21 @@ class CdMeterTextTest {
         assert(t.energyTop >= 35.0 && t.fuelTop >= 14.0)
         val e = axisTicks(45.0, null)
         assert(e.energyTop >= 45.0)
+    }
+
+    private fun series(fuel: List<Double?>?) =
+        ChartSeries(listOf("", ""), listOf(null, null), fuel, 30.0, 12.0)
+
+    @Test fun `a hybrid keeps its fuel axis on a period without trips`() {
+        // a period without trips has no fuel list, the car still has a tank
+        assertEquals(FuelSide(rightAxis = true, coverTitle = false, line = false), fuelSide(true, series(null)))
+        assertEquals(FuelSide(rightAxis = true, coverTitle = false, line = false), fuelSide(true, null))
+        assertEquals(FuelSide(rightAxis = true, coverTitle = false, line = true), fuelSide(true, series(listOf(5.0, null))))
+    }
+
+    @Test fun `a car without fuel hides the right axis and covers its title`() {
+        assertEquals(FuelSide(rightAxis = false, coverTitle = true, line = false), fuelSide(false, series(null)))
+        assertEquals(FuelSide(rightAxis = false, coverTitle = true, line = false), fuelSide(false, null))
+        assertEquals(FuelSide(rightAxis = false, coverTitle = true, line = false), fuelSide(false, series(listOf(5.0, 6.0))))
     }
 }

@@ -47,9 +47,9 @@ internal val CdCompressorScale = PrintedScale(
 /** "1 760"; a dash while the engine is off or the speed unknown. */
 internal fun rpmText(rpm: Int?): String = if (rpm == null || rpm <= 0) "—" else groupThousands(rpm)
 
-/** "1.2"; a dash while unknown. */
+/** "1.2" (never "-0.0"); a dash while unknown. */
 internal fun kwText(kw: Double?): String =
-    if (kw == null || !kw.isFinite()) "—" else String.format(Locale.US, "%.1f", kw)
+    if (kw == null || !kw.isFinite()) "—" else String.format(Locale.US, "%.1f", if (kw <= 0.0) 0.0 else kw)
 
 private val RpmCyan = Color(0xFF82FFFF)
 private val KwCyan = Color(0xFF55FFFF)
