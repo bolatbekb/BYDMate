@@ -22,6 +22,12 @@ open class LedgerRepository @Inject constructor(private val db: LedgerDatabase) 
     suspend fun mismatchThresholdPct(): Double =
         settings.get(KEY_MISMATCH_THRESHOLD)?.toDoubleOrNull() ?: DEFAULT_MISMATCH_THRESHOLD_PCT
 
+    suspend fun setDetectThresholdPp(v: Int) =
+        settings.set(LedgerSettingEntity(KEY_DETECT_THRESHOLD, v.toString()))
+
+    suspend fun setMismatchThresholdPct(v: Double) =
+        settings.set(LedgerSettingEntity(KEY_MISMATCH_THRESHOLD, v.toString()))
+
     open suspend fun detectorState(): String? = settings.get(KEY_DETECTOR_STATE)
 
     open suspend fun setDetectorState(json: String?) =

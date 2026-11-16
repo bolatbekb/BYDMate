@@ -77,6 +77,7 @@ internal enum class SettingsSection(@StringRes val labelRes: Int, val icon: Imag
     SPLIT(R.string.settings_section_split_title, Icons.Outlined.Apps),
     BATTERY(R.string.settings_section_auto_battery_title, Icons.Outlined.BatteryChargingFull),
     INTEGRATIONS(R.string.settings_section_integrations_title, Icons.Outlined.Link),
+    LEDGER(R.string.ledger_section_title, LedgerSectionIcon), // fork: fuel & expenses ledger
     SERVICE(R.string.settings_section_service_title, Icons.Outlined.Build),
     APP(R.string.settings_section_application_title, Icons.Outlined.Settings),
     SMART_HOME(R.string.settings_smart_home_section_title, Icons.Outlined.Home),
@@ -196,6 +197,7 @@ fun SettingsScreen(
                         SettingsSection.WIDGET -> WidgetSection()
                         SettingsSection.DISPLAY -> DisplaySection()
                         SettingsSection.SPLIT -> SplitSection(viewModel)
+                        SettingsSection.LEDGER -> LedgerSection() // fork: fuel & expenses ledger
                         SettingsSection.SERVICE -> ServiceSection(state, viewModel)
                         SettingsSection.APP -> AppSection(state, viewModel)
                         SettingsSection.SMART_HOME -> SmartHomeSection(state, viewModel)
