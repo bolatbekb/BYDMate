@@ -22,13 +22,18 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.sp
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
@@ -41,6 +46,8 @@ import com.bydmate.app.ui.home.hybrid.SegmentBar
 import com.bydmate.app.ui.home.hybrid.Txt
 import com.bydmate.app.ui.home.hybrid.ValueUnit
 import com.bydmate.app.ui.home.hybrid.at
+import com.bydmate.app.ui.home.hybrid.fs
+import com.bydmate.app.ui.home.hybrid.px
 import com.bydmate.app.ui.home.hybrid.celsius
 import com.bydmate.app.ui.home.hybrid.groupThousands
 import com.bydmate.app.ui.home.hybrid.rememberMusicVolume
@@ -106,9 +113,9 @@ private fun CdCarData(d: HomeData) {
     } else {
         ValueUnit(range, " км", 1679, 251, 49f, 37f, RangeCyan)
     }
-    // the EV range must stay left of the printed (i) at x 2031
-    SmallKm(d.evRangeKm, 1963, 218, width = 68)
-    SmallKm(d.fuelRangeKm, 1963, 260, width = 84)
+    // the EV range must stay left of the printed (i) at x 2031; the fuel range inside its cleared cell (to 2045)
+    SmallKm(d.evRangeKm, 1963, 218, width = 66)
+    SmallKm(d.fuelRangeKm, 1963, 260, width = 82)
 
     Txt(d.insideTemp.celsius(), 1243, 352, 42f, TempCyan, glow = true, width = 118)
     if (d.acOn == true && d.acAuto == true) {
@@ -121,11 +128,31 @@ private fun CdCarData(d: HomeData) {
     ValueUnit(d.todayKm?.let { String.format(Locale.US, "%.1f", it) } ?: "—", " км", 1751, 460, 49f, 37f, MileageCyan)
 }
 
-/** "62 км" beside the printed bolt / pump; three digits and more take a smaller face. */
+/** Face sizes [SmallKm] tries, largest first. */
+private val SmallKmSizes = listOf(31f, 28f, 26f, 24f, 22f, 20f, 18f)
+
+/** Room kept free at the right of a [SmallKm] box, mockup pixels. */
+private const val FIT_SLACK = 4
+
+/**
+ * "62 км" beside the printed bolt / pump, in the largest face of [SmallKmSizes] whose measured
+ * width leaves [FIT_SLACK] free in a box [width] mockup pixels wide.
+ */
 @Composable
 private fun SmallKm(km: Int?, x: Int, cy: Int, width: Int) {
     val text = "${km ?: "—"} км"
-    Txt(text, x, cy, if (text.length > 5) 26f else 31f, SmallCyan, glow = true, width = width)
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val size = remember(text, width, density) {
+        val room = with(density) { px(width - FIT_SLACK).toPx() }
+        SmallKmSizes.firstOrNull { sz ->
+            measurer.measure(
+                text, TextStyle(fontSize = fs(sz), fontFamily = FontFamily.SansSerif, letterSpacing = 0.sp),
+                maxLines = 1, softWrap = false, density = density,
+            ).size.width <= room
+        } ?: SmallKmSizes.last()
+    }
+    Txt(text, x, cy, size, SmallCyan, glow = true, width = width)
 }
 
 /* ---------------------------------------------------------------- volume */

@@ -77,6 +77,8 @@ private fun rememberReadyLamp(powerState: Int?): ReadyShown {
     val lamp = remember { ReadyLamp() }
     val power by rememberUpdatedState(powerState)
     var shown by remember { mutableStateOf(lamp.update(powerState, SystemClock.elapsedRealtime())) }
+    // a change shows at once (a rise lights READY now); the tick lets a held fall run out
+    LaunchedEffect(powerState) { shown = lamp.update(powerState, SystemClock.elapsedRealtime()) }
     val owner = LocalLifecycleOwner.current
     LaunchedEffect(owner) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
