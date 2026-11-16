@@ -173,6 +173,28 @@ private fun TotalColumn(value: String, unit: String, sub: String?, dot: Color?, 
     }
 }
 
+/** One bucket's bars, mockup px: kWh on the left, litres on the right; [fuelW] 0 = no litres bar. */
+internal data class BarPair(val kwhX: Float, val kwhW: Float, val fuelX: Float, val fuelW: Float)
+
+private const val PAIR_GAP = 4f
+
+/**
+ * The bars of a slot [slot] wide starting at [slotLeft], centred in it. With fuel: two bars
+ * min(18, slot × 0.2 — 0.24 past 20 buckets), at least 3, 4 apart; without: one bar as wide as
+ * the old single-series chart, min(40, slot × 0.42 — 0.5 past 20), at least 4.
+ */
+internal fun barPair(slotLeft: Float, slot: Float, n: Int, hasFuel: Boolean): BarPair {
+    val dense = n > 20
+    if (!hasFuel) {
+        val w = max(4f, min(40f, slot * (if (dense) 0.5f else 0.42f)))
+        val x = slotLeft + (slot - w) / 2
+        return BarPair(x, w, x + w, 0f)
+    }
+    val w = max(3f, min(18f, slot * (if (dense) 0.24f else 0.2f)))
+    val x = slotLeft + (slot - (2 * w + PAIR_GAP)) / 2
+    return BarPair(x, w, x + w + PAIR_GAP, w)
+}
+
 @Composable
 private fun EnergyChart(series: EnergySeries?) {
     val p = LocalGr.current
@@ -188,6 +210,13 @@ private fun EnergyChart(series: EnergySeries?) {
     ) {}
 }
 
+private const val AXIS_L = 64f
+private const val AXIS_R = 56f
+
+/**
+ * kWh (Electric, left axis) and litres (Fuel, right axis) side by side per bucket from one zero
+ * baseline; each series is scaled to its own max × 1.12. Without litres: one centred kWh bar.
+ */
 private fun buildChart(
     scope: androidx.compose.ui.draw.CacheDrawScope, tm: TextMeasurer, s: EnergySeries, p: GrPalette,
 ): androidx.compose.ui.draw.DrawResult = with(scope) {
@@ -195,19 +224,15 @@ private fun buildChart(
     val W = size.width / u
     val H = size.height / u
     val n = s.kwh.size
-    val padL = 64f; val padR = 8f; val padB = 34f; val top = 8f
-    val cw = W - padL - padR; val ch = H - padB - top
-    val base = if (s.litres == null) top + ch else top + ch * 0.62f
-    val upH = base - top - 4f; val dnH = top + ch - base - 4f
-    val maxK = (s.kwh.maxOrNull() ?: 0.0).let { if (it > 0) it * 1.12 else 1.0 }
     val litres = s.litres
-    val maxL = (litres?.maxOrNull() ?: 0.0).let { if (it > 0) it * 1.5 else 1.0 }
+    val hasFuel = litres != null
+    val padL = AXIS_L; val padR = if (hasFuel) AXIS_R else 8f; val padB = 34f; val top = 28f
+    val cw = W - padL - padR
+    val base = H - padB
+    val plotH = base - top - 4f
+    val maxK = (s.kwh.maxOrNull() ?: 0.0).let { if (it > 0) it * 1.12 else 1.0 }
+    val maxL = (litres?.maxOrNull() ?: 0.0).let { if (it > 0) it * 1.12 else 1.0 }
     val slot = if (n > 0) cw / n else cw
-    val bw = max(4f, min(40f, slot * (if (n > 20) 0.5f else 0.42f)))
-    val r = min(bw / 2, 8f)
-
-    fun layout(text: String, size: Float, weight: Int, color: Color): TextLayoutResult =
-        tm.measure(text, grStyle(size, weight, color = color, tnum = false))
 
     val grid = p.divider
     val dash = PathEffect.dashPathEffect(floatArrayOf(2 * u, 6 * u))
@@ -215,68 +240,103 @@ private fun buildChart(
 
     class Lbl(val l: TextLayoutResult, val x: Float, val baseline: Float, val align: Int)
     val labels = ArrayList<Lbl>()
+    fun layout(text: String, size: Float, weight: Int, color: Color): TextLayoutResult =
+        tm.measure(text, grStyle(size, weight, color = color, tnum = false))
+    // align: 0 centre, 1 right edge at x, 2 left edge at x; x and y in mockup px
+    fun addLbl(l: TextLayoutResult, x: Float, y: Float, align: Int) { labels.add(Lbl(l, x * u, y * u, align)) }
     fun addLbl(text: String, size: Float, weight: Int, color: Color, x: Float, y: Float, align: Int) =
-        layout(text, size, weight, color).let { labels.add(Lbl(it, x * u, y * u, align)) }
+        addLbl(layout(text, size, weight, color), x, y, align)
 
     val axisFmt = { v: Double -> grDec(v, if (v < 10) 1 else 0) }
     val showAxes = !s.empty
-    val hasFuel = litres != null
-    val botY = base + dnH
     val gridYs = ArrayList<Float>()
     if (showAxes) {
-        listOf(0.5f, 1f).forEach { f ->
-            gridYs.add(base - upH * f)
-            addLbl(axisFmt(maxK * f), 17f, 400, p.textTertiary, padL - 14, base - upH * f + 6, 1)
+        val lx = padL - 14; val rx = W - padR + 14
+        listOf(0f, 0.5f, 1f).forEach { f ->
+            val y = base - plotH * f
+            if (f > 0f) gridYs.add(y)
+            addLbl(if (f == 0f) "0" else axisFmt(maxK * f), 17f, 400, p.textTertiary, lx, y + 6, 1)
+            if (hasFuel) addLbl(if (f == 0f) "0" else axisFmt(maxL * f), 17f, 400, p.textTertiary, rx, y + 6, 2)
         }
-        if (hasFuel) {
-            gridYs.add(botY)
-            addLbl(grDec(maxL), 17f, 400, p.textTertiary, padL - 14, botY + 6, 1)
-        }
-        addLbl("0", 17f, 400, p.textTertiary, padL - 14, base + 6, 1)
+        addLbl("кВт·ч", 16f, 400, p.textTertiary, lx, top - 12, 1)
+        if (hasFuel) addLbl("л", 16f, 400, p.textTertiary, rx, top - 12, 2)
     }
 
     val bars = ArrayList<Triple<Path, Color, Float>>()
+    fun bar(x: Float, w: Float, h: Float, color: Color, alpha: Float) {
+        val rr = min(min(w / 2, 6f), h) * u
+        bars.add(Triple(Path().apply {
+            addRoundRect(RoundRect(x * u, (base - 2 - h) * u, (x + w) * u, (base - 2) * u,
+                CornerRadius(rr), CornerRadius(rr), CornerRadius.Zero, CornerRadius.Zero))
+        }, color, alpha))
+    }
+    val x1 = padL; val x2 = W - padR
     for (i in 0 until n) {
-        val cx = padL + slot * i + slot / 2
-        val x = cx - bw / 2
+        val slotLeft = padL + slot * i
+        val cx = slotLeft + slot / 2
+        val pair = barPair(slotLeft, slot, n, hasFuel)
         val cur = i == s.current
         val op = if (cur) 1f else p.dimOpacity
-        val hk = (s.kwh[i] / maxK * upH).toFloat()
-        val hl = ((litres?.getOrNull(i) ?: 0.0) / maxL * dnH).toFloat()
-        if (hk > 0f) {
-            val rr = min(r, hk)
-            bars.add(Triple(Path().apply {
-                addRoundRect(RoundRect(x * u, (base - 2 - hk) * u, (x + bw) * u, (base - 2) * u,
-                    CornerRadius(rr * u), CornerRadius(rr * u), CornerRadius.Zero, CornerRadius.Zero))
-            }, p.electric, op))
-        }
-        if (hl > 0f) {
-            val rr = min(r, hl)
-            bars.add(Triple(Path().apply {
-                addRoundRect(RoundRect(x * u, (base + 2) * u, (x + bw) * u, (base + 2 + hl) * u,
-                    CornerRadius.Zero, CornerRadius.Zero, CornerRadius(rr * u), CornerRadius(rr * u)))
-            }, p.fuel, op))
-        }
-        if (cur) {
-            if (s.kwh[i] > 0) addLbl(grDec(s.kwh[i]), 18f, 600, p.electric, cx, base - hk - 14, 0)
-            if (hl > 0f) addLbl(grDec(litres!![i]), 18f, 600, p.fuel, cx, base + hl + 26, 0)
-        }
+        val k = s.kwh[i]
+        val l = litres?.getOrNull(i) ?: 0.0
+        val hk = (k / maxK * plotH).toFloat()
+        val hl = (l / maxL * plotH).toFloat()
+        if (hk > 0f) bar(pair.kwhX, pair.kwhW, hk, p.electric, op)
+        if (hasFuel && hl > 0f) bar(pair.fuelX, pair.fuelW, hl, p.fuel, op)
+        if (cur) valueLabels(
+            if (k > 0) layout(grDec(k), 18f, 600, p.electric) else null,
+            if (hasFuel && l > 0) layout(grDec(l), 18f, 600, p.fuel) else null,
+            pair, base - 2 - hk - 14, base - 2 - hl - 14, u, x1, x2, ::addLbl,
+        )
         if (n <= 12 || i % 3 == 0 || i == n - 1) {
             addLbl(s.labels.getOrElse(i) { "" }, 18f, if (cur) 600 else 400, if (cur) p.textPrimary else p.textTertiary, cx, H - 6, 0)
         }
     }
 
     onDrawBehind {
-        val x1 = padL * u; val x2 = (W - padR) * u
         for (y in gridYs) {
-            drawLine(grid, Offset(x1, y * u), Offset(x2, y * u), u, pathEffect = dash)
+            drawLine(grid, Offset(x1 * u, y * u), Offset(x2 * u, y * u), u, pathEffect = dash)
         }
-        drawLine(baseC, Offset(x1, base * u), Offset(x2, base * u), u)
+        drawLine(baseC, Offset(x1 * u, base * u), Offset(x2 * u, base * u), u)
         for ((path, color, a) in bars) drawPath(path, color, alpha = a)
         for (l in labels) {
             val w = l.l.size.width
-            val left = when (l.align) { 1 -> l.x - w; else -> l.x - w / 2f }
+            val left = when (l.align) { 1 -> l.x - w; 2 -> l.x; else -> l.x - w / 2f }
             drawText(l.l, topLeft = Offset(left, l.baseline - l.l.firstBaseline))
         }
+    }
+}
+
+/**
+ * The current bucket's values: each centred over its own bar at [yk] / [yl] (baselines, mockup
+ * px); when the two would collide they go side by side, kWh ending and litres starting at the
+ * pair's middle, both over the taller bar. Kept between [minX] and [maxX] (the plot).
+ */
+private fun valueLabels(
+    kwh: TextLayoutResult?, lit: TextLayoutResult?, pair: BarPair, yk: Float, yl: Float, u: Float,
+    minX: Float, maxX: Float, add: (TextLayoutResult, Float, Float, Int) -> Unit,
+) {
+    fun w(l: TextLayoutResult) = l.size.width / u
+    fun h(l: TextLayoutResult) = l.size.height / u
+    fun clampCentre(cx: Float, l: TextLayoutResult) = cx.coerceIn(minX + w(l) / 2, max(minX + w(l) / 2, maxX - w(l) / 2))
+    val kc = pair.kwhX + pair.kwhW / 2
+    val lc = pair.fuelX + pair.fuelW / 2
+    if (kwh != null && lit != null) {
+        val kx = clampCentre(kc, kwh); val lx = clampCentre(lc, lit)
+        val apartX = kx + w(kwh) / 2 + 4 <= lx - w(lit) / 2
+        val apartY = kotlin.math.abs(yk - yl) >= max(h(kwh), h(lit))
+        if (apartX || apartY) {
+            add(kwh, kx, yk, 0); add(lit, lx, yl, 0)
+        } else {
+            val y = min(yk, yl)
+            val mid = (pair.kwhX + pair.kwhW + pair.fuelX) / 2
+            val total = w(kwh) + 6 + w(lit)
+            // Shift the pair of labels inside the plot, keeping the 6 px between them.
+            val start = (mid - 3 - w(kwh)).coerceIn(minX, max(minX, maxX - total))
+            add(kwh, start + w(kwh), y, 1); add(lit, start + w(kwh) + 6, y, 2)
+        }
+    } else {
+        kwh?.let { add(it, clampCentre(kc, it), yk, 0) }
+        lit?.let { add(it, clampCentre(lc, it), yl, 0) }
     }
 }

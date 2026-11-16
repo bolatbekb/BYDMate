@@ -1,5 +1,6 @@
 package com.bydmate.app.ui.home.graphite
 
+import com.bydmate.app.data.autoservice.Pm25
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.roundToInt
@@ -52,8 +53,8 @@ internal fun engineChip(rpm: Int?): String? =
 
 internal fun modeChip(driveMode: String?, profile: String?): String? {
     val base = when (driveMode) {
-        "EV" -> "Электро"
-        "HEV" -> "Гибрид"
+        "EV" -> "EV"
+        "HEV" -> "HEV"
         else -> return null
     }
     val p = when (profile) {
@@ -77,3 +78,47 @@ internal object ChargeEta {
 
 internal fun litresFromPercent(percent: Int?, tankL: Double?): Int? =
     if (percent == null || tankL == null) null else (percent / 100.0 * tankL).roundToInt()
+
+/** A palette accent named without the palette, so a rule can pick it in a unit test. */
+internal enum class Tone { ELECTRIC, FUEL, HEAT }
+
+/** PM2.5 grade 1..6 (the SDK's levels) to its word and colour; null outside the grades. */
+internal fun pm25Quality(level: Int?): Pair<String, Tone>? = when (level) {
+    1 -> "отлично" to Tone.ELECTRIC
+    2 -> "хорошо" to Tone.ELECTRIC
+    3 -> "средне" to Tone.FUEL
+    4, 5, 6 -> "плохо" to Tone.HEAT
+    else -> null
+}
+
+internal data class Pm25Side(val label: String, val value: Int, val quality: String, val tone: Tone)
+
+/** The sides of the PM2.5 line, cabin first; a side needs a value and a grade. Null when none. */
+internal fun pm25Sides(pm: Pm25?): List<Pm25Side>? {
+    if (pm == null) return null
+    val sides = listOfNotNull(
+        pm25Side("Салон", pm.inside, pm.levelIn),
+        pm25Side("Снаружи", pm.outside, pm.levelOut),
+    )
+    return sides.ifEmpty { null }
+}
+
+private fun pm25Side(label: String, value: Int?, level: Int?): Pm25Side? {
+    val (word, tone) = pm25Quality(level) ?: return null
+    return Pm25Side(label, value ?: return null, word, tone)
+}
+
+internal fun sohText(soh: Float): String = "${soh.roundToInt()} %"
+
+internal fun voltageText(volts: Double): String = grDec(volts)
+
+/** kΩ as «3 500 кОм»; from 10 000 kΩ on, «12,5 МОм». */
+internal fun insulationText(kohm: Int): String =
+    if (kohm >= 10_000) grDec(kohm / 1000.0) + " МОм" else grInt(kohm) + " кОм"
+
+/** Longer than the slowest poll (60 s backoff), so a parked car between reads stays online. */
+internal const val LIVE_FRESH_MS = 90_000L
+
+/** The car answers ([connected]) and the last snapshot is recent; 0 = never got one. */
+internal fun isOnline(connected: Boolean, lastDataAtMs: Long, nowMs: Long): Boolean =
+    connected && lastDataAtMs > 0L && nowMs - lastDataAtMs <= LIVE_FRESH_MS

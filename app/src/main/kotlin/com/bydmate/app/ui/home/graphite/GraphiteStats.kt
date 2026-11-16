@@ -1,13 +1,11 @@
 package com.bydmate.app.ui.home.graphite
 
 import com.bydmate.app.data.local.entity.TripEntity
-import com.bydmate.app.data.local.entity.TripPointEntity
 import com.bydmate.app.ui.home.cdrive.ChartBuckets
 import com.bydmate.app.ui.home.cdrive.ChartPeriod
 import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
-import kotlin.math.min
 import kotlin.math.roundToInt
 
 /** [litres] == null means the car has no fuel data at all: the fuel line and share are hidden. */
@@ -135,24 +133,5 @@ object TodayStatsCalc {
             kwh = if (anyKwh) kwh.coerceAtLeast(0.0) else null,
             litres = if (anyFuel) lit else null,
         )
-    }
-}
-
-object Regen {
-    private const val GAP_CAP_MS = 10_000L
-
-    /** Energy recovered while moving, kWh; null when no point carries battery power. */
-    fun kwh(points: List<TripPointEntity>): Double? {
-        if (points.none { it.batteryPowerW != null }) return null
-        val sorted = points.sortedBy { it.timestamp }
-        var wattMs = 0.0
-        for (i in 0 until sorted.size - 1) {
-            val a = sorted[i]; val b = sorted[i + 1]
-            val w = a.batteryPowerW ?: continue
-            if (w < 0 && (a.speedKmh ?: 0.0) > 0.0) {
-                wattMs += -w * min(b.timestamp - a.timestamp, GAP_CAP_MS)
-            }
-        }
-        return wattMs / 3_600_000_000.0
     }
 }

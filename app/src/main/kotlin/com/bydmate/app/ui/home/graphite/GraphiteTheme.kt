@@ -215,11 +215,14 @@ private fun pillModifier(fill: Color, edge: Color, edgeStyle: Boolean, radius: F
         }
     }
 
-/** Card with the common padding (30 top/bottom, 34 sides): every header sits at the same height. */
+/**
+ * Card with the common padding (30 top/bottom, 34 sides): every header sits at the same height.
+ * [bottom] lets a crowded card take a little off its bottom only.
+ */
 @Composable
-fun CardBody(modifier: Modifier, content: @Composable ColumnScope.() -> Unit) {
+fun CardBody(modifier: Modifier, bottom: Int = 30, content: @Composable ColumnScope.() -> Unit) {
     Column(
-        modifier.grCard(LocalGr.current).padding(horizontal = px(34), vertical = px(30)),
+        modifier.grCard(LocalGr.current).padding(start = px(34), top = px(30), end = px(34), bottom = px(bottom)),
         content = content,
     )
 }

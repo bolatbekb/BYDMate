@@ -39,17 +39,19 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.platform.LocalContext
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.bydmate.app.R
+import com.bydmate.app.demo.DemoMode
+import com.bydmate.app.service.TrackingService
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.RetroTab
-import com.bydmate.app.ui.home.cdrive.ChartPeriod
 import com.bydmate.app.ui.home.cdrive.ReadyLamp
 import com.bydmate.app.ui.home.cdrive.ReadyShown
 import com.bydmate.app.ui.home.hybrid.MockupFrame
@@ -60,6 +62,7 @@ import java.time.LocalDateTime
 
 private const val CLOCK_TICK_MS = 10_000L
 private const val LAMP_TICK_MS = 250L
+private const val ONLINE_TICK_MS = 5_000L
 
 /**
  * The Graphite home (tools/graphite/design): top bar, six cards on the SPEC §2 grid, the menu.
@@ -77,7 +80,10 @@ fun GraphiteHome(
     val period by vm.period.collectAsStateWithLifecycle()
     val energy by vm.energy.collectAsStateWithLifecycle()
     val today by vm.today.collectAsStateWithLifecycle()
-    val regenKwh by vm.regenKwh.collectAsStateWithLifecycle()
+    val soh by vm.sohPercent.collectAsStateWithLifecycle()
+    val pm25 by vm.pm25.collectAsStateWithLifecycle()
+    val pmSides = remember(pm25) { pm25Sides(pm25) }
+    val online = rememberOnline()
     val tankL by vm.tankCapacityL.collectAsStateWithLifecycle()
     val capacityKwh by vm.batteryCapacityKwh.collectAsStateWithLifecycle()
 
@@ -88,12 +94,13 @@ fun GraphiteHome(
                 Modifier.fillMaxSize().grBackground(p).padding(start = px(32), top = px(22), end = px(32), bottom = px(22)),
                 verticalArrangement = Arrangement.spacedBy(px(20)),
             ) {
-                TopBar(data, Modifier.fillMaxWidth().height(px(68)))
+                TopBar(data, online, Modifier.fillMaxWidth().height(px(68)))
                 // The six cards. Tasks 6–9 swap each *Slot call here for its card (same arguments).
                 Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(px(20))) {
                     Column(Modifier.width(px(790)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
-                        RangeCard(data, regenKwh, tankL, capacityKwh, Modifier.fillMaxWidth().weight(1f))
-                        TempsCard(data, Modifier.fillMaxWidth().height(px(290)))
+                        // The PM2.5 line makes the temperatures 76 taller; the range card above gives the room.
+                        RangeCard(data, soh, tankL, capacityKwh, compact = pmSides != null, Modifier.fillMaxWidth().weight(1f))
+                        TempsCard(data, pmSides, Modifier.fillMaxWidth().height(px(if (pmSides != null) 290 + 76 else 290)))
                     }
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         GalleryCard(Modifier.fillMaxWidth().height(px(404)))
@@ -132,7 +139,7 @@ private fun backgroundModifier(p: GrPalette): Modifier = Modifier.drawWithCache 
 /* ---------------------------------------------------------------- top bar */
 
 @Composable
-private fun TopBar(data: HomeData, modifier: Modifier) {
+private fun TopBar(data: HomeData, online: Boolean, modifier: Modifier) {
     val p = LocalGr.current
     val now = rememberNow()
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(px(14))) {
@@ -147,11 +154,7 @@ private fun TopBar(data: HomeData, modifier: Modifier) {
             Chip(text, lead = { GrIcon(R.drawable.gr_ic_leaf, 24f, p.electric) })
         }
         Spacer(Modifier.weight(1f))
-        data.todayKm?.let { km ->
-            Chip("${grDec(km)} км", note = "сегодня", lead = { GrIcon(R.drawable.gr_ic_route, 24f, p.textSecondary) })
-        }
-        val links = rememberLinks()
-        if (links.bt || links.wifi || links.cell) Links(links)
+        LinkStatus(online)
     }
 }
 
@@ -195,17 +198,40 @@ private fun StatusDot(color: Color, glow: Boolean) {
     )
 }
 
-/** Bluetooth, Wi-Fi and mobile icons 26 TextSecondary, then the mobile type; only what is on. */
+/** «Онлайн» with a glowing Electric dot while the car answers, «Нет связи» with a dim one otherwise. */
 @Composable
-private fun Links(links: GraphiteLinks.Links) {
+private fun LinkStatus(online: Boolean) {
     val p = LocalGr.current
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(px(22))) {
-        if (links.bt) GrIcon(R.drawable.gr_ic_bt, 26f, p.textSecondary)
-        if (links.wifi) GrIcon(R.drawable.gr_ic_wifi, 26f, p.textSecondary)
-        if (links.cell) GrIcon(R.drawable.gr_ic_signal, 26f, p.textSecondary)
-        val type = links.cellType
-        if (links.cell && type != null) Text(type, maxLines = 1, softWrap = false, style = grStyle(22f, 400, color = p.textSecondary))
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        StatusDot(if (online) p.electric else p.textTertiary, glow = online)
+        Spacer(Modifier.width(px(12)))
+        Text(
+            if (online) "Онлайн" else "Нет связи", maxLines = 1, softWrap = false,
+            style = grStyle(22f, 500, color = if (online) p.textPrimary else p.textSecondary, tnum = false),
+        )
     }
+}
+
+/**
+ * The car link: the transport is up and a snapshot came in recently (TrackingService keeps the
+ * last one after a loss). Re-checked every few seconds while started; demo is always online.
+ */
+@Composable
+private fun rememberOnline(): Boolean {
+    val ctx = LocalContext.current
+    val demo = remember { DemoMode.isOn(ctx) }
+    val connected by TrackingService.vehicleDataConnected.collectAsStateWithLifecycle()
+    var fresh by remember { mutableStateOf(isOnline(true, TrackingService.lastDataAtMs, System.currentTimeMillis())) }
+    val owner = LocalLifecycleOwner.current
+    LaunchedEffect(owner) {
+        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                fresh = isOnline(true, TrackingService.lastDataAtMs, System.currentTimeMillis())
+                delay(ONLINE_TICK_MS)
+            }
+        }
+    }
+    return demo || (connected && fresh)
 }
 
 /** Local time, re-read every 10 s while the screen is started. */

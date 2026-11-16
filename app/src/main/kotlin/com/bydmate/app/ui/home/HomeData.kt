@@ -73,6 +73,10 @@ data class HomeData(
     val batteryPowerKw: Double? = null,
     /** Battery capacity the car reports, kWh. */
     val liveCapacityKwh: Double? = null,
+    /** 12 V battery, V. */
+    val voltage12v: Double? = null,
+    /** HV pack to body insulation resistance, kΩ. */
+    val insulationKohm: Int? = null,
 ) {
     companion object {
         private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -152,6 +156,8 @@ data class HomeData(
                 chargingStatus = live?.chargingStatus,
                 batteryPowerKw = live?.batteryPowerW?.let { it / 1000.0 },
                 liveCapacityKwh = live?.batteryCapacityKwh,
+                voltage12v = live?.voltage12v,
+                insulationKohm = live?.insulationKohm,
             )
         }
     }

@@ -3,9 +3,12 @@ package com.bydmate.app.ui.home.graphite
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bydmate.app.data.autoservice.Pm25
+import com.bydmate.app.data.autoservice.Pm25Reader
 import com.bydmate.app.data.local.dao.TripDao
-import com.bydmate.app.data.local.dao.TripPointDao
 import com.bydmate.app.data.repository.SettingsRepository
+import com.bydmate.app.demo.DemoMode
+import com.bydmate.app.domain.battery.BatteryStateRepository
 import com.bydmate.app.fork.ledger.data.LedgerRepository
 import com.bydmate.app.ui.home.cdrive.ChartBuckets
 import com.bydmate.app.ui.home.cdrive.ChartPeriod
@@ -14,7 +17,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,9 +27,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
@@ -38,12 +38,14 @@ import javax.inject.Inject
 @HiltViewModel
 class GraphiteViewModel @Inject constructor(
     private val tripDao: TripDao,
-    private val tripPointDao: TripPointDao,
     ledger: LedgerRepository,
     settings: SettingsRepository,
+    private val battery: BatteryStateRepository,
+    private val pm25Reader: Pm25Reader,
     @ApplicationContext ctx: Context,
 ) : ViewModel() {
     private val prefs = ctx.getSharedPreferences("bydmate_home", Context.MODE_PRIVATE)
+    private val demo = DemoMode.isOn(ctx)
 
     private val _period = MutableStateFlow(
         runCatching { ChartPeriod.valueOf(prefs.getString(KEY, null) ?: "") }.getOrDefault(ChartPeriod.WEEK)
@@ -86,34 +88,34 @@ class GraphiteViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    // One collector of today's trips, shared by `today` and `regenKwh`.
     @OptIn(ExperimentalCoroutinesApi::class)
-    private val todayTrips = date.flatMapLatest {
-        window(ChartPeriod.DAY, ZonedDateTime.now(ZoneId.systemDefault()))
-    }.shareIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), replay = 1)
-
-    val today: StateFlow<TodayStats?> = todayTrips
+    val today: StateFlow<TodayStats?> = date
+        .flatMapLatest { window(ChartPeriod.DAY, ZonedDateTime.now(ZoneId.systemDefault())) }
         .map { trips -> TodayStatsCalc.from(trips, trips.sumOf { it.distanceKm ?: 0.0 }.takeIf { it > 0.0 }) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private val minuteTick: Flow<Unit> = flow {
-        while (true) { emit(Unit); delay(60_000) }
-    }
-
-    /** Regen of today's finished trips; recomputed when the trip list changes and once a minute. */
-    val regenKwh: StateFlow<Double?> = combine(todayTrips, minuteTick) { trips, _ -> trips }
-        .map { trips ->
-            withContext(Dispatchers.IO) {
-                var sum = 0.0; var any = false
-                for (t in trips) {
-                    if (t.endTs == null) continue
-                    Regen.kwh(tripPointDao.getByTripId(t.id))?.let { sum += it; any = true }
-                }
-                if (any) sum else null
-            }
+    /** Battery SOH, %: read at once, then every 10 min; a failed read keeps the last value. */
+    val sohPercent: StateFlow<Float?> = flow {
+        var last: Float? = null
+        while (true) {
+            last = runCatching { battery.refresh().sohPercent }.getOrNull() ?: last
+            emit(last)
+            delay(SOH_POLL_MS)
         }
-        .flowOn(Dispatchers.Default)
+    }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** PM2.5, read at once and every minute; null = no sensor. Demo shows a fixed reading. */
+    val pm25: StateFlow<Pm25?> = flow {
+        while (true) {
+            emit(if (demo) DEMO_PM25 else runCatching { pm25Reader.read() }.getOrNull())
+            delay(PM25_POLL_MS)
+        }
+    }
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val tankCapacityL: StateFlow<Double?> = flow { emit(runCatching { ledger.tankCapacityL() }.getOrNull()) }
@@ -124,5 +126,10 @@ class GraphiteViewModel @Inject constructor(
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    private companion object { const val KEY = "graphite_chart_period" }
+    private companion object {
+        const val KEY = "graphite_chart_period"
+        const val SOH_POLL_MS = 10 * 60_000L
+        const val PM25_POLL_MS = 60_000L
+        val DEMO_PM25 = Pm25(inside = 12, outside = 35, levelIn = 1, levelOut = 2)
+    }
 }

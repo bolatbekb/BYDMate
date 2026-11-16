@@ -51,10 +51,12 @@ import kotlin.math.sin
 /* ---------------------------------------------------------------- «Общий запас хода» */
 
 @Composable
-fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Double?, modifier: Modifier) {
+fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: Double?, compact: Boolean, modifier: Modifier) {
     val p = LocalGr.current
     val total = data.totalRangeKm?.takeIf { it > 0 }
-    CardBody(modifier) {
+    // Compact: the card is 76 shorter (the PM2.5 line below); only the gaps shrink.
+    val g = if (compact) RangeGaps.Compact else RangeGaps.Regular
+    CardBody(modifier, bottom = g.bottom) {
         CardHeader(R.drawable.gr_ic_gauge, "Общий запас хода") {
             data.odometerKm?.let {
                 Text(
@@ -63,7 +65,7 @@ fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Do
                 )
             }
         }
-        Row(Modifier.padding(top = px(10)).height(px(148))) {
+        Row(Modifier.padding(top = px(g.number)).height(px(148))) {
             Text(
                 total?.let { grInt(it) } ?: "—", maxLines = 1, softWrap = false,
                 style = grStyle(148f, 250, -6f, p.textPrimary).copy(lineHeight = fs(148f)),
@@ -78,10 +80,10 @@ fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Do
                 )
             }
         }
-        RangeBar(total, data.evRangeKm, Modifier.padding(top = px(26)))
-        if (total != null) RangeScaleRow(rangeScale(total).ticks, total, Modifier.padding(top = px(12)))
-        Box(Modifier.padding(top = px(26)).fillMaxWidth().height(px(1)).background(p.divider))
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = px(24))) {
+        RangeBar(total, data.evRangeKm, Modifier.padding(top = px(g.bar)))
+        if (total != null) RangeScaleRow(rangeScale(total).ticks, total, Modifier.padding(top = px(g.scale)))
+        Box(Modifier.padding(top = px(g.divider)).fillMaxWidth().height(px(1)).background(p.divider))
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = px(g.gauges))) {
             RangeGauge(
                 Modifier.weight(1f), R.drawable.gr_ic_battery, R.drawable.gr_ic_bolt, "Батарея", data.socPercent,
                 p.electric,
@@ -96,8 +98,17 @@ fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Do
                 kmLine(data.fuelRangeKm, litresFromPercent(data.fuelPercent, tankL)?.let { "($it л)" }),
             )
         }
-        RangeFooter(data, regenKwh, capacityKwh, Modifier.padding(top = px(24)))
+        RangeFooter(data, sohPercent, capacityKwh, g.footerPad, Modifier.padding(top = px(g.footer)))
     }
+}
+
+/** The range card's vertical gaps, mockup px; Compact takes 78 off (the card loses 76). */
+private enum class RangeGaps(
+    val number: Int, val bar: Int, val scale: Int, val divider: Int, val gauges: Int, val footer: Int,
+    val footerPad: Int, val bottom: Int,
+) {
+    Regular(number = 10, bar = 26, scale = 12, divider = 26, gauges = 24, footer = 24, footerPad = 18, bottom = 30),
+    Compact(number = 0, bar = 16, scale = 8, divider = 14, gauges = 14, footer = 12, footerPad = 12, bottom = 22),
 }
 
 private fun kmLine(km: Int?, tail: String?): Pair<String, String?> =
@@ -253,20 +264,20 @@ private fun GaugeDial(percent: Int?, accent: Color, centerIcon: Int) {
 }
 
 @Composable
-private fun RangeFooter(data: HomeData, regenKwh: Double?, capacityKwh: Double?, modifier: Modifier) {
+private fun RangeFooter(data: HomeData, sohPercent: Float?, capacityKwh: Double?, padV: Int, modifier: Modifier) {
     val p = LocalGr.current
     val eta = ChargeEta.minutesToFull(
         data.chargingStatus == 2, data.socPercent, data.liveCapacityKwh ?: capacityKwh, data.batteryPowerKw ?: data.powerKw,
     )
-    val hold = when (data.autoPark) { 0 -> "выкл"; 1, 2 -> "вкл"; else -> null }
     val cells = buildList<Triple<Int, String, String>> {
+        sohPercent?.takeIf { it.isFinite() }?.let { add(Triple(R.drawable.gr_ic_battery, "SOH ", sohText(it))) }
+        data.voltage12v?.takeIf { it.isFinite() }?.let { add(Triple(R.drawable.gr_ic_bolt, "12 В ", voltageText(it))) }
+        data.insulationKohm?.let { add(Triple(R.drawable.gr_ic_power, "Изоляция ", insulationText(it))) }
         if (eta != null) add(Triple(R.drawable.gr_ic_plug, "До 100% ", grDuration(eta)))
-        if (regenKwh != null) add(Triple(R.drawable.gr_ic_leaf, "Рекуперация ", grDec(regenKwh) + " кВт·ч"))
-        if (hold != null) add(Triple(R.drawable.gr_ic_lock, "Hold ", hold))
     }
     if (cells.isEmpty()) return
     InsetBox(22f, modifier.fillMaxWidth()) {
-        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(horizontal = px(20), vertical = px(18))) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(horizontal = px(20), vertical = px(padV))) {
             cells.forEachIndexed { i, (icon, label, value) ->
                 // Columns are sized by their text length (like the mockup's auto columns), so the
                 // longest cell gets the most room; FitText shrinks before anything ellipsizes.
@@ -296,32 +307,38 @@ private fun RangeFooter(data: HomeData, regenKwh: Double?, capacityKwh: Double?,
 /* ---------------------------------------------------------------- «Температуры» */
 
 @Composable
-fun TempsCard(data: HomeData, modifier: Modifier) {
+internal fun TempsCard(data: HomeData, pm25: List<Pm25Side>?, modifier: Modifier) {
     val p = LocalGr.current
-    Row(modifier.grCard(p)) {
-        TempColumn(
-            Modifier.weight(1f), false, R.drawable.gr_ic_tree, "Снаружи",
-            data.outsideTemp?.let { grDec(it.toDouble()) }, data.outsideTemp?.let { tempFraction(TempKind.OUTSIDE, it) },
-            listOf(0f to p.coldDeep, 1f to p.cold), true,
-            outsideNote(data.outsideTemp)?.let { Triple(R.drawable.gr_ic_snow, it, p.cold) },
-        )
-        TempColumn(
-            Modifier.weight(1f), true, R.drawable.gr_ic_seat, "Салон",
-            data.insideTemp?.let { grDec(it.toDouble()) }, data.insideTemp?.let { tempFraction(TempKind.CABIN, it) },
-            listOf(0f to p.cold, 0.55f to p.fuel, 1f to p.heat), false,
-            cabinNote(data.acAuto, data.acOn, data.acTemp)?.let { Triple(R.drawable.gr_ic_fan, it, p.textTertiary) },
-        )
-        TempColumn(
-            Modifier.weight(1f), true, R.drawable.gr_ic_battery, "Батарея",
-            data.batteryTemp?.let { grDec(it.toDouble()) }, data.batteryTemp?.let { tempFraction(TempKind.BATTERY, it) },
-            listOf(0f to p.heat, 1f to p.heat), true, null,
-        )
+    Column(modifier.grCard(p)) {
+        // Without the PM2.5 line the columns keep the whole card; with it they end 16 above the line.
+        val bottom = if (pm25 != null) 16 else 30
+        Row(Modifier.fillMaxWidth().weight(1f)) {
+            TempColumn(
+                Modifier.weight(1f), bottom, false, R.drawable.gr_ic_tree, "Снаружи",
+                data.outsideTemp?.let { grDec(it.toDouble()) }, data.outsideTemp?.let { tempFraction(TempKind.OUTSIDE, it) },
+                listOf(0f to p.coldDeep, 1f to p.cold), true,
+                outsideNote(data.outsideTemp)?.let { Triple(R.drawable.gr_ic_snow, it, p.cold) },
+            )
+            TempColumn(
+                Modifier.weight(1f), bottom, true, R.drawable.gr_ic_seat, "Салон",
+                data.insideTemp?.let { grDec(it.toDouble()) }, data.insideTemp?.let { tempFraction(TempKind.CABIN, it) },
+                listOf(0f to p.cold, 0.55f to p.fuel, 1f to p.heat), false,
+                cabinNote(data.acAuto, data.acOn, data.acTemp)?.let { Triple(R.drawable.gr_ic_fan, it, p.textTertiary) },
+            )
+            TempColumn(
+                Modifier.weight(1f), bottom, true, R.drawable.gr_ic_battery, "Батарея",
+                data.batteryTemp?.let { grDec(it.toDouble()) }, data.batteryTemp?.let { tempFraction(TempKind.BATTERY, it) },
+                listOf(0f to p.heat, 1f to p.heat), true, null,
+            )
+        }
+        if (pm25 != null) Pm25Line(pm25, Modifier.padding(start = px(30), end = px(30), bottom = px(24)))
     }
 }
 
 @Composable
 private fun TempColumn(
     modifier: Modifier,
+    bottom: Int,
     divider: Boolean,
     icon: Int,
     title: String,
@@ -337,10 +354,10 @@ private fun TempColumn(
             .drawBehind {
                 if (divider) {
                     val u = px(1).toPx()
-                    drawRect(p.divider, Offset(0f, px(30).toPx()), Size(u, size.height - px(60).toPx()))
+                    drawRect(p.divider, Offset(0f, px(30).toPx()), Size(u, size.height - px(30 + bottom).toPx()))
                 }
             }
-            .padding(horizontal = px(30), vertical = px(30)),
+            .padding(start = px(30), top = px(30), end = px(30), bottom = px(bottom)),
     ) {
         Row(Modifier.fillMaxWidth().height(px(34)), verticalAlignment = Alignment.CenterVertically) {
             GrIcon(icon, 24f, p.textTertiary)
@@ -375,6 +392,40 @@ private fun TempColumn(
             }
         }
     }
+}
+
+/**
+ * The PM2.5 line under the temperatures (InsetBox 18, padding 12 × 20): fan + «PM2.5», then
+ * «Салон 12 отлично» / «Снаружи 35 хорошо», µg/m³, the word coloured by its grade.
+ */
+@Composable
+private fun Pm25Line(sides: List<Pm25Side>, modifier: Modifier) {
+    val p = LocalGr.current
+    InsetBox(18f, modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = px(20), vertical = px(12)), verticalAlignment = Alignment.CenterVertically) {
+            GrIcon(R.drawable.gr_ic_fan, 22f, p.textTertiary)
+            Spacer(Modifier.width(px(10)))
+            Text("PM2.5", maxLines = 1, softWrap = false, style = grStyle(19f, 400, color = p.textSecondary, tnum = false))
+            Spacer(Modifier.width(px(28)))
+            FitText(
+                buildAnnotatedString {
+                    sides.forEachIndexed { i, side ->
+                        if (i > 0) append("   ")
+                        append(side.label + " ")
+                        withStyle(SpanStyle(color = p.textPrimary, fontWeight = FontWeight(500))) { append(grInt(side.value)) }
+                        withStyle(SpanStyle(color = p.tone(side.tone))) { append(" " + side.quality) }
+                    }
+                },
+                grStyle(19f, 400, color = p.textSecondary, tnum = false), 19f, 15f, Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+private fun GrPalette.tone(t: Tone): Color = when (t) {
+    Tone.ELECTRIC -> electric
+    Tone.FUEL -> fuel
+    Tone.HEAT -> heat
 }
 
 /**

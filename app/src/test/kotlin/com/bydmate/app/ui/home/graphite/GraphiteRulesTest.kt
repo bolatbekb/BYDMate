@@ -1,7 +1,10 @@
 package com.bydmate.app.ui.home.graphite
 
+import com.bydmate.app.data.autoservice.Pm25
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GraphiteRulesTest {
@@ -37,14 +40,52 @@ class GraphiteRulesTest {
         assertNull(powerChip(null))
         assertNull(engineChip(0))
         assertEquals("Двигатель заведён · 1 240 об/мин", engineChip(1240))
-        assertEquals("Гибрид · Эко", modeChip("HEV", "ECO"))
-        assertEquals("Электро · Норма", modeChip("EV", "NORMAL"))
-        assertEquals("Гибрид · Snow", modeChip("HEV", "SNOW"))
-        assertEquals("Электро", modeChip("EV", null))
+        assertEquals("HEV · Эко", modeChip("HEV", "ECO"))
+        assertEquals("EV · Норма", modeChip("EV", "NORMAL"))
+        assertEquals("HEV · Snow", modeChip("HEV", "SNOW"))
+        assertEquals("EV", modeChip("EV", null))
+        assertEquals("HEV", modeChip("HEV", null))
         assertNull(modeChip(null, "ECO"))
     }
     @Test fun litres() {
         assertEquals(30, litresFromPercent(50, 60.0))
         assertNull(litresFromPercent(null, 60.0))
+    }
+    @Test fun pm25QualityByLevel() {
+        assertEquals("отлично" to Tone.ELECTRIC, pm25Quality(1))
+        assertEquals("хорошо" to Tone.ELECTRIC, pm25Quality(2))
+        assertEquals("средне" to Tone.FUEL, pm25Quality(3))
+        listOf(4, 5, 6).forEach { assertEquals("плохо" to Tone.HEAT, pm25Quality(it)) }
+        assertNull(pm25Quality(null))
+        assertNull(pm25Quality(0))
+        assertNull(pm25Quality(7))
+    }
+    @Test fun pm25SidesNeedLevelAndValue() {
+        assertNull(pm25Sides(null))
+        assertNull(pm25Sides(Pm25(inside = null, outside = null, levelIn = 1, levelOut = 2)))
+        assertNull(pm25Sides(Pm25(inside = 12, outside = 35, levelIn = 0, levelOut = null)))
+        assertEquals(
+            listOf(Pm25Side("Салон", 12, "отлично", Tone.ELECTRIC), Pm25Side("Снаружи", 35, "хорошо", Tone.ELECTRIC)),
+            pm25Sides(Pm25(inside = 12, outside = 35, levelIn = 1, levelOut = 2)),
+        )
+        assertEquals(
+            listOf(Pm25Side("Снаружи", 80, "плохо", Tone.HEAT)),
+            pm25Sides(Pm25(inside = 12, outside = 80, levelIn = null, levelOut = 4)),
+        )
+    }
+    @Test fun footerValues() {
+        assertEquals("97 %", sohText(96.6f))
+        assertEquals("13,8", voltageText(13.84))
+        assertEquals("3\u202F500 кОм", insulationText(3_500))
+        assertEquals("9\u202F999 кОм", insulationText(9_999))
+        assertEquals("10,0 МОм", insulationText(10_000))
+        assertEquals("12,5 МОм", insulationText(12_480))
+    }
+    @Test fun onlineNeedsLinkAndFreshData() {
+        val now = 1_000_000L
+        assertTrue(isOnline(connected = true, lastDataAtMs = now - 5_000, nowMs = now))
+        assertFalse(isOnline(connected = false, lastDataAtMs = now - 5_000, nowMs = now))
+        assertFalse(isOnline(connected = true, lastDataAtMs = 0L, nowMs = now))
+        assertFalse(isOnline(connected = true, lastDataAtMs = now - 120_000, nowMs = now))
     }
 }
