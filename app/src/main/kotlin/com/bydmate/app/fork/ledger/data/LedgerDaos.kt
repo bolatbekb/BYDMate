@@ -33,6 +33,13 @@ interface RefuelDao {
     @Delete
     suspend fun delete(e: RefuelEntity)
 
+    /** Targeted draft update (never touches other columns); returns rows changed, 0 = not a draft. */
+    @Query("UPDATE refuels SET tank_percent_after = :after WHERE id = :id AND status = 'draft'")
+    suspend fun updateDraftPercent(id: Long, after: Int): Int
+
+    @Query("UPDATE refuels SET tank_percent_after = :after, liters = :liters WHERE id = :id AND status = 'draft'")
+    suspend fun updateDraftPercentAndLiters(id: Long, after: Int, liters: Double): Int
+
     @Query("SELECT * FROM refuels WHERE id = :id")
     suspend fun getById(id: Long): RefuelEntity?
 

@@ -7,10 +7,13 @@ import com.bydmate.app.fork.ledger.data.RefuelEntity
 import com.bydmate.app.fork.ledger.domain.DetectorAction
 import com.bydmate.app.fork.ledger.domain.DetectorState
 import com.bydmate.app.fork.ledger.domain.RefuelDetector
+import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.math.abs
 import kotlin.math.round
 
 /**
@@ -26,15 +29,26 @@ class LedgerLiveWatcher(
 ) {
     private val started = AtomicBoolean(false)
     private var state: DetectorState? = null
+    private var loaded = false
     private var lastPersistTs = 0L
 
     fun start() {
         if (!started.compareAndSet(false, true)) return
         scope.launch {
-            state = DetectorState.fromJson(runCatching { repo.detectorState() }.getOrNull())
             data.collect { d ->
                 if (d == null || kind.value != VehicleKind.HYBRID) return@collect
-                runCatching { process(d) }
+                try {
+                    if (!loaded) {
+                        // a failed read must not start a fresh baseline over the good persisted one
+                        state = DetectorState.fromJson(repo.detectorState())
+                        loaded = true
+                    }
+                    process(d)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Exception) {
+                    Log.w(TAG, "ledger watcher step failed: ${e.message}", e)
+                }
             }
         }
     }
@@ -51,46 +65,64 @@ class LedgerLiveWatcher(
             is DetectorAction.None -> {}
             is DetectorAction.CreateDraft -> {
                 acted = true
-                val id = repo.refuels.insert(
-                    RefuelEntity(
-                        date = action.ts,
-                        odometerKm = action.before.baselineOdo,
-                        liters = estimate(action.before.baselinePercent, action.afterPercent) ?: 0.0,
-                        totalCost = null, pricePerLiter = null, fullTank = false,
-                        carFuelTotalL = action.before.baselineFuelTotal,
-                        tankPercentBefore = action.before.baselinePercent,
-                        tankPercentAfter = action.afterPercent,
-                        lat = null, lon = null, place = null, note = null,
-                        source = "detected", status = "draft", importKey = null,
-                    )
-                )
-                state = action.before.copy(draftId = id)
-            }
-            is DetectorAction.UpdateDraft -> {
-                val draft = repo.refuels.getById(action.draftId)
-                if (draft == null || draft.status != "draft") {
-                    // deleted or already confirmed by the user: leave this baseline alone
-                    acted = true
-                    state = next?.copy(draftId = null, dismissed = true)
-                } else if (draft.tankPercentAfter != action.afterPercent) {
-                    acted = true
-                    val before = next?.baselinePercent ?: draft.tankPercentBefore ?: action.afterPercent
-                    repo.refuels.update(
-                        draft.copy(
+                val open = repo.refuels.openDraft()
+                val od = open?.odometerKm
+                if (open != null && od != null && abs(od - action.before.baselineOdo) < ADOPT_KM) {
+                    // insert happened but the state never reached disk: adopt, don't duplicate
+                    state = action.before.copy(draftId = open.id)
+                    updateDraft(open.id, action.afterPercent, action.before.baselinePercent)
+                } else {
+                    val id = repo.refuels.insert(
+                        RefuelEntity(
+                            date = action.ts,
+                            odometerKm = action.before.baselineOdo,
+                            liters = estimate(action.before.baselinePercent, action.afterPercent) ?: 0.0,
+                            totalCost = null, pricePerLiter = null, fullTank = false,
+                            carFuelTotalL = action.before.baselineFuelTotal,
+                            tankPercentBefore = action.before.baselinePercent,
                             tankPercentAfter = action.afterPercent,
-                            liters = estimate(before, action.afterPercent) ?: draft.liters,
+                            lat = null, lon = null, place = null, note = null,
+                            source = "detected", status = "draft", importKey = null,
                         )
                     )
+                    state = action.before.copy(draftId = id)
                 }
+            }
+            is DetectorAction.UpdateDraft -> {
+                val changed = updateDraft(action.draftId, action.afterPercent, next?.baselinePercent)
+                if (changed == null) {
+                    acted = true
+                    state = next?.copy(draftId = null, dismissed = true)
+                } else if (changed) acted = true
             }
         }
         val baselineChanged = old?.let {
-            it.baselinePercent != next?.baselinePercent || it.baselineOdo != next?.baselineOdo
-        } ?: (next != null)
+            it.baselinePercent != state?.baselinePercent || it.baselineOdo != state?.baselineOdo
+        } ?: (state != null)
         if (acted || baselineChanged || ts - lastPersistTs >= PERSIST_EVERY_MS) {
             state?.let { repo.setDetectorState(it.toJson()) }
             lastPersistTs = ts
         }
+    }
+
+    /**
+     * Touches only tank_percent_after (and liters while it is 0 or still our own estimate).
+     * Returns null when the draft is gone or no longer a draft, true when written, false when unchanged.
+     */
+    private suspend fun updateDraft(id: Long, after: Int, baselinePercent: Int?): Boolean? {
+        val draft = repo.refuels.getById(id)
+        if (draft == null || draft.status != "draft") return null
+        if (draft.tankPercentAfter == after) return false
+        val before = baselinePercent ?: draft.tankPercentBefore ?: after
+        val newEst = estimate(before, after)
+        val prevEst = draft.tankPercentAfter?.let { estimate(before, it) }
+        val ownLiters = draft.liters == 0.0 || (prevEst != null && draft.liters == prevEst)
+        val rows = if (newEst != null && ownLiters) {
+            repo.refuels.updateDraftPercentAndLiters(id, after, newEst)
+        } else {
+            repo.refuels.updateDraftPercent(id, after)
+        }
+        return if (rows == 0) null else true
     }
 
     private suspend fun estimate(before: Int, after: Int): Double? {
@@ -99,6 +131,8 @@ class LedgerLiveWatcher(
     }
 
     private companion object {
+        const val TAG = "LedgerLiveWatcher"
+        const val ADOPT_KM = 2.0
         const val PERSIST_EVERY_MS = 30_000L
     }
 }

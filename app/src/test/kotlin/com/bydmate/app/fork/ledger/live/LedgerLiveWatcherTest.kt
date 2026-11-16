@@ -45,7 +45,7 @@ class LedgerLiveWatcherTest {
 
     @After fun tearDown() { scope.cancel(); db.close() }
 
-    private fun watcher() = LedgerLiveWatcher(repo, data, kind, scope) { time.addAndGet(1000L) }.also { it.start() }
+    private fun watcher(r: LedgerRepository = repo) = LedgerLiveWatcher(r, data, kind, scope) { time.addAndGet(1000L) }.also { it.start() }
 
     private fun until(what: String, cond: suspend () -> Boolean) = runBlocking {
         repeat(100) { if (cond()) return@runBlocking; delay(50) }
@@ -114,5 +114,111 @@ class LedgerLiveWatcherTest {
         emit(80)
         until("draft from persisted baseline") { db.refuelDao().openDraft() != null }
         assertNotNull(runBlocking { db.refuelDao().openDraft() })
+    }
+
+    private fun state(draftId: Long? = null) =
+        com.bydmate.app.fork.ledger.domain.DetectorState(30, 10.0, 100.0, 1L, draftId)
+
+    private fun seedDraft(odo: Double = 100.0, liters: Double = 0.0, status: String = "draft") = runBlocking {
+        db.refuelDao().insert(
+            com.bydmate.app.fork.ledger.data.RefuelEntity(
+                date = 5L, odometerKm = odo, liters = liters, totalCost = null, pricePerLiter = null,
+                fullTank = false, carFuelTotalL = 10.0, tankPercentBefore = 30, tankPercentAfter = 80,
+                lat = null, lon = null, place = null, note = null,
+                source = "detected", status = status, importKey = null,
+            )
+        )
+    }
+
+    @Test fun throttleLimitsWritesWhenNothingChanges() {
+        val spy = io.mockk.spyk(repo)
+        watcher(spy)
+        emit(30)
+        until("first write") { repo.detectorState() != null }
+        // same baseline, tiny gauge-neutral changes (fuel counter only) for 10 s of injected clock
+        for (i in 1..9) { data.value = car(mileage = 100.0, fuelPercent = 30, fuelTotalL = 10.0 + i / 100.0); runBlocking { delay(30) } }
+        runBlocking { delay(200) }
+        io.mockk.coVerify(exactly = 1) { spy.setDetectorState(any()) }
+        time.addAndGet(40_000L)
+        emit(30, total = 11.0)
+        until("write after 30 s") { runBlocking { io.mockk.coVerify(exactly = 2) { spy.setDetectorState(any()) }; true } }
+    }
+
+    @Test fun loweredBaselineReachesDiskImmediately() {
+        runBlocking { repo.setDetectorState(state().toJson()) }
+        watcher()
+        emit(30)
+        until("persisted") { repo.detectorState() != null }
+        emit(22)
+        until("lowered on disk") { repo.detectorState()?.contains("\"baselinePercent\":22") == true }
+    }
+
+    @Test fun confirmedDraftIsDismissedNotRecreated() {
+        val id = seedDraft(status = "confirmed")
+        runBlocking { repo.setDetectorState(state(draftId = id).toJson()) }
+        watcher()
+        emit(85)
+        until("dismissed") { repo.detectorState()?.contains("\"dismissed\":true") == true }
+        emit(90)
+        runBlocking { delay(300) }
+        assertEquals(1, runBlocking { db.refuelDao().getAllAsc().size })
+    }
+
+    @Test fun restartMidRiseWithDraftIdMakesNoSecondDraft() {
+        val id = seedDraft()
+        runBlocking { repo.setDetectorState(state(draftId = id).toJson()) }
+        watcher()
+        emit(88)
+        until("updated") { db.refuelDao().getById(id)?.tankPercentAfter == 88 }
+        assertEquals(1, runBlocking { db.refuelDao().getAllAsc().size })
+    }
+
+    @Test fun restartInInsertPersistWindowAdoptsOpenDraft() {
+        val id = seedDraft()
+        runBlocking { repo.setDetectorState(state().toJson()) }
+        watcher()
+        emit(88)
+        until("adopted") { db.refuelDao().getById(id)?.tankPercentAfter == 88 }
+        until("draftId persisted") { repo.detectorState()?.contains("\"draftId\":$id") == true }
+        assertEquals(1, runBlocking { db.refuelDao().getAllAsc().size })
+    }
+
+    @Test fun dbFailureThenRecoveryKeepsCollecting() {
+        val spy = io.mockk.spyk(repo)
+        var fail = true
+        io.mockk.coEvery { spy.detectThresholdPp() } coAnswers {
+            if (fail) throw IllegalStateException("db down") else callOriginal()
+        }
+        watcher(spy)
+        emit(30)
+        runBlocking { delay(200) }
+        assertNull(runBlocking { repo.detectorState() })
+        fail = false
+        emit(31)
+        until("recovered") { repo.detectorState() != null }
+    }
+
+    @Test fun secondStartDoesNotDoubleCollect() {
+        val spy = io.mockk.spyk(repo)
+        val w = watcher(spy)
+        w.start()
+        emit(30)
+        until("first write") { repo.detectorState() != null }
+        runBlocking { delay(200) }
+        io.mockk.coVerify(exactly = 1) { spy.detectorState() }
+    }
+
+    @Test fun userTypedLitersSurviveLaterGaugeRise() {
+        runBlocking { repo.setTankCapacityL(60.0) }
+        watcher()
+        emit(30)
+        until("baseline") { repo.detectorState() != null }
+        emit(80)
+        until("draft") { db.refuelDao().openDraft() != null }
+        val d = runBlocking { db.refuelDao().openDraft()!! }
+        runBlocking { db.refuelDao().update(d.copy(liters = 41.5)) }
+        emit(85)
+        until("percent updated") { db.refuelDao().openDraft()?.tankPercentAfter == 85 }
+        assertEquals(41.5, runBlocking { db.refuelDao().openDraft()!!.liters }, 0.0)
     }
 }
