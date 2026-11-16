@@ -41,18 +41,14 @@ internal object GrTextures {
     fun sandCoarse(): GrTile {
         val n = 160
         val rnd = Random(13)
-        val alpha = IntArray(n * n)
-        val light = BooleanArray(n * n)
+        val specks = Specks(n, n)
         repeat(1100) {
             val g = rnd.nextGaussian().toFloat()
             val a = (8f + abs(g) * 18f).coerceAtMost(SAND_COARSE_MAX.toFloat())
-            val isLight = g >= 0f
             val r = 1.0f + rnd.nextFloat() * 0.6f
-            val cx = rnd.nextFloat() * n
-            val cy = rnd.nextFloat() * n
-            dot(n, n, cx, cy, r, a, isLight, alpha, light)
+            specks.dot(rnd.nextFloat() * n, rnd.nextFloat() * n, r, a, light = g >= 0f)
         }
-        return GrTile(n, n, IntArray(n * n) { speck(alpha[it], light[it]) })
+        return specks.tile()
     }
 
     /**
@@ -87,40 +83,46 @@ internal object GrTextures {
         val rnd = Random(31)
         val coarse = lattice(8, rnd)
         val fine = lattice(16, rnd)
-        val alpha = IntArray(n * n)
-        val light = BooleanArray(n * n)
+        val specks = Specks(n, n)
         for (y in 0 until n) for (x in 0 until n) {
             val v = (noise(coarse, 8, x, y, n) + 0.5f * noise(fine, 16, x, y, n)) / 1.5f
             val i = y * n + x
-            alpha[i] = (abs(v) * 13f).toInt().coerceIn(0, 13)
-            light[i] = v >= 0f
+            specks.alpha[i] = (abs(v) * 13f).toInt().coerceIn(0, 13)
+            specks.light[i] = v >= 0f
         }
         repeat(170) {
             val r = 0.6f + rnd.nextFloat() * 0.7f
-            dot(n, n, rnd.nextFloat() * n, rnd.nextFloat() * n, r, CONCRETE_MAX.toFloat(), false, alpha, light, replace = true)
+            specks.dot(rnd.nextFloat() * n, rnd.nextFloat() * n, r, CONCRETE_MAX.toFloat(), light = false, replace = true)
         }
-        return GrTile(n, n, IntArray(n * n) { speck(alpha[it], light[it]) })
+        return specks.tile()
     }
 
-    /** A round grain centred at ([cx], [cy]) with soft 1 px edges, wrapped around the tile. */
-    private fun dot(
-        w: Int, h: Int, cx: Float, cy: Float, r: Float, a: Float, isLight: Boolean,
-        alpha: IntArray, light: BooleanArray, replace: Boolean = false,
-    ) {
-        val reach = (r + 1f).toInt() + 1
-        for (dy in -reach..reach) for (dx in -reach..reach) {
-            val x = floor(cx).toInt() + dx
-            val y = floor(cy).toInt() + dy
-            val d = sqrt((x + 0.5f - cx).pow(2) + (y + 0.5f - cy).pow(2))
-            val cover = (r + 0.5f - d).coerceIn(0f, 1f)
-            val v = (a * cover).toInt()
-            if (v <= 0) continue
-            val i = Math.floorMod(y, h) * w + Math.floorMod(x, w)
-            if (replace || v > alpha[i]) {
-                alpha[i] = v
-                light[i] = isLight
+    /** A tile being painted: alpha and light-or-dark per pixel. */
+    private class Specks(val w: Int, val h: Int) {
+        val alpha = IntArray(w * h)
+        val light = BooleanArray(w * h)
+
+        /**
+         * A round grain centred at ([cx], [cy]) with soft 1 px edges, wrapped around the tile; it
+         * keeps a stronger speck under it unless [replace].
+         */
+        fun dot(cx: Float, cy: Float, r: Float, a: Float, light: Boolean, replace: Boolean = false) {
+            val reach = (r + 1f).toInt() + 1
+            for (dy in -reach..reach) for (dx in -reach..reach) {
+                val x = floor(cx).toInt() + dx
+                val y = floor(cy).toInt() + dy
+                val d = sqrt((x + 0.5f - cx).pow(2) + (y + 0.5f - cy).pow(2))
+                val v = (a * (r + 0.5f - d).coerceIn(0f, 1f)).toInt()
+                if (v <= 0) continue
+                val i = Math.floorMod(y, h) * w + Math.floorMod(x, w)
+                if (replace || v > alpha[i]) {
+                    alpha[i] = v
+                    this.light[i] = light
+                }
             }
         }
+
+        fun tile() = GrTile(w, h, IntArray(w * h) { speck(alpha[it], light[it]) })
     }
 
     private fun lattice(cells: Int, rnd: Random) = FloatArray(cells * cells) { rnd.nextFloat() * 2f - 1f }
