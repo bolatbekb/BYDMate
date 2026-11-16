@@ -232,13 +232,19 @@ private fun TransportKeys(music: NowPlaying, controls: MusicControls) {
 
 /** An invisible touch area over a printed key: darker while held, or lit green for a tab key. */
 @Composable
-internal fun PressArea(modifier: Modifier, name: String, onClick: () -> Unit, litOnPress: Boolean = false) {
+internal fun PressArea(
+    modifier: Modifier,
+    name: String,
+    onClick: () -> Unit,
+    litOnPress: Boolean = false,
+    role: Role? = Role.Button, // fork: null for a key that only answers the touch
+) {
     val source = remember { MutableInteractionSource() }
     val pressed by source.collectIsPressedAsState()
     Box(
         modifier
             .semantics { contentDescription = name }
-            .clickable(interactionSource = source, indication = null, role = Role.Button, onClick = onClick),
+            .clickable(interactionSource = source, indication = null, role = role, onClick = onClick),
     ) {
         if (pressed) {
             Canvas(Modifier.fillMaxSize()) {

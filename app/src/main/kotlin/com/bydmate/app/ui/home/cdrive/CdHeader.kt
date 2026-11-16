@@ -9,6 +9,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -18,6 +19,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.Lifecycle
@@ -116,7 +118,7 @@ private const val MAX_SWING = 0.15f
 private const val MIN_PERIOD_S = 2.0
 private const val MAX_PERIOD_S = 4.0
 /** The phase wobble that keeps a column from beating like a metronome: depth (rad) and period ratio. */
-private const val WOBBLE = 0.5
+private const val WOBBLE = 0.3
 private const val WOBBLE_RATIO = 2.7
 
 /** At most 30 redraws a second; the frames between are skipped. */
@@ -151,36 +153,64 @@ internal fun spectrumDim(timeSec: Double, column: Int, playing: Boolean): Float 
     return (swing * (0.5 + 0.5 * wave)).toFloat().coerceIn(0f, swing)
 }
 
+/** How long play ↔ pause takes to blend between the moving and the static dim. */
+private const val BLEND_S = 0.4
+
+/**
+ * The dim of [column] at [timeSec] while blending from paused ([blend] 0, a static [PAUSED_DIM])
+ * to playing ([blend] 1, [spectrumDim]'s motion), eased so neither end jumps.
+ */
+internal fun spectrumBlendDim(timeSec: Double, column: Int, blend: Float): Float {
+    val b = blend.coerceIn(0f, 1f)
+    val e = b * b * (3 - 2 * b)
+    return PAUSED_DIM + (spectrumDim(timeSec, column, playing = true) - PAUSED_DIM) * e
+}
+
 /**
  * Lays a translucent black strip over each column of the printed LED matrix, so the print's own
- * colours stay and only their brightness moves. Animates while [playing], at most 30 frames a
- * second, only while composed and the screen is started; otherwise one static dim frame.
+ * colours stay and only their brightness moves. Animates while [playing] (and while easing into
+ * the pause), at most 30 frames a second, only while composed and the screen is started;
+ * otherwise one static dim frame. The canvas has its own layer, so a tick redraws only it.
  */
 @Composable
 internal fun CdSpectrum(playing: Boolean) {
     val time = remember { mutableDoubleStateOf(0.0) }
+    val blend = remember { mutableFloatStateOf(if (playing) 1f else 0f) }
+    var running by remember { mutableStateOf(playing) }
+    LaunchedEffect(playing) { if (playing) running = true }
+    val play by rememberUpdatedState(playing)
     val owner = LocalLifecycleOwner.current
-    if (playing) {
+    if (running) {
         LaunchedEffect(owner) {
             owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 var last = 0L
                 while (true) {
                     withFrameNanos { now ->
                         if (now - last >= MIN_FRAME_NS) {
+                            val dt = if (last == 0L) 0.0 else (now - last) / 1e9
                             last = now
                             time.doubleValue = now / 1e9
+                            val step = (dt / BLEND_S).toFloat()
+                            blend.floatValue = if (play) {
+                                (blend.floatValue + step).coerceAtMost(1f)
+                            } else {
+                                (blend.floatValue - step).coerceAtLeast(0f)
+                            }
                         }
                     }
+                    if (!play && blend.floatValue == 0f) running = false
                 }
             }
         }
     }
-    Canvas(Modifier.at(SPEC_X.toInt(), SPEC_Y, SPEC_W, SPEC_H)) {
+    Canvas(Modifier.at(SPEC_X.toInt(), SPEC_Y, SPEC_W, SPEC_H).graphicsLayer()) {
         val s = K * density
-        val t = time.doubleValue // read in the draw phase: a tick redraws, it does not recompose
+        // read in the draw phase: a tick redraws this layer, it does not recompose
+        val t = time.doubleValue
+        val b = blend.floatValue
         val colW = SPEC_PITCH * s
         for (c in 0 until SPECTRUM_COLUMNS) {
-            val dim = spectrumDim(t, c, playing)
+            val dim = spectrumBlendDim(t, c, b)
             if (dim > 0f) {
                 drawRect(Color.Black.copy(alpha = dim), Offset(c * colW, 0f), Size(colW, size.height))
             }

@@ -7,7 +7,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -15,6 +14,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.semantics.Role
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
@@ -53,15 +53,19 @@ internal fun CdDeck(music: NowPlaying, controls: MusicControls) {
     Txt(title, TITLE_X, 236, rememberFitSize(title, TITLE_W, TitleSizes), TitleCyan, glow = true, width = TITLE_W)
     SevenSegClock(clockText(music.positionMs), Modifier.at(495, 269, 177, 61))
     if (music.hasTrack) PlayStatus(music.isPlaying)
-    ProgressSegments(if (music.hasTrack && music.durationMs != null) music.progress else 0f)
+    val known = music.hasTrack && music.positionMs != null && music.durationMs != null
+    ProgressSegments(if (known) music.progress else 0f)
     TransportKeys(music.isPlaying, controls)
 }
 
-/** "03:24" from the play position, "--:--" when unknown; minutes past 99 wrap. */
+/** The longest time the four digits can show, seconds (99:59). */
+private const val CLOCK_MAX_S = 99 * 60 + 59L
+
+/** "03:24" from the play position, "--:--" when unknown; stops at 99:59. */
 internal fun clockText(positionMs: Long?): String {
     val ms = positionMs?.takeIf { it >= 0 } ?: return "--:--"
-    val s = (ms / 1000).toInt()
-    return String.format(Locale.US, "%02d:%02d", (s / 60) % 100, s % 60)
+    val s = (ms / 1000).coerceAtMost(CLOCK_MAX_S).toInt()
+    return String.format(Locale.US, "%02d:%02d", s / 60, s % 60)
 }
 
 /* ---------------------------------------------------------------- status */
@@ -75,11 +79,14 @@ private fun PlayStatus(playing: Boolean) {
             drawPath(p, StatusCyan)
         } else {
             val bar = size.width * 0.32f
-            drawRect(StatusCyan, Offset(size.width * 0.06f, 0f), Size(bar, size.height))
-            drawRect(StatusCyan, Offset(size.width * 0.62f, 0f), Size(bar, size.height))
+            for (x in floatArrayOf(size.width * 0.06f, size.width * 0.62f)) {
+                drawRect(StatusCyan.copy(alpha = 0.35f), Offset(x, 0f), Size(bar, size.height), style = Stroke(3f * K * density))
+                drawRect(StatusCyan, Offset(x, 0f), Size(bar, size.height))
+            }
         }
     }
-    Txt(if (playing) "PLAYING" else "PAUSED", 772, 301, 29.5f, StatusCyan, glow = true, width = 118)
+    // the display is flat to x 1063: a wide box, so no face's measure can ellipsize the word
+    Txt(if (playing) "PLAYING" else "PAUSED", 772, 301, 29.5f, StatusCyan, glow = true, width = 260)
 }
 
 /* ---------------------------------------------------------------- seven-segment clock */
@@ -164,10 +171,13 @@ private fun hexSegment(path: Path, x0: Float, ax: Float, ay: Float, bx: Float, b
 }
 
 private fun colon(path: Path, x0: Float, s: Float) {
-    val d = SEG_T
+    val h = SEG_T / 2
     for (y in floatArrayOf(DIGIT_H * 0.25f, DIGIT_H * 0.78f)) {
-        val c = pt(x0, 0f, y, s)
-        path.addRect(Rect(c.x - d / 2 * s, c.y - d / 2 * s, c.x + d / 2 * s, c.y + d / 2 * s))
+        // a square dot slanted like the digits
+        val pts = listOf(pt(x0, -h, y - h, s), pt(x0, h, y - h, s), pt(x0, h, y + h, s), pt(x0, -h, y + h, s))
+        path.moveTo(pts[0].x, pts[0].y)
+        for (k in 1 until pts.size) path.lineTo(pts[k].x, pts[k].y)
+        path.close()
     }
 }
 
@@ -189,7 +199,7 @@ private fun ProgressSegments(progress: Float) {
         for (i in 0 until SEGMENTS) {
             val x = (4f + SEG_PITCH * i) * s
             if (i < lit) {
-                val fade = ((i - (lit - 4)).coerceAtLeast(0) / 4f)
+                val fade = ((i - (lit - 4)).coerceAtLeast(0) / 3f)
                 val fill = lerp(SegLit, SegLitEnd, fade)
                 drawRect(fill.copy(alpha = 0.25f), Offset(x - 2f * s, y - 2f * s), Size(w + 4f * s, h + 4f * s))
                 drawRect(fill, Offset(x, y), Size(w, h))
@@ -227,6 +237,7 @@ private fun TransportKeys(playing: Boolean, controls: MusicControls) {
         controls::previous, controls::stop, controls::pause, controls::play, controls::next, {},
     )
     TransportKeys.forEachIndexed { i, k ->
-        PressArea(Modifier.at(k.x, TRANSPORT_Y, k.w, TRANSPORT_H), k.name, actions[i])
+        val eject = i == TransportKeys.lastIndex
+        PressArea(Modifier.at(k.x, TRANSPORT_Y, k.w, TRANSPORT_H), k.name, actions[i], role = if (eject) null else Role.Button)
     }
 }

@@ -64,4 +64,22 @@ class SpectrumDimTest {
             assertEquals(0.2f, spectrumDim(97.5, c, playing = false), 0f)
         }
     }
+
+    @Test fun blendEndsArePausedAndPlaying() {
+        for (c in columns) {
+            assertEquals(0.2f, spectrumBlendDim(4.2, c, 0f), 1e-6f)
+            assertEquals(spectrumDim(4.2, c, playing = true), spectrumBlendDim(4.2, c, 1f), 1e-6f)
+        }
+    }
+
+    @Test fun blendStaysBetweenTheEnds() {
+        for (c in columns) {
+            var b = 0f
+            while (b <= 1f) {
+                val d = spectrumBlendDim(7.7, c, b)
+                assertTrue("c=$c b=$b d=$d", d in 0f..0.2f)
+                b += 0.05f
+            }
+        }
+    }
 }
