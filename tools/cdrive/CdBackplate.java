@@ -59,6 +59,7 @@ public class CdBackplate extends Backplate {
     fill(img,296,704,1373,900,null,0);
     // ---- period keys: День becomes a plain key like Месяц, its own icon and word kept
     blit(orig,44,783,263,863,img,44,783-PERIOD_SHIFT,263,863-PERIOD_SHIFT);
+    softenRecess(orig,img);
     fill(img,DAY_CONTENT[0],DAY_CONTENT[1],DAY_CONTENT[2],DAY_CONTENT[3],null,0);
     BufferedImage plainDay=copy(img);
     paintGlyphs(orig,img,DAY_CONTENT);
@@ -74,8 +75,13 @@ public class CdBackplate extends Backplate {
     save(overlay(litFaces,plainTab,872,1002,1137,1134),out+"/cd_key_lit.png");
     save(overlay(litFaces,plainDay,46,614,261,710),out+"/cd_period_lit.png");
     // the printed icons and words alone, to lay back over a lit face so they stay white
-    save(glyphs(img,new int[][]{{896,1016,1114,1114},{1154,1016,1380,1114},{1420,1016,1646,1114},{1686,1016,1917,1114},{1958,1016,2169,1114}},882,1016,2183,1114),out+"/cd_tab_glyphs.png");
-    save(glyphs(img,new int[][]{{80,640,232,694},{80,720,232,772},{80,797,232,849}},80,640,232,849),out+"/cd_period_glyphs.png");
+    // icons and words apart: on the lit key the app tints the icon (green calendar, pale-green car) and keeps the word white
+    int[][] tabX={{896,1114},{1154,1380},{1420,1646},{1686,1917},{1958,2169}};
+    save(glyphs(img,rows(tabX,1016,1071),882,1016,2183,1114),out+"/cd_tab_icons.png");
+    save(glyphs(img,rows(tabX,1072,1114),882,1016,2183,1114),out+"/cd_tab_words.png");
+    int[][] perY={{640,694},{720,772},{797,849}};
+    save(glyphs(img,cols(perY,80,137),80,640,232,849),out+"/cd_period_icons.png");
+    save(glyphs(img,cols(perY,138,232),80,640,232,849),out+"/cd_period_words.png");
 
     // ================= 3. owner's edits (Task 2)
     // ================= 4. deck and data frames to one height (Task 2)
@@ -122,6 +128,18 @@ public class CdBackplate extends Backplate {
   /** Green-tinted pixels (a glow over grey metal) back to grey. */
   static void degreen(BufferedImage im,int x0,int y0,int x1,int y1){
     for(int y=y0;y<=y1;y++)for(int x=x0;x<=x1;x++){ int c=im.getRGB(x,y); if(g(c)-Math.max(r(c),b(c))<3)continue; int v=Math.min(r(c),Math.min(g(c),b(c))); im.setRGB(x,y,rgb(v,v,v)); } }
+  /** The dark recess copied above the new День key (from the gap over Месяц) starts square at y 627: fade it in from the
+   *  metal above with a vertical ramp and rounded corners, the metal taken 12 rows higher and cleared of the old green glow. */
+  static void softenRecess(BufferedImage orig,BufferedImage im){
+    double rx0=63,rx1=243,ry0=629,rad=7;
+    for(int y=627;y<=636;y++)for(int x=44;x<=263;x++){
+      double cx=Math.max(rx0+rad,Math.min(rx1-rad,x)), cy=Math.max(ry0+rad,y);            // nearest centre of the rounded top
+      double d=(x>=rx0+rad&&x<=rx1-rad)? ry0-y : (y>=ry0+rad? Math.max(rx0-x,x-rx1) : Math.hypot(x-cx,y-cy)-rad);
+      double w=Math.max(0,Math.min(1,0.5-d/2.5));                                          // 1 inside, soft 2.5 px edge
+      int t=orig.getRGB(x,y-12); int v=Math.min(r(t),Math.min(g(t),b(t))); int c=im.getRGB(x,y);
+      double k=w; im.setRGB(x,y,rgb(r(c)*k+v*(1-k),g(c)*k+v*(1-k),b(c)*k+v*(1-k))); } }
+  static int[][] rows(int[][] xs,int y0,int y1){ int[][] o=new int[xs.length][]; for(int i=0;i<xs.length;i++) o[i]=new int[]{xs[i][0],y0,xs[i][1],y1}; return o; }
+  static int[][] cols(int[][] ys,int x0,int x1){ int[][] o=new int[ys.length][]; for(int i=0;i<ys.length;i++) o[i]=new int[]{x0,ys[i][0],x1,ys[i][1]}; return o; }
   /** The bright strokes inside [rects] (and their dark outlines) as an ARGB layer over [x0,y0]-[x1,y1]; clear elsewhere. */
   static BufferedImage glyphs(BufferedImage im,int[][] rects,int x0,int y0,int x1,int y1){
     int w=x1-x0+1,h=y1-y0+1; boolean[][] br=new boolean[h][w];

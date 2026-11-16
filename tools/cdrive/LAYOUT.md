@@ -106,15 +106,22 @@ any count works inside the bar rect.
 
 ## Period keys
 
-Keys are plain in the base. Lit = `cd_period_lit` (an alpha overlay, clear where nothing changes) drawn at
-(46, keyY − 19), size 216 × 97, then `cd_period_glyphs` (the printed calendar icons and words, alpha)
-at 80, 640, size 153 × 210 so they stay white over the lit face.
+Keys are plain in the base. To light the current key, draw in this order:
+1. `cd_period_lit` (alpha overlay, clear where nothing changes) at (46, keyY − 19), size 216 × 97;
+2. clipped to that key's rect only: `cd_period_icons` at 80, 640 (153 × 210), tinted with the lit
+   icon colour **#35ED50** (multiply/modulate: the strokes are white, their outlines black);
+3. clipped the same way: `cd_period_words` at 80, 640 (153 × 210), untinted (white, ≈ #E8F2D7 in the mockup).
 
-| Key | Rect | Icon | Word centre |
+Clip the layers to the current key's rect. Drawn over the whole column they lay their dark outlines a second
+time over the unlit keys and darken them.
+
+| Key | Rect | Icon ink | Word ink |
 |---|---|---|---|
-| День | 64, 633, 180, 65 | 95, 650, 32, 30 | 182, 666 |
-| Неделя | 64, 712, 180, 65 | 94, 729, 33, 31 | 183, 745 |
-| Месяц | 64, 789, 180, 65 | 95, 806, 32, 30 | 184, 822 |
+| День | 64, 633, 180, 65 | 95, 650, 33, 30 | 158, 656, 50, 20 |
+| Неделя | 64, 712, 180, 65 | 94, 729, 33, 31 | 147, 735, 72, 21 |
+| Месяц | 64, 789, 180, 65 | 95, 805, 32, 31 | 153, 812, 63, 21 |
+
+Inside the layers, icons sit in x 80–137 and words in x 138–232.
 
 ## Meters
 
@@ -138,17 +145,24 @@ the artwork's arc is not centred on the hub. The mark angles above are what line
 
 ## Bottom tab keys
 
-All five keys are plain and all five lamps amber in the base. For the current key draw
-`cd_key_lit` (alpha overlay) at (keyX − 10, 1002), size (keyW + 20) × 133, then `cd_tab_glyphs`
-at 882, 1016 (1302 × 99) so the icon and word stay white, and `cd_led_green` over that key's lamp.
+All five keys are plain and all five lamps amber in the base. To light the current key, draw in this order:
+1. `cd_key_lit` (alpha overlay) at (keyX − 10, 1002), size (keyW + 20) × 133;
+2. clipped to that key's rect only: `cd_tab_icons` at 882, 1016 (1302 × 99), tinted with the lit icon
+   colour **#D3F4A4** (pale green, multiply/modulate);
+3. clipped the same way: `cd_tab_words` at 882, 1016 (1302 × 99), untinted (white, ≈ #E8F2D7 in the mockup);
+4. `cd_led_green` over that key's lamp.
 
-| Key | Rect | Lamp `cd_led_*` (101 × 27) | Lamp centre |
-|---|---|---|---|
-| Машина | 882, 1007, 246, 114 | 953, 978 | 1003, 991 |
-| Поездки | 1140, 1007, 254, 114 | 1219, 978 | 1269, 991 |
-| Зарядки | 1406, 1007, 255, 114 | 1485, 978 | 1535.5, 991 |
-| Автоматизации | 1672, 1007, 260, 114 | 1751, 978 | 1801.5, 991 |
-| Настройки | 1944, 1007, 240, 114 | 2018, 978 | 2068, 991 |
+Clip the glyph layers to the current key's rect, as for the period keys.
+
+| Key | Rect | Icon ink | Word ink | Lamp `cd_led_*` (101 × 27) | Lamp centre |
+|---|---|---|---|---|---|
+| Машина | 882, 1007, 246, 114 | 977, 1029, 56, 32 | 960, 1081, 91, 19 | 953, 978 | 1003, 991 |
+| Поездки | 1140, 1007, 254, 114 | 1248, 1025, 51, 37 | 1226, 1081, 93, 23 | 1219, 978 | 1269, 991 |
+| Зарядки | 1406, 1007, 255, 114 | 1521, 1026, 40, 36 | 1493, 1081, 91, 25 | 1485, 978 | 1535.5, 991 |
+| Автоматизации | 1672, 1007, 260, 114 | 1781, 1024, 46, 40 | 1716, 1081, 174, 23 | 1751, 978 | 1801.5, 991 |
+| Настройки | 1944, 1007, 240, 114 | 2048, 1023, 45, 42 | 2012, 1080, 117, 26 | 2018, 978 | 2068, 991 |
+
+Inside the layers, icons sit in y 1016–1071 and words in y 1072–1114.
 
 The lamp strip is y 978–1004 (black lines at 976–977 and 1005). The lamp itself is ≈ 47 × 11 at the centre.
 `cd_led_amber` is the same lamp in amber, for an app that wants to switch one back.
@@ -161,6 +175,6 @@ The lamp strip is y 978–1004 (black lines at 976–977 and 1005). The lamp its
 | `cd_leaf` | 45 × 41 | ECO leaf, alpha from brightness |
 | `cd_key_lit` | 266 × 133 | lit bottom-key face (glow, green rim, green-tinted face), alpha overlay, icon and word removed |
 | `cd_period_lit` | 216 × 97 | lit period-key face, alpha overlay, icon and word removed |
-| `cd_tab_glyphs` | 1302 × 99 | the bottom keys' printed icons and words, alpha |
-| `cd_period_glyphs` | 153 × 210 | the period keys' printed icons and words, alpha |
+| `cd_tab_icons`, `cd_tab_words` | 1302 × 99 | the bottom keys' printed icons / words, alpha (white strokes, black outlines) |
+| `cd_period_icons`, `cd_period_words` | 153 × 210 | the period keys' printed icons / words, alpha |
 | `cd_led_green`, `cd_led_amber` | 101 × 27 | a lamp with its glow on the lamp strip, opaque |
