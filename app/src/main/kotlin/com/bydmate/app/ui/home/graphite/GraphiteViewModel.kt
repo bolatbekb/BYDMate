@@ -34,6 +34,7 @@ import java.time.LocalDateTime
 import java.time.temporal.ChronoUnit
 import java.time.ZoneId
 import java.time.ZonedDateTime
+import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
@@ -56,6 +57,14 @@ class GraphiteViewModel @Inject constructor(
     fun select(p: ChartPeriod) {
         _period.value = p
         prefs.edit().putString(KEY, p.name).apply()
+    }
+
+    // MainActivity sets the default locale to the app language; the screen confirms it (setLang).
+    private val lang = MutableStateFlow(grLang(Locale.getDefault().language))
+
+    /** The app language, for the week chart's day labels. */
+    fun setLang(value: GrLang) {
+        lang.value = value
     }
 
     /** Emits the local date at once and again whenever it rolls over (checked once a minute). */
@@ -81,10 +90,10 @@ class GraphiteViewModel @Inject constructor(
     }.distinctUntilChanged()
 
     @OptIn(ExperimentalCoroutinesApi::class)
-    val energy: StateFlow<EnergySeries?> = combine(_period, hour) { p, _ -> p }
-        .flatMapLatest { p ->
+    val energy: StateFlow<EnergySeries?> = combine(_period, hour, lang) { p, _, l -> p to l }
+        .flatMapLatest { (p, l) ->
             val now = ZonedDateTime.now(ZoneId.systemDefault())
-            window(p, now).map { EnergyBuckets.build(it, p, now) }
+            window(p, now).map { EnergyBuckets.build(it, p, now, l) }
         }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

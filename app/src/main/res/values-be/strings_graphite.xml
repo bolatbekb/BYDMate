@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings of the Graphite home and its Settings block (short words, units,
+     numbers and dates are in ui/home/graphite/GraphiteLocale.kt). -->
+<resources>
+    <string name="home_gr_offline">Няма сувязі</string>
+    <string name="home_gr_range_title">Агульны запас ходу</string>
+    <string name="home_gr_odometer">Адометр %1$s</string>
+    <string name="home_gr_battery">Батарэя</string>
+    <string name="home_gr_fuel">Бензін</string>
+    <string name="home_gr_ice">ДУЗ</string>
+    <string name="home_gr_footer_12v">12 В</string>
+    <string name="home_gr_footer_insulation">Ізаляцыя</string>
+    <string name="home_gr_footer_to_full" formatted="false">Да 100%</string>
+    <string name="home_gr_energy_title">Расход энергіі</string>
+    <string name="home_gr_energy_empty">Няма паездак за перыяд</string>
+    <string name="home_gr_energy_ev_share">%1$s%% на электрацязе</string>
+    <string name="home_gr_period_day">Дзень</string>
+    <string name="home_gr_period_week">Тыдзень</string>
+    <string name="home_gr_period_month">Месяц</string>
+    <string name="home_gr_media_title">Медыя</string>
+    <string name="home_gr_no_music">Няма музыкі</string>
+    <string name="home_gr_now_playing">Зараз грае</string>
+    <string name="home_gr_paused">Паўза</string>
+    <string name="home_gr_today_title">Прабег сёння</string>
+    <string name="home_gr_set_scheme">Каляровая схема</string>
+    <string name="home_gr_set_scheme_desc">Колеры галоўнага экрана Graphite; астатняя праграма — па «Афармленні»</string>
+    <string name="home_gr_set_material">Матэрыял</string>
+    <string name="home_gr_set_material_desc">Фактура паверхні картак</string>
+    <string name="home_gr_set_relief">Рэльеф</string>
+    <string name="home_gr_set_edges">Краі 2.5D</string>
+    <string name="home_gr_set_edges_desc">Закруглены скос па краі картак, як у шкла 2.5D</string>
+</resources>

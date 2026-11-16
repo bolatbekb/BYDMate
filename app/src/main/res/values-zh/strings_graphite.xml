@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings of the Graphite home and its Settings block (short words, units,
+     numbers and dates are in ui/home/graphite/GraphiteLocale.kt). -->
+<resources>
+    <string name="home_gr_offline">无连接</string>
+    <string name="home_gr_range_title">总续航</string>
+    <string name="home_gr_odometer">总里程 %1$s</string>
+    <string name="home_gr_battery">电池</string>
+    <string name="home_gr_fuel">燃油</string>
+    <string name="home_gr_ice">发动机</string>
+    <string name="home_gr_footer_12v">12 V</string>
+    <string name="home_gr_footer_insulation">绝缘</string>
+    <string name="home_gr_footer_to_full" formatted="false">充满还需</string>
+    <string name="home_gr_energy_title">能耗</string>
+    <string name="home_gr_energy_empty">此时段无行程</string>
+    <string name="home_gr_energy_ev_share">纯电 %1$s%%</string>
+    <string name="home_gr_period_day">日</string>
+    <string name="home_gr_period_week">周</string>
+    <string name="home_gr_period_month">月</string>
+    <string name="home_gr_media_title">媒体</string>
+    <string name="home_gr_no_music">暂无音乐</string>
+    <string name="home_gr_now_playing">正在播放</string>
+    <string name="home_gr_paused">已暂停</string>
+    <string name="home_gr_today_title">今日里程</string>
+    <string name="home_gr_set_scheme">配色方案</string>
+    <string name="home_gr_set_scheme_desc">Graphite 主屏幕的配色；应用其余部分遵循“外观”设置</string>
+    <string name="home_gr_set_material">材质</string>
+    <string name="home_gr_set_material_desc">卡片表面的质感</string>
+    <string name="home_gr_set_relief">凹凸</string>
+    <string name="home_gr_set_edges">2.5D 边缘</string>
+    <string name="home_gr_set_edges_desc">卡片边缘的圆润斜面，如同 2.5D 玻璃</string>
+</resources>

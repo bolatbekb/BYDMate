@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings of the Graphite home and its Settings block (short words, units,
+     numbers and dates are in ui/home/graphite/GraphiteLocale.kt). -->
+<resources>
+    <string name="home_gr_offline">No connection</string>
+    <string name="home_gr_range_title">Total range</string>
+    <string name="home_gr_odometer">Odometer %1$s</string>
+    <string name="home_gr_battery">Battery</string>
+    <string name="home_gr_fuel">Fuel</string>
+    <string name="home_gr_ice">Engine</string>
+    <string name="home_gr_footer_12v">12 V</string>
+    <string name="home_gr_footer_insulation">Insulation</string>
+    <string name="home_gr_footer_to_full" formatted="false">100% in</string>
+    <string name="home_gr_energy_title">Energy use</string>
+    <string name="home_gr_energy_empty">No trips in this period</string>
+    <string name="home_gr_energy_ev_share">%1$s%% electric</string>
+    <string name="home_gr_period_day">Day</string>
+    <string name="home_gr_period_week">Week</string>
+    <string name="home_gr_period_month">Month</string>
+    <string name="home_gr_media_title">Media</string>
+    <string name="home_gr_no_music">No music</string>
+    <string name="home_gr_now_playing">Now playing</string>
+    <string name="home_gr_paused">Paused</string>
+    <string name="home_gr_today_title">Distance today</string>
+    <string name="home_gr_set_scheme">Color scheme</string>
+    <string name="home_gr_set_scheme_desc">Colors of the Graphite home; the rest of the app follows “Appearance”</string>
+    <string name="home_gr_set_material">Material</string>
+    <string name="home_gr_set_material_desc">Surface texture of the cards</string>
+    <string name="home_gr_set_relief">Relief</string>
+    <string name="home_gr_set_edges">2.5D edges</string>
+    <string name="home_gr_set_edges_desc">A rounded bevel along the card edges, like 2.5D glass</string>
+</resources>

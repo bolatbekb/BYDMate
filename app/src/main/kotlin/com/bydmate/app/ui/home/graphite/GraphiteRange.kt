@@ -41,6 +41,7 @@ import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -61,28 +62,30 @@ import kotlin.math.sin
 @Composable
 fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: Double?, compact: Boolean, modifier: Modifier) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
+    val w = lang.words
     val total = data.totalRangeKm?.takeIf { it > 0 }
     // Compact: the card is 76 shorter (the PM2.5 line below); only the gaps shrink.
     val g = if (compact) RangeGaps.Compact else RangeGaps.Regular
     CardBody(modifier, bottom = g.bottom) {
-        CardHeader(R.drawable.gr_ic_gauge, "Общий запас хода") {
+        CardHeader(R.drawable.gr_ic_gauge, stringResource(R.string.home_gr_range_title)) {
             data.odometerKm?.let {
                 Text(
-                    "Одометр ${grInt(it)} км", maxLines = 1, softWrap = false,
+                    stringResource(R.string.home_gr_odometer, "${grInt(it, lang)} ${w.km}"), maxLines = 1, softWrap = false,
                     style = grStyle(21f, 400, color = p.textTertiary, tnum = false),
                 )
             }
         }
         Row(Modifier.padding(top = px(g.number)).height(px(148))) {
             Text(
-                total?.let { grInt(it) } ?: "—", maxLines = 1, softWrap = false,
+                total?.let { grInt(it, lang) } ?: "—", maxLines = 1, softWrap = false,
                 style = grStyle(148f, 250, -6f, p.textPrimary).copy(lineHeight = fs(148f)),
                 modifier = Modifier.alignByBaseline(),
             )
             if (total != null) {
                 Spacer(Modifier.width(px(12)))
                 Text(
-                    "км", maxLines = 1, softWrap = false,
+                    w.km, maxLines = 1, softWrap = false,
                     style = grStyle(40f, 300, color = p.textSecondary, tnum = false),
                     modifier = Modifier.alignByBaseline(),
                 )
@@ -95,9 +98,10 @@ fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: D
         val rpmSlot = data.fuelPercent != null
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = px(g.gauges))) {
             RangeGauge(
-                Modifier.weight(1f), R.drawable.gr_ic_battery, R.drawable.gr_ic_bolt, "Батарея", data.socPercent,
+                Modifier.weight(1f), R.drawable.gr_ic_battery, R.drawable.gr_ic_bolt, stringResource(R.string.home_gr_battery),
+                data.socPercent,
                 p.electric,
-                kmLine(data.evRangeKm, null),
+                kmLine(data.evRangeKm, null, lang),
                 shimmer = data.chargingStatus == 2,
                 rpmSlot = rpmSlot,
             )
@@ -105,9 +109,10 @@ fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: D
             Box(Modifier.width(px(1)).fillMaxHeight().background(p.divider))
             Box(Modifier.width(px(26)))
             RangeGauge(
-                Modifier.weight(1f), R.drawable.gr_ic_fuel, R.drawable.gr_ic_fuel, "Бензин", data.fuelPercent,
+                Modifier.weight(1f), R.drawable.gr_ic_fuel, R.drawable.gr_ic_fuel, stringResource(R.string.home_gr_fuel),
+                data.fuelPercent,
                 p.fuel,
-                kmLine(data.fuelRangeKm, litresFromPercent(data.fuelPercent, tankL)?.let { "($it л)" }),
+                kmLine(data.fuelRangeKm, litresFromPercent(data.fuelPercent, tankL)?.let { "($it ${w.litre})" }, lang),
                 rpm = data.engineRpm,
                 rpmSlot = rpmSlot,
             )
@@ -125,8 +130,8 @@ private enum class RangeGaps(
     Compact(number = 0, bar = 16, scale = 8, divider = 14, gauges = 14, footer = 12, footerPad = 12, bottom = 22),
 }
 
-private fun kmLine(km: Int?, tail: String?): Pair<String, String?> =
-    (if (km == null) "—" else "${grInt(km)} км") to tail
+private fun kmLine(km: Int?, tail: String?, lang: GrLang): Pair<String, String?> =
+    (if (km == null) "—" else "${grInt(km, lang)} ${lang.words.km}") to tail
 
 /** EV then fuel share of [total] with a 3 px gap, rounded ends; the split eases to new values. */
 @Composable
@@ -159,9 +164,10 @@ private fun RangeBar(total: Int?, ev: Int?, modifier: Modifier) {
 @Composable
 private fun RangeScaleRow(ticks: List<Int>, total: Int, modifier: Modifier) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
     val style = grStyle(17f, 400, color = p.textTertiary)
     Layout(
-        content = { ticks.forEach { Text(grInt(it), maxLines = 1, softWrap = false, style = style) } },
+        content = { ticks.forEach { Text(grInt(it, lang), maxLines = 1, softWrap = false, style = style) } },
         modifier = modifier.fillMaxWidth(),
     ) { measurables, c ->
         val placeables = measurables.map { it.measure(c.copy(minWidth = 0, minHeight = 0)) }
@@ -194,6 +200,8 @@ private fun RangeGauge(
     rpmSlot: Boolean = false,
 ) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
+    val ice = stringResource(R.string.home_gr_ice)
     val running = rpm?.takeIf { it > 0 }
     val engineOn = running != null
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
@@ -227,8 +235,8 @@ private fun RangeGauge(
                     if (running != null) {
                         FitText(
                             buildAnnotatedString {
-                                append("ДВС ")
-                                withStyle(SpanStyle(fontWeight = FontWeight(500))) { append("${grInt(running)} об/мин") }
+                                append("$ice ")
+                                withStyle(SpanStyle(fontWeight = FontWeight(500))) { append("${grInt(running, lang)} ${lang.words.rpm}") }
                             },
                             grStyle(19f, 400, color = p.fuel, tnum = false), 19f, 15f, Modifier,
                         )
@@ -336,14 +344,18 @@ private const val RPM_LINE_H = 19f * 1.2f
 @Composable
 private fun RangeFooter(data: HomeData, sohPercent: Float?, capacityKwh: Double?, padV: Int, modifier: Modifier) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
     val eta = ChargeEta.minutesToFull(
         data.chargingStatus == 2, data.socPercent, data.liveCapacityKwh ?: capacityKwh, data.batteryPowerKw ?: data.powerKw,
     )
+    val volts = stringResource(R.string.home_gr_footer_12v) + " "
+    val insulation = stringResource(R.string.home_gr_footer_insulation) + " "
+    val toFull = stringResource(R.string.home_gr_footer_to_full) + " "
     val cells = buildList<Triple<Int, String, String>> {
         sohPercent?.takeIf { it.isFinite() }?.let { add(Triple(R.drawable.gr_ic_battery, "SOH ", sohText(it))) }
-        data.voltage12v?.takeIf { it.isFinite() }?.let { add(Triple(R.drawable.gr_ic_bolt, "12 В ", voltageText(it))) }
-        data.insulationKohm?.let { add(Triple(R.drawable.gr_ic_power, "Изоляция ", insulationText(it))) }
-        if (eta != null) add(Triple(R.drawable.gr_ic_plug, "До 100% ", grDuration(eta)))
+        data.voltage12v?.takeIf { it.isFinite() }?.let { add(Triple(R.drawable.gr_ic_bolt, volts, voltageText(it, lang))) }
+        data.insulationKohm?.let { add(Triple(R.drawable.gr_ic_power, insulation, insulationText(it, lang))) }
+        if (eta != null) add(Triple(R.drawable.gr_ic_plug, toFull, grDuration(eta, lang)))
     }
     if (cells.isEmpty()) return
     InsetBox(22f, modifier.fillMaxWidth()) {
@@ -379,25 +391,26 @@ private fun RangeFooter(data: HomeData, sohPercent: Float?, capacityKwh: Double?
 @Composable
 internal fun TempsCard(data: HomeData, pm25: List<Pm25Side>?, modifier: Modifier) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
     Column(modifier.grCard(p)) {
         // Without the PM2.5 line the columns keep the whole card; with it they end 16 above the line.
         val bottom = if (pm25 != null) 16 else 30
         Row(Modifier.fillMaxWidth().weight(1f)) {
             TempColumn(
-                Modifier.weight(1f), bottom, false, R.drawable.gr_ic_tree, "Снаружи",
-                data.outsideTemp?.let { grDec(it.toDouble()) }, data.outsideTemp?.let { tempFraction(TempKind.OUTSIDE, it) },
+                Modifier.weight(1f), bottom, false, R.drawable.gr_ic_tree, lang.words.outside,
+                data.outsideTemp?.let { grDec(it.toDouble(), lang = lang) }, data.outsideTemp?.let { tempFraction(TempKind.OUTSIDE, it) },
                 listOf(0f to p.coldDeep, 1f to p.cold), true,
-                outsideNote(data.outsideTemp)?.let { Triple(R.drawable.gr_ic_snow, it, p.cold) },
+                outsideNote(data.outsideTemp, lang)?.let { Triple(R.drawable.gr_ic_snow, it, p.cold) },
             )
             TempColumn(
-                Modifier.weight(1f), bottom, true, R.drawable.gr_ic_seat, "Салон",
-                data.insideTemp?.let { grDec(it.toDouble()) }, data.insideTemp?.let { tempFraction(TempKind.CABIN, it) },
+                Modifier.weight(1f), bottom, true, R.drawable.gr_ic_seat, lang.words.cabin,
+                data.insideTemp?.let { grDec(it.toDouble(), lang = lang) }, data.insideTemp?.let { tempFraction(TempKind.CABIN, it) },
                 listOf(0f to p.cold, 0.55f to p.fuel, 1f to p.heat), false,
-                cabinNote(data.acAuto, data.acOn, data.acTemp)?.let { Triple(R.drawable.gr_ic_fan, it, p.textTertiary) },
+                cabinNote(data.acAuto, data.acOn, data.acTemp, lang)?.let { Triple(R.drawable.gr_ic_fan, it, p.textTertiary) },
             )
             TempColumn(
-                Modifier.weight(1f), bottom, true, R.drawable.gr_ic_battery, "Батарея",
-                data.batteryTemp?.let { grDec(it.toDouble()) }, data.batteryTemp?.let { tempFraction(TempKind.BATTERY, it) },
+                Modifier.weight(1f), bottom, true, R.drawable.gr_ic_battery, stringResource(R.string.home_gr_battery),
+                data.batteryTemp?.let { grDec(it.toDouble(), lang = lang) }, data.batteryTemp?.let { tempFraction(TempKind.BATTERY, it) },
                 listOf(0f to p.heat, 1f to p.heat), true, null,
             )
         }
@@ -471,6 +484,7 @@ private fun TempColumn(
 @Composable
 private fun Pm25Line(sides: List<Pm25Side>, modifier: Modifier) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
     InsetBox(18f, modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = px(20), vertical = px(12)), verticalAlignment = Alignment.CenterVertically) {
             GrIcon(R.drawable.gr_ic_fan, 22f, p.textTertiary)
@@ -482,7 +496,7 @@ private fun Pm25Line(sides: List<Pm25Side>, modifier: Modifier) {
                     sides.forEachIndexed { i, side ->
                         if (i > 0) append("   ")
                         append(side.label + " ")
-                        withStyle(SpanStyle(color = p.textPrimary, fontWeight = FontWeight(500))) { append(grInt(side.value)) }
+                        withStyle(SpanStyle(color = p.textPrimary, fontWeight = FontWeight(500))) { append(grInt(side.value, lang)) }
                         withStyle(SpanStyle(color = p.tone(side.tone))) { append(" " + side.quality) }
                     }
                 },

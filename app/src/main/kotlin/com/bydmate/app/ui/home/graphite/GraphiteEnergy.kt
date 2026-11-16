@@ -36,6 +36,7 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.buildAnnotatedString
@@ -61,13 +62,13 @@ fun EnergyCard(
 ) {
     val p = LocalGr.current
     CardBody(modifier) {
-        CardHeader(R.drawable.gr_ic_leaf, "Расход энергии") { PeriodTabs(period, onPeriod) }
+        CardHeader(R.drawable.gr_ic_leaf, stringResource(R.string.home_gr_energy_title)) { PeriodTabs(period, onPeriod) }
         if (series != null) EnergyTotals(series, hasFuelTank)
         Box(Modifier.fillMaxWidth().padding(top = if (series == null) px(22) else 0.dp)) {
             EnergyChart(series, hasFuelTank)
             if (series?.empty == true) {
                 Text(
-                    "Нет поездок за период", maxLines = 1, softWrap = false,
+                    stringResource(R.string.home_gr_energy_empty), maxLines = 1, softWrap = false,
                     style = grStyle(22f, 400, color = p.textTertiary, tnum = false),
                     modifier = Modifier.align(Alignment.Center),
                 )
@@ -76,7 +77,11 @@ fun EnergyCard(
     }
 }
 
-private val TAB_LABELS = listOf(ChartPeriod.DAY to "День", ChartPeriod.WEEK to "Неделя", ChartPeriod.MONTH to "Месяц")
+private val TAB_LABELS = listOf(
+    ChartPeriod.DAY to R.string.home_gr_period_day,
+    ChartPeriod.WEEK to R.string.home_gr_period_week,
+    ChartPeriod.MONTH to R.string.home_gr_period_month,
+)
 
 private const val TabsPad = 5f
 private const val TabsTouchMargin = 20f // the 54 px block takes touches over 94 px, up to the card top
@@ -108,10 +113,10 @@ private fun PeriodTabs(period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit) {
     ) {
         InsetBox(22f) {
             Row(Modifier.padding(px(TabsPad))) {
-                TAB_LABELS.forEachIndexed { i, (value, label) ->
+                TAB_LABELS.forEachIndexed { i, (value, labelRes) ->
                     val on = value == period
                     Text(
-                        label, maxLines = 1, softWrap = false,
+                        stringResource(labelRes), maxLines = 1, softWrap = false,
                         style = grStyle(20f, 400, color = if (on) p.textPrimary else p.textSecondary, tnum = false),
                         modifier = Modifier
                             .onSizeChanged { widths[i] = it.width }
@@ -128,24 +133,31 @@ private fun PeriodTabs(period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit) {
 @Composable
 private fun EnergyTotals(s: EnergySeries, hasFuelTank: Boolean) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
+    val w = lang.words
+    val evShare = s.electricShare?.let { stringResource(R.string.home_gr_energy_ev_share, "$it") }
     Row(Modifier.fillMaxWidth().padding(top = px(22), bottom = px(18))) {
         TotalColumn(
-            if (s.empty) "0" else grDec(s.totalKwh), "кВт·ч", s.kwhPer100?.let { grDec(it) + " кВт·ч / 100 км" }, p.electric,
+            if (s.empty) "0" else grDec(s.totalKwh, lang = lang), w.kwh, s.kwhPer100?.let { per100(it, w.kwh, lang) }, p.electric,
             Modifier.weight(1.1f), first = true,
         )
         // A car with a tank always shows its litres, «0» for a window without fuel.
         if (s.totalLitres != null || hasFuelTank) {
             TotalColumn(
-                if (s.empty || s.totalLitres == null) "0" else grDec(s.totalLitres), "л", s.litresPer100?.let { grDec(it) + " л / 100 км" }, p.fuel,
+                if (s.empty || s.totalLitres == null) "0" else grDec(s.totalLitres, lang = lang), w.litre,
+                s.litresPer100?.let { per100(it, w.litre, lang) }, p.fuel,
                 Modifier.weight(1f), first = false,
             )
         }
         TotalColumn(
-            grInt(s.totalKm.roundToInt()), "км", s.electricShare?.let { "$it% на электротяге" }, null,
+            grInt(s.totalKm.roundToInt(), lang), w.km, evShare, null,
             Modifier.weight(1f), first = false,
         )
     }
 }
+
+/** «12,3 кВт·ч / 100 км» in [lang]. */
+private fun per100(v: Double, unit: String, lang: GrLang): String = grDec(v, lang = lang) + " $unit / 100 " + lang.words.km
 
 @Composable
 private fun TotalColumn(value: String, unit: String, sub: String?, dot: Color?, modifier: Modifier, first: Boolean) {
@@ -211,6 +223,7 @@ internal fun barPair(slotLeft: Float, slot: Float, n: Int, hasFuel: Boolean): Ba
 @Composable
 private fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
     val measurer = rememberTextMeasurer()
     val shownPeriod = series?.period
     val n = series?.kwh?.size ?: 0
@@ -221,15 +234,14 @@ private fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
         val total = growTotalMs(n)
         grow.animateTo(total.toFloat(), tween(total, easing = LinearEasing))
     }
-    Canvas(
-        Modifier
-            .fillMaxWidth()
-            .height(px(266))
-            .drawWithCache {
-                if (series == null) return@drawWithCache onDrawBehind {}
-                buildChart(this, measurer, series, hasFuelTank, p) { grow.value }
-            },
-    ) {}
+    // The labels are measured when the cache builds (new series, size, scheme or language), not per frame.
+    val chart = remember(series, hasFuelTank, p, lang, measurer, grow) {
+        Modifier.drawWithCache {
+            if (series == null) return@drawWithCache onDrawBehind {}
+            buildChart(this, measurer, series, hasFuelTank, p, lang) { grow.value }
+        }
+    }
+    Canvas(Modifier.fillMaxWidth().height(px(266)).then(chart)) {}
 }
 
 private const val VALUE_FADE_MS = 150f
@@ -242,7 +254,7 @@ private const val AXIS_R = 56f
  */
 private fun buildChart(
     scope: androidx.compose.ui.draw.CacheDrawScope, tm: TextMeasurer, s: EnergySeries, hasFuelTank: Boolean, p: GrPalette,
-    growMs: () -> Float,
+    lang: GrLang, growMs: () -> Float,
 ): androidx.compose.ui.draw.DrawResult = with(scope) {
     val u = px(1).toPx()
     val W = size.width / u
@@ -272,7 +284,7 @@ private fun buildChart(
     fun addLbl(text: String, size: Float, weight: Int, color: Color, x: Float, y: Float, align: Int) =
         addLbl(layout(text, size, weight, color), x, y, align)
 
-    val axisFmt = { v: Double -> grDec(v, if (v < 10) 1 else 0) }
+    val axisFmt = { v: Double -> grDec(v, if (v < 10) 1 else 0, lang) }
     val showAxes = !s.empty
     val gridYs = ArrayList<Float>()
     if (showAxes) {
@@ -283,8 +295,8 @@ private fun buildChart(
             addLbl(if (f == 0f) "0" else axisFmt(maxK * f), 17f, 400, p.textTertiary, lx, y + 6, 1)
             if (hasFuel) addLbl(if (f == 0f) "0" else axisFmt(maxL * f), 17f, 400, p.textTertiary, rx, y + 6, 2)
         }
-        addLbl("кВт·ч", 16f, 400, p.textTertiary, lx, top - 12, 1)
-        if (hasFuel) addLbl("л", 16f, 400, p.textTertiary, rx, top - 12, 2)
+        addLbl(lang.words.kwh, 16f, 400, p.textTertiary, lx, top - 12, 1)
+        if (hasFuel) addLbl(lang.words.litre, 16f, 400, p.textTertiary, rx, top - 12, 2)
     }
 
     class Bar(val path: Path, val color: Color, val alpha: Float, val index: Int)
@@ -310,8 +322,8 @@ private fun buildChart(
         if (hk > 0f) bar(i, pair.kwhX, pair.kwhW, hk, p.electric, op)
         if (hasFuel && hl > 0f) bar(i, pair.fuelX, pair.fuelW, hl, p.fuel, op)
         if (cur) valueLabels(
-            if (k > 0) layout(grDec(k), 18f, 600, p.electric) else null,
-            if (hasFuel && l > 0) layout(grDec(l), 18f, 600, p.fuel) else null,
+            if (k > 0) layout(grDec(k, lang = lang), 18f, 600, p.electric) else null,
+            if (hasFuel && l > 0) layout(grDec(l, lang = lang), 18f, 600, p.fuel) else null,
             pair, base - 2 - hk - 14, base - 2 - hl - 14, u, x1, x2,
         ) { lay, x, y, align -> labels.add(Lbl(lay, x * u, y * u, align, value = true)) }
         if (n <= 12 || i % 3 == 0 || i == n - 1) {

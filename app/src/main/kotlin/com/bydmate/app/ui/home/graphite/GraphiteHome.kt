@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -82,12 +83,19 @@ fun GraphiteHome(
     val today by vm.today.collectAsStateWithLifecycle()
     val soh by vm.sohPercent.collectAsStateWithLifecycle()
     val pm25 by vm.pm25.collectAsStateWithLifecycle()
-    val pmSides = remember(pm25) { pm25Sides(pm25) }
+    val lang = rememberGrLang()
+    // The week chart's day labels are built in the view model, in this language.
+    LaunchedEffect(lang) { vm.setLang(lang) }
+    val pmSides = remember(pm25, lang) { pm25Sides(pm25, lang) }
     val online = rememberOnline()
     val tankL by vm.tankCapacityL.collectAsStateWithLifecycle()
     val capacityKwh by vm.batteryCapacityKwh.collectAsStateWithLifecycle()
 
-    CompositionLocalProvider(LocalGr provides GraphiteLookState.scheme.palette, LocalGrLook provides GraphiteLookState.look) {
+    CompositionLocalProvider(
+        LocalGr provides GraphiteLookState.scheme.palette,
+        LocalGrLook provides GraphiteLookState.look,
+        LocalGrLang provides lang,
+    ) {
         MockupFrame {
             val p = LocalGr.current
             Column(
@@ -142,11 +150,12 @@ private fun backgroundModifier(p: GrPalette): Modifier = Modifier.drawWithCache 
 @Composable
 private fun TopBar(data: HomeData, online: Boolean, modifier: Modifier) {
     val p = LocalGr.current
+    val lang = LocalGrLang.current
     val today = rememberToday()
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(px(14))) {
         // No clock: the car's own status bar shows the time.
-        Text(grDate(today), maxLines = 1, softWrap = false, style = grStyle(23f, 400, color = p.textSecondary), modifier = Modifier.padding(end = px(20)))
-        engineChip(data.engineRpm)?.let { text ->
+        Text(grDate(today, lang), maxLines = 1, softWrap = false, style = grStyle(23f, 400, color = p.textSecondary), modifier = Modifier.padding(end = px(20)))
+        engineChip(data.engineRpm, lang)?.let { text ->
             Chip(text, lead = { GrIcon(R.drawable.gr_ic_engine, 26f, p.fuel) })
         }
         modeChip(data.driveMode, data.driveProfile)?.let { text ->
@@ -158,7 +167,7 @@ private fun TopBar(data: HomeData, online: Boolean, modifier: Modifier) {
     }
 }
 
-/** "Двигатель заведён · 1 240 об/мин" → "Двигатель заведён" + "· 1 240 об/мин" (the quieter part). */
+/** «Включен · Ready» → «Включен» + «· Ready» (the quieter part). */
 private fun splitNote(text: String): Pair<String, String?> {
     val i = text.indexOf(" · ")
     return if (i < 0) text to null else text.substring(0, i) to text.substring(i + 1)
@@ -176,6 +185,7 @@ private fun PowerChip(powerState: Int?) {
             ReadyShown.ON -> 1
             ReadyShown.OFF -> 0
         },
+        LocalGrLang.current,
     ) ?: return
     val (main, note) = splitNote(text)
     val on = shown != ReadyShown.OFF
@@ -202,7 +212,7 @@ private fun StatusDot(color: Color, glow: Boolean) {
 @Composable
 private fun OfflineChip() {
     val p = LocalGr.current
-    Chip("Нет связи", lead = { StatusDot(p.textTertiary, glow = false) })
+    Chip(stringResource(R.string.home_gr_offline), lead = { StatusDot(p.textTertiary, glow = false) })
 }
 
 /**
@@ -245,7 +255,7 @@ private fun rememberToday(): LocalDate {
 
 /**
  * The lamp for [powerState] (as CdHeader): a rise shows at once, a fall only after 2 s, so the
- * ~0.6 s dip of pressing start on a running car does not blink "Выключен".
+ * ~0.6 s dip of pressing start on a running car does not blink «Выключен».
  */
 @Composable
 private fun rememberReadyLamp(powerState: Int?): ReadyShown {
@@ -306,7 +316,7 @@ private fun RowScope.MenuKey(
     onTab: (RetroTab) -> Unit,
 ) {
     val p = LocalGr.current
-    val (icon, label) = menuItem(tab.route, tab.label)
+    val (icon, label) = menuItem(tab.route, tab.label, LocalGrLang.current)
     val color = if (active) p.textPrimary else p.textSecondary
     Box(
         Modifier.weight(1f).fillMaxHeight()

@@ -74,6 +74,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.Lifecycle
@@ -98,7 +99,7 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
     val ctx = LocalContext.current
     CardBody(modifier) {
         val label = music.sourceLabel
-        CardHeader(R.drawable.gr_ic_note, label ?: "Медиа")
+        CardHeader(R.drawable.gr_ic_note, label ?: stringResource(R.string.home_gr_media_title))
         Spacer(Modifier.height(px(22)))
         val slide = with(LocalDensity.current) { px(12).roundToPx() }
         // A new track cross-fades the cover and the text, the new one rising 12 px; the same
@@ -214,12 +215,12 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
     val p = LocalGr.current
     Column(modifier, verticalArrangement = Arrangement.Bottom) {
         if (!music.hasTrack) {
-            FitText("Нет музыки", grStyle(50f, 500, -1f, p.textSecondary, tnum = false), 50f, 36f, Modifier)
+            FitText(stringResource(R.string.home_gr_no_music), grStyle(50f, 500, -1f, p.textSecondary, tnum = false), 50f, 36f, Modifier)
             return@Column
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                (if (music.isPlaying) "Сейчас играет" else "Пауза").uppercase(Locale.getDefault()),
+                stringResource(if (music.isPlaying) R.string.home_gr_now_playing else R.string.home_gr_paused).uppercase(Locale.getDefault()),
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
                 style = grStyle(20f, 400, 2f, p.textTertiary, tnum = false),
                 modifier = Modifier.weight(1f, fill = false),
@@ -534,19 +535,20 @@ private fun VolumeBar(value: Int, modifier: Modifier) {
 @Composable
 fun TodayCard(todayKm: Double?, today: TodayStats?, hasFuelTank: Boolean, modifier: Modifier) {
     val p = LocalGr.current
-    val cells = todayCells(today, hasFuelTank, p.electric, p.textPrimary)
+    val lang = LocalGrLang.current
+    val cells = todayCells(today, hasFuelTank, p.electric, p.textPrimary, lang)
     CardBody(modifier) {
         Row(Modifier.fillMaxWidth().weight(1f)) {
             Column(Modifier.weight(1f).fillMaxHeight()) {
-                CardHeader(R.drawable.gr_ic_route, "Пробег сегодня")
+                CardHeader(R.drawable.gr_ic_route, stringResource(R.string.home_gr_today_title))
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
                     Row(verticalAlignment = Alignment.Bottom) {
                         FitText(
-                            todayKm?.let { grDec(it) } ?: "—",
+                            todayKm?.let { grDec(it, lang = lang) } ?: "—",
                             grStyle(96f, 250, -4f, p.textPrimary), 96f, 56f, Modifier.weight(1f, fill = false),
                         )
                         Text(
-                            "км", maxLines = 1, softWrap = false,
+                            lang.words.km, maxLines = 1, softWrap = false,
                             style = grStyle(34f, 400, color = p.textSecondary, tnum = false),
                             modifier = Modifier.padding(start = px(6), bottom = px(12)),
                         )

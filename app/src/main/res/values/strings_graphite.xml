@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings of the Graphite home and its Settings block (short words, units,
+     numbers and dates are in ui/home/graphite/GraphiteLocale.kt). -->
+<resources>
+    <string name="home_gr_offline">Нет связи</string>
+    <string name="home_gr_range_title">Общий запас хода</string>
+    <string name="home_gr_odometer">Одометр %1$s</string>
+    <string name="home_gr_battery">Батарея</string>
+    <string name="home_gr_fuel">Бензин</string>
+    <string name="home_gr_ice">ДВС</string>
+    <string name="home_gr_footer_12v">12 В</string>
+    <string name="home_gr_footer_insulation">Изоляция</string>
+    <string name="home_gr_footer_to_full" formatted="false">До 100%</string>
+    <string name="home_gr_energy_title">Расход энергии</string>
+    <string name="home_gr_energy_empty">Нет поездок за период</string>
+    <string name="home_gr_energy_ev_share">%1$s%% на электротяге</string>
+    <string name="home_gr_period_day">День</string>
+    <string name="home_gr_period_week">Неделя</string>
+    <string name="home_gr_period_month">Месяц</string>
+    <string name="home_gr_media_title">Медиа</string>
+    <string name="home_gr_no_music">Нет музыки</string>
+    <string name="home_gr_now_playing">Сейчас играет</string>
+    <string name="home_gr_paused">Пауза</string>
+    <string name="home_gr_today_title">Пробег сегодня</string>
+    <string name="home_gr_set_scheme">Цветовая схема</string>
+    <string name="home_gr_set_scheme_desc">Цвета главной Graphite; остальное приложение — по «Оформлению»</string>
+    <string name="home_gr_set_material">Материал</string>
+    <string name="home_gr_set_material_desc">Фактура поверхности карточек</string>
+    <string name="home_gr_set_relief">Рельеф</string>
+    <string name="home_gr_set_edges">Края 2.5D</string>
+    <string name="home_gr_set_edges_desc">Скруглённый скос по краю карточек, как у стекла 2.5D</string>
+</resources>

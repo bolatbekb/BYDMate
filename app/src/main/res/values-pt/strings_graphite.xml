@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings of the Graphite home and its Settings block (short words, units,
+     numbers and dates are in ui/home/graphite/GraphiteLocale.kt). -->
+<resources>
+    <string name="home_gr_offline">Sem conexão</string>
+    <string name="home_gr_range_title">Autonomia total</string>
+    <string name="home_gr_odometer">Hodômetro %1$s</string>
+    <string name="home_gr_battery">Bateria</string>
+    <string name="home_gr_fuel">Gasolina</string>
+    <string name="home_gr_ice">Motor</string>
+    <string name="home_gr_footer_12v">12 V</string>
+    <string name="home_gr_footer_insulation">Isolamento</string>
+    <string name="home_gr_footer_to_full" formatted="false">100% em</string>
+    <string name="home_gr_energy_title">Consumo de energia</string>
+    <string name="home_gr_energy_empty">Sem viagens no período</string>
+    <string name="home_gr_energy_ev_share">%1$s%% elétrico</string>
+    <string name="home_gr_period_day">Dia</string>
+    <string name="home_gr_period_week">Semana</string>
+    <string name="home_gr_period_month">Mês</string>
+    <string name="home_gr_media_title">Mídia</string>
+    <string name="home_gr_no_music">Sem música</string>
+    <string name="home_gr_now_playing">Tocando agora</string>
+    <string name="home_gr_paused">Pausado</string>
+    <string name="home_gr_today_title">Percorrido hoje</string>
+    <string name="home_gr_set_scheme">Esquema de cores</string>
+    <string name="home_gr_set_scheme_desc">Cores da tela inicial Graphite; o resto do aplicativo segue “Aparência”</string>
+    <string name="home_gr_set_material">Material</string>
+    <string name="home_gr_set_material_desc">Textura da superfície dos cartões</string>
+    <string name="home_gr_set_relief">Relevo</string>
+    <string name="home_gr_set_edges">Bordas 2.5D</string>
+    <string name="home_gr_set_edges_desc">Chanfro arredondado nas bordas dos cartões, como o vidro 2.5D</string>
+</resources>

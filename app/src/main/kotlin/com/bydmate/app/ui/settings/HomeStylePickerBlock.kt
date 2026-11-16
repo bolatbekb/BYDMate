@@ -19,6 +19,7 @@ import com.bydmate.app.ui.home.graphite.GraphiteLookState
 import com.bydmate.app.ui.home.graphite.GrMaterial
 import com.bydmate.app.ui.home.graphite.GrRelief
 import com.bydmate.app.ui.home.graphite.GrScheme
+import com.bydmate.app.ui.home.graphite.rememberGrLang
 import com.bydmate.app.ui.theme.CardSurfaceElevated
 
 /** Settings › App: which home screen the first tab shows, and the Graphite home's look. Fork-local. */
@@ -49,34 +50,36 @@ internal fun HomeStylePickerBlock() {
 @Composable
 private fun GraphiteLookRows() {
     val context = LocalContext.current
+    val lang = rememberGrLang()
     val schemes = GrScheme.entries
     val materials = GrMaterial.entries
     val reliefs = GrRelief.entries
     SettingDivider()
     SettingSubhead("Graphite")
     SettingChipRow(
-        title = "Цветовая схема",
-        description = "Цвета главной Graphite; остальное приложение — по «Оформлению»",
+        title = stringResource(R.string.home_gr_set_scheme),
+        description = stringResource(R.string.home_gr_set_scheme_desc),
+        // Scheme names are names: the same in every language.
         options = schemes.map { it.title },
         selectedIndex = schemes.indexOf(GraphiteLookState.scheme),
         onSelect = { GraphiteLookState.selectScheme(context, schemes[it]) },
     )
     SettingChipRow(
-        title = "Материал",
-        description = "Фактура поверхности карточек",
-        options = materials.map { it.title },
+        title = stringResource(R.string.home_gr_set_material),
+        description = stringResource(R.string.home_gr_set_material_desc),
+        options = materials.map { it.title(lang) },
         selectedIndex = materials.indexOf(GraphiteLookState.material),
         onSelect = { GraphiteLookState.selectMaterial(context, materials[it]) },
     )
     SettingChipRow(
-        title = "Рельеф",
-        options = reliefs.map { it.title },
+        title = stringResource(R.string.home_gr_set_relief),
+        options = reliefs.map { it.title(lang) },
         selectedIndex = reliefs.indexOf(GraphiteLookState.relief),
         onSelect = { GraphiteLookState.selectRelief(context, reliefs[it]) },
     )
     SettingToggleRow(
-        title = "Края 2.5D",
-        description = "Скруглённый скос по краю карточек, как у стекла 2.5D",
+        title = stringResource(R.string.home_gr_set_edges),
+        description = stringResource(R.string.home_gr_set_edges_desc),
         checked = GraphiteLookState.edges25d,
         onCheckedChange = { GraphiteLookState.selectEdges25d(context, it) },
     )

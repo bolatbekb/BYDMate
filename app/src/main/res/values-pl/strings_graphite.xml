@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings of the Graphite home and its Settings block (short words, units,
+     numbers and dates are in ui/home/graphite/GraphiteLocale.kt). -->
+<resources>
+    <string name="home_gr_offline">Brak połączenia</string>
+    <string name="home_gr_range_title">Całkowity zasięg</string>
+    <string name="home_gr_odometer">Przebieg %1$s</string>
+    <string name="home_gr_battery">Bateria</string>
+    <string name="home_gr_fuel">Benzyna</string>
+    <string name="home_gr_ice">Silnik</string>
+    <string name="home_gr_footer_12v">12 V</string>
+    <string name="home_gr_footer_insulation">Izolacja</string>
+    <string name="home_gr_footer_to_full" formatted="false">Do 100%</string>
+    <string name="home_gr_energy_title">Zużycie energii</string>
+    <string name="home_gr_energy_empty">Brak przejazdów w tym okresie</string>
+    <string name="home_gr_energy_ev_share">%1$s%% na prądzie</string>
+    <string name="home_gr_period_day">Dzień</string>
+    <string name="home_gr_period_week">Tydzień</string>
+    <string name="home_gr_period_month">Miesiąc</string>
+    <string name="home_gr_media_title">Multimedia</string>
+    <string name="home_gr_no_music">Brak muzyki</string>
+    <string name="home_gr_now_playing">Teraz gra</string>
+    <string name="home_gr_paused">Pauza</string>
+    <string name="home_gr_today_title">Dzisiejszy przebieg</string>
+    <string name="home_gr_set_scheme">Schemat kolorów</string>
+    <string name="home_gr_set_scheme_desc">Kolory ekranu głównego Graphite; reszta aplikacji według ustawienia „Wygląd”</string>
+    <string name="home_gr_set_material">Materiał</string>
+    <string name="home_gr_set_material_desc">Faktura powierzchni kart</string>
+    <string name="home_gr_set_relief">Profil</string>
+    <string name="home_gr_set_edges">Krawędzie 2.5D</string>
+    <string name="home_gr_set_edges_desc">Zaokrąglony skos na krawędziach kart, jak w szkle 2.5D</string>
+</resources>
