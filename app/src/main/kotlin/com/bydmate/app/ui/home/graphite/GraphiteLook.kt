@@ -34,12 +34,13 @@ enum class GrMaterial(val id: String, val title: String) {
     GLASS("glass", "Стекло"),
     METAL("metal", "Металл"),
     SAND_FINE("sand_fine", "Песок мелкий"),
-    SAND_COARSE("sand_coarse", "Песок крупный"),
     CONCRETE("concrete", "Бетон"),
     ;
 
     companion object {
-        fun fromId(id: String?): GrMaterial = entries.firstOrNull { it.id == id } ?: NONE
+        /** The removed coarse sand reads as fine sand. */
+        fun fromId(id: String?): GrMaterial =
+            if (id == "sand_coarse") SAND_FINE else entries.firstOrNull { it.id == id } ?: NONE
     }
 }
 

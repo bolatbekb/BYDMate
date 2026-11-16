@@ -221,6 +221,10 @@ private fun cardModifier(p: GrPalette, radius: Float, look: GrLook, photo: Boole
             bottomRim?.let { drawPath(it, p.cardEdgeTop.copy(alpha = p.cardEdgeTop.alpha * 0.6f)) }
             glassRim?.let { drawRim(it, 1.5f * u, r) }
             bevel?.let { (band, line) ->
+                // Three nested rims of the same faint band: strongest at the very edge, fading
+                // inwards over ~10 px, the way a curved glass edge catches the light.
+                drawRim(band, 3 * u, r)
+                drawRim(band, 6 * u, r)
                 drawRim(band, 10 * u, r)
                 drawRim(line, u, r)
             }
@@ -266,7 +270,6 @@ private fun materialBrush(material: GrMaterial): Brush? {
         GrMaterial.NONE, GrMaterial.GLASS -> return null
         GrMaterial.METAL -> TextureImages.metal
         GrMaterial.SAND_FINE -> TextureImages.sandFine
-        GrMaterial.SAND_COARSE -> TextureImages.sandCoarse
         GrMaterial.CONCRETE -> TextureImages.concrete
     }
     return ShaderBrush(ImageShader(image, TileMode.Repeated, TileMode.Repeated))
@@ -292,18 +295,19 @@ private fun glassRim(size: Size): Brush = Brush.linearGradient(
 )
 
 /**
- * The 2.5D bevel: a 10 px band along the edge, lighter on the top-left, darker on the
- * bottom-right, and a 1 px bright line on the outer top-left edge.
+ * The 2.5D bevel, lit from above like a phone's curved glass edge: a band along the edge that is
+ * light on the top, neutral on the sides and dark on the bottom (drawn three times nested, so it
+ * fades inwards), and a 1 px specular line on the top edge only.
  */
 private fun bevelBrushes(size: Size): Pair<Brush, Brush> {
-    val end = Offset(size.width, size.height)
-    val band = Brush.linearGradient(
-        0f to Color.White.copy(alpha = 0.10f), 0.5f to Color.White.copy(alpha = 0f), 1f to Color.Black.copy(alpha = 0.20f),
-        start = Offset.Zero, end = end,
+    val band = Brush.verticalGradient(
+        0f to Color.White.copy(alpha = 0.05f), 0.10f to Color.Transparent,
+        0.88f to Color.Transparent, 1f to Color.Black.copy(alpha = 0.09f),
+        startY = 0f, endY = size.height,
     )
-    val line = Brush.linearGradient(
-        0f to Color.White.copy(alpha = 0.32f), 0.5f to Color.White.copy(alpha = 0f),
-        start = Offset.Zero, end = end,
+    val line = Brush.verticalGradient(
+        0f to Color.White.copy(alpha = 0.26f), 0.06f to Color.Transparent,
+        startY = 0f, endY = size.height,
     )
     return band to line
 }
@@ -311,7 +315,6 @@ private fun bevelBrushes(size: Size): Pair<Brush, Brush> {
 /** The material tiles as bitmaps, each built on first use and kept. */
 private object TextureImages {
     val sandFine by lazy { GrTextures.sandFine().toImage() }
-    val sandCoarse by lazy { GrTextures.sandCoarse().toImage() }
     val metal by lazy { GrTextures.metal().toImage() }
     val concrete by lazy { GrTextures.concrete().toImage() }
 

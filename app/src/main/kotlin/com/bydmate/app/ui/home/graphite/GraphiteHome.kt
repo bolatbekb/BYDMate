@@ -309,8 +309,13 @@ private fun RowScope.MenuKey(
         Modifier.weight(1f).fillMaxHeight()
             .drawBehind {
                 if (divider) {
+                    // A visible separator that fades out at both ends.
                     val u = px(1).toPx()
-                    drawRect(p.divider, topLeft = Offset(0f, 26 * u), size = Size(u, size.height - 52 * u))
+                    val line = Brush.verticalGradient(
+                        0f to Color.Transparent, 0.5f to p.textTertiary.copy(alpha = 0.55f), 1f to Color.Transparent,
+                        startY = 22 * u, endY = size.height - 22 * u,
+                    )
+                    drawRect(line, topLeft = Offset(-u / 2, 22 * u), size = Size(u, size.height - 44 * u))
                 }
             }
             .then(if (active) Modifier.grPill(p.tabActive, p.tabActiveEdge, p.edgeStyle, 30f) else Modifier)

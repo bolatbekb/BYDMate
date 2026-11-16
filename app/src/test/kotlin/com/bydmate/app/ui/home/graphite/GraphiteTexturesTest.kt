@@ -21,30 +21,20 @@ class GraphiteTexturesTest {
 
     @Test fun sandFine() = check(GrTextures.sandFine(), 160, 160, GrTextures.SAND_FINE_MAX)
 
-    @Test fun sandCoarse() = check(GrTextures.sandCoarse(), 160, 160, GrTextures.SAND_COARSE_MAX)
-
     @Test fun metal() = check(GrTextures.metal(), 256, 64, GrTextures.METAL_MAX)
 
     @Test fun concrete() = check(GrTextures.concrete(), 256, 256, GrTextures.CONCRETE_MAX)
 
     @Test fun capsStaySubtle() {
         assertEquals(40, GrTextures.SAND_FINE_MAX)
-        assertTrue(GrTextures.SAND_COARSE_MAX in 41..64)
         assertTrue(GrTextures.METAL_MAX <= 13) // 5 %
         assertTrue(GrTextures.CONCRETE_MAX <= 24) // pores ≈ 8 %
     }
 
     @Test fun deterministic() {
         assertArrayEquals(GrTextures.sandFine().argb, GrTextures.sandFine().argb)
-        assertArrayEquals(GrTextures.sandCoarse().argb, GrTextures.sandCoarse().argb)
         assertArrayEquals(GrTextures.metal().argb, GrTextures.metal().argb)
         assertArrayEquals(GrTextures.concrete().argb, GrTextures.concrete().argb)
-    }
-
-    /** Coarse sand is fewer, bigger specks: most of the tile is bare. */
-    @Test fun coarseSandIsSparse() {
-        val bare = alphas(GrTextures.sandCoarse()).count { it == 0 }
-        assertTrue("bare $bare", bare > 160 * 160 / 2)
     }
 
     /** Brushed metal: mostly very low streaks, a few brighter ones. */

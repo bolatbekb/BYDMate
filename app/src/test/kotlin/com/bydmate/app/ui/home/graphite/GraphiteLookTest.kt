@@ -29,16 +29,17 @@ class GraphiteLookTest {
 
     @Test fun materialIdsRoundTrip() {
         assertEquals(
-            listOf("none", "glass", "metal", "sand_fine", "sand_coarse", "concrete"),
+            listOf("none", "glass", "metal", "sand_fine", "concrete"),
             GrMaterial.entries.map { it.id },
         )
         assertEquals(
-            listOf("Без материала", "Стекло", "Металл", "Песок мелкий", "Песок крупный", "Бетон"),
+            listOf("Без материала", "Стекло", "Металл", "Песок мелкий", "Бетон"),
             GrMaterial.entries.map { it.title },
         )
         for (m in GrMaterial.entries) assertSame(m, GrMaterial.fromId(m.id))
         assertSame(GrMaterial.NONE, GrMaterial.fromId(null))
         assertSame(GrMaterial.NONE, GrMaterial.fromId("wood"))
+        assertSame(GrMaterial.SAND_FINE, GrMaterial.fromId("sand_coarse"))
     }
 
     @Test fun reliefIdsRoundTrip() {

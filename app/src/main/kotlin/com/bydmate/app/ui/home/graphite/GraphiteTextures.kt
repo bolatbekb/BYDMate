@@ -18,7 +18,6 @@ class GrTile(val width: Int, val height: Int, val argb: IntArray)
  */
 internal object GrTextures {
     const val SAND_FINE_MAX = 40
-    const val SAND_COARSE_MAX = 56
     const val METAL_MAX = 12 // ≈ 5 %
     const val CONCRETE_MAX = 20 // pores ≈ 8 %
 
@@ -37,19 +36,6 @@ internal object GrTextures {
         return GrTile(n, n, px)
     }
 
-    /** Coarse sand: fewer round grains 2–3 px across, a little stronger, on a bare tile, 160 × 160. */
-    fun sandCoarse(): GrTile {
-        val n = 160
-        val rnd = Random(13)
-        val specks = Specks(n, n)
-        repeat(1100) {
-            val g = rnd.nextGaussian().toFloat()
-            val a = (8f + abs(g) * 18f).coerceAtMost(SAND_COARSE_MAX.toFloat())
-            val r = 1.0f + rnd.nextFloat() * 0.6f
-            specks.dot(rnd.nextFloat() * n, rnd.nextFloat() * n, r, a, light = g >= 0f)
-        }
-        return specks.tile()
-    }
 
     /**
      * Brushed metal: 1 px rows of random brightness (mostly very faint, a few brighter), each
