@@ -29,7 +29,6 @@ public class CdBackplate extends Backplate {
     for(int y=0;y<41;y++)for(int x=0;x<45;x++){ int c=orig.getRGB(2158+x,44+y); int al=cl((lum(c)-55)*255/130.0); leaf.setRGB(x,y,(al<<24)|(c&0xFFFFFF)); }
     save(leaf,out+"/cd_leaf.png");
     save(crop(orig,953,978,1054,1005),out+"/cd_led_green.png");   // Машина's lamp, centred on x 1003 (101 x 27)
-    save(crop(orig,1219,978,1320,1005),out+"/cd_led_amber.png");  // Поездки's lamp, centred on x 1269
     BufferedImage litFaces=copy(orig);                              // lit faces with their icon and word removed
     fill(litFaces,TAB_CONTENT[0],TAB_CONTENT[1],TAB_CONTENT[2],TAB_CONTENT[3],null,0);
     fill(litFaces,DAY_CONTENT[0],DAY_CONTENT[1],DAY_CONTENT[2],DAY_CONTENT[3],null,0);

@@ -27,6 +27,7 @@ import java.time.temporal.ChronoUnit
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
+import java.util.Locale
 import javax.inject.Inject
 import kotlin.math.ceil
 
@@ -87,6 +88,7 @@ object ChartBuckets {
             t.kwhConsumed?.takeIf { it.isFinite() }?.let { kmE[i] += km; kwh[i] += it; hasE[i] = true }
             t.fuelLiters?.takeIf { it.isFinite() }?.let { kmF[i] += km; liters[i] += it; hasF[i] = true; anyFuel = true }
         }
+        // Fuel per 100 km uses only the km of trips that have a litres figure.
         // Negative kWh (regen) stays in the sums; the plotted value never drops below zero.
         val energy = List(n) { if (hasE[it]) (kwh[it] / kmE[it] * 100.0).coerceAtLeast(0.0) else null }
         val fuel = if (!anyFuel) null
@@ -94,7 +96,7 @@ object ChartBuckets {
 
         val labels = List(n) { i ->
             when (period) {
-                ChartPeriod.DAY -> if (i % 3 == 0) "%02d:00".format(i) else ""
+                ChartPeriod.DAY -> if (i % 3 == 0) String.format(Locale.US, "%02d:00", i) else ""
                 ChartPeriod.WEEK -> WEEKDAYS[startDate.plusDays(i.toLong()).dayOfWeek.value - 1]
                 // Counted back from today, so today always carries a label.
                 ChartPeriod.MONTH -> if ((n - 1 - i) % 5 == 0) DM.format(startDate.plusDays(i.toLong())) else ""

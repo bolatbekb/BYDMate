@@ -56,4 +56,12 @@ class ReadyLampTest {
         assertEquals(ReadyShown.ON, l.update(1, 0))
         assertEquals(ReadyShown.READY, l.update(2, 10))
     }
+
+    @Test fun singleLowOneSecondSampleNeverShowsOffWithProductionHold() {
+        val l = ReadyLamp(holdMs = 2_000)
+        l.update(2, 0)
+        assertEquals(ReadyShown.READY, l.update(0, 1_000)) // the one low sample
+        assertEquals(ReadyShown.READY, l.update(0, 2_000)) // still low at the tick before recovery
+        assertEquals(ReadyShown.READY, l.update(2, 2_000))
+    }
 }

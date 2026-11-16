@@ -84,7 +84,7 @@ private fun ModeWord(mode: String?) {
  */
 @Composable
 private fun rememberReadyLamp(powerState: Int?): ReadyShown {
-    val lamp = remember { ReadyLamp() }
+    val lamp = remember { ReadyLamp(holdMs = 2_000) }
     val power by rememberUpdatedState(powerState)
     var shown by remember { mutableStateOf(lamp.update(powerState, SystemClock.elapsedRealtime())) }
     // a change shows at once (a rise lights READY now); the tick lets a held fall run out
@@ -123,6 +123,7 @@ private const val WOBBLE_RATIO = 2.7
 
 /** At most 30 redraws a second; the frames between are skipped. */
 private const val MIN_FRAME_NS = 33_000_000L
+private const val FRAME_WAKE_MS = 30L
 
 /** A fixed pseudo-random number in [0, 1) for column [c] and channel [k]. */
 private fun hash01(c: Int, k: Int): Double {
@@ -185,6 +186,7 @@ internal fun CdSpectrum(playing: Boolean) {
             owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 var last = 0L
                 while (true) {
+                    delay(FRAME_WAKE_MS) // do not wake on every vsync; the frame time below stays real
                     withFrameNanos { now ->
                         if (now - last >= MIN_FRAME_NS) {
                             val dt = if (last == 0L) 0.0 else (now - last) / 1e9

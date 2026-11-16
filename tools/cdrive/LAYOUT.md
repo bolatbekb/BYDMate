@@ -185,7 +185,6 @@ Clip the glyph layers to the current key's rect, as for the period keys.
 Inside the layers, icons sit in y 1016–1071 and words in y 1072–1114.
 
 The lamp strip is y 978–1004 (black lines at 976–977 and 1005). The lamp itself is ≈ 47 × 11 at the centre.
-`cd_led_amber` is the same lamp in amber, for an app that wants to switch one back.
 
 ## Images from the tool
 
@@ -197,5 +196,5 @@ The lamp strip is y 978–1004 (black lines at 976–977 and 1005). The lamp its
 | `cd_period_lit` | 216 × 97 | lit period-key face, alpha overlay, icon and word removed |
 | `cd_tab_icons`, `cd_tab_words` | 1302 × 99 | the bottom keys' printed icons / words, alpha (white strokes, black outlines) |
 | `cd_period_icons`, `cd_period_words` | 153 × 210 | the period keys' printed icons / words, alpha |
-| `cd_led_green`, `cd_led_amber` | 101 × 27 | a lamp with its glow on the lamp strip, opaque |
+| `cd_led_green` | 101 × 27 | a lamp with its glow on the lamp strip, opaque |
 | `cd_play_lit` | 131 × 66 | the ▶ transport key lit (green ▶ with glow), opaque, at 693, 423 |
