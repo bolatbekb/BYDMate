@@ -47,18 +47,18 @@ sealed interface DetectorAction {
     data class UpdateDraft(val draftId: Long, val afterPercent: Int) : DetectorAction
 }
 
+/** One live sample: tank level, the car's fuel counter and odometer, and when it was read. */
+data class TankReading(val percent: Int?, val fuelTotal: Double?, val odo: Double?, val ts: Long)
+
 /** Spots a refuel as a tank-level jump with the odometer standing still. */
 object RefuelDetector {
     private const val MOVED_KM = 2.0
 
-    fun step(
-        state: DetectorState?,
-        percent: Int?,
-        fuelTotal: Double?,
-        odo: Double?,
-        ts: Long,
-        thresholdPp: Int,
-    ): Pair<DetectorState?, DetectorAction> {
+    fun step(state: DetectorState?, reading: TankReading, thresholdPp: Int): Pair<DetectorState?, DetectorAction> {
+        val percent = reading.percent
+        val odo = reading.odo
+        val ts = reading.ts
+        val fuelTotal = reading.fuelTotal
         // 0 % is a glitch (or a dead-empty tank we cannot tell from one): never a baseline
         if (percent == null || percent !in 1..100 || odo == null) return state to DetectorAction.None
         fun fresh() = DetectorState(percent, fuelTotal, odo, ts, null)

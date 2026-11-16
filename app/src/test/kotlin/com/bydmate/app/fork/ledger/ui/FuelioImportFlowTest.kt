@@ -76,7 +76,7 @@ class FuelioImportFlowTest {
         coEvery { trip.getWithEnergyInRange(any(), any()) } returns emptyList()
         coEvery { settings.getCurrency() } returns SettingsRepository.Currency("BYN", "BYN")
         return LedgerViewModel(
-            repo, charge, trip, settings, LedgerPrefill(mockk<CounterSnapshotDao>()), carData,
+            repo, LedgerStateBuilder(repo, charge, trip, settings), LedgerPrefill(mockk<CounterSnapshotDao>()), carData,
             ApplicationProvider.getApplicationContext(),
         ).also { vms += it }
     }
@@ -85,8 +85,8 @@ class FuelioImportFlowTest {
 
     @Test fun previewShowsCountsBeforeWriting() = runBlocking {
         val vm = vm()
-        vm.previewFuelio(csv(sample)).join()
-        val st = vm.importState.value as FuelioImportState.Preview
+        vm.fuelio.preview(csv(sample)).join()
+        val st = vm.fuelio.state.value as FuelioImportState.Preview
         assertEquals(5, st.preview.newRefuels)
         assertEquals(1, st.preview.newCosts)
         assertTrue(repo.refuels.getAllAsc().isEmpty())
@@ -94,25 +94,25 @@ class FuelioImportFlowTest {
 
     @Test fun applyWritesAndReportsResult() = runBlocking {
         val vm = vm()
-        vm.previewFuelio(csv(sample)).join()
-        vm.applyFuelio().join()
-        assertEquals(FuelioImportState.Done(FuelioResult(5, 1)), vm.importState.value)
+        vm.fuelio.preview(csv(sample)).join()
+        vm.fuelio.commit().join()
+        assertEquals(FuelioImportState.Done(FuelioResult(5, 1)), vm.fuelio.state.value)
         assertEquals(5, repo.refuels.getAllAsc().size)
     }
 
     @Test fun applyRefusedWhileDriving() = runBlocking {
         val vm = vm()
-        vm.previewFuelio(csv(sample)).join()
+        vm.fuelio.preview(csv(sample)).join()
         carData.value = car(mileage = 1000.0).copy(speed = 40, gear = 4)
-        vm.applyFuelio().join()
-        assertTrue(vm.importState.value is FuelioImportState.Preview)
+        vm.fuelio.commit().join()
+        assertTrue(vm.fuelio.state.value is FuelioImportState.Preview)
         assertTrue(repo.refuels.getAllAsc().isEmpty())
     }
 
     @Test fun brokenFileShowsError() = runBlocking {
         val vm = vm()
-        vm.previewFuelio(csv("hello, this is not fuelio\n1,2,3")).join()
-        assertTrue(vm.importState.value is FuelioImportState.Error)
+        vm.fuelio.preview(csv("hello, this is not fuelio\n1,2,3")).join()
+        assertTrue(vm.fuelio.state.value is FuelioImportState.Error)
         assertTrue(repo.refuels.getAllAsc().isEmpty())
     }
 
@@ -120,16 +120,16 @@ class FuelioImportFlowTest {
         val big = tmp.newFile("big.csv")
         RandomAccessFile(big, "rw").use { it.setLength(5L * 1024 * 1024 + 1) }
         val vm = vm()
-        vm.previewFuelio(big).join()
-        assertTrue(vm.importState.value is FuelioImportState.Error)
+        vm.fuelio.preview(big).join()
+        assertTrue(vm.fuelio.state.value is FuelioImportState.Error)
     }
 
     @Test fun listsOnlyCsvNewestFirstFromGivenDir() {
         val a = csv("x", "a.csv").also { it.setLastModified(1_000) }
         val b = csv("x", "B.CSV").also { it.setLastModified(2_000) }
         csv("x", "c.zip")
-        assertEquals(listOf(b, a), vm().listCsvFiles(tmp.root))
-        assertTrue(vm().listCsvFiles(File(tmp.root, "missing")).isEmpty())
+        assertEquals(listOf(b, a), vm().fuelio.listCsvFiles(tmp.root))
+        assertTrue(vm().fuelio.listCsvFiles(File(tmp.root, "missing")).isEmpty())
     }
 
     @Test fun secondTapOnImportIsIgnored() = runBlocking {
@@ -143,11 +143,11 @@ class FuelioImportFlowTest {
             "b","2025-02-21","20","10","0","0","2"
         """.trimIndent()
         val vm = vm()
-        vm.previewFuelio(csv(text)).join()
-        val first = vm.applyFuelio()
-        val second = vm.applyFuelio()
+        vm.fuelio.preview(csv(text)).join()
+        val first = vm.fuelio.commit()
+        val second = vm.fuelio.commit()
         first.join(); second.join()
-        assertEquals(FuelioImportState.Done(FuelioResult(0, 2)), vm.importState.value)
+        assertEquals(FuelioImportState.Done(FuelioResult(0, 2)), vm.fuelio.state.value)
         assertEquals(1, repo.categories.getAll().count { it.name == "Charging Gear" })
     }
 }

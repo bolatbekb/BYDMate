@@ -24,16 +24,19 @@ object RefuelSegments {
             .sortedWith(compareBy<RefuelEntity> { it.date }.thenBy { it.odometerKm ?: Double.MAX_VALUE })
         val out = mutableListOf<RefuelSegment>()
         for (i in list.indices) {
-            val a = list[i]
-            if (!a.fullTank) continue
-            var j = i + 1
-            while (j < list.size && !list[j].fullTank) j++
-            if (j >= list.size) continue
+            val j = nextFull(list, i) ?: continue
             val inside = list.subList(i + 1, j + 1)
-            if (inside.any { it.missedBefore }) continue
-            out += segment(a, list[j], inside)
+            if (inside.none { it.missedBefore }) out += segment(list[i], list[j], inside)
         }
         return out
+    }
+
+    /** Index of the full tank that closes a segment opened at [i]; null when [i] is no full tank or none follows. */
+    private fun nextFull(list: List<RefuelEntity>, i: Int): Int? {
+        if (!list[i].fullTank) return null
+        var j = i + 1
+        while (j < list.size && !list[j].fullTank) j++
+        return j.takeIf { it < list.size }
     }
 
     private fun segment(a: RefuelEntity, b: RefuelEntity, inside: List<RefuelEntity>): RefuelSegment {

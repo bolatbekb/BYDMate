@@ -1,7 +1,8 @@
 package com.bydmate.app.fork.ledger.domain
 
 import com.bydmate.app.data.remote.DiParsData
-import org.junit.Assert.*
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LedgerParkingTest {

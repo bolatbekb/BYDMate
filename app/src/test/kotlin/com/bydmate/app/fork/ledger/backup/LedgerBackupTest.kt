@@ -89,16 +89,19 @@ class LedgerBackupTest {
         val out = File(tmp.root, "patched-${System.nanoTime()}.zip")
         ZipFile(zip).use { src ->
             ZipOutputStream(FileOutputStream(out)).use { z ->
-                for (entry in src.entries()) {
-                    if (entry.name == LedgerBackup.ENTRY_DB) continue
-                    z.putNextEntry(ZipEntry(entry.name))
-                    src.getInputStream(entry).use { it.copyTo(z) }
-                    z.closeEntry()
+                for (entry in src.entries().asSequence().filter { it.name != LedgerBackup.ENTRY_DB }) {
+                    copyEntry(src, entry, z)
                 }
                 z.putNextEntry(ZipEntry(LedgerBackup.ENTRY_DB)); z.write(ledgerBytes); z.closeEntry()
             }
         }
         return out
+    }
+
+    private fun copyEntry(src: ZipFile, entry: ZipEntry, z: ZipOutputStream) {
+        z.putNextEntry(ZipEntry(entry.name))
+        src.getInputStream(entry).use { it.copyTo(z) }
+        z.closeEntry()
     }
 
     /** Refusal leaves bydmate.db, the ledger, the restore marker and the temp files as they were. */

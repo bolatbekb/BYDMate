@@ -30,7 +30,7 @@ import java.io.File
 internal fun FuelioImportDialog(
     importState: FuelioImportState,
     parked: Boolean,
-    vm: LedgerViewModel,
+    fuelio: LedgerFuelioImport,
     onDismiss: () -> Unit,
 ) {
     AppAlertDialog(
@@ -40,7 +40,7 @@ internal fun FuelioImportDialog(
         text = {
             Column(Modifier.heightIn(max = 360.dp).verticalScroll(rememberScrollState())) {
                 when (val s = importState) {
-                    FuelioImportState.Idle -> FileList(vm)
+                    FuelioImportState.Idle -> FileList(fuelio)
                     is FuelioImportState.Preview -> {
                         val p = s.preview
                         Text(
@@ -80,7 +80,7 @@ internal fun FuelioImportDialog(
         confirmButton = {
             when (importState) {
                 is FuelioImportState.Preview ->
-                    LedgerButton(stringResource(R.string.ledger_import_run), enabled = parked) { vm.applyFuelio() }
+                    LedgerButton(stringResource(R.string.ledger_import_run), enabled = parked) { fuelio.commit() }
                 is FuelioImportState.Done, is FuelioImportState.Error ->
                     LedgerButton(stringResource(R.string.ledger_import_close), onClick = onDismiss)
                 FuelioImportState.Idle -> {}
@@ -95,9 +95,9 @@ internal fun FuelioImportDialog(
 }
 
 @Composable
-private fun FileList(vm: LedgerViewModel) {
+private fun FileList(fuelio: LedgerFuelioImport) {
     val files by produceState<List<File>?>(null) {
-        value = withContext(Dispatchers.IO) { vm.listCsvFiles() }
+        value = withContext(Dispatchers.IO) { fuelio.listCsvFiles() }
     }
     val list = files ?: return
     if (list.isEmpty()) {
@@ -108,7 +108,7 @@ private fun FileList(vm: LedgerViewModel) {
     list.forEach { f ->
         Text(
             f.name, color = TextPrimary, fontSize = 14.sp,
-            modifier = Modifier.fillMaxWidth().clickable { vm.previewFuelio(f) }.padding(vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().clickable { fuelio.preview(f) }.padding(vertical = 10.dp),
         )
     }
 }

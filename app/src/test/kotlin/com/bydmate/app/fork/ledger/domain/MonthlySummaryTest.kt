@@ -1,13 +1,14 @@
 package com.bydmate.app.fork.ledger.domain
 
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.time.YearMonth
 
 class MonthlySummaryTest {
     private val m = YearMonth.of(2026, 11)
     private fun row(km: Double, calc: Double? = null) = MonthlySummary.rows(
-        listOf(m), { 100.0 }, { 200.0 }, { mapOf(1L to 20.0, 2L to 30.0) }, { km }, { calc },
+        listOf(m), MonthSources({ 100.0 }, { 200.0 }, { mapOf(1L to 20.0, 2L to 30.0) }, { km }, { calc }),
     ).single()
 
     @Test fun costPerKmNullWhenNoKm() { assertNull(row(0.0).costPerKm) }

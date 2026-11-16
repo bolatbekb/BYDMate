@@ -70,7 +70,7 @@ object LedgerBackup {
             if (attempt > 1) Thread.sleep(RETRY_SLEEP_MS)
             val checkpointed = try {
                 support.query("PRAGMA wal_checkpoint(TRUNCATE)").use { c -> c.moveToFirst() && c.getInt(0) == 0 }
-            } catch (e: Exception) {
+            } catch (e: SQLiteException) {
                 Log.w(TAG, "wal_checkpoint failed: ${e.message}")
                 false
             }
@@ -103,20 +103,19 @@ object LedgerBackup {
         val dir = target.parentFile!!.apply { mkdirs() }
         val tmp = File(dir, RESTORE_TMP)
         deleteWithSideFiles(tmp)
+        var validated = false
         try {
             val found = try {
                 ZipInputStream(archive.inputStream()).use { zip -> copyLedgerEntry(zip, tmp, strings) }
             } catch (e: IOException) {
                 throw corrupt(strings, e)
             }
-            if (!found) {
-                deleteWithSideFiles(tmp)
-                return null
-            }
+            if (!found) return null
             validate(tmp, strings)
-        } catch (e: Throwable) {
-            deleteWithSideFiles(tmp)
-            throw e
+            validated = true
+        } finally {
+            // an archive without a ledger, or a refused one, leaves no temp file behind
+            if (!validated) deleteWithSideFiles(tmp)
         }
         return PreparedLedger(tmp, target, provider)
     }
@@ -129,21 +128,26 @@ object LedgerBackup {
             if (entry.name == ENTRY_DB) {
                 if (found) throw corrupt(strings)
                 found = true
-                tmp.outputStream().use { out ->
-                    val buf = ByteArray(64 * 1024)
-                    var total = 0L
-                    while (true) {
-                        val n = zip.read(buf)
-                        if (n < 0) break
-                        total += n
-                        if (total > MAX_ENTRY_BYTES) throw corrupt(strings)
-                        out.write(buf, 0, n)
-                    }
-                }
+                copyCapped(zip, tmp, strings)
             }
             zip.closeEntry()
         }
         return found
+    }
+
+    /** Copies the current entry of [zip] to [tmp]; one over [MAX_ENTRY_BYTES] is refused. */
+    private fun copyCapped(zip: ZipInputStream, tmp: File, strings: AppStrings) {
+        tmp.outputStream().use { out ->
+            val buf = ByteArray(64 * 1024)
+            var total = 0L
+            while (true) {
+                val n = zip.read(buf)
+                if (n < 0) break
+                total += n
+                if (total > MAX_ENTRY_BYTES) throw corrupt(strings)
+                out.write(buf, 0, n)
+            }
+        }
     }
 
     private fun corrupt(strings: AppStrings, cause: Throwable? = null) =
@@ -194,6 +198,7 @@ object LedgerBackup {
          * Swaps the temp file in over the live ledger. Runs after the author's swap, past the
          * point of no return, so it never throws: a failure is logged and the live ledger stays.
          */
+        @Suppress("TooGenericExceptionCaught") // why: past the restore's point of no return it must never throw, whatever close or rename throws
         fun commit() {
             try {
                 provider().close()

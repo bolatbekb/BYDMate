@@ -28,17 +28,20 @@ data class MonthTotals(
     val costPerKm: Double? get() = if (km > 0.0) total / km else null
 }
 
+/** Where a month's figures come from: costs by kind, other costs by category id, km driven. */
+class MonthSources(
+    val electricity: (YearMonth) -> Double,
+    val fuel: (YearMonth) -> Double,
+    val other: (YearMonth) -> Map<Long, Double>,
+    val km: (YearMonth) -> Double,
+    /** Calculated fuel cost; informational. */
+    val fuelCalculated: (YearMonth) -> Double?,
+)
+
 object MonthlySummary {
-    fun rows(
-        months: List<YearMonth>,
-        electricity: (YearMonth) -> Double,
-        fuel: (YearMonth) -> Double,
-        other: (YearMonth) -> Map<Long, Double>,
-        km: (YearMonth) -> Double,
-        fuelCalculated: (YearMonth) -> Double?,
-    ): List<MonthRow> = months.map { m ->
-        val cats = other(m)
-        MonthRow(m, electricity(m), fuel(m), cats.values.sum(), cats, km(m), fuelCalculated(m))
+    fun rows(months: List<YearMonth>, sources: MonthSources): List<MonthRow> = months.map { m ->
+        val cats = sources.other(m)
+        MonthRow(m, sources.electricity(m), sources.fuel(m), cats.values.sum(), cats, sources.km(m), sources.fuelCalculated(m))
     }
 
     fun totals(rows: List<MonthRow>): MonthTotals {

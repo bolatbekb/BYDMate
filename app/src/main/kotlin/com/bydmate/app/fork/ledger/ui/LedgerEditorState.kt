@@ -59,14 +59,7 @@ data class LedgerEditorState(
         if (bad(liters)) add(RefuelField.LITERS)
         if (bad(total)) add(RefuelField.TOTAL)
         if (bad(price)) add(RefuelField.PRICE)
-        if (isEmpty()) {
-            val l = num(liters)
-            val t = num(total)
-            val p = num(price)
-            if (l != null && t != null && p != null && abs(l * p - t) > maxOf(0.05, t * 0.005)) {
-                add(RefuelField.MISMATCH)
-            }
-        }
+        if (isEmpty() && mismatched(num(liters), num(total), num(price))) add(RefuelField.MISMATCH)
     }
 
     /** Null while a field is invalid or fewer than two of liters / total / price are given. */
@@ -144,5 +137,9 @@ data class LedgerEditorState(
             BigDecimal.valueOf(v).setScale(2, RoundingMode.HALF_UP).stripTrailingZeros().toPlainString()
 
         private fun r2(v: Double): Double = round(v * 100.0) / 100.0
+
+        /** All three given and liters × price misses the total by over 0.05 and 0.5 %. */
+        private fun mismatched(l: Double?, t: Double?, p: Double?): Boolean =
+            l != null && t != null && p != null && abs(l * p - t) > maxOf(0.05, t * 0.005)
     }
 }

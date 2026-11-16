@@ -45,7 +45,7 @@ object FuelioCsv {
     private const val UK_GALLON_L = 4.54609
 
     fun parse(text: String): FuelioFile {
-        val sections = splitSections(readRecords(text))
+        val sections = splitSections(RecordReader(text).read())
         if (!sections.containsKey("log") && !sections.containsKey("costs")) {
             throw FuelioFormatException("Not a Fuelio export: no ## Log or ## Costs section")
         }
@@ -124,8 +124,8 @@ object FuelioCsv {
                 liters = round2(liters * fuelFactor),
                 total = r["price"]?.num()?.let(::round2),
                 pricePerLiter = ppl?.takeIf { it > 0 }?.let { round2(it / fuelFactor) },
-                full = (r["full"]?.trim()?.toDoubleOrNull() ?: 0.0) != 0.0,
-                missed = (r["missed"]?.trim()?.toDoubleOrNull() ?: 0.0) != 0.0,
+                full = r["full"].isTrue(),
+                missed = r["missed"].isTrue(),
                 lat = r["latitude"]?.num(),
                 lon = r["longitude"]?.num(),
                 city = r["city"]?.clean()?.blankToNull(),
@@ -158,10 +158,6 @@ object FuelioCsv {
 
     // ---- helpers ----
 
-    private fun String?.isTrue(): Boolean = (this?.trim()?.toDoubleOrNull() ?: 0.0) != 0.0
-    private fun String.clean(): String = replace("\uFEFF", "").trim()
-    private fun String.blankToNull(): String? = trim().ifEmpty { null }
-    private fun String.num(): Double? = trim().replace(',', '.').toDoubleOrNull()
     private fun round2(v: Double): Double = round(v * 100.0) / 100.0
 
     private fun parseDate(raw: String?): LocalDate? {
@@ -171,35 +167,66 @@ object FuelioCsv {
     }
 
     /** RFC-4180-ish: quoted fields, "" escape, newlines inside quotes. Blank lines are skipped. */
-    private fun readRecords(text: String): List<List<String>> {
-        val records = ArrayList<List<String>>()
-        var fields = ArrayList<String>()
-        val sb = StringBuilder()
-        var inQuotes = false
-        var wasQuoted = false
-        var i = 0
-        fun endField() { fields.add(sb.toString()); sb.setLength(0); wasQuoted = false }
-        fun endRecord() {
+    private class RecordReader(private val text: String) {
+        private val records = ArrayList<List<String>>()
+        private var fields = ArrayList<String>()
+        private val sb = StringBuilder()
+        private var inQuotes = false
+        private var wasQuoted = false
+
+        fun read(): List<List<String>> {
+            var i = 0
+            while (i < text.length) {
+                i = if (inQuotes) quoted(i) else plain(i)
+            }
+            if (sb.isNotEmpty() || fields.isNotEmpty() || wasQuoted) endRecord()
+            return records
+        }
+
+        /** The character at [i] inside quotes; returns the index after it (after both of a `""` pair). */
+        private fun quoted(i: Int): Int {
+            if (text[i] != '"') {
+                sb.append(text[i])
+                return i + 1
+            }
+            if (i + 1 < text.length && text[i + 1] == '"') {
+                sb.append('"')
+                return i + 2
+            }
+            inQuotes = false
+            return i + 1
+        }
+
+        /** The character at [i] outside quotes; returns the index after it. */
+        private fun plain(i: Int): Int {
+            when (val c = text[i]) {
+                '"' -> {
+                    inQuotes = true
+                    wasQuoted = true
+                }
+                ',' -> endField()
+                '\r' -> Unit
+                '\n' -> endRecord()
+                else -> sb.append(c)
+            }
+            return i + 1
+        }
+
+        private fun endField() {
+            fields.add(sb.toString())
+            sb.setLength(0)
+            wasQuoted = false
+        }
+
+        private fun endRecord() {
             endField()
             if (!(fields.size == 1 && fields[0].isEmpty())) records.add(fields)
             fields = ArrayList()
         }
-        while (i < text.length) {
-            val c = text[i]
-            if (inQuotes) {
-                if (c == '"') {
-                    if (i + 1 < text.length && text[i + 1] == '"') { sb.append('"'); i++ } else inQuotes = false
-                } else sb.append(c)
-            } else when (c) {
-                '"' -> { inQuotes = true; wasQuoted = true }
-                ',' -> endField()
-                '\r' -> {}
-                '\n' -> endRecord()
-                else -> sb.append(c)
-            }
-            i++
-        }
-        if (sb.isNotEmpty() || fields.isNotEmpty() || wasQuoted) endRecord()
-        return records
     }
 }
+
+private fun String?.isTrue(): Boolean = (this?.trim()?.toDoubleOrNull() ?: 0.0) != 0.0
+private fun String.clean(): String = replace("\uFEFF", "").trim()
+private fun String.blankToNull(): String? = trim().ifEmpty { null }
+private fun String.num(): Double? = trim().replace(',', '.').toDoubleOrNull()

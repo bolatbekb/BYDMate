@@ -79,20 +79,30 @@ class LedgerViewModelTest {
 
     private val vms = mutableListOf<LedgerViewModel>()
 
-    private fun vm() = LedgerViewModel(repo, chargeDao, tripDao, settings, LedgerPrefill(snaps), carData, ApplicationProvider.getApplicationContext()).also { vms += it }
+    private fun vm() = LedgerViewModel(
+        repo, LedgerStateBuilder(repo, chargeDao, tripDao, settings), LedgerPrefill(snaps), carData,
+        ApplicationProvider.getApplicationContext(),
+    ).also { vms += it }
 
-    private fun refuel(
-        date: Long, odo: Double?, liters: Double, cost: Double? = null, full: Boolean = true,
-        car: Double? = null, status: String = "confirmed",
-    ) = RefuelEntity(
-        date = date, odometerKm = odo, liters = liters, totalCost = cost, pricePerLiter = null,
-        fullTank = full, carFuelTotalL = car, tankPercentBefore = null, tankPercentAfter = null,
-        lat = null, lon = null, place = null, note = null,
-        source = if (status == "draft") "detected" else "manual", status = status, importKey = null,
-    )
+    /** One receipt as a test states it; [entity] fills in the rest of the row. */
+    private data class Fill(
+        val date: Long, val odo: Double?, val liters: Double, val cost: Double? = null, val full: Boolean = true,
+        val car: Double? = null, val status: String = "confirmed",
+    ) {
+        fun entity() = RefuelEntity(
+            date = date, odometerKm = odo, liters = liters, totalCost = cost, pricePerLiter = null,
+            fullTank = full, carFuelTotalL = car, tankPercentBefore = null, tankPercentAfter = null,
+            lat = null, lon = null, place = null, note = null,
+            source = if (status == "draft") "detected" else "manual", status = status, importKey = null,
+        )
+    }
 
     private fun <T> until(what: String, get: () -> T, cond: (T) -> Boolean): T = runBlocking {
-        repeat(100) { val v = get(); if (cond(v)) return@runBlocking v; delay(50) }
+        repeat(100) {
+            val v = get()
+            if (cond(v)) return@runBlocking v
+            delay(50)
+        }
         throw AssertionError("timed out waiting for $what, last=${get()}")
     }
 
@@ -100,7 +110,7 @@ class LedgerViewModelTest {
         carData.value = car(mileage = 1000.0).copy(speed = 40, gear = 4)
         val vm = vm()
         until("driving state", { vm.state.value }) { it.loaded && !it.parked }
-        vm.saveRefuel(refuel(now, 1000.0, 30.0, 60.0)).join()
+        vm.saveRefuel(Fill(now, 1000.0, 30.0, 60.0).entity()).join()
         vm.saveExpense(
             ExpenseEntity(date = now, odometerKm = null, categoryId = 1, amount = 5.0, title = null, note = null, source = "manual", importKey = null)
         ).join()
@@ -109,7 +119,7 @@ class LedgerViewModelTest {
     }
 
     @Test fun draftDeleteCategoryAndSettingsBlockedWhileDriving() = runBlocking {
-        val id = repo.refuels.insert(refuel(now, 1000.0, 20.0, full = false, status = "draft"))
+        val id = repo.refuels.insert(Fill(now, 1000.0, 20.0, full = false, status = "draft").entity())
         val draft = repo.refuels.getById(id)!!
         val wash = repo.categories.getByBuiltinKey("wash")!!
         val categoriesBefore = repo.categories.getAll().size
@@ -130,15 +140,15 @@ class LedgerViewModelTest {
     }
 
     @Test fun draftReceiptIsNotCountedAsFuel() = runBlocking {
-        repo.refuels.insert(refuel(now, 1000.0, 20.0, cost = 999.0, full = false, status = "draft"))
-        repo.refuels.insert(refuel(now, 1000.0, 20.0, cost = 50.0))
+        repo.refuels.insert(Fill(now, 1000.0, 20.0, cost = 999.0, full = false, status = "draft").entity())
+        repo.refuels.insert(Fill(now, 1000.0, 20.0, cost = 50.0).entity())
         val vm = vm()
         val st = until("month rows", { vm.state.value }) { it.months.isNotEmpty() }
         assertEquals(50.0, st.months.first().fuel, 0.001)
     }
 
     @Test fun prefillPrefersNearbyDraftUnlessItIsAnotherRefuel() = runBlocking {
-        repo.refuels.insert(refuel(now - 20 * 60_000L, 1000.0, 20.0, full = false, car = 55.0, status = "draft"))
+        repo.refuels.insert(Fill(now - 20 * 60_000L, 1000.0, 20.0, full = false, car = 55.0, status = "draft").entity())
         carData.value = car(mileage = 1012.0, fuelTotalL = 56.0)
         val vm = vm()
         val station = vm.prefillFor(now)
@@ -150,7 +160,7 @@ class LedgerViewModelTest {
     }
 
     @Test fun confirmDraftTurnsDraftIntoConfirmed() = runBlocking {
-        val id = repo.refuels.insert(refuel(now, 1000.0, 20.0, full = false, car = 55.0, status = "draft"))
+        val id = repo.refuels.insert(Fill(now, 1000.0, 20.0, full = false, car = 55.0, status = "draft").entity())
         val vm = vm()
         val draft = repo.refuels.getById(id)!!
         vm.confirmDraft(draft.copy(liters = 25.0, totalCost = 62.5, pricePerLiter = 2.5)).join()
@@ -163,7 +173,7 @@ class LedgerViewModelTest {
 
     @Test fun monthRowsUseChargeCostsAndReceipts() = runBlocking {
         coEvery { chargeDao.getPeriodSummary(any(), any()) } returns ChargeSummary(3, 120.0, 5000.0)
-        repo.refuels.insert(refuel(now, 1000.0, 5000.0, cost = 14302.05))
+        repo.refuels.insert(Fill(now, 1000.0, 5000.0, cost = 14302.05).entity())
         val wash = repo.categories.getByBuiltinKey("wash")!!
         repo.expenses.insert(
             ExpenseEntity(date = now, odometerKm = null, categoryId = wash.id, amount = 2000.0, title = null, note = null, source = "manual", importKey = null)
@@ -182,9 +192,9 @@ class LedgerViewModelTest {
 
     @Test fun segmentsExcludeDrafts() = runBlocking {
         val day = 86_400_000L
-        repo.refuels.insert(refuel(now - 3 * day, 1000.0, 40.0, cost = 100.0, car = 100.0))
-        repo.refuels.insert(refuel(now - 2 * day, 1200.0, 30.0, full = true, car = 112.0, status = "draft"))
-        repo.refuels.insert(refuel(now - day, 1500.0, 35.0, cost = 90.0, car = 135.0))
+        repo.refuels.insert(Fill(now - 3 * day, 1000.0, 40.0, cost = 100.0, car = 100.0).entity())
+        repo.refuels.insert(Fill(now - 2 * day, 1200.0, 30.0, full = true, car = 112.0, status = "draft").entity())
+        repo.refuels.insert(Fill(now - day, 1500.0, 35.0, cost = 90.0, car = 135.0).entity())
         val vm = vm()
         val st = until("segments", { vm.state.value }) { it.refuels.size == 3 }
         assertEquals(1, st.segments.size)

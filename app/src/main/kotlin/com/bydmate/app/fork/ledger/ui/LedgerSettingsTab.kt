@@ -92,14 +92,14 @@ internal fun LedgerSettingsTab(state: LedgerUiState, vm: LedgerViewModel) {
     Text(stringResource(R.string.ledger_import_desc), color = TextSecondary, fontSize = 12.sp, lineHeight = 16.sp)
     var importing by remember { mutableStateOf(false) }
     LedgerButton(stringResource(R.string.ledger_import_choose), primary = false) {
-        vm.resetImport()
+        vm.fuelio.reset()
         importing = true
     }
     if (importing) {
-        val importState by vm.importState.collectAsState()
-        FuelioImportDialog(importState, state.parked, vm) {
+        val importState by vm.fuelio.state.collectAsState()
+        FuelioImportDialog(importState, state.parked, vm.fuelio) {
             importing = false
-            vm.resetImport()
+            vm.fuelio.reset()
         }
     }
 

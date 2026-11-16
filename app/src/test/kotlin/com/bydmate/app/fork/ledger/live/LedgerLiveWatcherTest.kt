@@ -48,14 +48,17 @@ class LedgerLiveWatcherTest {
         override suspend fun setDetectorState(json: String?) { setStateCalls.incrementAndGet(); super.setDetectorState(json) }
         override suspend fun detectorState(): String? { getStateCalls.incrementAndGet(); return super.detectorState() }
         override suspend fun detectThresholdPp(): Int {
-            if (failThreshold) throw IllegalStateException("db down")
+            check(!failThreshold) { "db down" }
             return super.detectThresholdPp()
         }
         override val refuels: RefuelDao get() {
             val real = super.refuels
             return object : RefuelDao by real {
                 override suspend fun insert(e: RefuelEntity): Long {
-                    if (failInsertOnce) { failInsertOnce = false; throw IllegalStateException("disk full") }
+                    if (failInsertOnce) {
+                        failInsertOnce = false
+                        error("disk full")
+                    }
                     return real.insert(e)
                 }
             }
@@ -77,7 +80,10 @@ class LedgerLiveWatcherTest {
     private fun watcher(r: LedgerRepository = repo) = LedgerLiveWatcher(r, data, kind, scope) { time.addAndGet(1000L) }.also { it.start() }
 
     private fun until(what: String, cond: suspend () -> Boolean) = runBlocking {
-        repeat(100) { if (cond()) return@runBlocking; delay(50) }
+        repeat(100) {
+            if (cond()) return@runBlocking
+            delay(50)
+        }
         throw AssertionError("timeout: $what")
     }
 

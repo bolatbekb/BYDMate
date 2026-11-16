@@ -7,7 +7,7 @@ import org.junit.Test
 
 class RefuelDetectorTest {
     private fun step(s: DetectorState?, pct: Int?, odo: Double? = 100.0, ts: Long = 1L, total: Double? = 10.0) =
-        RefuelDetector.step(s, pct, total, odo, ts, 10)
+        RefuelDetector.step(s, TankReading(pct, total, odo, ts), 10)
 
     private val base = DetectorState(30, 10.0, 100.0, 0L, null)
 
