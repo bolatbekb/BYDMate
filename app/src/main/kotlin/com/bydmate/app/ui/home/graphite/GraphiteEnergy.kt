@@ -93,12 +93,12 @@ private fun EnergyTotals(s: EnergySeries) {
     val p = LocalGr.current
     Row(Modifier.fillMaxWidth().padding(top = px(22), bottom = px(18))) {
         TotalColumn(
-            grDec(s.totalKwh), "кВт·ч", s.kwhPer100?.let { grDec(it) + " кВт·ч / 100 км" }, p.electric,
+            if (s.empty) "0" else grDec(s.totalKwh), "кВт·ч", s.kwhPer100?.let { grDec(it) + " кВт·ч / 100 км" }, p.electric,
             Modifier.weight(1.1f), first = true,
         )
         if (s.totalLitres != null) {
             TotalColumn(
-                grDec(s.totalLitres), "л", s.litresPer100?.let { grDec(it) + " л / 100 км" }, p.fuel,
+                if (s.empty) "0" else grDec(s.totalLitres), "л", s.litresPer100?.let { grDec(it) + " л / 100 км" }, p.fuel,
                 Modifier.weight(1f), first = false,
             )
         }
@@ -124,6 +124,7 @@ private fun TotalColumn(value: String, unit: String, sub: String?, dot: Color?, 
         Text(
             buildAnnotatedString {
                 append(value)
+                withStyle(SpanStyle(fontSize = fs(9f), letterSpacing = fs(0f))) { append(" ") }
                 withStyle(SpanStyle(fontSize = fs(22f), color = p.textSecondary, letterSpacing = fs(0f), fontWeight = FontWeight(400))) {
                     append(unit)
                 }
@@ -189,13 +190,21 @@ private fun buildChart(
         layout(text, size, weight, color).let { labels.add(Lbl(it, x * u, y * u, align)) }
 
     val axisFmt = { v: Double -> grDec(v, if (v < 10) 1 else 0) }
-    val gridYs = listOf(0.5f, 1f).map { base - upH * it }
-    listOf(0.5f, 1f).forEach { f ->
-        addLbl(axisFmt(maxK * f), 17f, 400, p.textTertiary, padL - 14, base - upH * f + 6, 1)
-    }
+    val showAxes = !s.empty
+    val hasFuel = litres != null
     val botY = base + dnH
-    addLbl(grDec(maxL), 17f, 400, p.textTertiary, padL - 14, botY + 6, 1)
-    addLbl("0", 17f, 400, p.textTertiary, padL - 14, base + 6, 1)
+    val gridYs = ArrayList<Float>()
+    if (showAxes) {
+        listOf(0.5f, 1f).forEach { f ->
+            gridYs.add(base - upH * f)
+            addLbl(axisFmt(maxK * f), 17f, 400, p.textTertiary, padL - 14, base - upH * f + 6, 1)
+        }
+        if (hasFuel) {
+            gridYs.add(botY)
+            addLbl(grDec(maxL), 17f, 400, p.textTertiary, padL - 14, botY + 6, 1)
+        }
+        addLbl("0", 17f, 400, p.textTertiary, padL - 14, base + 6, 1)
+    }
 
     val bars = ArrayList<Triple<Path, Color, Float>>()
     for (i in 0 until n) {
@@ -230,7 +239,7 @@ private fun buildChart(
 
     onDrawBehind {
         val x1 = padL * u; val x2 = (W - padR) * u
-        for (y in gridYs + botY) {
+        for (y in gridYs) {
             drawLine(grid, Offset(x1, y * u), Offset(x2, y * u), u, pathEffect = dash)
         }
         drawLine(baseC, Offset(x1, base * u), Offset(x2, base * u), u)
