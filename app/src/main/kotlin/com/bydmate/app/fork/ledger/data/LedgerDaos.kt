@@ -47,7 +47,8 @@ interface RefuelDao {
     @Query("SELECT * FROM refuels WHERE id = :id")
     suspend fun getById(id: Long): RefuelEntity?
 
-    @Query("SELECT * FROM refuels WHERE status = 'draft' ORDER BY date DESC, id DESC LIMIT 1")
+    /** Newest detected draft (same rule as LedgerEditorState.isOpenDraft). */
+    @Query("SELECT * FROM refuels WHERE status = 'draft' AND source = 'detected' ORDER BY date DESC, id DESC LIMIT 1")
     suspend fun openDraft(): RefuelEntity?
 
     /** Confirmed receipts only (drafts are not money spent yet); half-open range [from, to). */

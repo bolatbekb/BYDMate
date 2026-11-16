@@ -34,11 +34,12 @@ class LedgerDaoTest {
         importKey: String? = null,
         status: String = "confirmed",
         cost: Double? = 10.0,
+        source: String = "manual",
     ) = RefuelEntity(
         date = date, odometerKm = null, liters = 30.0, totalCost = cost, pricePerLiter = null,
         fullTank = true, carFuelTotalL = null, tankPercentBefore = null, tankPercentAfter = null,
         lat = null, lon = null, place = null, note = null,
-        source = "manual", status = status, importKey = importKey,
+        source = source, status = status, importKey = importKey,
     )
 
     @Test fun freshDatabaseHasTwelveBuiltinCategories() = runBlocking {
@@ -69,12 +70,14 @@ class LedgerDaoTest {
         assertEquals(2, dao.getAllAsc().size)
     }
 
-    @Test fun openDraftReturnsLatestDraft() = runBlocking {
+    @Test fun openDraftReturnsLatestDetectedDraft() = runBlocking {
         val dao = db.refuelDao()
         assertNull(dao.openDraft())
-        dao.insert(refuel(date = 1L, status = "draft"))
-        val latest = dao.insert(refuel(date = 2L, status = "draft"))
-        dao.insert(refuel(date = 3L, status = "confirmed"))
+        dao.insert(refuel(date = 1L, status = "draft", source = "detected"))
+        val latest = dao.insert(refuel(date = 2L, status = "draft", source = "detected"))
+        dao.insert(refuel(date = 3L, status = "confirmed", source = "detected"))
+        // only a detected draft is open: a draft of another source never is
+        dao.insert(refuel(date = 4L, status = "draft", source = "manual"))
         assertEquals(latest, dao.openDraft()?.id)
     }
 

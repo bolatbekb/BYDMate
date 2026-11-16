@@ -121,4 +121,13 @@ class LedgerEditorStateTest {
         assertNull(blank.base)
         assertEquals(now, blank.dateMs)
     }
+
+    @Test fun newRefuelSkipsAStaleDraft() {
+        val stale = draft().copy(date = now - 2 * 24 * 3_600_000L)
+        val s = LedgerEditorState.forNewRefuel(listOf(stale), now)
+        assertNull(s.base)
+        assertEquals(now, s.dateMs)
+        // a draft from this morning still routes
+        assertEquals(9L, LedgerEditorState.forNewRefuel(listOf(stale.copy(date = now - 5 * 3_600_000L)), now).base?.id)
+    }
 }

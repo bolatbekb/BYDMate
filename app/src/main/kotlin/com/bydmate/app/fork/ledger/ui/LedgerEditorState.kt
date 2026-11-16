@@ -96,11 +96,19 @@ data class LedgerEditorState(
     companion object {
         fun new(nowMs: Long) = LedgerEditorState(dateMs = nowMs)
 
-        /** "+ Refuel" while a detected draft is open confirms that draft; otherwise a blank entry. */
+        /**
+         * "+ Refuel" while a fresh detected draft is open confirms that draft; otherwise a blank entry.
+         * An older draft (often a false positive left alone) is confirmed only from its own row, so a
+         * receipt typed today never lands on its date and odometer.
+         */
         fun forNewRefuel(refuels: List<RefuelEntity>, nowMs: Long): LedgerEditorState =
-            refuels.filter { it.status == "draft" && it.source == "detected" }
-                .maxByOrNull { it.date }?.let(::from) ?: new(nowMs)
+            refuels.filter { isOpenDraft(it) && abs(nowMs - it.date) <= ADD_ROUTES_TO_DRAFT_MS }
+                .maxWithOrNull(compareBy<RefuelEntity> { it.date }.thenBy { it.id })?.let(::from) ?: new(nowMs)
 
+        /** Same rule as RefuelDao.openDraft. */
+        fun isOpenDraft(e: RefuelEntity): Boolean = e.status == "draft" && e.source == "detected"
+
+        private const val ADD_ROUTES_TO_DRAFT_MS = 24 * 3_600_000L
         private const val PAIR_KM = 1.0
 
         /** Price is left blank (derived) when it matches total / liters, so editing one field recomputes it. */
