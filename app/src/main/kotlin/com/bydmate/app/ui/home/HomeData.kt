@@ -63,6 +63,16 @@ data class HomeData(
     val gear: Int? = null,
     /** Power state: 0=OFF, 1=ON, 2=DRIVE; null when unknown. */
     val powerState: Int? = null,
+    /** Auto hold: 0=disabled, 1=standby, 2=active; null when unknown. */
+    val autoPark: Int? = null,
+    /** Climate set temperature, °C. */
+    val acTemp: Int? = null,
+    /** 0/1/2, 2 = charging now; null when unknown. */
+    val chargingStatus: Int? = null,
+    /** Traction battery power, kW (+ draw / − charge). */
+    val batteryPowerKw: Double? = null,
+    /** Battery capacity the car reports, kWh. */
+    val liveCapacityKwh: Double? = null,
 ) {
     companion object {
         private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
@@ -137,6 +147,11 @@ data class HomeData(
                 todayKm = todayKm,
                 gear = live?.gear,
                 powerState = live?.powerState,
+                autoPark = live?.autoPark,
+                acTemp = live?.acTemp,
+                chargingStatus = live?.chargingStatus,
+                batteryPowerKw = live?.batteryPowerW?.let { it / 1000.0 },
+                liveCapacityKwh = live?.batteryCapacityKwh,
             )
         }
     }

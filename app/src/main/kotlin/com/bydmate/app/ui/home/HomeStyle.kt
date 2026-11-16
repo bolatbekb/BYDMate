@@ -12,6 +12,7 @@ enum class HomeStyle(val id: String, val title: String) {
     ONKYO("onkyo", "Стойка Integra"),
     HYBRID("hybrid", "Стойка RS"),
     CDRIVE("cdrive", "Стойка C-Drive"),
+    GRAPHITE("graphite", "Graphite"),
 }
 
 object HomeStyleState {
