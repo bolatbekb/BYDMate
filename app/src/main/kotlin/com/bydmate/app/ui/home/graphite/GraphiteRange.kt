@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -82,10 +81,10 @@ fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Do
         RangeBar(total, data.evRangeKm, Modifier.padding(top = px(26)))
         if (total != null) RangeScaleRow(rangeScale(total).ticks, total, Modifier.padding(top = px(12)))
         Box(Modifier.padding(top = px(26)).fillMaxWidth().height(px(1)).background(p.divider))
-        Row(Modifier.fillMaxWidth().padding(top = px(24))) {
+        Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(top = px(24))) {
             RangeGauge(
                 Modifier.weight(1f), R.drawable.gr_ic_battery, R.drawable.gr_ic_bolt, "Батарея", data.socPercent,
-                p.electric, p.electric,
+                p.electric,
                 kmLine(data.evRangeKm, "электро"),
             )
             Box(Modifier.width(px(26)))
@@ -93,7 +92,7 @@ fun RangeCard(data: HomeData, regenKwh: Double?, tankL: Double?, capacityKwh: Do
             Box(Modifier.width(px(26)))
             RangeGauge(
                 Modifier.weight(1f), R.drawable.gr_ic_fuel, R.drawable.gr_ic_fuel, "Бензин", data.fuelPercent,
-                p.fuel, p.fuel,
+                p.fuel,
                 kmLine(data.fuelRangeKm, litresFromPercent(data.fuelPercent, tankL)?.let { "($it л)" }),
             )
         }
@@ -164,7 +163,6 @@ private fun RangeGauge(
     label: String,
     percent: Int?,
     accent: Color,
-    iconTint: Color,
     line: Pair<String, String?>,
 ) {
     val p = LocalGr.current
@@ -173,7 +171,7 @@ private fun RangeGauge(
         Spacer(Modifier.width(px(18)))
         Column(Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                GrIcon(labelIcon, 22f, iconTint)
+                GrIcon(labelIcon, 22f, accent)
                 Spacer(Modifier.width(px(12)))
                 Text(
                     label, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
@@ -185,14 +183,13 @@ private fun RangeGauge(
                 style = grStyle(58f, 300, -2f, p.textPrimary),
                 modifier = Modifier.padding(top = px(12)),
             )
-            Text(
+            FitText(
                 buildAnnotatedString {
                     withStyle(SpanStyle(color = p.textPrimary, fontWeight = FontWeight(500))) { append(line.first) }
                     line.second?.let { append(" $it") }
                 },
-                maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-                style = grStyle(22f, 400, color = p.textSecondary, tnum = false),
-                modifier = Modifier.padding(top = px(10)),
+                grStyle(22f, 400, color = p.textSecondary, tnum = false), 22f, 18f,
+                Modifier.padding(top = px(10)),
             )
         }
     }
@@ -230,23 +227,24 @@ private fun GaugeDial(percent: Int?, accent: Color, centerIcon: Int) {
                 } else null
                 val oval = android.graphics.RectF(tl.x, tl.y, tl.x + 2 * r, tl.y + 2 * r)
                 val tick = p.textPrimary.copy(alpha = 0.18f)
+                val arcStroke = Stroke(sw, cap = StrokeCap.Round)
+                val hubStroke = Stroke(k)
+                val hub = p.textPrimary.copy(alpha = 0.06f)
+                val tickLines = Array(21) { i ->
+                    val a = (135.0 + 270.0 * i / 20) * PI / 180
+                    val ca = cos(a).toFloat()
+                    val sa = sin(a).toFloat()
+                    Offset(c.x + 44f * k * ca, c.y + 44f * k * sa) to Offset(c.x + 49f * k * ca, c.y + 49f * k * sa)
+                }
                 onDrawBehind {
-                    drawArc(p.track, 135f, 270f, false, tl, arcSize, style = Stroke(sw, cap = StrokeCap.Round))
+                    drawArc(p.track, 135f, 270f, false, tl, arcSize, style = arcStroke)
                     if (frac > 0f) {
                         glow?.let { g -> drawIntoCanvas { it.nativeCanvas.drawArc(oval, 135f, 270f * frac, false, g) } }
-                        drawArc(accent, 135f, 270f * frac, false, tl, arcSize, style = Stroke(sw, cap = StrokeCap.Round))
+                        drawArc(accent, 135f, 270f * frac, false, tl, arcSize, style = arcStroke)
                     }
-                    for (i in 0..20) {
-                        val a = (135.0 + 270.0 * i / 20) * PI / 180
-                        drawLine(
-                            tick,
-                            Offset(c.x + (44f * k) * cos(a).toFloat(), c.y + (44f * k) * sin(a).toFloat()),
-                            Offset(c.x + (49f * k) * cos(a).toFloat(), c.y + (49f * k) * sin(a).toFloat()),
-                            strokeWidth = 1.2f * k,
-                        )
-                    }
+                    for ((from, to) in tickLines) drawLine(tick, from, to, strokeWidth = 1.2f * k)
                     drawCircle(p.inset, 30f * k, c)
-                    drawCircle(p.textPrimary.copy(alpha = 0.06f), 30f * k, c, style = Stroke(k))
+                    drawCircle(hub, 30f * k, c, style = hubStroke)
                 }
             },
         )
@@ -270,20 +268,24 @@ private fun RangeFooter(data: HomeData, regenKwh: Double?, capacityKwh: Double?,
     InsetBox(22f, modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min).padding(horizontal = px(20), vertical = px(18))) {
             cells.forEachIndexed { i, (icon, label, value) ->
-                Row(Modifier.weight(1f).fillMaxHeight(), verticalAlignment = Alignment.CenterVertically) {
+                // Columns are sized by their text length (like the mockup's auto columns), so the
+                // longest cell gets the most room; FitText shrinks before anything ellipsizes.
+                Row(
+                    Modifier.weight((label.length + value.length + 5).toFloat()).fillMaxHeight(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     if (i > 0) {
                         Box(Modifier.width(px(1)).fillMaxHeight().background(p.divider))
                         Spacer(Modifier.width(px(18)))
                     }
                     GrIcon(icon, 22f, p.textTertiary)
                     Spacer(Modifier.width(px(10)))
-                    Text(
+                    FitText(
                         buildAnnotatedString {
                             append(label)
                             withStyle(SpanStyle(color = p.textPrimary, fontWeight = FontWeight(500))) { append(value) }
                         },
-                        maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-                        style = grStyle(19f, 400, color = p.textTertiary, tnum = false),
+                        grStyle(19f, 400, color = p.textTertiary, tnum = false), 19f, 15f, Modifier.weight(1f),
                     )
                 }
             }
@@ -348,10 +350,10 @@ private fun TempColumn(
                 style = grStyle(23f, 450, 0.1f, p.textSecondary, tnum = false),
             )
         }
-        Row(Modifier.padding(top = px(22))) {
-            Text(
-                value ?: "—", maxLines = 1, softWrap = false,
-                style = grStyle(72f, 250, -3f, p.textPrimary),
+        Row(Modifier.padding(top = px(22)).fillMaxWidth()) {
+            FitText(
+                value ?: "—", grStyle(72f, 250, -3f, p.textPrimary), 72f, 52f,
+                if (value != null) Modifier.weight(1f, fill = false) else Modifier,
             )
             if (value != null) {
                 Text(

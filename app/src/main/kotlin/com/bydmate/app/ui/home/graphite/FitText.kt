@@ -5,6 +5,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextOverflow
@@ -25,7 +26,12 @@ internal fun fitFontSize(maxSize: Float, minSize: Float, step: Float = 2f, fits:
  * the width; only at [minSize] does it ellipsize.
  */
 @Composable
-fun FitText(text: String, style: TextStyle, maxSize: Float, minSize: Float, modifier: Modifier) {
+fun FitText(text: String, style: TextStyle, maxSize: Float, minSize: Float, modifier: Modifier) =
+    FitText(AnnotatedString(text), style, maxSize, minSize, modifier)
+
+/** [FitText] for styled text (bold spans); sizes in the spans must be left to [style]. */
+@Composable
+fun FitText(text: AnnotatedString, style: TextStyle, maxSize: Float, minSize: Float, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     BoxWithConstraints(modifier) {
         val maxW = constraints.maxWidth
