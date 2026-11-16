@@ -14,7 +14,7 @@ class GrTile(val width: Int, val height: Int, val argb: IntArray)
 /*
  * The card materials as small seamless tiles of light and dark specks at a few percent alpha,
  * repeated over the card. Pure and deterministic (fixed seeds): the same pixels on every start,
- * so screenshots compare. Built once each, lazily, by GraphiteTheme.
+ * so screenshots compare. Built once each, lazily, by GraphiteCard.
  */
 internal object GrTextures {
     const val SAND_FINE_MAX = 40
@@ -78,7 +78,7 @@ internal object GrTextures {
         }
         repeat(170) {
             val r = 0.6f + rnd.nextFloat() * 0.7f
-            specks.dot(rnd.nextFloat() * n, rnd.nextFloat() * n, r, CONCRETE_MAX.toFloat(), light = false, replace = true)
+            specks.pore(rnd.nextFloat() * n, rnd.nextFloat() * n, r, CONCRETE_MAX.toFloat())
         }
         return specks.tile()
     }
@@ -89,10 +89,10 @@ internal object GrTextures {
         val light = BooleanArray(w * h)
 
         /**
-         * A round grain centred at ([cx], [cy]) with soft 1 px edges, wrapped around the tile; it
-         * keeps a stronger speck under it unless [replace].
+         * A dark round pore centred at ([cx], [cy]) with soft 1 px edges, wrapped around the tile;
+         * it replaces whatever speck is under it.
          */
-        fun dot(cx: Float, cy: Float, r: Float, a: Float, light: Boolean, replace: Boolean = false) {
+        fun pore(cx: Float, cy: Float, r: Float, a: Float) {
             val reach = (r + 1f).toInt() + 1
             for (dy in -reach..reach) for (dx in -reach..reach) {
                 val x = floor(cx).toInt() + dx
@@ -101,10 +101,8 @@ internal object GrTextures {
                 val v = (a * (r + 0.5f - d).coerceIn(0f, 1f)).toInt()
                 if (v <= 0) continue
                 val i = Math.floorMod(y, h) * w + Math.floorMod(x, w)
-                if (replace || v > alpha[i]) {
-                    alpha[i] = v
-                    this.light[i] = light
-                }
+                alpha[i] = v
+                light[i] = false
             }
         }
 

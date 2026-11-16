@@ -48,17 +48,17 @@ private val Photos = intArrayOf(
     R.drawable.gr_photo_lights,
 )
 
-private const val FadeMs = 1400
-private const val ZoomMs = 200_000
-private const val ZoomFrom = 1.02f
-private const val ZoomTo = 1.08f
-private const val ZoomStepMs = 300L
+private const val FADE_MS = 1400
+private const val ZOOM_MS = 200_000
+private const val ZOOM_FROM = 1.02f
+private const val ZOOM_TO = 1.08f
+private const val ZOOM_STEP_MS = 300L
 
 /** Linear 1.02 -> 1.08 over 200 s and back, [elapsedMs] after the start. */
 internal fun galleryZoom(elapsedMs: Long): Float {
-    val phase = (elapsedMs % (2L * ZoomMs)).toFloat() / ZoomMs // 0..2
+    val phase = (elapsedMs % (2L * ZOOM_MS)).toFloat() / ZOOM_MS // 0..2
     val t = if (phase <= 1f) phase else 2f - phase
-    return ZoomFrom + (ZoomTo - ZoomFrom) * t
+    return ZOOM_FROM + (ZOOM_TO - ZOOM_FROM) * t
 }
 
 /** 4x5 colour matrix (android.graphics.ColorMatrix layout): saturation, brightness, contrast about 0.5, then tint. */
@@ -121,12 +121,12 @@ fun GalleryCard(modifier: Modifier) {
     // A step every 300 ms (0.00009 of scale, invisible) instead of a frame every vsync: the card
     // is redrawn ~3 times a second, not 60. Read only in graphicsLayer, so
     // no recomposition; the loop waits on the frame clock, which is paused while the screen is stopped.
-    var zoom by remember { mutableFloatStateOf(ZoomFrom) }
+    var zoom by remember { mutableFloatStateOf(ZOOM_FROM) }
     LaunchedEffect(Unit) {
         val start = withFrameMillis { it }
         while (true) {
             zoom = galleryZoom(withFrameMillis { it } - start)
-            delay(ZoomStepMs)
+            delay(ZOOM_STEP_MS)
         }
     }
 
@@ -134,7 +134,7 @@ fun GalleryCard(modifier: Modifier) {
     // sit above the photo; a texture under it would never show.
     Box(modifier.grCard(p, photo = true)) {
         Crossfade(
-            targetState = index, animationSpec = tween(FadeMs), label = "photo",
+            targetState = index, animationSpec = tween(FADE_MS), label = "photo",
             modifier = Modifier.fillMaxSize().graphicsLayer { scaleX = zoom; scaleY = zoom },
         ) { i ->
             Image(

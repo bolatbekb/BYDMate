@@ -9,17 +9,35 @@ import kotlin.math.sin
 /** A poll this far off the shown position is a seek (or a stall): jump to it. */
 internal const val SEEK_TOLERANCE_MS = 1_500L
 
+/** A polled position: [polledMs] as of [polledAtMs], running at [speed] while [playing]; [durationMs] when known. */
+internal data class PolledPosition(
+    val polledMs: Long,
+    val polledAtMs: Long,
+    val durationMs: Long?,
+    val playing: Boolean,
+    val speed: Float = 1f,
+)
+
 /**
- * The position to show at [nowMs]: [polledMs] as of [polledAtMs] (same clock), plus the time
- * since × [speed] while [playing]; at most [durationMs] when known, never below 0, never rewound
- * by a clock that went backwards.
+ * The position to show at [nowMs] (the clock of [poll]): the polled one plus the time since ×
+ * speed while playing; at most the duration when known, never below 0, never rewound by a clock
+ * that went backwards.
  */
-internal fun extrapolatePosition(
-    polledMs: Long, polledAtMs: Long, nowMs: Long, durationMs: Long?, playing: Boolean, speed: Float = 1f,
-): Long {
-    val run = if (playing) ((nowMs - polledAtMs).coerceAtLeast(0L) * speed.coerceAtLeast(0f)).toLong() else 0L
-    val pos = (polledMs + run).coerceAtLeast(0L)
+internal fun extrapolatePosition(poll: PolledPosition, nowMs: Long): Long {
+    val run = if (poll.playing) ((nowMs - poll.polledAtMs).coerceAtLeast(0L) * poll.speed.coerceAtLeast(0f)).toLong() else 0L
+    val pos = (poll.polledMs + run).coerceAtLeast(0L)
+    val durationMs = poll.durationMs
     return if (durationMs != null && durationMs > 0) pos.coerceAtMost(durationMs) else pos
+}
+
+/**
+ * Whether [poll] must replace [anchor], the poll the shown position runs from: when paused, when
+ * play state, track length or speed changed, or when it is a seek ([isSeek]) at [nowMs].
+ */
+internal fun reanchors(anchor: PolledPosition, poll: PolledPosition, nowMs: Long): Boolean = when {
+    !poll.playing || anchor.playing != poll.playing -> true
+    anchor.durationMs != poll.durationMs || anchor.speed != poll.speed -> true
+    else -> isSeek(poll.polledMs, extrapolatePosition(anchor, nowMs))
 }
 
 /** Whether a fresh poll should replace the running extrapolation. */

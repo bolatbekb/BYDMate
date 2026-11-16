@@ -101,7 +101,7 @@ class GraphiteViewModel @Inject constructor(
     @OptIn(ExperimentalCoroutinesApi::class)
     val today: StateFlow<TodayStats?> = date
         .flatMapLatest { window(ChartPeriod.DAY, ZonedDateTime.now(ZoneId.systemDefault())) }
-        .map { trips -> TodayStatsCalc.from(trips, trips.sumOf { it.distanceKm ?: 0.0 }.takeIf { it > 0.0 }) }
+        .map { trips -> TodayStatsCalc.from(trips) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

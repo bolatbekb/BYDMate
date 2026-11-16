@@ -5,7 +5,6 @@ import com.bydmate.app.ui.home.cdrive.ChartBuckets
 import com.bydmate.app.ui.home.cdrive.ChartPeriod
 import java.time.Instant
 import java.time.ZonedDateTime
-import java.time.temporal.ChronoUnit
 import kotlin.math.roundToInt
 
 /** [litres] == null means the car has no fuel data at all: the fuel line and share are hidden. */
@@ -29,49 +28,28 @@ private fun TripEntity.km(): Double? = distanceKm?.takeIf { it.isFinite() && it 
 
 /** Share of km driven on electricity, 0..100; null when no trip carries an engine-km figure. */
 private fun electricShare(trips: List<TripEntity>): Int? {
-    var dist = 0.0; var hev = 0.0; var any = false
-    for (t in trips) {
-        val km = t.km() ?: continue
-        val h = t.hevKm?.takeIf { it.isFinite() } ?: continue
-        dist += km; hev += h; any = true
-    }
-    if (!any) return null
+    // km and engine km of the trips that have both
+    val pairs = trips.mapNotNull { t -> t.km()?.let { km -> t.hevKm?.takeIf { it.isFinite() }?.let { km to it } } }
+    if (pairs.isEmpty()) return null
+    val dist = pairs.sumOf { it.first }
+    val hev = pairs.sumOf { it.second }
     return (100.0 * (1.0 - hev / dist)).roundToInt().coerceIn(0, 100)
 }
 
 object EnergyBuckets {
     /** [lang] names the week's days; the other periods label with numbers. */
     fun build(trips: List<TripEntity>, period: ChartPeriod, now: ZonedDateTime, lang: GrLang = GrLang.RU): EnergySeries {
-        val zone = now.zone
         val startDate = ChartBuckets.windowStart(period, now).toLocalDate()
         val n = when (period) {
             ChartPeriod.DAY -> 12
             ChartPeriod.WEEK -> 7
             ChartPeriod.MONTH -> 30
         }
-        val kwh = DoubleArray(n)
-        val litres = DoubleArray(n)
-        var kwhSum = 0.0; var kwhKm = 0.0
-        var litSum = 0.0; var litKm = 0.0; var anyFuel = false
-        var totalKm = 0.0
-        val used = ArrayList<TripEntity>()
+        val tally = EnergyTally(n)
         for (t in trips) {
             val km = t.km() ?: continue
-            val local = Instant.ofEpochMilli(t.startTs).atZone(zone)
-            val i = if (period == ChartPeriod.DAY) {
-                if (local.toLocalDate() != startDate) continue
-                local.hour / 2
-            } else {
-                val d = ChronoUnit.DAYS.between(startDate, local.toLocalDate())
-                if (d < 0 || d >= n) continue
-                d.toInt()
-            }
-            used += t
-            totalKm += km
-            t.kwhConsumed?.takeIf { it.isFinite() }?.let { kwh[i] += it; kwhSum += it; kwhKm += km }
-            t.fuelLiters?.takeIf { it.isFinite() }?.let {
-                litres[i] += it; litSum += it; litKm += km; anyFuel = true
-            }
+            val local = Instant.ofEpochMilli(t.startTs).atZone(now.zone)
+            ChartBuckets.bucketOf(local, period, startDate, n, hoursPerBucket = 2)?.let { tally.add(t, km, it) }
         }
         val labels = List(n) { i ->
             when (period) {
@@ -85,22 +63,46 @@ object EnergyBuckets {
             ChartPeriod.WEEK -> 6
             ChartPeriod.MONTH -> 29
         }
-        return EnergySeries(
-            labels = labels,
-            // A net-regen bucket plots as zero; the totals keep the raw sums.
-            kwh = kwh.map { it.coerceAtLeast(0.0) },
-            litres = if (anyFuel) litres.map { it.coerceAtLeast(0.0) } else null,
-            current = current,
-            totalKwh = kwhSum.coerceAtLeast(0.0),
-            totalLitres = if (anyFuel) litSum else null,
-            totalKm = totalKm,
-            kwhPer100 = if (kwhKm > 0.0) (kwhSum / kwhKm * 100.0).coerceAtLeast(0.0) else null,
-            litresPer100 = if (anyFuel && litKm > 0.0) litSum / litKm * 100.0 else null,
-            electricShare = if (anyFuel) electricShare(used) else null,
-            empty = used.isEmpty(),
-            period = period,
-        )
+        return tally.series(labels, current, period)
     }
+}
+
+/** The sums of one [EnergyBuckets.build]: per bucket and over the window. */
+private class EnergyTally(n: Int) {
+    private val kwh = DoubleArray(n)
+    private val litres = DoubleArray(n)
+    private var kwhSum = 0.0
+    private var kwhKm = 0.0
+    private var litSum = 0.0
+    private var litKm = 0.0
+    private var anyFuel = false
+    private var totalKm = 0.0
+    private val used = ArrayList<TripEntity>()
+
+    fun add(t: TripEntity, km: Double, i: Int) {
+        used += t
+        totalKm += km
+        t.kwhConsumed?.takeIf { it.isFinite() }?.let { kwh[i] += it; kwhSum += it; kwhKm += km }
+        t.fuelLiters?.takeIf { it.isFinite() }?.let {
+            litres[i] += it; litSum += it; litKm += km; anyFuel = true
+        }
+    }
+
+    fun series(labels: List<String>, current: Int, period: ChartPeriod) = EnergySeries(
+        labels = labels,
+        // A net-regen bucket plots as zero; the totals keep the raw sums.
+        kwh = kwh.map { it.coerceAtLeast(0.0) },
+        litres = if (anyFuel) litres.map { it.coerceAtLeast(0.0) } else null,
+        current = current,
+        totalKwh = kwhSum.coerceAtLeast(0.0),
+        totalLitres = if (anyFuel) litSum else null,
+        totalKm = totalKm,
+        kwhPer100 = if (kwhKm > 0.0) (kwhSum / kwhKm * 100.0).coerceAtLeast(0.0) else null,
+        litresPer100 = if (anyFuel && litKm > 0.0) litSum / litKm * 100.0 else null,
+        electricShare = if (anyFuel) electricShare(used) else null,
+        empty = used.isEmpty(),
+        period = period,
+    )
 }
 
 data class TodayStats(
@@ -112,7 +114,7 @@ data class TodayStats(
 )
 
 object TodayStatsCalc {
-    fun from(trips: List<TripEntity>, todayKm: Double?): TodayStats {
+    fun from(trips: List<TripEntity>): TodayStats {
         var ms = 0L; var kmDriven = 0.0
         var kwh = 0.0; var anyKwh = false
         var lit = 0.0; var anyFuel = false
@@ -126,7 +128,7 @@ object TodayStatsCalc {
             t.fuelLiters?.takeIf { it.isFinite() }?.let { lit += it; anyFuel = true }
         }
         val minutes = (ms / 60_000.0).roundToInt()
-        // Finished trips only: km and hours must cover the same trips. todayKm is kept for callers.
+        // Finished trips only: km and hours must cover the same trips.
         val avg = if (minutes > 0 && kmDriven > 0.0) (kmDriven / (ms / 3_600_000.0)).roundToInt() else null
         return TodayStats(
             minutes = minutes,

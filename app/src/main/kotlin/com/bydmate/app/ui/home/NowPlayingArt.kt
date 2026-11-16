@@ -40,12 +40,15 @@ internal fun pickArt(md: MediaMetadata): ArtPick {
     return ArtPick(bitmapKey, first?.first, first?.second, bitmaps, uris.map { (k, u) -> k to schemeOf(u) })
 }
 
+/** Besides letters and digits, what a URI scheme may contain (RFC 3986). */
+private const val SCHEME_MARKS = "+.-"
+
 /** The scheme of [uri], lower case; "?" when it has none. */
 internal fun schemeOf(uri: String): String {
     val i = uri.indexOf(':')
     if (i <= 0) return "?"
     val s = uri.substring(0, i).lowercase()
-    return if (s.first().isLetter() && s.all { it.isLetterOrDigit() || it == '+' || it == '.' || it == '-' }) s else "?"
+    return if (s.first().isLetter() && s.all { it.isLetterOrDigit() || it in SCHEME_MARKS }) s else "?"
 }
 
 internal enum class UriKind { LOCAL, HTTP, UNSUPPORTED }
@@ -107,6 +110,7 @@ private const val TIMEOUT_MS = 5_000
 private const val MAX_REDIRECTS = 3
 
 /** Loads [uri] and scales it to ≤ 264 px. Blocking: call it off the main thread. */
+@Suppress("TooGenericExceptionCaught") // why: the URI comes from any third-party player; whatever its provider throws must end as «uri failed», never a crash
 internal fun loadArtUri(ctx: Context, uri: String): ArtLoad = try {
     val bytes = when (uriKind(uri)) {
         UriKind.LOCAL -> ctx.contentResolver.openInputStream(Uri.parse(uri))?.use { readCapped(it) }
@@ -148,8 +152,7 @@ private fun fetch(uri: String): ByteArray? {
             c.instanceFollowRedirects = true
             val code = c.responseCode
             if (code in 300..399) {
-                val next = c.getHeaderField("Location") ?: throw java.io.IOException("redirect")
-                url = URL(url, next)
+                url = redirectTarget(c, url)
                 return@repeat
             }
             if (code != HttpURLConnection.HTTP_OK) throw HttpStatus(code)
@@ -161,6 +164,10 @@ private fun fetch(uri: String): ByteArray? {
     }
     throw java.io.IOException("redirects")
 }
+
+/** Where the 3xx answer of [c] points, resolved against [url]. */
+private fun redirectTarget(c: HttpURLConnection, url: URL): URL =
+    URL(url, c.getHeaderField("Location") ?: throw java.io.IOException("redirect"))
 
 /** A non-200 answer; the log shows only its code. */
 private class HttpStatus(code: Int) : java.io.IOException("http $code")

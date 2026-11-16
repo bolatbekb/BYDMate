@@ -145,13 +145,16 @@ private fun segments(path: Path, x0: Float, mask: Int, s: Float) {
     )
     for (k in 0 until 7) {
         if (mask and (1 shl k) == 0) continue
-        val g = segs[k]
-        hexSegment(path, x0, g[0], g[1], g[2], g[3], s)
+        hexSegment(path, x0, segs[k], s)
     }
 }
 
-/** A pointed bar from (ax, ay) to (bx, by) along x or y, shortened by [SEG_GAP] at both ends. */
-private fun hexSegment(path: Path, x0: Float, ax: Float, ay: Float, bx: Float, by: Float, s: Float) {
+/** A pointed bar from (ax, ay) to (bx, by) — [seg] — along x or y, shortened by [SEG_GAP] at both ends. */
+private fun hexSegment(path: Path, x0: Float, seg: FloatArray, s: Float) {
+    val ax = seg[0]
+    val ay = seg[1]
+    val bx = seg[2]
+    val by = seg[3]
     val h = SEG_T / 2
     val g = SEG_GAP
     val pts = if (ay == by) {

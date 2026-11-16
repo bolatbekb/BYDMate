@@ -17,10 +17,8 @@ class EnergyBucketsTest {
     private fun ts(h: Int, m: Int = 0, daysAgo: Long = 0) =
         now.toLocalDate().minusDays(daysAgo).atTime(h, m).atZone(zone).toInstant().toEpochMilli()
 
-    private fun trip(
-        start: Long, km: Double?, kwh: Double? = null, l: Double? = null,
-        hev: Double? = null, end: Long? = null,
-    ) = TripEntity(startTs = start, endTs = end, distanceKm = km, kwhConsumed = kwh, fuelLiters = l, hevKm = hev)
+    private fun trip(start: Long, km: Double?, kwh: Double? = null, l: Double? = null, hev: Double? = null) =
+        TripEntity(startTs = start, endTs = null, distanceKm = km, kwhConsumed = kwh, fuelLiters = l, hevKm = hev)
 
     @Test fun weekBucketsByStartDay() {
         val s = EnergyBuckets.build(
@@ -54,7 +52,7 @@ class EnergyBucketsTest {
 
     @Test fun tripCountsOnceInStartBucket() {
         val s = EnergyBuckets.build(
-            listOf(trip(ts(23, 50, 1), 10.0, 2.0, end = ts(0, 40))), ChartPeriod.WEEK, now)
+            listOf(trip(ts(23, 50, 1), 10.0, 2.0).copy(endTs = ts(0, 40))), ChartPeriod.WEEK, now)
         assertEquals(2.0, s.kwh[5], 1e-9)
         assertEquals(0.0, s.kwh[6], 1e-9)
         assertEquals(2.0, s.totalKwh, 1e-9)

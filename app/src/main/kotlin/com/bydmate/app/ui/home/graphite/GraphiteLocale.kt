@@ -35,7 +35,7 @@ fun rememberGrLang(): GrLang {
 }
 
 /** One language's words for the pure functions. Lists run Monday..Sunday and January..December. */
-internal class GrWords(
+internal data class GrWords(
     val decimal: Char,
     val group: Char,
     /** Day labels of the week chart. */
