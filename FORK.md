@@ -9,7 +9,8 @@
 
 | Функция | Где в приложении | Код |
 |---|---|---|
-| Цветовые скины: Classic, Cockpit, Graphite Pro, Volt, Telemetry, OLED | Настройки → Приложение → «Оформление» | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt` |
+| Цветовые скины: Classic, Cockpit, Graphite Pro, Volt, Telemetry, OLED, Graphite Soft, Graphite Dark, Graphite Edge | Настройки → Приложение → «Оформление» | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt` |
+| Главная Graphite: карточки «Общий запас хода», «Температуры», галерея «Leopard 5» (фото сменяются раз в 2–4 минуты), «Расход энергии» с графиком за день/неделю/месяц, «Медиа» (обложка, управление, громкость), «Пробег сегодня»; всё нарисовано кодом (Compose), без подложки. Цвета главной — по скину Graphite Soft / Dark / Edge, при любом другом скине — Graphite Dark. Шрифт Inter только на этой главной | Настройки → Приложение → «Главный экран» | `ui/home/graphite/*`, `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_photo_*.webp`, `res/font/gr_inter.ttf` |
 | Демо-режим: имитация поездки и 90 дней истории в отдельной базе | Настройки → Приложение → «Демо» | `demo/*`, `ui/settings/DemoModeBlock.kt` |
 | Ретро-главные «Стойка KX» и «Стойка Integra»: кассетная дека с реалистичной кассетой и управлением музыкой; вместо нижней панели вкладок — клавиши-переключатель входов с гравированными значками. Свёрстаны под 1280×604 dp (экран Leopard 5 без панелей машины) | Настройки → Приложение → «Главный экран» | `ui/home/*` (общая кассета — `RetroParts.kt`), `ui/settings/HomeStylePickerBlock.kt` |
 | Ретро-главная «Стойка RS»: подложка — макет владельца (`tools/rs/BYDMATE_Hybrid_2560x1208.png`, ровно 2× от 1280×604 dp), из которого инструмент `tools/rs/RsBackplate.java` стирает изменяемые места; поверх код рисует трек, крутящиеся ступицы катушек, данные машины, стрелки оборотов ДВС и мощности компрессора, метку громкости, подсветку режима и клавиш. Пробег за сегодня — по одометру от первого показания дня (`DayMileage`) | Настройки → Приложение → «Главный экран» | `ui/home/hybrid/*`, `ui/home/ReelCassettes.kt`, `ui/home/DayMileage.kt`, `res/drawable-nodpi/rs_*.webp` |
@@ -49,6 +50,24 @@ CWEBP_DIR=<папка с cwebp и dwebp> tools/webp.sh
 - **Места живых элементов** (координаты в пикселях макета, 1 px = 0,5 dp; углы шкал; порядок слоёв подсветки) — `tools/cdrive/LAYOUT.md`. Если инструмент что-то сдвинул, правь и его, и `LAYOUT.md`, и координаты в `ui/home/cdrive/*`.
 - **Шрифты подложки** — `tools/cdrive/fonts/`: Noticia Text Bold (надписи BYDMATE) и Open Sans SemiBold (русские подписи), оба SIL OFL 1.1, тексты лицензий рядом (`OFL-*.txt`). В APK шрифты не попадают, ими только нарисована подложка.
 - **Значок Fangchengbao** на табличке справа внизу — из `tools/cdrive/fangchengbao_logo.png`, источник https://upload.wikimedia.org/wikipedia/en/a/a5/Fangchengbao_logo.png. На Wikimedia он помечен как общественное достояние в США (простой логотип, не охраняется авторским правом); это товарный знак BYD. Инструмент убирает белый фон и делает его тёмным выпуклым металлом.
+
+### Картинки и шрифт Graphite
+Исходный дизайн главной Graphite лежит в `tools/graphite/design/`: `SPEC.md` (размеры и сетка), HTML-макеты `graphite.html`, `graphite_dark.html`, `graphite_edge.html` и палитры `CarPalettes.kt`. В APK они не попадают.
+
+- **Иконки** `res/drawable/gr_ic_*.xml` пересобирает `tools/graphite/icons.py` из SVG в `tools/graphite/icons/`:
+
+  ```bash
+  python3 tools/graphite/icons.py tools/graphite/icons app/src/main/res/drawable
+  ```
+
+- **Фото галереи** `res/drawable-nodpi/gr_photo_*.webp` берутся из `tools/graphite/img_src/` (`leopard_*.jpg`). `tools/graphite/photos.sh` обрезает их до 920×440 по точкам кадрирования из макета (`GraphitePhotos.java`) и сохраняет как lossy WebP не больше 60 КБ (качество 80, затем 72 и 65). Нужны cwebp из libwebp и Java 17. Скрипт пересоздаёт все `gr_photo_*`:
+
+  ```bash
+  CWEBP_DIR=<папка с cwebp> tools/graphite/photos.sh
+  ```
+
+- **Шрифт Inter** (`res/font/gr_inter.ttf`, Inter Variable) распространяется по SIL Open Font License 1.1, текст лицензии — `tools/graphite/fonts/OFL.txt`. Используется только на главной Graphite.
+- **Права на фото.** Фото леопарда взяты из референсов владельца. Для публичного релиза замени все пять `gr_photo_*` на пресс-фото с подтверждёнными правами (размер 920×440, тот же скрипт), иначе их выпускать нельзя.
 
 ### Оптимизации опроса машины
 - **Якорь зарядки.** `AutoserviceChargingDetector` записывает якорь стоянки в базу только при изменении SOC, сдвиге пробега на 0,2 км или раз в минуту, а не каждую секунду.
