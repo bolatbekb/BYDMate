@@ -13,6 +13,7 @@
 | Демо-режим: имитация поездки и 90 дней истории в отдельной базе | Настройки → Приложение → «Демо» | `demo/*`, `ui/settings/DemoModeBlock.kt` |
 | Ретро-главные «Стойка KX» и «Стойка Integra»: кассетная дека с реалистичной кассетой и управлением музыкой; вместо нижней панели вкладок — клавиши-переключатель входов с гравированными значками. Свёрстаны под 1280×604 dp (экран Leopard 5 без панелей машины) | Настройки → Приложение → «Главный экран» | `ui/home/*` (общая кассета — `RetroParts.kt`), `ui/settings/HomeStylePickerBlock.kt` |
 | Ретро-главная «Стойка RS»: подложка — макет владельца (`tools/rs/BYDMATE_Hybrid_2560x1208.png`, ровно 2× от 1280×604 dp), из которого инструмент `tools/rs/RsBackplate.java` стирает изменяемые места; поверх код рисует трек, крутящиеся ступицы катушек, данные машины, стрелки оборотов ДВС и мощности компрессора, метку громкости, подсветку режима и клавиш. Пробег за сегодня — по одометру от первого показания дня (`DayMileage`) | Настройки → Приложение → «Главный экран» | `ui/home/hybrid/*`, `ui/home/ReelCassettes.kt`, `ui/home/DayMileage.kt`, `res/drawable-nodpi/rs_*.webp` |
+| Ретро-главная «Стойка C-Drive»: подложка — макет владельца в стиле Technics (`tools/cdrive/cdrive_mockup_2560x1208.png`, ровно 2× от 1280×604 dp), из которого инструмент `tools/cdrive/CdBackplate.java` стирает изменяемые места, пишет BYDMATE и русские подписи, ставит значок Fangchengbao. Поверх код рисует: шапку (режим с листком для ECO, передача, READY), спокойно «дышащий» спектр во время музыки, деку (трек, время семисегментными цифрами, PLAYING/PAUSED, полосу прогресса, подсвеченную ▶), данные машины, метку громкости, график расхода за день/неделю/месяц по поездкам, стрелки оборотов ДВС и мощности компрессора, подсветку нажатой клавиши. Места живых элементов — `tools/cdrive/LAYOUT.md` | Настройки → Приложение → «Главный экран» | `ui/home/cdrive/*`, `res/drawable-nodpi/cd_*.webp`; общие детали со «Стойкой RS» — из `ui/home/hybrid/*` |
 | Без всплывающей просьбы о донате (донат остаётся в настройках) | — | `fork/ForkConfig.kt` (`DONATION_PROMPT`) |
 | Скриншот всего экрана вместе с панелями машины, через ADB `screencap`, с задержкой 5 с | Настройки → Приложение | `fork/ScreenshotTaker.kt`, `ui/settings/ScreenshotBlock.kt` |
 | Размер окна, панели машины и плотность (dpi) в шапке диагностического лога | Настройки → запись лога | `fork/DisplayInfo.kt` |
@@ -27,7 +28,27 @@
 Бэкап: `BackupManager` делает снимок этой базы до создания архива, кладёт её в zip как `fork_ledger.db`, а при восстановлении сначала проверяет её во временном файле и подменяет только после того, как восстановилась база автора. Всё это сделано через `LedgerBackup` (`fork/ledger/backup`); в `BackupManager.kt` добавлены 7 строк с меткой `fork`: импорт, снимок перед zip, запись после `manifest.json`, подготовка восстановления перед подменой, фиксация после неё. Слежение за уровнем бака (`LedgerLiveWatcher`) запускается в `BYDMateApp.onCreate`, кроме демо-режима.
 
 ### Картинки ретро-стоек
-Фото кассет и всё для «Стойки RS» лежат в `res/drawable-nodpi` в WebP без потерь. После того как `tools/rs/RsBackplate.java` заново собрал подложку (он пишет PNG), запусти `CWEBP_DIR=<папка с cwebp и dwebp из libwebp> tools/webp.sh`: он переводит PNG в WebP без потерь, сверяет каждый пиксель и удаляет PNG.
+Фото кассет и всё для «Стойки RS» и «Стойки C-Drive» лежат в `res/drawable-nodpi` в WebP без потерь. Общие помощники инструментов лежат в `tools/common/Backplate.java`, поэтому инструмент собирают вместе с ним через `javac`. «Стойка RS»:
+
+```bash
+javac -d /tmp/bp tools/common/Backplate.java tools/rs/RsBackplate.java
+java -cp /tmp/bp RsBackplate tools/rs/BYDMATE_Hybrid_2560x1208.png app/src/main/res/drawable-nodpi
+```
+
+После того как инструмент заново собрал картинки (он пишет PNG), запусти `CWEBP_DIR=<папка с cwebp и dwebp из libwebp> tools/webp.sh`: он переводит PNG в WebP без потерь, сверяет каждый пиксель и удаляет PNG. Скрипт берёт только лежащие PNG, так что WebP другой стойки не меняются.
+
+### Картинки C-Drive
+Подложку `cd_base` и накладки `cd_*` (подсвеченные клавиши, их значки и слова, лампы, листок ECO, горящая ▶) собирает `tools/cdrive/CdBackplate.java` из макета владельца:
+
+```bash
+javac -d /tmp/bp tools/common/Backplate.java tools/cdrive/CdBackplate.java
+java -cp /tmp/bp CdBackplate tools/cdrive/cdrive_mockup_2560x1208.png app/src/main/res/drawable-nodpi
+CWEBP_DIR=<папка с cwebp и dwebp> tools/webp.sh
+```
+
+- **Места живых элементов** (координаты в пикселях макета, 1 px = 0,5 dp; углы шкал; порядок слоёв подсветки) — `tools/cdrive/LAYOUT.md`. Если инструмент что-то сдвинул, правь и его, и `LAYOUT.md`, и координаты в `ui/home/cdrive/*`.
+- **Шрифты подложки** — `tools/cdrive/fonts/`: Noticia Text Bold (надписи BYDMATE) и Open Sans SemiBold (русские подписи), оба SIL OFL 1.1, тексты лицензий рядом (`OFL-*.txt`). В APK шрифты не попадают, ими только нарисована подложка.
+- **Значок Fangchengbao** на табличке справа внизу — из `tools/cdrive/fangchengbao_logo.png`, источник https://upload.wikimedia.org/wikipedia/en/a/a5/Fangchengbao_logo.png. На Wikimedia он помечен как общественное достояние в США (простой логотип, не охраняется авторским правом); это товарный знак BYD. Инструмент убирает белый фон и делает его тёмным выпуклым металлом.
 
 ### Оптимизации опроса машины
 - **Якорь зарядки.** `AutoserviceChargingDetector` записывает якорь стоянки в базу только при изменении SOC, сдвиге пробега на 0,2 км или раз в минуту, а не каждую секунду.
@@ -158,3 +179,4 @@ Remote `upstream` настроен только на чтение (push URL — 
 - tdk_d60.png (+ _hubL/_hubR): "TDK D 1985 euro market 01.jpg" by Retired electrician, [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/), source: https://commons.wikimedia.org/wiki/File:TDK_D_1985_euro_market_01.jpg — cropped, perspective-corrected by BYDMate fork (no handwriting on this shell; window-frame ribs retouched out of the hub discs).
 - tdk_d46.png (+ _hubL/_hubR): "TDK D46 audio cassette.jpg" by Hannes Grobe/AWI, [CC BY 3.0](https://creativecommons.org/licenses/by/3.0), source: https://commons.wikimedia.org/wiki/File:TDK_D46_audio_cassette.jpg — cropped, perspective-corrected by BYDMate fork (no handwriting on this shell; window-frame ribs retouched out of the hub discs).
 - res/font/caveat.ttf: шрифт Caveat © 2014 The Caveat Project Authors (https://github.com/googlefonts/caveat), [SIL Open Font License 1.1](https://openfontlicense.org), источник: https://github.com/google/fonts/tree/main/ofl/caveat; текст лицензии: `app/src/main/assets/licenses/caveat-OFL.txt`.
+- Подложка «Стойки C-Drive» (`res/drawable-nodpi/cd_base.webp`): надписи нарисованы шрифтами Noticia Text и Open Sans (SIL Open Font License 1.1, лицензии — `tools/cdrive/fonts/`); значок Fangchengbao — из https://upload.wikimedia.org/wikipedia/en/a/a5/Fangchengbao_logo.png (общественное достояние в США как простой логотип; товарный знак BYD).
