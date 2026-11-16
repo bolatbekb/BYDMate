@@ -56,7 +56,6 @@ import com.bydmate.app.ui.home.cdrive.ReadyLamp
 import com.bydmate.app.ui.home.cdrive.ReadyShown
 import com.bydmate.app.ui.home.hybrid.MockupFrame
 import com.bydmate.app.ui.home.hybrid.px
-import com.bydmate.app.ui.theme.SkinState
 import kotlinx.coroutines.delay
 import java.time.LocalDate
 
@@ -66,7 +65,8 @@ private const val ONLINE_TICK_MS = 5_000L
 
 /**
  * The Graphite home (tools/graphite/design): top bar, six cards on the SPEC §2 grid, the menu.
- * The palette follows the skin; live values redraw at most once a second (RetroHome samples).
+ * The palette and the card look follow GraphiteLookState (Settings); live values redraw at most
+ * once a second (RetroHome samples).
  */
 @Composable
 fun GraphiteHome(
@@ -87,7 +87,7 @@ fun GraphiteHome(
     val tankL by vm.tankCapacityL.collectAsStateWithLifecycle()
     val capacityKwh by vm.batteryCapacityKwh.collectAsStateWithLifecycle()
 
-    CompositionLocalProvider(LocalGr provides homePalette(SkinState.current.id)) {
+    CompositionLocalProvider(LocalGr provides GraphiteLookState.scheme.palette, LocalGrLook provides GraphiteLookState.look) {
         MockupFrame {
             val p = LocalGr.current
             Column(
