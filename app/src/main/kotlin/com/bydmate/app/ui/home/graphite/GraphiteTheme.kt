@@ -124,7 +124,7 @@ fun CardHeader(
         Spacer(Modifier.width(px(12)))
         Text(
             title, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-            style = titleStyle ?: grStyle(23f, 450, 0.1f, titleColor ?: p.textSecondary, tnum = false),
+            style = titleStyle ?: grStyle(24f, 450, 0.1f, titleColor ?: p.textSecondary, tnum = false),
             modifier = Modifier.weight(1f),
         )
         trailing()
@@ -159,7 +159,7 @@ fun Chip(text: String, modifier: Modifier = Modifier, note: String? = null, lead
 private fun chipText(text: String, note: String?, p: GrPalette): AnnotatedString = buildAnnotatedString {
     append(text)
     if (note != null) {
-        withStyle(SpanStyle(color = p.textTertiary, fontWeight = FontWeight(400), fontSize = fs(20f))) { append(" $note") }
+        withStyle(SpanStyle(color = p.textTertiary, fontWeight = FontWeight(400), fontSize = fs(19f))) { append(" $note") }
     }
 }
 

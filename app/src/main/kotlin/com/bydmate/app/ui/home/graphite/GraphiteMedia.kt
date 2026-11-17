@@ -191,7 +191,7 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
             Text(
                 stringResource(if (music.isPlaying) R.string.home_gr_now_playing else R.string.home_gr_paused).uppercase(Locale.getDefault()),
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-                style = grStyle(20f, 400, 2f, p.textTertiary, tnum = false),
+                style = grStyle(19f, 400, 2f, p.textTertiary, tnum = false),
                 modifier = Modifier.weight(1f, fill = false),
             )
             Spacer(Modifier.width(px(10)))
@@ -201,12 +201,12 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
         FitText(music.title.orEmpty(), grStyle(50f, 500, -1f, p.textPrimary, tnum = false), 50f, 36f, Modifier)
         if (!music.artist.isNullOrBlank()) {
             Spacer(Modifier.height(px(12)))
-            FitText(music.artist, grStyle(28f, 400, color = p.textSecondary, tnum = false), 28f, 22f, Modifier)
+            FitText(music.artist, grStyle(30f, 400, color = p.textSecondary, tnum = false), 30f, 22f, Modifier)
         }
         val sub = listOfNotNull(music.album?.takeIf { it.isNotBlank() }, music.year?.toString()).joinToString(" · ")
         if (sub.isNotEmpty()) {
             Spacer(Modifier.height(px(8)))
-            FitText(sub, grStyle(21f, 400, color = p.textTertiary, tnum = false), 21f, 17f, Modifier)
+            FitText(sub, grStyle(22f, 400, color = p.textTertiary, tnum = false), 22f, 17f, Modifier)
         }
     }
 }
@@ -327,7 +327,7 @@ private fun Progress(music: NowPlaying) {
         )
         Spacer(Modifier.height(px(12)))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            val st = grStyle(20f, 400, color = p.textTertiary)
+            val st = grStyle(19f, 400, color = p.textTertiary)
             Text(elapsed, maxLines = 1, softWrap = false, style = st)
             Text(grTrackTime(music.durationMs), maxLines = 1, softWrap = false, style = st)
         }

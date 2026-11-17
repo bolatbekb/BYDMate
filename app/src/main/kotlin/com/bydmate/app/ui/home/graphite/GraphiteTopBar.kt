@@ -45,7 +45,7 @@ internal fun TopBar(data: HomeData, online: Boolean, modifier: Modifier) {
     val today = rememberToday()
     Row(modifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(px(14))) {
         // No clock: the car's own status bar shows the time.
-        Text(grDate(today, lang), maxLines = 1, softWrap = false, style = grStyle(23f, 400, color = p.textSecondary), modifier = Modifier.padding(end = px(20)))
+        Text(grDate(today, lang), maxLines = 1, softWrap = false, style = grStyle(24f, 400, color = p.textSecondary), modifier = Modifier.padding(end = px(20)))
         engineChip(data.engineRpm, lang)?.let { text ->
             Chip(text, lead = { GrIcon(R.drawable.gr_ic_engine, 26f, p.fuel) })
         }

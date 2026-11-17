@@ -68,7 +68,7 @@ fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: D
             data.odometerKm?.let {
                 Text(
                     stringResource(R.string.home_gr_odometer, "${grInt(it, lang)} ${w.km}"), maxLines = 1, softWrap = false,
-                    style = grStyle(21f, 400, color = p.textTertiary, tnum = false),
+                    style = grStyle(22f, 400, color = p.textTertiary, tnum = false),
                 )
             }
         }
@@ -163,7 +163,7 @@ private fun RangeBar(total: Int?, ev: Int?, modifier: Modifier) {
 private fun RangeScaleRow(ticks: List<Int>, total: Int, modifier: Modifier) {
     val p = LocalGr.current
     val lang = LocalGrLang.current
-    val style = grStyle(17f, 400, color = p.textTertiary)
+    val style = grStyle(19f, 400, color = p.textTertiary)
     Layout(
         content = { ticks.forEach { Text(grInt(it, lang), maxLines = 1, softWrap = false, style = style) } },
         modifier = modifier.fillMaxWidth(),
@@ -210,7 +210,7 @@ private fun RangeGauge(
                 GrIcon(labelIcon, 22f, accent)
                 Spacer(Modifier.width(px(12)))
                 // Line boxes here and in the footer: Chinese lines must not grow the card (see FitText).
-                FitText(label, grStyle(21f, 450, 0.1f, p.textSecondary, tnum = false), 21f, 21f, Modifier, lineBox = true)
+                FitText(label, grStyle(22f, 450, 0.1f, p.textSecondary, tnum = false), 22f, 22f, Modifier, lineBox = true)
             }
             Text(
                 percentText(percent, p), maxLines = 1, softWrap = false,

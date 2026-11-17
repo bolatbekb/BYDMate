@@ -93,7 +93,7 @@ private fun TempColumn(
             Spacer(Modifier.width(px(12)))
             Text(
                 title, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-                style = grStyle(23f, 450, 0.1f, p.textSecondary, tnum = false),
+                style = grStyle(24f, 450, 0.1f, p.textSecondary, tnum = false),
             )
         }
         Row(Modifier.padding(top = px(22)).fillMaxWidth()) {
@@ -116,7 +116,7 @@ private fun TempColumn(
                 Spacer(Modifier.width(px(8)))
                 Text(
                     note.second, maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
-                    style = grStyle(20f, 400, color = p.textTertiary, tnum = false),
+                    style = grStyle(19f, 400, color = p.textTertiary, tnum = false),
                 )
             }
         }

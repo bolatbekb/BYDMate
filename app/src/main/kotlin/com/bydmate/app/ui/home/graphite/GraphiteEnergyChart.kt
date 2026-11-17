@@ -166,11 +166,11 @@ private class EnergyChartContent(
         listOf(0f, 0.5f, 1f).forEach { k ->
             val y = f.base - f.plotH * k
             if (k > 0f) gridYs.add(y)
-            text(if (k == 0f) "0" else axisNumber(f.maxK * k), style(17f, 400, p.textTertiary), lx, y + 6, 1)
-            if (f.hasFuel) text(if (k == 0f) "0" else axisNumber(f.maxL * k), style(17f, 400, p.textTertiary), rx, y + 6, 2)
+            text(if (k == 0f) "0" else axisNumber(f.maxK * k), style(19f, 400, p.textTertiary), lx, y + 6, 1)
+            if (f.hasFuel) text(if (k == 0f) "0" else axisNumber(f.maxL * k), style(19f, 400, p.textTertiary), rx, y + 6, 2)
         }
-        text(lang.words.kwh, style(16f, 400, p.textTertiary), lx, f.top - 12, 1)
-        if (f.hasFuel) text(lang.words.litre, style(16f, 400, p.textTertiary), rx, f.top - 12, 2)
+        text(lang.words.kwh, style(19f, 400, p.textTertiary), lx, f.top - 12, 1)
+        if (f.hasFuel) text(lang.words.litre, style(19f, 400, p.textTertiary), rx, f.top - 12, 2)
     }
 
     /** Bucket [i]: its bars, the values over them when it is the current one, and its label. */
@@ -186,8 +186,8 @@ private class EnergyChartContent(
         if (f.hasFuel && hl > 0f) bar(i, pair.fuelX, pair.fuelW, hl, p.fuel)
         if (i == s.current) {
             values(
-                if (k > 0) tm.measure(grDec(k, lang = lang), style(18f, 600, p.electric)) else null,
-                if (f.hasFuel && l > 0) tm.measure(grDec(l, lang = lang), style(18f, 600, p.fuel)) else null,
+                if (k > 0) tm.measure(grDec(k, lang = lang), style(19f, 600, p.electric)) else null,
+                if (f.hasFuel && l > 0) tm.measure(grDec(l, lang = lang), style(19f, 600, p.fuel)) else null,
                 pair, f.base - 2 - hk - 14, f.base - 2 - hl - 14,
             )
         }
@@ -211,7 +211,7 @@ private class EnergyChartContent(
         val n = frame.n
         if (n > 12 && i % 3 != 0 && i != n - 1) return
         val cur = i == s.current
-        text(s.labels.getOrElse(i) { "" }, style(18f, if (cur) 600 else 400, if (cur) p.textPrimary else p.textTertiary), cx, frame.h - 6, 0)
+        text(s.labels.getOrElse(i) { "" }, style(19f, if (cur) 600 else 400, if (cur) p.textPrimary else p.textTertiary), cx, frame.h - 6, 0)
     }
 
     /**

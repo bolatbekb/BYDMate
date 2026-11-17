@@ -98,7 +98,7 @@ private fun PeriodTabs(period: ChartPeriod, onPeriod: (ChartPeriod) -> Unit) {
                     val on = value == period
                     Text(
                         stringResource(labelRes), maxLines = 1, softWrap = false,
-                        style = grStyle(20f, 400, color = if (on) p.textPrimary else p.textSecondary, tnum = false),
+                        style = grStyle(22f, 400, color = if (on) p.textPrimary else p.textSecondary, tnum = false),
                         modifier = Modifier
                             .onSizeChanged { widths[i] = it.width }
                             .then(if (on) Modifier.grPill(p.tabActive, p.tabActiveEdge, p.edgeStyle, 17f) else Modifier)
