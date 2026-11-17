@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.bydmate.app.data.autoservice.AdbOnDeviceClient
 import com.bydmate.app.data.autoservice.Pm25
 import com.bydmate.app.data.autoservice.Pm25Reader
 import com.bydmate.app.data.local.dao.TripDao
@@ -45,6 +46,7 @@ class GraphiteViewModel @Inject constructor(
     settings: SettingsRepository,
     private val battery: BatteryStateRepository,
     private val pm25Reader: Pm25Reader,
+    private val adb: AdbOnDeviceClient,
     @ApplicationContext ctx: Context,
 ) : ViewModel() {
     private val prefs = ctx.getSharedPreferences("bydmate_home", Context.MODE_PRIVATE)
@@ -146,7 +148,8 @@ class GraphiteViewModel @Inject constructor(
     val pm25: StateFlow<Pm25?> = flow {
         while (true) {
             val read = if (demo) Result.success(DEMO_PM25) else runCatching { pm25Reader.read() }
-            read.onSuccess { GraphiteWarm.onPmRead(it) }
+            val linkUp = demo || runCatching { adb.isConnected() }.getOrDefault(false)
+            read.onSuccess { GraphiteWarm.onPmRead(it, linkUp) }
             emit(warmPm())
             delay(PM25_POLL_MS)
         }
@@ -157,8 +160,9 @@ class GraphiteViewModel @Inject constructor(
 
     private fun warmPm(): Pm25? = (GraphiteWarm.pm25 as? Pm25Memo.Reading)?.pm
 
-    val tankCapacityL: StateFlow<Double?> = flow { emit(runCatching { ledger.tankCapacityL() }.getOrNull()) }
-        .onEach { v -> v?.let { GraphiteWarm.tankL = it } }
+    val tankCapacityL: StateFlow<Double?> = flow { emit(runCatching { ledger.tankCapacityL() }) }
+        .onEach { r -> r.onSuccess { GraphiteWarm.tankL = it } } // a cleared capacity (null) is forgotten too
+        .map { it.getOrNull() }
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.tankL)
 

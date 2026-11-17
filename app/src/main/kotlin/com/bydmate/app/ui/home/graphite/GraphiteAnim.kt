@@ -38,6 +38,8 @@ internal fun animatedValue(target: Float?, label: String): State<Float> {
     LaunchedEffect(target) {
         if (target == null) {
             anim.snapTo(0f)
+        } else if (target == anim.value && !anim.isRunning) {
+            // already there (the first composition with a known value): no 500 ms tween to nowhere
         } else if (shouldAnimate(previous, target)) {
             anim.animateTo(target, ValueSpec)
         } else {
