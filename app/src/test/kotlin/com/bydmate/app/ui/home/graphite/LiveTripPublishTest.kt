@@ -15,8 +15,8 @@ class LiveTripPublishTest {
         assertTrue(LiveTrip.shouldPublish(false, 20_000L, 10_000L))
     }
 
-    @Test fun quietReadingSavesAfter60s() {
-        assertFalse(LiveTrip.shouldSave(false, 69_999L, 10_000L))
-        assertTrue(LiveTrip.shouldSave(false, 70_000L, 10_000L))
+    @Test fun quietReadingSavesAfter10s() {
+        assertFalse(LiveTrip.shouldSave(false, 19_999L, 10_000L))
+        assertTrue(LiveTrip.shouldSave(false, 20_000L, 10_000L))
     }
 }

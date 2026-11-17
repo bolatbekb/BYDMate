@@ -12,9 +12,9 @@ class TripCardCalcTest {
     private fun counters(odo: Double, kwh: Double? = null, fuel: Double? = null, hev: Double? = null) =
         TripCounters(odo, kwh, fuel, hev)
 
-    private fun open(startMs: Long, lastOnMs: Long, km: Double, kwh: Double? = null) =
+    private fun open(startMs: Long, lastSeenMs: Long, km: Double, kwh: Double? = null) =
         LiveSession(
-            startMs, startMs, lastOnMs,
+            startMs, startMs, lastSeenMs,
             counters(1000.0, kwh?.let { 100.0 }),
             counters(1000.0 + km, kwh?.let { 100.0 + it }),
         )

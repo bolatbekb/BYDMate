@@ -35,7 +35,7 @@ class LiveTripTrackerTest {
     fun deltasGrowWithCounters() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tr.onTick(anchorA, reading(17000.0, 2650.0, 300.0, 5000.0), t0)
-        for (i in 1..14) tr.onTick(anchorA, null, t0 + i * 10_000L)
+        for (i in 1..14) tr.onTick(anchorA, reading(17000.0, 2650.0, 300.0, 5000.0), t0 + i * 10_000L)
         tr.onTick(anchorA, reading(17012.4, 2652.1, 300.6, 5004.0), t0 + 150_000) // 12.4 km: under 300 km/h
         val e = tr.state.open!!.estimate()
         assertEquals(12.4, e.km, 1e-9)
@@ -87,6 +87,7 @@ class LiveTripTrackerTest {
         tick(tr, anchorA, 17002.0, null, t0 + 60_000)
         assertTrue(tick(tr, anchorB, 17002.0, null, t0 + 70_000))
         assertEquals(1, tr.state.finished.size)
+        assertEquals(2.0, tr.state.finished.last().km, 1e-9)
         assertEquals(anchorB, tr.state.open!!.anchorMs)
         assertEquals(0.0, tr.state.open!!.estimate().km, 1e-9)
     }
@@ -151,6 +152,28 @@ class LiveTripTrackerTest {
         tick(tr, anchorA, 18002.0, null, t0 + 100_000)
         assertEquals(3.0, tr.state.open!!.estimate().km, 1e-9)
         assertTrue(tr.state.finished.isEmpty())
+    }
+
+    @Test
+    fun outageWithSameReadingThenFreshReadingIsNotAJump() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tick(tr, anchorA, 17000.0, null, t0)
+        for (i in 1..9) tick(tr, anchorA, 17000.0, null, t0 + i * 10_000L)
+        tick(tr, anchorA, 17003.0, null, t0 + 100_000)
+        assertEquals(3.0, tr.state.open!!.estimate().km, 1e-9)
+        assertTrue(tr.state.finished.isEmpty())
+    }
+
+    @Test
+    fun adoptedTripKeepsCountingThenNewAnchorFinishes() {
+        val tr = LiveTripTracker(restored(t0), t0 + 20_000)
+        tick(tr, anchorB, 17005.0, null, t0 + 30_000)
+        tick(tr, anchorB, 17008.0, null, t0 + 60_000)
+        assertEquals(8.0, tr.state.open!!.estimate().km, 1e-9)
+        assertTrue(tick(tr, 1300L, 17008.0, null, t0 + 70_000))
+        assertEquals(8.0, tr.state.finished.last().km, 1e-9)
+        assertEquals(1300L, tr.state.open!!.anchorMs)
+        assertEquals(0.0, tr.state.open!!.estimate().km, 1e-9)
     }
 
     @Test
@@ -220,8 +243,8 @@ class LiveTripTrackerTest {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tick(tr, anchorA, 17000.0, null, t0)
         // 20 km in 100 s would be a jump; 20 km in 4.5 min = 267 km/h is within the 300 km/h limit
-        tr.onTick(anchorA, null, t0 + 100_000)
-        tr.onTick(anchorA, null, t0 + 200_000)
+        tick(tr, anchorA, 17000.0, null, t0 + 100_000)
+        tick(tr, anchorA, 17000.0, null, t0 + 200_000)
         tick(tr, anchorA, 17020.0, null, t0 + 270_000)
         assertEquals(20.0, tr.state.open!!.estimate().km, 1e-9)
     }

@@ -24,7 +24,7 @@ object LiveTrip {
     private const val KEY_STATE = "state"
     private const val TICK_MS = 10_000L
     private const val PUBLISH_EVERY_MS = 10_000L
-    private const val SAVE_EVERY_MS = 60_000L
+    private const val SAVE_EVERY_MS = 10_000L
 
     private val _state = MutableStateFlow(LiveTripState())
     val state: StateFlow<LiveTripState> = _state.asStateFlow()
@@ -50,16 +50,16 @@ object LiveTrip {
             val ticks = flow { while (true) { emit(Unit); delay(TICK_MS) } }
             combine(TrackingService.lastData, TrackingService.sessionStartedAt, ticks) { data, anchor, _ -> anchor to data }
                 .collect { (anchor, data) ->
-                val now = System.currentTimeMillis()
-                val transition = tracker.onTick(anchor, data, now)
-                if (shouldPublish(transition, now, lastPublishMs)) {
-                    lastPublishMs = now
-                    _state.value = tracker.state
-                }
-                if (shouldSave(transition, now, lastSaveMs)) {
-                    lastSaveMs = now
-                    save()
-                }
+                    val now = System.currentTimeMillis()
+                    val transition = tracker.onTick(anchor, data, now)
+                    if (shouldPublish(transition, now, lastPublishMs)) {
+                        lastPublishMs = now
+                        _state.value = tracker.state
+                    }
+                    if (shouldSave(transition, now, lastSaveMs)) {
+                        lastSaveMs = now
+                        save()
+                    }
             }
         }
     }

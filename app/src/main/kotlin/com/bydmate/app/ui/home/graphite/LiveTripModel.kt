@@ -17,11 +17,11 @@ data class TripCounters(val odometerKm: Double?, val elecKwh: Double?, val fuelL
     fun advanceBy(o: TripCounters) = o.fillFrom(this)
 
     /**
-     * True when the odometer went backwards from [base] (the session so far). Only the odometer
-     * does: the BMS kWh counter is net and drops on regen, so it never splits a session.
+     * True when the odometer went backwards from [latest] (the session so far); the tracker then
+     * rebases the odometer. Only the odometer does: the BMS kWh counter is net and drops on regen.
      */
-    fun isBelow(base: TripCounters): Boolean =
-        odometerKm != null && base.odometerKm != null && odometerKm < base.odometerKm
+    fun isBelow(latest: TripCounters): Boolean =
+        odometerKm != null && latest.odometerKm != null && odometerKm < latest.odometerKm
 
     companion object {
         private const val MIN_ODOMETER_KM = 1.0
@@ -83,7 +83,10 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     /** True once this instance has seen a non-null anchor: a later null or change is a real ignition change. */
     private var seenAnchor = false
 
-    /** Time of the last reading that carried an odometer; the jump limit measures from it. */
+    /**
+     * Time the odometer last changed; the jump limit measures from it. The ticker re-feeds the same
+     * reading during a DiPars outage, which must not move it.
+     */
     private var lastOdoMs: Long = initial.open?.lastSeenMs ?: nowMs
 
     init {
@@ -146,7 +149,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
 
     private fun LiveSession.advance(c: TripCounters, nowMs: Long): LiveSession {
         val rebased = rebaseOdometer(this, c, nowMs)
-        if (c.odometerKm != null) lastOdoMs = nowMs
+        if (c.odometerKm != null && c.odometerKm != latest.odometerKm) lastOdoMs = nowMs
         return copy(lastSeenMs = nowMs, base = rebased.fillFrom(c), latest = latest.advanceBy(c))
     }
 
