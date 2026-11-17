@@ -78,11 +78,18 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     var state: LiveTripState = initial
         private set
 
+    /** Constructor time of a resume: the outage itself must not look like a gap to the first reading. */
+    private var resumedAtMs: Long? = null
+
+    /** Time of the last reading that carried an odometer; the jump limit measures from it. */
+    private var lastOdoMs: Long = nowMs
+
     init {
         val open = initial.open
         if (open != null && nowMs - open.lastReadingMs <= GAP_MS) {
             edge.seedOn(nowMs)
-            state = state.copy(open = open.copy(lastReadingMs = nowMs))
+            resumedAtMs = nowMs
+            lastOdoMs = open.lastReadingMs
         } else {
             finishOpen()
         }
@@ -93,7 +100,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     fun onReading(data: DiParsData, nowMs: Long): Boolean {
         var changed = false
         val stale = state.open
-        if (stale != null && nowMs - stale.lastReadingMs > GAP_MS) {
+        if (stale != null && isStale(stale, nowMs)) {
             finishOpen()
             changed = true
         }
@@ -117,8 +124,12 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
         return changed
     }
 
+    private fun isStale(s: LiveSession, nowMs: Long) =
+        nowMs - maxOf(s.lastReadingMs, resumedAtMs ?: 0L) > GAP_MS
+
     private fun open(counters: TripCounters, nowMs: Long): Boolean {
         state = state.copy(open = LiveSession(nowMs, nowMs, nowMs, counters, counters))
+        lastOdoMs = nowMs
         return true
     }
 
@@ -126,11 +137,16 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     private fun isJump(s: LiveSession, c: TripCounters, nowMs: Long): Boolean {
         val now = c.odometerKm ?: return false
         val was = s.latest.odometerKm ?: return false
-        val hours = (nowMs - s.lastReadingMs) / MS_PER_HOUR
+        val hours = (nowMs - lastOdoMs) / MS_PER_HOUR
         return now - was > maxOf(MIN_JUMP_KM, hours * MAX_SPEED_KMH)
     }
 
-    private fun LiveSession.advance(c: TripCounters, nowMs: Long) = copy(
+    private fun LiveSession.advance(c: TripCounters, nowMs: Long): LiveSession {
+        if (c.odometerKm != null) lastOdoMs = nowMs
+        return advanced(c, nowMs)
+    }
+
+    private fun LiveSession.advanced(c: TripCounters, nowMs: Long) = copy(
         lastOnMs = if (edge.lastOnMs == nowMs) nowMs else lastOnMs, lastReadingMs = nowMs, base = base.fillFrom(c), latest = latest.advanceBy(c),
     )
 

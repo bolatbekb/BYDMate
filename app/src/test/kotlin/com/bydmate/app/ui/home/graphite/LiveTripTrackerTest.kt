@@ -119,7 +119,7 @@ class LiveTripTrackerTest {
     fun resumeWithinGapContinues() {
         val s = resumable(t0 - 240_000)
         val tr = LiveTripTracker(s, t0)
-        assertEquals(s.open!!.copy(lastReadingMs = t0), tr.state.open)
+        assertEquals(s.open, tr.state.open)
         tr.onReading(reading(17012.0, power = 0), t0 + 10_000)
         assertNotNull(tr.state.open)
     }
@@ -225,15 +225,17 @@ class LiveTripTrackerTest {
     fun finishedListCapsAt8() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         var now = t0
-        repeat(10) { i ->
+        repeat(9) { i ->
+            val km = 1.1 + i / 10.0
             tr.onReading(reading(17000.0 + i * 5), now)
             now += 10_000
-            tr.onReading(reading(17001.5 + i * 5), now)
-            repeat(20) { now += 10_000; tr.onReading(reading(17001.5 + i * 5, power = 0), now) }
+            tr.onReading(reading(17000.0 + i * 5 + km), now)
+            repeat(20) { now += 10_000; tr.onReading(reading(17000.0 + i * 5 + km, power = 0), now) }
             now += 10_000
         }
         assertEquals(8, tr.state.finished.size)
-        assertEquals(1.5, tr.state.finished.last().km, 1e-9)
+        val kms = tr.state.finished.map { Math.round(it.km * 10) / 10.0 }
+        assertEquals(listOf(1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9), kms)
     }
 
     @Test
@@ -268,5 +270,48 @@ class LiveTripTrackerTest {
         assertNull(c.elecKwh)
         assertNull(c.fuelL)
         assertNull(c.hevKm)
+    }
+
+    @Test
+    fun resumeAfterRestartWhileDrivingContinues() {
+        val s = resumable(t0).let {
+            it.copy(open = it.open!!.copy(latest = TripCounters(17025.0, null, null, null), base = TripCounters(17000.0, null, null, null)))
+        }
+        val tr = LiveTripTracker(s, t0 + 100_000)
+        tr.onReading(reading(17028.0), t0 + 110_000)
+        assertEquals(s.open!!.startMs, tr.state.open!!.startMs)
+        assertEquals(28.0, tr.state.open!!.estimate().km, 1e-9)
+    }
+
+    @Test
+    fun crashLoopDoesNotKeepSessionOpen() {
+        val s = resumable(t0)
+        val a = LiveTripTracker(s, t0 + 100_000)
+        assertEquals(s, a.state)
+        val b = LiveTripTracker(a.state, t0 + 250_000)
+        assertNotNull(b.state.open)
+        val c = LiveTripTracker(b.state, t0 + 400_000)
+        assertNull(c.state.open)
+    }
+
+    @Test
+    fun missingOdometerDoesNotLookLikeJump() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.onReading(reading(17000.0), t0)
+        for (i in 1..9) tr.onReading(reading(null), t0 + i * 10_000L)
+        tr.onReading(reading(17005.0), t0 + 90_000)
+        assertTrue(tr.state.finished.isEmpty())
+        assertEquals(t0, tr.state.open!!.startMs)
+        assertEquals(5.0, tr.state.open!!.estimate().km, 1e-9)
+    }
+
+    @Test
+    fun codecRoundTripSeveralFinished() {
+        val s = LiveTripState(
+            finished = listOf(
+                TripEstimate(1L, 2L, 3.5, 0.4, null, 1.0), TripEstimate(5L, 6L, 12.4, null, 0.6, null),
+            ),
+        )
+        assertEquals(s, LiveTripCodec.decode(LiveTripCodec.encode(s)))
     }
 }
