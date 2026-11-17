@@ -75,13 +75,6 @@ class GraphiteViewModel @Inject constructor(
         }
     }.distinctUntilChanged()
 
-    private val minute = flow {
-        while (true) {
-            emit(Unit)
-            delay(60_000)
-        }
-    }
-
     /** Trips of [p]'s window. getByDateRange is inclusive on both ends, hence end - 1. */
     private fun window(p: ChartPeriod, now: ZonedDateTime) = tripDao.getByDateRange(
         ChartBuckets.windowStart(p, now).toInstant().toEpochMilli(),
@@ -116,8 +109,8 @@ class GraphiteViewModel @Inject constructor(
             val zone = ZoneId.systemDefault()
             val now = ZonedDateTime.now(zone)
             val dayStart = now.toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
-            combine(window(ChartPeriod.DAY, now), LiveTrip.state, minute) { trips, live, _ ->
-                TripCardCalc.from(live, trips.map { it.toRow() }, System.currentTimeMillis(), dayStart)
+            combine(window(ChartPeriod.DAY, now), LiveTrip.state) { trips, live ->
+                TripCardCalc.from(live, trips.map { it.toRow() }, dayStart)
             }
         }
         .flowOn(Dispatchers.Default)

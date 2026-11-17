@@ -42,8 +42,7 @@ data class TripCardModel(
 
 object TripCardCalc {
     /** [today] — recorded trips of today (rows); [dayStartMs] — local midnight. */
-    @Suppress("UnusedParameter") // the duration must not grow once readings stop arriving
-    fun from(live: LiveTripState, today: List<TripRow>, nowMs: Long, dayStartMs: Long): TripCardModel {
+    fun from(live: LiveTripState, today: List<TripRow>, dayStartMs: Long): TripCardModel {
         val open = live.open?.estimate()
         if (open != null && open.km >= LiveTripTracker.MOVED_KM) {
             return model(TripCardMode.CURRENT, open.toRow())
@@ -63,7 +62,7 @@ object TripCardCalc {
         val share = if (r.hevKm != null && km != null && km > 0.0) {
             (100.0 * (1.0 - r.hevKm / km)).roundToInt().coerceIn(0, 100)
         } else null
-        return TripCardModel(mode, km, minutes, avg, share, r.kwh, r.litres)
+        return TripCardModel(mode, km, minutes, avg, share, r.kwh?.coerceAtLeast(0.0), r.litres?.coerceAtLeast(0.0))
     }
 }
 
