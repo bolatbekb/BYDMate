@@ -39,7 +39,7 @@ class TripMatchTest {
     @Test fun pendingSkipsUnmovedAndConfirmed() {
         val recorded = listOf(rec(t(8, 0), t(8, 40)))
         val open = LiveSession(
-            startMs = t(10, 0), lastOnMs = t(10, 5), lastReadingMs = t(10, 5),
+            anchorMs = t(10, 0), startMs = t(10, 0), lastSeenMs = t(10, 5),
             base = TripCounters(100.0, null, null, null), latest = TripCounters(100.05, null, null, null),
         )
         val fin = est(t(8, 5), t(8, 39))

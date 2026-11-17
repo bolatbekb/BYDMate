@@ -14,7 +14,7 @@ class TripCardCalcTest {
 
     private fun open(startMs: Long, lastOnMs: Long, km: Double, kwh: Double? = null) =
         LiveSession(
-            startMs, lastOnMs, lastOnMs,
+            startMs, startMs, lastOnMs,
             counters(1000.0, kwh?.let { 100.0 }),
             counters(1000.0 + km, kwh?.let { 100.0 + it }),
         )
@@ -76,7 +76,7 @@ class TripCardCalcTest {
 
     @Test fun negativeEnergyShowsZero() {
         val s = LiveSession(
-            t0800, t0800 + 10 * min, t0800 + 10 * min,
+            t0800, t0800, t0800 + 10 * min,
             counters(1000.0, 100.0, 50.0), counters(1005.0, 99.7, 49.9),
         )
         val m = TripCardCalc.from(LiveTripState(s), emptyList(), day)

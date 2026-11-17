@@ -6,20 +6,23 @@ import com.bydmate.app.service.TrackingService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 
 /**
- * The live trip for the whole process: fed by the tracking service's readings whether or not a
- * home screen is visible, saved to prefs so a restart keeps an open session.
+ * The live trip for the whole process: fed by the tracking service's readings and its ignition session whether or
+ * not a home screen is visible, saved to prefs so a restart keeps an open session.
  */
 object LiveTrip {
     private const val PREFS = "bydmate_live_trip"
     private const val PREFS_DEMO = "bydmate_live_trip_demo"
     private const val KEY_STATE = "state"
+    private const val TICK_MS = 10_000L
     private const val PUBLISH_EVERY_MS = 10_000L
     private const val SAVE_EVERY_MS = 60_000L
 
@@ -44,9 +47,11 @@ object LiveTrip {
         var lastPublishMs = System.currentTimeMillis()
         var lastSaveMs = lastPublishMs
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
-            TrackingService.lastData.filterNotNull().collect { data ->
+            val ticks = flow { while (true) { emit(Unit); delay(TICK_MS) } }
+            combine(TrackingService.lastData, TrackingService.sessionStartedAt, ticks) { data, anchor, _ -> anchor to data }
+                .collect { (anchor, data) ->
                 val now = System.currentTimeMillis()
-                val transition = tracker.onReading(data, now)
+                val transition = tracker.onTick(anchor, data, now)
                 if (shouldPublish(transition, now, lastPublishMs)) {
                     lastPublishMs = now
                     _state.value = tracker.state

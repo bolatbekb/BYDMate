@@ -3,6 +3,7 @@ package com.bydmate.app.ui.home.graphite
 import com.bydmate.app.data.remote.DiParsData
 import com.bydmate.app.data.remote.diParsData
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -11,24 +12,31 @@ import org.junit.Test
 class LiveTripTrackerTest {
 
     private fun reading(
-        odo: Double?, elec: Double? = null, fuel: Double? = null, hev: Double? = null, power: Int = 2,
-    ): DiParsData = diParsData(mileage = odo, totalElecConsumption = elec, powerState = power)
+        odo: Double?, elec: Double? = null, fuel: Double? = null, hev: Double? = null,
+    ): DiParsData = diParsData(mileage = odo, totalElecConsumption = elec)
         .copy(fuelTotalL = fuel, mileageHevKm = hev?.toInt())
 
     private val t0 = 1_000_000L
+    private val anchorA = 500L
+    private val anchorB = 900L
+
+    private fun tick(tr: LiveTripTracker, anchor: Long?, odo: Double?, elec: Double? = null, now: Long) =
+        tr.onTick(anchor, reading(odo, elec), now)
 
     @Test
-    fun firstOnReadingOpensSession() {
+    fun firstTickWithAnchorOpensSession() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        assertTrue(tr.onReading(reading(17000.0, 2650.0), t0))
+        assertTrue(tick(tr, anchorA, 17000.0, 2650.0, t0))
         assertEquals(t0, tr.state.open!!.startMs)
+        assertEquals(anchorA, tr.state.open!!.anchorMs)
     }
 
     @Test
     fun deltasGrowWithCounters() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0, 2650.0, 300.0, 5000.0), t0)
-        tr.onReading(reading(17012.4, 2652.1, 300.6, 5004.0), t0 + 150_000) // 12.4 km: under 300 km/h
+        tr.onTick(anchorA, reading(17000.0, 2650.0, 300.0, 5000.0), t0)
+        for (i in 1..14) tr.onTick(anchorA, null, t0 + i * 10_000L)
+        tr.onTick(anchorA, reading(17012.4, 2652.1, 300.6, 5004.0), t0 + 150_000) // 12.4 km: under 300 km/h
         val e = tr.state.open!!.estimate()
         assertEquals(12.4, e.km, 1e-9)
         assertEquals(2.1, e.kwh!!, 1e-9)
@@ -39,97 +47,130 @@ class LiveTripTrackerTest {
     @Test
     fun lateCounterTakesFirstNonNullAsBase() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0, null), t0)
-        tr.onReading(reading(17001.0, 2650.0), t0 + 10_000)
-        tr.onReading(reading(17002.0, 2651.0), t0 + 20_000)
+        tick(tr, anchorA, 17000.0, null, t0)
+        tick(tr, anchorA, 17001.0, 2650.0, t0 + 10_000)
+        tick(tr, anchorA, 17002.0, 2651.0, t0 + 20_000)
         val e = tr.state.open!!.estimate()
         assertEquals(1.0, e.kwh!!, 1e-9)
         assertNull(e.litres)
     }
 
     @Test
-    fun offEdgeFinishesSession() {
+    fun standstillWithSameReadingsKeepsTrip() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0, 2650.0), t0)
-        tr.onReading(reading(17001.9, 2652.0), t0 + 10_000)
-        var changed = false
-        var lastBeforeClose = 0L
-        for (i in 2..20) {
-            val now = t0 + i * 10_000L
-            changed = tr.onReading(reading(17001.9, 2652.0, power = 0), now) || changed
-            if (tr.state.open != null) lastBeforeClose = now
-        }
-        assertTrue(changed)
-        assertNull(tr.state.open)
-        // The odometer last "grew" against the t0 reading, which leaves the 60 s window at t0 + 60 s.
-        assertEquals(t0 + 60_000, tr.state.finished.last().endMs)
-        assertTrue(lastBeforeClose > t0 + 60_000)
-        assertEquals(1.9, tr.state.finished.last().km, 1e-9)
+        tick(tr, anchorA, 17000.0, null, t0)
+        var now = t0
+        repeat(30) { now += 10_000; tick(tr, anchorA, 17000.0 + (it + 1) / 3.0, null, now) }
+        tick(tr, anchorA, 17010.0, null, now)
+        repeat(180) { now += 10_000; tick(tr, anchorA, 17010.0, null, now) }
+        val open = tr.state.open!!
+        assertEquals(t0, open.startMs)
+        assertEquals(10.0, open.estimate().km, 1e-9)
+        assertEquals(now, open.estimate().endMs)
+        assertTrue(tr.state.finished.isEmpty())
     }
 
     @Test
-    fun parkedSessionDoesNotReplaceFinished() {
-        val prev = TripEstimate(1L, 2L, 12.4, null, null, null)
-        val tr = LiveTripTracker(LiveTripState(finished = listOf(prev)), t0)
-        tr.onReading(reading(17000.0), t0)
-        for (i in 1..20) tr.onReading(reading(17000.0, power = 0), t0 + i * 10_000L)
+    fun anchorNullAfterSeenFinishes() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tick(tr, anchorA, 17000.0, null, t0)
+        tick(tr, anchorA, 17003.0, null, t0 + 60_000)
+        assertTrue(tick(tr, null, 17003.0, null, t0 + 70_000))
         assertNull(tr.state.open)
-        assertEquals(listOf(prev), tr.state.finished)
+        assertEquals(3.0, tr.state.finished.last().km, 1e-9)
     }
 
     @Test
-    fun gapFinishesSession() {
+    fun anchorChangeFinishesAndOpensNew() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0), t0)
-        tr.onReading(reading(17002.0), t0 + 10_000)
-        val next = t0 + 10_000 + LiveTripTracker.GAP_MS + 1
-        assertTrue(tr.onReading(reading(17002.0), next))
+        tick(tr, anchorA, 17000.0, null, t0)
+        tick(tr, anchorA, 17002.0, null, t0 + 60_000)
+        assertTrue(tick(tr, anchorB, 17002.0, null, t0 + 70_000))
+        assertEquals(1, tr.state.finished.size)
+        assertEquals(anchorB, tr.state.open!!.anchorMs)
+        assertEquals(0.0, tr.state.open!!.estimate().km, 1e-9)
+    }
+
+    private fun restored(lastSeen: Long, anchor: Long = anchorA) = LiveTripState(
+        open = LiveSession(
+            anchorMs = anchor, startMs = lastSeen - 600_000, lastSeenMs = lastSeen,
+            base = TripCounters(17000.0, null, null, null), latest = TripCounters(17005.0, null, null, null),
+        ),
+    )
+
+    @Test
+    fun firstAnchorAfterRestoreIsAdopted() {
+        val tr = LiveTripTracker(restored(t0), t0 + 20_000)
+        assertFalse(tick(tr, anchorB, 17005.0, null, t0 + 30_000))
+        assertEquals(anchorB, tr.state.open!!.anchorMs)
+        assertEquals(5.0, tr.state.open!!.estimate().km, 1e-9)
+        assertTrue(tr.state.finished.isEmpty())
+    }
+
+    @Test
+    fun nullAnchorAtStartupKeepsRestoredTrip() {
+        val tr = LiveTripTracker(restored(t0), t0 + 5_000)
+        tick(tr, null, 17005.0, null, t0 + 10_000)
+        assertNotNull(tr.state.open)
+        tick(tr, null, 17005.0, null, t0 + 60_000)
+        assertNotNull(tr.state.open)
+        assertTrue(tick(tr, null, 17005.0, null, t0 + 130_000))
+        assertNull(tr.state.open)
+        assertEquals(5.0, tr.state.finished.last().km, 1e-9)
+    }
+
+    @Test
+    fun gapFinishesEvenWithSameAnchor() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tick(tr, anchorA, 17000.0, null, t0)
+        tick(tr, anchorA, 17002.0, null, t0 + 60_000)
+        val t = t0 + 60_000
+        assertTrue(tick(tr, anchorA, 17002.0, null, t + 3 * 60_000))
         assertEquals(2.0, tr.state.finished.last().km, 1e-9)
-        assertEquals(next, tr.state.open!!.startMs)
+        assertEquals(t + 180_000, tr.state.open!!.startMs)
     }
 
     @Test
-    fun counterBelowBaseStartsNewSession() {
+    fun odometerBackwardsRebases() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0), t0)
-        tr.onReading(reading(17001.9), t0 + 10_000)
-        tr.onReading(reading(17000.5), t0 + 20_000)
-        assertEquals(17000.5, tr.state.open!!.base.odometerKm!!, 1e-9)
-        assertEquals(1.9, tr.state.finished.last().km, 1e-9)
+        tick(tr, anchorA, 17000.0, null, t0)
+        tick(tr, anchorA, 17005.0, null, t0 + 60_000)
+        tick(tr, anchorA, 16000.0, null, t0 + 70_000)
+        tick(tr, anchorA, 16001.0, null, t0 + 80_000)
+        assertEquals(t0, tr.state.open!!.startMs)
+        assertEquals(6.0, tr.state.open!!.estimate().km, 1e-9)
+        assertTrue(tr.state.finished.isEmpty())
+    }
+
+    @Test
+    fun odometerJumpRebases() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tick(tr, anchorA, 17000.0, null, t0)
+        tick(tr, anchorA, 17001.0, null, t0 + 30_000)
+        tick(tr, anchorA, 18000.0, null, t0 + 40_000)
+        tick(tr, anchorA, 18002.0, null, t0 + 100_000)
+        assertEquals(3.0, tr.state.open!!.estimate().km, 1e-9)
+        assertTrue(tr.state.finished.isEmpty())
+    }
+
+    @Test
+    fun dataNullStillTicks() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tick(tr, anchorA, 17000.0, null, t0)
+        tick(tr, anchorA, 17002.0, null, t0 + 10_000)
+        tr.onTick(anchorA, null, t0 + 60_000)
+        assertEquals(t0 + 60_000, tr.state.open!!.estimate().endMs)
+        assertEquals(2.0, tr.state.open!!.estimate().km, 1e-9)
     }
 
     @Test
     fun regenDipDoesNotSplitSession() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0, 2650.0), t0)
-        tr.onReading(reading(17001.0, 2651.0), t0 + 10_000)
-        tr.onReading(reading(17002.0, 2650.8), t0 + 20_000)
+        tick(tr, anchorA, 17000.0, 2650.0, t0)
+        tick(tr, anchorA, 17001.0, 2651.0, t0 + 10_000)
+        tick(tr, anchorA, 17002.0, 2650.8, t0 + 20_000)
         assertEquals(t0, tr.state.open!!.startMs)
         assertEquals(0.8, tr.state.open!!.estimate().kwh!!, 1e-9)
-    }
-
-    private fun resumable(lastReading: Long) = LiveTripState(
-        open = LiveSession(
-            startMs = lastReading - 600_000, lastOnMs = lastReading, lastReadingMs = lastReading,
-            base = TripCounters(17000.0, null, null, null), latest = TripCounters(17012.0, null, null, null),
-        ),
-    )
-
-    @Test
-    fun resumeWithinGapContinues() {
-        val s = resumable(t0 - 240_000)
-        val tr = LiveTripTracker(s, t0)
-        assertEquals(s.open, tr.state.open)
-        tr.onReading(reading(17012.0, power = 0), t0 + 10_000)
-        assertNotNull(tr.state.open)
-    }
-
-    @Test
-    fun resumeAfterGapFinishes() {
-        val s = resumable(t0 - 360_000)
-        val tr = LiveTripTracker(s, t0)
-        assertNull(tr.state.open)
-        assertEquals(s.open!!.lastOnMs, tr.state.finished.last().endMs)
     }
 
     @Test
@@ -137,14 +178,14 @@ class LiveTripTrackerTest {
         val prev = TripEstimate(1L, t0, 12.4, null, null, null)
         val tr = LiveTripTracker(LiveTripState(finished = listOf(prev)), t0 + 1)
         assertEquals(listOf(prev), tr.state.finished)
-        tr.onReading(reading(17000.0, power = 0), t0 + LiveTripTracker.FINISHED_TTL_MS + 1)
+        tick(tr, null, 17000.0, null, t0 + LiveTripTracker.FINISHED_TTL_MS + 1)
         assertTrue(tr.state.finished.isEmpty())
         assertTrue(LiveTripTracker(LiveTripState(finished = listOf(prev)), t0 + LiveTripTracker.FINISHED_TTL_MS + 1).state.finished.isEmpty())
     }
 
     private val sample = LiveTripState(
         open = LiveSession(
-            1L, 2L, 3L, TripCounters(17000.0, null, 300.5, null), TripCounters(17012.4, 2652.1, null, 4.0),
+            7L, 1L, 2L, TripCounters(17000.0, null, 300.5, null), TripCounters(17012.4, 2652.1, null, 4.0),
         ),
         finished = listOf(TripEstimate(5L, 6L, 12.4, null, 0.6, null)),
     )
@@ -153,6 +194,16 @@ class LiveTripTrackerTest {
     fun codecRoundTrip() {
         assertEquals(sample, LiveTripCodec.decode(LiveTripCodec.encode(sample)))
         assertEquals(LiveTripState(), LiveTripCodec.decode(LiveTripCodec.encode(LiveTripState())))
+    }
+
+    @Test
+    fun codecWritesL3AndReadsL2() {
+        assertTrue(LiveTripCodec.encode(sample).startsWith("L3|"))
+        val open = LiveTripCodec.decode("L2|5,6,7,17000.0,,,,17001.0,,,|-|E").open!!
+        assertEquals(5L, open.anchorMs)
+        assertEquals(5L, open.startMs)
+        assertEquals(7L, open.lastSeenMs)
+        assertEquals(1.0, open.estimate().km, 1e-9)
     }
 
     @Test
@@ -165,30 +216,21 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun odometerScaleJumpStartsNewSession() {
-        val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0), t0)
-        tr.onReading(reading(17001.0), t0 + 10_000)
-        tr.onReading(reading(170010.0), t0 + 20_000)
-        assertEquals(1.0, tr.state.finished.last().km, 1e-9)
-        assertEquals(170010.0, tr.state.open!!.base.odometerKm!!, 1e-9)
-    }
-
-    @Test
     fun slowReadingAfterLongDriveIsNotAJump() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0), t0)
-        // 20 km in 4.5 min = 267 km/h < 300 km/h limit (a longer gap would split by GAP_MS anyway)
-        tr.onReading(reading(17020.0), t0 + 270_000)
-        assertTrue(tr.state.finished.isEmpty())
-        assertEquals(t0, tr.state.open!!.startMs)
+        tick(tr, anchorA, 17000.0, null, t0)
+        // 20 km in 100 s would be a jump; 20 km in 4.5 min = 267 km/h is within the 300 km/h limit
+        tr.onTick(anchorA, null, t0 + 100_000)
+        tr.onTick(anchorA, null, t0 + 200_000)
+        tick(tr, anchorA, 17020.0, null, t0 + 270_000)
+        assertEquals(20.0, tr.state.open!!.estimate().km, 1e-9)
     }
 
     @Test
     fun implausibleKwhIsNull() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0, 2650.0), t0)
-        tr.onReading(reading(17001.0, 56950.0), t0 + 10_000)
+        tick(tr, anchorA, 17000.0, 2650.0, t0)
+        tick(tr, anchorA, 17001.0, 56950.0, t0 + 10_000)
         assertNull(tr.state.open!!.estimate().kwh)
         assertEquals(1.0, tr.state.open!!.estimate().km, 1e-9)
     }
@@ -197,26 +239,26 @@ class LiveTripTrackerTest {
     fun implausibleFinishedIsDropped() {
         val prev = TripEstimate(1L, 2L, 12.4, null, null, null)
         val open = LiveSession(
-            t0 - 600_000, t0, t0, TripCounters(17000.0, null, null, null), TripCounters(18600.0, null, null, null),
+            anchorA, t0 - 600_000, t0, TripCounters(17000.0, null, null, null), TripCounters(18600.0, null, null, null),
         )
         val tr = LiveTripTracker(LiveTripState(open, listOf(prev)), t0 + 400_000)
+        tick(tr, null, null, null, t0 + 400_000)
         assertNull(tr.state.open)
         assertEquals(listOf(prev), tr.state.finished)
+    }
+
+    private fun drive(tr: LiveTripTracker, anchor: Long, from: Double, km: Double, start: Long): Long {
+        tick(tr, anchor, from, null, start)
+        tick(tr, anchor, from + km, null, start + 10_000)
+        tick(tr, null, from + km, null, start + 20_000)
+        return start + 30_000
     }
 
     @Test
     fun twoDrivesBothPending() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        var now = t0
-        fun drive(from: Double) {
-            tr.onReading(reading(from), now)
-            now += 10_000
-            tr.onReading(reading(from + 1.5), now)
-            repeat(20) { now += 10_000; tr.onReading(reading(from + 1.5, power = 0), now) }
-            now += 10_000
-        }
-        drive(17000.0)
-        drive(17005.0)
+        var now = drive(tr, anchorA, 17000.0, 1.5, t0)
+        now = drive(tr, anchorB, 17005.0, 1.5, now)
         assertEquals(2, tr.state.finished.size)
         assertEquals(2, TripMatch.pending(tr.state, emptyList(), now).size)
     }
@@ -225,14 +267,7 @@ class LiveTripTrackerTest {
     fun finishedListCapsAt8() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         var now = t0
-        repeat(9) { i ->
-            val km = 1.1 + i / 10.0
-            tr.onReading(reading(17000.0 + i * 5), now)
-            now += 10_000
-            tr.onReading(reading(17000.0 + i * 5 + km), now)
-            repeat(20) { now += 10_000; tr.onReading(reading(17000.0 + i * 5 + km, power = 0), now) }
-            now += 10_000
-        }
+        repeat(9) { i -> now = drive(tr, anchorA + i, 17000.0 + i * 5, 1.1 + i / 10.0, now) }
         assertEquals(8, tr.state.finished.size)
         val kms = tr.state.finished.map { Math.round(it.km * 10) / 10.0 }
         assertEquals(listOf(1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9), kms)
@@ -246,20 +281,9 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun resumeDoesNotMoveEndWithoutSignsOfRunning() {
-        val s = resumable(t0 - 60_000)
-        val tr = LiveTripTracker(s, t0)
-        for (i in 1..12) tr.onReading(reading(17012.0, power = 0), t0 + i * 10_000L)
-        assertNull(tr.state.open)
-        assertEquals(s.open!!.lastOnMs, tr.state.finished.last().endMs)
-    }
-
-    @Test
     fun singleTenthStepCountsAsMoved() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0), t0)
-        tr.onReading(reading(17000.1), t0 + 10_000)
-        for (i in 2..20) tr.onReading(reading(17000.1, power = 0), t0 + i * 10_000L)
+        drive(tr, anchorA, 17000.0, 0.1, t0)
         assertEquals(1, tr.state.finished.size)
     }
 
@@ -273,33 +297,11 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun resumeAfterRestartWhileDrivingContinues() {
-        val s = resumable(t0).let {
-            it.copy(open = it.open!!.copy(latest = TripCounters(17025.0, null, null, null), base = TripCounters(17000.0, null, null, null)))
-        }
-        val tr = LiveTripTracker(s, t0 + 100_000)
-        tr.onReading(reading(17028.0), t0 + 110_000)
-        assertEquals(s.open!!.startMs, tr.state.open!!.startMs)
-        assertEquals(28.0, tr.state.open!!.estimate().km, 1e-9)
-    }
-
-    @Test
-    fun crashLoopDoesNotKeepSessionOpen() {
-        val s = resumable(t0)
-        val a = LiveTripTracker(s, t0 + 100_000)
-        assertEquals(s, a.state)
-        val b = LiveTripTracker(a.state, t0 + 250_000)
-        assertNotNull(b.state.open)
-        val c = LiveTripTracker(b.state, t0 + 400_000)
-        assertNull(c.state.open)
-    }
-
-    @Test
     fun missingOdometerDoesNotLookLikeJump() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onReading(reading(17000.0), t0)
-        for (i in 1..9) tr.onReading(reading(null), t0 + i * 10_000L)
-        tr.onReading(reading(17005.0), t0 + 90_000)
+        tick(tr, anchorA, 17000.0, null, t0)
+        for (i in 1..9) tick(tr, anchorA, null, null, t0 + i * 10_000L)
+        tick(tr, anchorA, 17005.0, null, t0 + 100_000)
         assertTrue(tr.state.finished.isEmpty())
         assertEquals(t0, tr.state.open!!.startMs)
         assertEquals(5.0, tr.state.open!!.estimate().km, 1e-9)

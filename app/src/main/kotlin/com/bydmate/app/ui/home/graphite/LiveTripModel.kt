@@ -1,7 +1,6 @@
 package com.bydmate.app.ui.home.graphite
 
 import com.bydmate.app.data.remote.DiParsData
-import com.bydmate.app.data.trips.HybridIgnitionEdge
 
 /**
  * One reading's lifetime counters; null = not reported. An odometer below 1 km is the startup
@@ -36,21 +35,25 @@ data class TripCounters(val odometerKm: Double?, val elecKwh: Double?, val fuelL
     }
 }
 
-/** An estimated drive: [endMs] = last "on" reading; deltas of the counters, null when a side is missing. */
+/** An estimated drive: [endMs] = last tick of the session; deltas of the counters, null when a side is missing. */
 data class TripEstimate(
     val startMs: Long, val endMs: Long, val km: Double, val kwh: Double?, val litres: Double?, val hevKm: Double?,
 )
 
+/**
+ * One ignition session's trip. [anchorMs] is the author's `TrackingService.sessionStartedAt` it
+ * belongs to, [startMs] when this trip started, [lastSeenMs] the last tick while it was live.
+ */
 data class LiveSession(
+    val anchorMs: Long,
     val startMs: Long,
-    val lastOnMs: Long,
-    val lastReadingMs: Long,
+    val lastSeenMs: Long,
     val base: TripCounters,
     val latest: TripCounters,
 ) {
     fun estimate() = TripEstimate(
         startMs = startMs,
-        endMs = lastOnMs,
+        endMs = lastSeenMs,
         km = delta(base.odometerKm, latest.odometerKm)?.coerceAtLeast(0.0) ?: 0.0,
         kwh = delta(base.elecKwh, latest.elecKwh)?.takeIf { it in LiveTripTracker.KWH_RANGE },
         litres = delta(base.fuelL, latest.fuelL)?.takeIf { it in LiveTripTracker.LITRES_RANGE },
@@ -68,69 +71,69 @@ fun movedKm(km: Double): Boolean = km >= LiveTripTracker.MOVED_KM - 1e-6
 data class LiveTripState(val open: LiveSession? = null, val finished: List<TripEstimate> = emptyList())
 
 /**
- * Builds the trip in progress from the car's cumulative counters. "On" comes from the author's
- * [HybridIgnitionEdge]; a session lives from the first on reading to the first off one, to a gap
- * in readings, or to a counter running backwards.
+ * Builds the trip in progress from the car's cumulative counters. A session is one ignition
+ * session of the author's `TrackingService.sessionStartedAt`: it lives from the car switched on to
+ * switched off, however long it stands, and is fed by a steady ticker. It also ends on a gap in
+ * ticks (the head unit slept). An odometer glitch rebases the odometer instead of ending it.
  */
 class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
-    private val edge = HybridIgnitionEdge()
-
     var state: LiveTripState = initial
         private set
 
-    /** Constructor time of a resume: the outage itself must not look like a gap to the first reading. */
-    private var resumedAtMs: Long? = null
+    /** True once this instance has seen a non-null anchor: a later null or change is a real ignition change. */
+    private var seenAnchor = false
 
     /** Time of the last reading that carried an odometer; the jump limit measures from it. */
-    private var lastOdoMs: Long = nowMs
+    private var lastOdoMs: Long = initial.open?.lastSeenMs ?: nowMs
 
     init {
-        val open = initial.open
-        if (open != null && nowMs - open.lastReadingMs <= GAP_MS) {
-            edge.seedOn(nowMs)
-            resumedAtMs = nowMs
-            lastOdoMs = open.lastReadingMs
-        } else {
-            finishOpen()
-        }
         expireFinished(nowMs)
     }
 
-    /** Feeds one reading; returns true when a session opened or finished (the caller publishes at once). */
-    fun onReading(data: DiParsData, nowMs: Long): Boolean {
+    /**
+     * Feeds one tick: the author's session anchor (null = no session), the latest reading and the
+     * time. Returns true when a session opened or finished (the caller publishes at once).
+     */
+    fun onTick(anchorMs: Long?, data: DiParsData?, nowMs: Long): Boolean {
         var changed = false
         val stale = state.open
-        if (stale != null && isStale(stale, nowMs)) {
+        if (stale != null && nowMs - stale.lastSeenMs > GAP_MS) {
             finishOpen()
             changed = true
         }
-        val on = edge.update(data, nowMs)
-        val counters = TripCounters.of(data)
-        val session = state.open
-        when {
-            on && session == null -> changed = open(counters, nowMs) || changed
-            on && session != null && (counters.isBelow(session.latest) || isJump(session, counters, nowMs)) -> {
-                finishOpen()
-                changed = open(counters, nowMs) || changed
-            }
-            on && session != null -> state = state.copy(open = session.advance(counters, nowMs))
-            session != null -> {
-                state = state.copy(open = session.copy(lastReadingMs = nowMs))
+        if (anchorMs == null) {
+            if (state.open != null && seenAnchor) {
                 finishOpen()
                 changed = true
             }
+        } else {
+            changed = follow(anchorMs, data, nowMs) || changed
         }
         expireFinished(nowMs)
         return changed
     }
 
-    private fun isStale(s: LiveSession, nowMs: Long) =
-        nowMs - maxOf(s.lastReadingMs, resumedAtMs ?: 0L) > GAP_MS
-
-    private fun open(counters: TripCounters, nowMs: Long): Boolean {
-        state = state.copy(open = LiveSession(nowMs, nowMs, nowMs, counters, counters))
-        lastOdoMs = nowMs
-        return true
+    private fun follow(anchorMs: Long, data: DiParsData?, nowMs: Long): Boolean {
+        val c = data?.let { TripCounters.of(it) } ?: TripCounters(null, null, null, null)
+        var changed = false
+        var session = state.open
+        if (session != null && session.anchorMs != anchorMs) {
+            if (seenAnchor) {
+                finishOpen()
+                session = null
+                changed = true
+            } else {
+                session = session.copy(anchorMs = anchorMs)
+            }
+        }
+        if (session == null) {
+            session = LiveSession(anchorMs, nowMs, nowMs, c, c)
+            lastOdoMs = nowMs
+            changed = true
+        }
+        seenAnchor = true
+        state = state.copy(open = if (data == null) session.copy(lastSeenMs = nowMs) else session.advance(c, nowMs))
+        return changed
     }
 
     /** An odometer step no car can drive in the time since the last reading: a scale change of the counter. */
@@ -142,13 +145,18 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     }
 
     private fun LiveSession.advance(c: TripCounters, nowMs: Long): LiveSession {
+        val rebased = rebaseOdometer(this, c, nowMs)
         if (c.odometerKm != null) lastOdoMs = nowMs
-        return advanced(c, nowMs)
+        return copy(lastSeenMs = nowMs, base = rebased.fillFrom(c), latest = latest.advanceBy(c))
     }
 
-    private fun LiveSession.advanced(c: TripCounters, nowMs: Long) = copy(
-        lastOnMs = if (edge.lastOnMs == nowMs) nowMs else lastOnMs, lastReadingMs = nowMs, base = base.fillFrom(c), latest = latest.advanceBy(c),
-    )
+    /** The base shifted by an odometer glitch (backwards or a jump), so the glitch step is not counted. */
+    private fun rebaseOdometer(s: LiveSession, c: TripCounters, nowMs: Long): TripCounters {
+        val now = c.odometerKm ?: return s.base
+        val was = s.latest.odometerKm ?: return s.base
+        if (!c.isBelow(s.latest) && !isJump(s, c, nowMs)) return s.base
+        return s.base.copy(odometerKm = s.base.odometerKm?.plus(now - was))
+    }
 
     private fun finishOpen() {
         val estimate = state.open?.estimate()?.takeIf { movedKm(it.km) && it.km <= MAX_TRIP_KM }
@@ -161,7 +169,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     }
 
     companion object {
-        const val GAP_MS = 5 * 60_000L
+        const val GAP_MS = 2 * 60_000L
         const val MOVED_KM = 0.1
         const val FINISHED_TTL_MS = 48 * 3_600_000L
         const val MAX_FINISHED = 8
@@ -177,12 +185,13 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
 }
 
 /**
- * Pure-Kotlin text form of [LiveTripState] for the prefs: `L2|open|finished|E`, fields joined by
- * commas, null = empty field, finished drives joined by `;`. `L1` (one finished drive) still reads. The closing `E` makes a truncated string fail; any failure decodes
+ * Pure-Kotlin text form of [LiveTripState] for the prefs: `L3|open|finished|E`, fields joined by
+ * commas, null = empty field, finished drives joined by `;`. `L2` and `L1` still read. The closing `E` makes a truncated string fail; any failure decodes
  * to an empty state.
  */
 object LiveTripCodec {
-    private const val HEAD = "L2"
+    private const val HEAD = "L3"
+    private const val HEAD_V2 = "L2"
     private const val HEAD_V1 = "L1"
     private const val TAIL = "E"
     private const val NONE = "-"
@@ -191,7 +200,7 @@ object LiveTripCodec {
 
     fun encode(s: LiveTripState): String {
         val open = s.open?.let { o ->
-            listOf(o.startMs, o.lastOnMs, o.lastReadingMs).joinToString(",") +
+            listOf(o.anchorMs, o.startMs, o.lastSeenMs).joinToString(",") +
                 "," + counters(o.base) + "," + counters(o.latest)
         } ?: NONE
         val fin = s.finished.takeIf { it.isNotEmpty() }?.joinToString(";") {
@@ -202,8 +211,8 @@ object LiveTripCodec {
 
     fun decode(raw: String?): LiveTripState = try {
         val parts = raw.orEmpty().split("|")
-        require(parts.size == 4 && (parts[0] == HEAD || parts[0] == HEAD_V1) && parts[3] == TAIL)
-        LiveTripState(open = session(parts[1]), finished = estimates(parts[2]))
+        require(parts.size == 4 && parts[0] in listOf(HEAD, HEAD_V2, HEAD_V1) && parts[3] == TAIL)
+        LiveTripState(open = session(parts[1], parts[0] == HEAD), finished = estimates(parts[2]))
     } catch (@Suppress("SwallowedException") e: IllegalArgumentException) {
         LiveTripState()
     }
@@ -211,13 +220,17 @@ object LiveTripCodec {
     private fun counters(c: TripCounters) =
         listOf(c.odometerKm, c.elecKwh, c.fuelL, c.hevKm).joinToString(",") { it?.toString() ?: "" }
 
-    private fun session(s: String): LiveSession? {
+    /** L3: anchor,start,lastSeen,...; L2/L1: start,lastOn,lastReading,... (anchor = start, lastSeen = lastReading). */
+    private fun session(s: String, current: Boolean): LiveSession? {
         if (s == NONE) return null
         val f = s.split(",")
         require(f.size == SESSION_FIELDS)
-        return LiveSession(
-            f[0].toLong(), f[1].toLong(), f[2].toLong(), counters(f, 3), counters(f, 7),
-        )
+        val first = f[0].toLong()
+        return if (current) {
+            LiveSession(first, f[1].toLong(), f[2].toLong(), counters(f, 3), counters(f, 7))
+        } else {
+            LiveSession(first, first, f[2].toLong(), counters(f, 3), counters(f, 7))
+        }
     }
 
     private fun counters(f: List<String>, at: Int) =
