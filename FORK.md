@@ -10,7 +10,7 @@
 | Функция | Где в приложении | Код |
 |---|---|---|
 | Цветовые скины всего приложения: Classic, Cockpit, Graphite Pro, Volt, Telemetry, OLED (схемы Graphite Soft…Code теперь только у главной Graphite, см. ниже; сохранённый скин Graphite при первом запуске переносится в схему главной, а приложение переходит на Classic) | Настройки → Приложение → «Оформление» | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt` |
-| Главная Graphite: карточки «Общий запас хода», «Температуры», галерея «Leopard 5» (фото сменяются раз в 2–4 минуты), «Расход энергии» с графиком за день/неделю/месяц, «Медиа» (обложка, управление, громкость), «Текущая поездка» (км, время в пути, средняя скорость, доля на электротяге, кВт·ч и литры — на ходу, по нарастающим счётчикам машины с момента включения; после включения, пока машина не поехала, — «Последняя поездка» за сегодня; без поездок за сегодня — пустые ячейки). График и его итоги = записанные поездки + оценки ещё не записанных поездок: оценка уходит, как только поездка из журнала машины или учёта приложения пересечётся с ней по времени больше чем на 30 с; нереальные скачки одометра и счётчиков отбрасываются, как в `TripRecorder` автора (`ui/home/graphite/LiveTrip.kt` — трекер на весь процесс, prefs `bydmate_live_trip` / `bydmate_live_trip_demo`; `LiveTripModel.kt` — сессии и формат хранения; `TripRows.kt` — единственное место, где читается `TripEntity` автора). Прошлые столбики графика — на 70 % яркости; всё нарисовано кодом (Compose), без подложки. Свои настройки вида (появляются под выбором главной, когда выбрана Graphite): «Цветовая схема» — Soft, Dark, Edge, Mocha, Hub, One, Code (красит только главную Graphite, по умолчанию Dark); остальное приложение — по «Оформлению». «Материал» карточек: без материала, стекло (диагональный блик и светлая кромка поверх содержимого), металл (шлифовка), песок мелкий, бетон — фактура лежит над заливкой и под текстом, на галерее видно только стекло. «Рельеф»: плоский, выпуклый, вогнутый; плашки, активная вкладка и утопленные блоки повторяют его в ослабленном виде, без фактуры. «Края 2.5D» — скос по краю карточек, сочетается с любым рельефом. Главная Graphite и её настройки — на всех шести языках приложения (ru, en, zh, pt, pl, be): подписи в `res/values*/strings_graphite.xml`, слова, числа и даты по языку — `GraphiteLocale.kt`; ретро-стойки остаются на русском. Фактуры — маленькие плитки с фиксированным зерном (`GraphiteTextures.kt`), строятся один раз и ничего не анимируют. Шрифт Inter только на этой главной | Настройки → Приложение → «Главный экран» → Graphite | `ui/home/graphite/*` (настройки вида — `GraphiteLook.kt`, хранятся в `bydmate_home`: `graphite_scheme`, `graphite_material`, `graphite_relief`, `graphite_edges25d`), `ui/settings/HomeStylePickerBlock.kt`, `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_photo_*.webp`, `res/font/gr_inter.ttf` |
+| Главная Graphite: карточки «Общий запас хода», «Температуры», галерея «Leopard 5» (фото сменяются раз в 2–4 минуты), «Расход энергии» с графиком за день/неделю/месяц, «Медиа» (обложка, управление, громкость), «Текущая поездка» (км, время в пути, средняя скорость, доля на электротяге, кВт·ч и литры — на ходу, по нарастающим счётчикам машины с момента включения. Поездка длится всю сессию зажигания (та же, что у таймера поездки в виджете автора, `TrackingService.sessionStartedAt`): стоянки, светофоры и перезапуск приложения её не сбрасывают, новая начинается только после выключения машины; скачок одометра не засчитывается, но и не обрывает поездку; средняя скорость — по точному времени; после включения, пока машина не поехала, — «Последняя поездка» за сегодня; без поездок за сегодня — пустые ячейки). График и его итоги = записанные поездки + оценки ещё не записанных поездок: оценка уходит, как только поездка из журнала машины или учёта приложения пересечётся с ней по времени больше чем на 30 с; нереальные скачки одометра и счётчиков отбрасываются, как в `TripRecorder` автора (`ui/home/graphite/LiveTrip.kt` — трекер на весь процесс, prefs `bydmate_live_trip` / `bydmate_live_trip_demo`; `LiveTripModel.kt` — сессии и формат хранения; `TripRows.kt` — единственное место, где читается `TripEntity` автора). Прошлые столбики графика — на 70 % яркости; всё нарисовано кодом (Compose), без подложки. Свои настройки вида (появляются под выбором главной, когда выбрана Graphite): «Цветовая схема» — Soft, Dark, Edge, Mocha, Hub, One, Code, DiLink (последняя — по палитре родного интерфейса BYD: серые фоны, голубой акцент `#45A2FF`; красит только главную Graphite, по умолчанию Dark). «Шрифт»: Inter или DiLink (системный Roboto для текста, крупные цифры — Rajdhani, как на приборке; в Rajdhani нет кириллицы, поэтому только цифры); остальное приложение — по «Оформлению». «Материал» карточек: без материала, стекло (диагональный блик и светлая кромка поверх содержимого), металл (шлифовка), песок мелкий, бетон — фактура лежит над заливкой и под текстом, на галерее видно только стекло. «Рельеф»: плоский, выпуклый, вогнутый; плашки, активная вкладка и утопленные блоки повторяют его в ослабленном виде, без фактуры. «Края 2.5D» — скос по краю карточек, сочетается с любым рельефом. Главная Graphite и её настройки — на всех шести языках приложения (ru, en, zh, pt, pl, be): подписи в `res/values*/strings_graphite.xml`, слова, числа и даты по языку — `GraphiteLocale.kt`; ретро-стойки остаются на русском. Фактуры — маленькие плитки с фиксированным зерном (`GraphiteTextures.kt`), строятся один раз и ничего не анимируют. Шрифт Inter (или DiLink) только на этой главной | Настройки → Приложение → «Главный экран» → Graphite | `ui/home/graphite/*` (настройки вида — `GraphiteLook.kt`, хранятся в `bydmate_home`: `graphite_scheme`, `graphite_material`, `graphite_relief`, `graphite_edges25d`, `graphite_font`), `ui/settings/HomeStylePickerBlock.kt`, `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_photo_*.webp`, `res/font/gr_inter.ttf` |
 | Демо-режим: имитация поездки и 90 дней истории в отдельной базе | Настройки → Приложение → «Демо» | `demo/*`, `ui/settings/DemoModeBlock.kt` |
 | Ретро-главные «Стойка KX» и «Стойка Integra»: кассетная дека с реалистичной кассетой и управлением музыкой; вместо нижней панели вкладок — клавиши-переключатель входов с гравированными значками. Свёрстаны под 1280×604 dp (экран Leopard 5 без панелей машины) | Настройки → Приложение → «Главный экран» | `ui/home/*` (общая кассета — `RetroParts.kt`), `ui/settings/HomeStylePickerBlock.kt` |
 | Ретро-главная «Стойка C-Drive»: подложка — макет владельца в стиле Technics (`tools/cdrive/cdrive_mockup_2560x1208.png`, ровно 2× от 1280×604 dp), из которого инструмент `tools/cdrive/CdBackplate.java` стирает изменяемые места, пишет BYDMATE и русские подписи, ставит значок Fangchengbao. Поверх код рисует: шапку (режим с листком для ECO, передача, READY), спокойно «дышащий» спектр во время музыки, деку (трек, время семисегментными цифрами, PLAYING/PAUSED, полосу прогресса, подсвеченную ▶), данные машины, метку громкости, график расхода за день/неделю/месяц по поездкам, стрелки оборотов ДВС и мощности компрессора, подсветку нажатой клавиши. Места живых элементов — `tools/cdrive/LAYOUT.md` | Настройки → Приложение → «Главный экран» | `ui/home/cdrive/*`, `res/drawable-nodpi/cd_*.webp`; общие с Graphite детали (рамка макета 2560×1208, `px`/`fs`, подписи, шкалы со стрелками) — `ui/home/common/*`. Пробег за сегодня — по одометру от первого показания дня (`ui/home/DayMileage.kt`) |
@@ -79,36 +79,78 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 ```
 
 Другие приёмы:
-- **Свои пакеты.** Новый код лежит в `fork/`, `demo/`, `ui/home/` и в отдельных файлах `*Block.kt` настроек. У автора таких файлов нет, поэтому при слиянии они не конфликтуют.
-- **Свои файлы строк.** Тексты интерфейса лежат в `strings_skins.xml`, `strings_demo.xml` и `strings_screenshot.xml` во всех шести языках (ru, en, be, pl, pt, zh). Авторский `strings.xml` форк не трогает: его автор меняет чаще всего.
+- **Свои пакеты.** Новый код лежит в `fork/` (в том числе `fork/ledger/`), `demo/`, `ui/home/` (в том числе `ui/home/graphite/`, `ui/home/cdrive/`, `ui/home/common/`) и в отдельных файлах `*Block.kt` настроек. У автора таких файлов нет, поэтому при слиянии они не конфликтуют.
+- **Свои файлы строк.** Тексты интерфейса лежат в `strings_skins.xml`, `strings_demo.xml`, `strings_screenshot.xml`, `strings_ledger.xml` и `strings_graphite.xml` во всех шести языках (ru, en, be, pl, pt, zh). Авторский `strings.xml` форк не трогает: его автор меняет чаще всего.
 - **Замены в DI, а не в логике.** Демо-режим подменяет источники данных в `di/AppModule.kt` и `di/NativeModule.kt` (`DemoBindings`, `DemoAwareParsReader`). Код чтения машины остаётся авторским.
 - **Методы со значением по умолчанию.** Новый метод интерфейса `AdbOnDeviceClient.screencap()` объявлен с реализацией по умолчанию, поэтому авторские тестовые подделки этого интерфейса не нужно менять.
 - **Свои workflow.** `fork-release.yml` — отдельный файл, авторский `ci.yml` не меняется.
 
 ### Где возможен конфликт: правки в файлах автора
 
-Всего 18 файлов, порядка 160–180 строк. При конфликте ищи в них метку `fork`.
+**Сверено с git 2026-11-17.** База автора — `ff2f6f30` (2026-11-15), последний влитый коммит `upstream/main`. Форк — `main` на `5e0d62c4`. С базы в форке 125 коммитов: изменено 18 файлов автора (около 170 строк), добавлено 314 своих файлов, удалённых нет. При конфликте ищи в этих файлах метку `fork`.
 
-| Файл | Что изменено |
-|---|---|
-| `app/build.gradle.kts` | `versionCode` и `versionName` форка: **конфликт при каждом релизе автора**, см. «Версии» |
-| `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) |
-| `ui/theme/Color.kt` | цвета стали геттерами из `SkinState`, чтобы скин менялся на лету |
-| `ui/theme/Theme.kt` | `DarkColorScheme` стал геттером |
-| `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером; пункт `LEDGER` в `SettingsSection` и его ветка в `when` (раздел «Расходы») |
-| `data/backup/BackupManager.kt` | 7 строк `fork`: учёт в бэкапе (снимок, запись в zip, проверка и подмена при восстановлении) |
-| `ui/settings/SettingsAppVoice.kt` | вызовы блоков скина, главной, демо и скриншота в разделе «Приложение» |
-| `ui/navigation/AppNavigation.kt` | `DashboardScreen` обёрнут в `ForkHome(onOpenTab) { … }`; нижняя панель скрыта, пока на главной ретро-стойка (`hidesBottomBar`); всплывающая просьба о донате выключена (`ForkConfig.DONATION_PROMPT`) |
-| `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса |
-| `di/NativeModule.kt` | привязка `DemoAwareParsReader` |
-| `service/UpdateChecker.kt` | адрес релизов берётся из `ForkConfig.UPDATE_REPO` |
-| `ui/settings/DiagnosticDumpWriter.kt` | одна строка: вывод `DisplayInfo.lines()` |
-| `data/autoservice/AdbOnDeviceClient.kt` | метод `screencap()` в интерфейсе и реализации |
-| `data/charging/AutoserviceChargingDetector.kt` | ограничение записи якоря (`anchorFresh`) |
-| `data/automation/AutomationEngine.kt` | кеш разобранных условий |
-| `data/local/EnergyDataReader.kt` | кеш `isAvailable()` |
-| `data/loop/SharedAdaptiveLoop.kt` | параметр `screenOn` и `nextInterval()` |
-| `test/.../SettingsViewModelTest.kt` | эталонная шапка лога: из сравнения убраны строки `display…` форка |
+Столбец «Коммиты»: первый коммит форка, тронувший файл, → последний. Текущее состояние правки — по последнему. Пути `.kt` даны от `app/src/main/kotlin/com/bydmate/app/`.
+
+| Файл | Что изменено | Строк | Коммиты |
+|---|---|---|---|
+| `app/build.gradle.kts` | `versionCode` и `versionName` форка: **конфликт при каждом релизе автора**, см. «Версии» | +2/−2 | `baceba15` (2026-11-15) → `50a47ff0` (2026-11-17), меняется в каждом релизе |
+| `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) | +7/−0 | `23c2e82c` (2026-11-15) → `4e88c0e4` (2026-11-16) |
+| `ui/theme/Color.kt` | цвета стали геттерами из `SkinState`, чтобы скин менялся на лету | +25/−22 | `23c2e82c` (2026-11-15) |
+| `ui/theme/Theme.kt` | `DarkColorScheme` стал геттером | +3/−1 | `23c2e82c` (2026-11-15) |
+| `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером; пункт `LEDGER` в `SettingsSection` и его ветка в `when` (раздел «Расходы») | +3/−1 | `23c2e82c` (2026-11-15) → `2a9857c3` (2026-11-16) |
+| `data/backup/BackupManager.kt` | 7 строк `fork`: учёт в бэкапе (снимок, запись в zip, проверка и подмена при восстановлении) | +7/−0 | `bce82d0a` (2026-11-16) → `7c79b8fb` (2026-11-17) |
+| `ui/settings/SettingsAppVoice.kt` | вызовы блоков скина, главной, демо и скриншота в разделе «Приложение» | +4/−0 | `23c2e82c` (2026-11-15) → `879f279c` (2026-11-15) |
+| `ui/navigation/AppNavigation.kt` | `DashboardScreen` обёрнут в `ForkHome(onOpenTab) { … }`; нижняя панель скрыта, пока на главной ретро-стойка (`hidesBottomBar`); всплывающая просьба о донате выключена (`ForkConfig.DONATION_PROMPT`) | +24/−12 | `6e1f49ef` (2026-11-15) → `031bc50c` (2026-11-16) |
+| `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса | +16/−6 | `23c2e82c` (2026-11-15) → `353c5775` (2026-11-15) |
+| `di/NativeModule.kt` | привязка `DemoAwareParsReader` | +1/−1 | `23c2e82c` (2026-11-15) |
+| `service/UpdateChecker.kt` | адрес релизов берётся из `ForkConfig.UPDATE_REPO` | +2/−1 | `c70943c1` (2026-11-15) |
+| `ui/settings/DiagnosticDumpWriter.kt` | одна строка: вывод `DisplayInfo.lines()` | +1/−0 | `baceba15` (2026-11-15) → `606b78ae` (2026-11-15) |
+| `data/autoservice/AdbOnDeviceClient.kt` | метод `screencap()` в интерфейсе и реализации | +27/−0 | `879f279c` (2026-11-15) |
+| `data/charging/AutoserviceChargingDetector.kt` | ограничение записи якоря (`anchorFresh`) | +18/−0 | `353c5775` (2026-11-15) → `53cc6c70` (2026-11-15) |
+| `data/automation/AutomationEngine.kt` | кеш разобранных условий | +9/−1 | `353c5775` (2026-11-15) |
+| `data/local/EnergyDataReader.kt` | кеш `isAvailable()` | +11/−0 | `353c5775` (2026-11-15) |
+| `data/loop/SharedAdaptiveLoop.kt` | параметр `screenOn` и `nextInterval()` | +10/−2 | `353c5775` (2026-11-15) → `92007d9b` (2026-11-15) |
+| `test/.../SettingsViewModelTest.kt` | эталонная шапка лога: из сравнения убраны строки `display…` форка | +2/−0 | `879f279c` (2026-11-15) → `606b78ae` (2026-11-15) |
+
+### Что форк добавил своими файлами
+
+Эти файлы есть только в форке, поэтому при слиянии они не конфликтуют. Колонка «Коммиты»: появление → последнее изменение.
+
+| Область | Где | Коммиты |
+|---|---|---|
+| Демо-режим | `demo/*` (4), `ui/settings/DemoModeBlock.kt`, `res/values*/strings_demo.xml` | `23c2e82c` (2026-11-15) → `569934e0` (2026-11-16) |
+| Скины приложения | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt`, `res/values*/strings_skins.xml` | `23c2e82c` (2026-11-15) |
+| Общие настройки форка, обновления из релизов форка, донат | `fork/ForkConfig.kt` | `c70943c1` (2026-11-15) |
+| Шапка диагностического лога | `fork/DisplayInfo.kt` | `baceba15` (2026-11-15) |
+| Какие режимы движения (ECO / NORMAL / SPORT) есть у машины, для ретро-главных | `fork/DriveModeSupport.kt` | `b94c2b6f` (2026-11-15) |
+| Скриншот через ADB | `fork/ScreenshotTaker.kt`, `ui/settings/ScreenshotBlock.kt`, `res/values*/strings_screenshot.xml` | `879f279c` (2026-11-15) |
+| Сборка и релиз в GitHub Actions | `.github/workflows/fork-release.yml` | `879f279c` (2026-11-15) |
+| Выбор главной и общие части главных | `ui/home/HomeStyle.kt`, `ForkHome.kt`, `HomeData.kt`, `NowPlaying.kt`, `ui/settings/HomeStylePickerBlock.kt` | `6e1f49ef` (2026-11-15) |
+| Обложки из медиасессии | `ui/home/NowPlayingArt.kt` | `e4f35af4` (2026-11-17) |
+| Ретро-стойки KX и Integra | `ui/home/kenwood/*`, `ui/home/onkyo/*`, `RetroParts.kt`, `PhotoCassettes.kt`, `res/drawable-nodpi/cassette_*.webp`, `res/font/caveat.ttf` | `6e1f49ef` (2026-11-15) → `c1f5243f` |
+| Стойка C-Drive | `ui/home/cdrive/*`, `res/drawable-nodpi/cd_*.webp`, `tools/cdrive/*` | `d932b91f` (2026-11-16) → `8c1e923b` |
+| Общие детали главных (рамка макета, `px`/`fs`, шкалы) | `ui/home/common/*`, `tools/common/*` | `acccf158` (2026-11-17) |
+| Пробег за сегодня по одометру | `ui/home/DayMileage.kt` | `031bc50c` (2026-11-16) |
+| Главная Graphite | `ui/home/graphite/*` (30 файлов), `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_*.webp`, `res/font/gr_inter.ttf`, `res/values*/strings_graphite.xml`, `tools/graphite/*` | `f2be6756` (2026-11-16) → `b90c3dd5` (2026-11-17) |
+| Схема и шрифт DiLink | `GraphiteSchemes.kt` (`GrDiLink`), `GraphiteLook.kt` (`GrFont`), `res/font/gr_rajdhani.ttf` | `b90c3dd5` (2026-11-17) |
+| «Текущая поездка», одна на сессию зажигания | `ui/home/graphite/LiveTrip.kt`, `LiveTripModel.kt`, `TripRows.kt`, `GraphiteTrip.kt` | появилась в `50a47ff0` (4.4.1.10); сессия зажигания — `d793a761` → `5e0d62c4` (2026-11-17) |
+| Учёт заправок и расходов | `fork/ledger/*` (28), `ui/settings/LedgerSection.kt`, `res/values*/strings_ledger.xml`, `app/schemas/…LedgerDatabase/1.json` | `25d33f0b` (2026-11-16) → `ee9c1ca5` |
+| Инструменты картинок | `tools/webp.sh`, `tools/SamePixels.java` | `68e7caae` (2026-11-16) |
+| Описания релизов | `release-notes/*` | `6c1f07b5` (2026-11-16) → `50a47ff0` |
+| Тесты форка | `app/src/test/…` в тех же пакетах (`fork/ledger`, `ui/home/*`, `demo`, `data/charging/ParkedAnchorThrottleTest.kt`, `data/loop/ScreenOffCadenceTest.kt`) | вместе со своими функциями |
+
+### Как пересверить
+
+После слияния с автором или перед релизом:
+
+```bash
+MB=$(git merge-base main upstream/main)
+git diff --name-status $MB main | awk '{print $1}' | sort | uniq -c   # A — свои файлы, M — правки автора, D — удалённые
+git diff --name-status $MB main | awk '$1=="M"{print $2}'             # должен совпасть с таблицей правок выше
+git log --format='%h %ad %s' --date=short $MB..main -- <файл>         # коммиты форка по файлу
+```
+
+Если в списке `M` появился файл, которого нет в таблице, добавь строку. Если пропал — убери.
 
 ## Как забирать изменения автора
 
