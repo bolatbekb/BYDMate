@@ -216,8 +216,9 @@ object NowPlayingSource : MusicControls {
     private fun PlaybackState.CustomAction.toMediaAction() = MediaAction(
         action = action,
         name = name?.toString(),
-        active = extras?.takeIf { it.containsKey("active") }?.getBoolean("active"),
-        mode = extras?.takeIf { it.containsKey("mode") }?.getInt("mode"),
+        // Another app's extras can fail to unparcel (Android 12): unknown state, not a crash.
+        active = runCatching { extras?.takeIf { it.containsKey("active") }?.getBoolean("active") }.getOrNull(),
+        mode = runCatching { extras?.takeIf { it.containsKey("mode") }?.getInt("mode") }.getOrNull(),
     )
 
     /**

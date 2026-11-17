@@ -94,13 +94,12 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
         Box(Modifier.fillMaxWidth().height(px(cover))) {
             // The glow breathes in its own layer behind the cover (unclipped, so the blur shows).
             Box(Modifier.size(px(cover)).graphicsLayer().coverGlow(music.isPlaying && music.hasTrack, cover))
-            // The target is the track's face, not the per-second NowPlaying: Compose keeps an entry per
-            // target, and a new object every poll made them pile up. Only what changes with the track is
-            // in the face (the outgoing track keeps its own text and cover while it fades); the live
-            // state (playing) is read from the current music.
+            // The target is the track's identity (title / artist / album), not the per-second NowPlaying:
+            // Compose keeps an entry per target, so anything that changes within one track (a late cover
+            // or year) must stay out of it. Those are read live per child below.
             AnimatedContent(
                 targetState = music.face(),
-                contentKey = { it.key },
+                contentKey = { it },
                 transitionSpec = {
                     (fadeIn(tween(TRACK_MS)) + slideInVertically(tween(TRACK_MS)) { slide }) togetherWith fadeOut(tween(TRACK_MS)) using
                         SizeTransform(clip = false)
@@ -109,9 +108,16 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
                 label = "track",
             ) { face ->
                 val open = Modifier.openSource(face.hasTrack) { controls.openSource() }
+                // The current track shows the live cover and year (a late one updates in place, no
+                // cross-fade); an outgoing track keeps the last ones it showed while it fades.
+                val held = remember { HeldMedia() }
+                if (live.face() == face) {
+                    held.art = live.art
+                    held.year = live.year
+                }
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(px(30))) {
-                    Cover(face.art, cover, open)
-                    Meta(face, live.isPlaying, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)).then(open))
+                    Cover(held.art, cover, open)
+                    Meta(face, held.year, live.isPlaying, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)).then(open))
                 }
             }
         }
@@ -126,17 +132,18 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
 
 private const val TRACK_MS = 400
 
-/** What the cross-fade shows of a track; equal faces are the same target, so a poll adds no entry. */
-private data class TrackFace(
-    val title: String?, val artist: String?, val album: String?, val year: Int?, val art: Bitmap?,
-) {
+/** What makes a track a new one for the cross-fade; equal values are the same target, so a poll adds no entry. */
+private data class TrackFace(val title: String?, val artist: String?, val album: String?) {
     val hasTrack: Boolean get() = !title.isNullOrBlank()
-
-    /** What makes a track a new one for the cross-fade (the art arriving later updates in place). */
-    val key: Triple<String?, String?, String?> get() = Triple(title, artist, album)
 }
 
-private fun NowPlaying.face() = TrackFace(title, artist, album, year, art)
+private fun NowPlaying.face() = TrackFace(title, artist, album)
+
+/** The cover and year a track's child last showed (plain fields: read in the same composition that sets them). */
+private class HeldMedia {
+    var art: Bitmap? = null
+    var year: Int? = null
+}
 
 /**
  * A soft glow behind the cover (its 24-radius square, blur 28) whose alpha breathes 0.10 ↔ 0.28
@@ -197,7 +204,7 @@ private fun Cover(art: Bitmap?, side: Float, open: Modifier) {
 }
 
 @Composable
-private fun Meta(music: TrackFace, isPlaying: Boolean, modifier: Modifier) {
+private fun Meta(music: TrackFace, year: Int?, isPlaying: Boolean, modifier: Modifier) {
     val p = LocalGr.current
     Column(modifier, verticalArrangement = Arrangement.Bottom) {
         if (!music.hasTrack) {
@@ -220,7 +227,7 @@ private fun Meta(music: TrackFace, isPlaying: Boolean, modifier: Modifier) {
             Spacer(Modifier.height(px(12)))
             FitText(music.artist, grStyle(30f, 400, color = p.textSecondary, tnum = false), 30f, 22f, Modifier, lineBox = true)
         }
-        val sub = listOfNotNull(music.album?.takeIf { it.isNotBlank() }, music.year?.toString()).joinToString(" · ")
+        val sub = listOfNotNull(music.album?.takeIf { it.isNotBlank() }, year?.toString()).joinToString(" · ")
         if (sub.isNotEmpty()) {
             Spacer(Modifier.height(px(8)))
             FitText(sub, grStyle(22f, 400, color = p.textTertiary, tnum = false), 22f, 17f, Modifier, lineBox = true)
