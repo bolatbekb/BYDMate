@@ -79,26 +79,21 @@ fun grStyle(size: Float, weight: Int, tracking: Float = 0f, color: Color, tnum: 
     // DiLink: big tabular numbers in Rajdhani (as the cluster's speed), all other text in Roboto.
     val dilink = GraphiteLookState.font == GrFont.DILINK
     val numeral = dilink && tnum && size >= NUMERAL_MIN_SIZE
-    return grTextStyle(
-        size, if (numeral) 500 else weight, if (dilink) 0f else tracking, color, tnum,
-        when {
+    return TextStyle(
+        color = color,
+        fontFamily = when {
             numeral -> GrRajdhani
             dilink -> FontFamily.Default
             else -> GrInter
         },
+        fontWeight = FontWeight(if (numeral) 500 else weight),
+        fontSize = fs(size),
+        letterSpacing = fs(if (dilink) 0f else tracking),
+        lineHeight = fs(size * 1.2f),
+        lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
+        fontFeatureSettings = if (tnum) "tnum, cv11, ss01" else "cv11, ss01",
     )
 }
-
-private fun grTextStyle(size: Float, weight: Int, tracking: Float, color: Color, tnum: Boolean, family: FontFamily) = TextStyle(
-    color = color,
-    fontFamily = family,
-    fontWeight = FontWeight(weight),
-    fontSize = fs(size),
-    letterSpacing = fs(tracking),
-    lineHeight = fs(size * 1.2f),
-    lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.None),
-    fontFeatureSettings = if (tnum) "tnum, cv11, ss01" else "cv11, ss01",
-)
 
 /**
  * Card with the common padding (30 top/bottom, 34 sides): every header sits at the same height.
