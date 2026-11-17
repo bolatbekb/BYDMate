@@ -100,4 +100,21 @@ class EnergyBucketsTest {
         assertEquals(0.0, s.totalKwh, 0.0)
         assertNull(s.kwhPer100)
     }
+
+    @Test fun estimateFillsTodaysBucket() {
+        val e = TripEstimate(ts(18, 10), ts(18, 30), 12.4, 2.1, 0.6, null)
+        val s = EnergyBuckets.build(listOf(e.toRow()), ChartPeriod.WEEK, now)
+        assertEquals(2.1, s.kwh[6], 1e-9)
+        assertEquals(12.4, s.totalKm, 1e-9)
+        assertEquals(false, s.empty)
+    }
+
+    @Test fun confirmedEstimateIsNotCountedTwice() {
+        val db = trip(ts(17, 0), 10.0, 2.0).copy(endTs = ts(17, 40))
+        val rows = listOf(db.toRow())
+        val live = LiveTripState(finished = TripEstimate(ts(17, 5), ts(17, 39), 9.5, 1.9, null, null))
+        val pending = TripMatch.pending(live, rows, ts(18, 0)).map { it.toRow() }
+        val s = EnergyBuckets.build(rows + pending, ChartPeriod.WEEK, now)
+        assertEquals(2.0, s.totalKwh, 1e-9)
+    }
 }

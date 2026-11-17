@@ -24,12 +24,12 @@ data class EnergySeries(
     val period: ChartPeriod,
 )
 
-private fun TripEntity.km(): Double? = distanceKm?.takeIf { it.isFinite() && it > 0.0 }
+private fun TripRow.drivenKm(): Double? = km?.takeIf { it.isFinite() && it > 0.0 }
 
 /** Share of km driven on electricity, 0..100; null when no trip carries an engine-km figure. */
-private fun electricShare(trips: List<TripEntity>): Int? {
+private fun electricShare(trips: List<TripRow>): Int? {
     // km and engine km of the trips that have both
-    val pairs = trips.mapNotNull { t -> t.km()?.let { km -> t.hevKm?.takeIf { it.isFinite() }?.let { km to it } } }
+    val pairs = trips.mapNotNull { t -> t.drivenKm()?.let { km -> t.hevKm?.takeIf { it.isFinite() }?.let { km to it } } }
     if (pairs.isEmpty()) return null
     val dist = pairs.sumOf { it.first }
     val hev = pairs.sumOf { it.second }
@@ -38,33 +38,37 @@ private fun electricShare(trips: List<TripEntity>): Int? {
 
 object EnergyBuckets {
     /** [lang] names the week's days; the other periods label with numbers. */
-    fun build(trips: List<TripEntity>, period: ChartPeriod, now: ZonedDateTime, lang: GrLang = GrLang.RU): EnergySeries {
-        val startDate = ChartBuckets.windowStart(period, now).toLocalDate()
-        val n = when (period) {
-            ChartPeriod.DAY -> 12
-            ChartPeriod.WEEK -> 7
-            ChartPeriod.MONTH -> 30
-        }
-        val tally = EnergyTally(n)
-        for (t in trips) {
-            val km = t.km() ?: continue
-            val local = Instant.ofEpochMilli(t.startTs).atZone(now.zone)
-            ChartBuckets.bucketOf(local, period, startDate, n, hoursPerBucket = 2)?.let { tally.add(t, km, it) }
-        }
-        val labels = List(n) { i ->
-            when (period) {
-                ChartPeriod.DAY -> "%02d".format(i * 2)
-                ChartPeriod.WEEK -> lang.words.weekdays[startDate.plusDays(i.toLong()).dayOfWeek.value - 1]
-                ChartPeriod.MONTH -> startDate.plusDays(i.toLong()).dayOfMonth.toString()
-            }
-        }
-        val current = when (period) {
-            ChartPeriod.DAY -> now.hour / 2
-            ChartPeriod.WEEK -> 6
-            ChartPeriod.MONTH -> 29
-        }
-        return tally.series(labels, current, period)
+    fun build(trips: List<TripEntity>, period: ChartPeriod, now: ZonedDateTime, lang: GrLang = GrLang.RU): EnergySeries =
+        build(trips.map { it.toRow() }, period, now, lang)
+}
+
+/** The main build: recorded trips and estimates alike. A member overload wins for TripEntity lists. */
+fun EnergyBuckets.build(rows: List<TripRow>, period: ChartPeriod, now: ZonedDateTime, lang: GrLang = GrLang.RU): EnergySeries {
+    val startDate = ChartBuckets.windowStart(period, now).toLocalDate()
+    val n = when (period) {
+        ChartPeriod.DAY -> 12
+        ChartPeriod.WEEK -> 7
+        ChartPeriod.MONTH -> 30
     }
+    val tally = EnergyTally(n)
+    for (t in rows) {
+        val km = t.drivenKm() ?: continue
+        val local = Instant.ofEpochMilli(t.startMs).atZone(now.zone)
+        ChartBuckets.bucketOf(local, period, startDate, n, hoursPerBucket = 2)?.let { tally.add(t, km, it) }
+    }
+    val labels = List(n) { i ->
+        when (period) {
+            ChartPeriod.DAY -> "%02d".format(i * 2)
+            ChartPeriod.WEEK -> lang.words.weekdays[startDate.plusDays(i.toLong()).dayOfWeek.value - 1]
+            ChartPeriod.MONTH -> startDate.plusDays(i.toLong()).dayOfMonth.toString()
+        }
+    }
+    val current = when (period) {
+        ChartPeriod.DAY -> now.hour / 2
+        ChartPeriod.WEEK -> 6
+        ChartPeriod.MONTH -> 29
+    }
+    return tally.series(labels, current, period)
 }
 
 /** The sums of one [EnergyBuckets.build]: per bucket and over the window. */
@@ -77,13 +81,13 @@ private class EnergyTally(n: Int) {
     private var litKm = 0.0
     private var anyFuel = false
     private var totalKm = 0.0
-    private val used = ArrayList<TripEntity>()
+    private val used = ArrayList<TripRow>()
 
-    fun add(t: TripEntity, km: Double, i: Int) {
+    fun add(t: TripRow, km: Double, i: Int) {
         used += t
         totalKm += km
-        t.kwhConsumed?.takeIf { it.isFinite() }?.let { kwh[i] += it; kwhSum += it; kwhKm += km }
-        t.fuelLiters?.takeIf { it.isFinite() }?.let {
+        t.kwh?.takeIf { it.isFinite() }?.let { kwh[i] += it; kwhSum += it; kwhKm += km }
+        t.litres?.takeIf { it.isFinite() }?.let {
             litres[i] += it; litSum += it; litKm += km; anyFuel = true
         }
     }
@@ -118,14 +122,15 @@ object TodayStatsCalc {
         var ms = 0L; var kmDriven = 0.0
         var kwh = 0.0; var anyKwh = false
         var lit = 0.0; var anyFuel = false
-        for (t in trips) {
-            val end = t.endTs
-            if (end != null && end > t.startTs) {
-                ms += end - t.startTs
-                t.km()?.let { kmDriven += it }
+        val rows = trips.map { it.toRow() }
+        for (t in rows) {
+            val end = t.endMs
+            if (end != null && end > t.startMs) {
+                ms += end - t.startMs
+                t.drivenKm()?.let { kmDriven += it }
             }
-            t.kwhConsumed?.takeIf { it.isFinite() }?.let { kwh += it; anyKwh = true }
-            t.fuelLiters?.takeIf { it.isFinite() }?.let { lit += it; anyFuel = true }
+            t.kwh?.takeIf { it.isFinite() }?.let { kwh += it; anyKwh = true }
+            t.litres?.takeIf { it.isFinite() }?.let { lit += it; anyFuel = true }
         }
         val minutes = (ms / 60_000.0).roundToInt()
         // Finished trips only: km and hours must cover the same trips.
@@ -133,7 +138,7 @@ object TodayStatsCalc {
         return TodayStats(
             minutes = minutes,
             avgKmh = avg,
-            electricShare = if (anyFuel) electricShare(trips) else null,
+            electricShare = if (anyFuel) electricShare(rows) else null,
             kwh = if (anyKwh) kwh.coerceAtLeast(0.0) else null,
             litres = if (anyFuel) lit else null,
         )

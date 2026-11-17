@@ -93,7 +93,11 @@ class GraphiteViewModel @Inject constructor(
     val energy: StateFlow<EnergySeries?> = combine(_period, hour, lang) { p, _, l -> p to l }
         .flatMapLatest { (p, l) ->
             val now = ZonedDateTime.now(ZoneId.systemDefault())
-            window(p, now).map { EnergyBuckets.build(it, p, now, l) }
+            combine(window(p, now), LiveTrip.state) { trips, live ->
+                val rows = trips.map { it.toRow() }
+                val pending = TripMatch.pending(live, rows, System.currentTimeMillis()).map { it.toRow() }
+                EnergyBuckets.build(rows + pending, p, now, l)
+            }
         }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
