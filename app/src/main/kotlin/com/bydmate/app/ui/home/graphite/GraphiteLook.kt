@@ -113,6 +113,7 @@ object GraphiteLookState {
     private const val KEY_RELIEF = "graphite_relief"
     private const val KEY_EDGES = "graphite_edges25d"
     private const val KEY_FONT = "graphite_font"
+    private const val KEY_MEDIA_LEFT = "graphite_media_left"
 
     // The app skin's file (SkinState): read once here to move a Graphite skin over.
     private const val SKIN_PREFS = "bydmate_skin"
@@ -128,6 +129,10 @@ object GraphiteLookState {
     var edges25d: Boolean by mutableStateOf(false)
         private set
     var font: GrFont by mutableStateOf(GrFont.INTER)
+        private set
+
+    /** The player takes the top-left place and the range card the top-right one. */
+    var mediaLeft: Boolean by mutableStateOf(false)
         private set
 
     val look: GrLook get() = GrLook(material, relief, edges25d)
@@ -149,6 +154,7 @@ object GraphiteLookState {
             relief = GrRelief.fromId(prefs.getString(KEY_RELIEF, null))
             edges25d = prefs.getBoolean(KEY_EDGES, false)
             font = GrFont.fromId(prefs.getString(KEY_FONT, null))
+            mediaLeft = prefs.getBoolean(KEY_MEDIA_LEFT, false)
         }
     }
 
@@ -170,6 +176,11 @@ object GraphiteLookState {
     fun selectEdges25d(context: Context, on: Boolean) {
         edges25d = on
         prefs(context).edit().putBoolean(KEY_EDGES, on).apply()
+    }
+
+    fun selectMediaLeft(context: Context, on: Boolean) {
+        mediaLeft = on
+        prefs(context).edit().putBoolean(KEY_MEDIA_LEFT, on).apply()
     }
 
     fun selectFont(context: Context, value: GrFont) {

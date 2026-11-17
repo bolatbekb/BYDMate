@@ -72,22 +72,24 @@ import java.util.Locale
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-private const val COVER_SIDE = 264f
+/** Cover side (mockup px) in the regular and the compact card (compact: the PM2.5 line shortens the top cards). */
+internal fun coverSide(compact: Boolean): Float = if (compact) 192f else 230f
 
 /** «Медиа» card: source pill, cover and title, progress, transport row and media volume. */
 @Composable
-fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
+fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modifier: Modifier) {
+    val cover = coverSide(compact)
     val volume = rememberVolume()
     CardBody(modifier) {
         val label = music.sourceLabel
         CardHeader(R.drawable.gr_ic_note, label ?: stringResource(R.string.home_gr_media_title))
-        Spacer(Modifier.height(px(22)))
+        Spacer(Modifier.height(px(if (compact) 14 else 22)))
         val slide = with(LocalDensity.current) { px(12).roundToPx() }
         // A new track cross-fades the cover and the text, the new one rising 12 px; the same
         // track (play / pause, position) updates in place.
-        Box(Modifier.fillMaxWidth().height(px(COVER_SIDE))) {
+        Box(Modifier.fillMaxWidth().height(px(cover))) {
             // The glow breathes in its own layer behind the cover (unclipped, so the blur shows).
-            Box(Modifier.size(px(COVER_SIDE)).graphicsLayer().coverGlow(music.isPlaying && music.hasTrack))
+            Box(Modifier.size(px(cover)).graphicsLayer().coverGlow(music.isPlaying && music.hasTrack, cover))
             AnimatedContent(
                 targetState = music,
                 contentKey = { it.trackKey() },
@@ -99,17 +101,17 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, modifier: Modifier) {
                 label = "track",
             ) { m ->
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(px(30))) {
-                    Cover(m)
+                    Cover(m, cover)
                     Meta(m, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)))
                 }
             }
         }
-        Spacer(Modifier.height(px(28)))
+        Spacer(Modifier.height(px(if (compact) 18 else 24)))
         Progress(music)
         Spacer(Modifier.height(px(6)))
-        Controls(music, controls)
+        Controls(music, controls, compact)
         Spacer(Modifier.weight(1f).heightIn(min = px(14)))
-        MediaVolume(volume)
+        MediaVolume(volume, compact)
     }
 }
 
@@ -124,7 +126,7 @@ private fun NowPlaying.trackKey(): Triple<String?, String?, String?> = Triple(ti
  * Electric, or ProgressEnd on Soft, where Electric is mint.
  */
 @Composable
-private fun Modifier.coverGlow(on: Boolean): Modifier {
+private fun Modifier.coverGlow(on: Boolean, coverSide: Float): Modifier {
     val p = LocalGr.current
     val color = if (p == GrSoft) p.progressEnd else p.highlight
     val fade by animateFloatAsState(if (on) 1f else 0f, tween(GLOW_FADE_MS), label = "glowFade")
@@ -138,7 +140,7 @@ private fun Modifier.coverGlow(on: Boolean): Modifier {
     val last = remember { floatArrayOf(GLOW_MIN) } // the breath to fade out from
     return this.drawWithCache {
         val u = px(1).toPx()
-        val side = px(COVER_SIDE).toPx()
+        val side = px(coverSide).toPx()
         val r = 24 * u
         val paint = blurPaint(color, 28 * u)
         onDrawBehind {
@@ -158,18 +160,18 @@ private const val GLOW_HALF_MS = 2_000
 private const val GLOW_FADE_MS = 400
 
 @Composable
-private fun Cover(music: NowPlaying) {
+private fun Cover(music: NowPlaying, side: Float) {
     val p = LocalGr.current
     val art = music.art
     if (art != null) {
         val image = remember(art) { art.asImageBitmap() }
         Image(
             image, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.size(px(COVER_SIDE)).clip(RoundedCornerShape(px(24)))
+            modifier = Modifier.size(px(side)).clip(RoundedCornerShape(px(24)))
                 .border(px(1), Color.White.copy(alpha = 0.08f), RoundedCornerShape(px(24))),
         )
     } else {
-        InsetBox(24f, Modifier.size(px(COVER_SIDE))) {
+        InsetBox(24f, Modifier.size(px(side))) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 GrIcon(R.drawable.gr_ic_note, 72f, p.textTertiary)
             }

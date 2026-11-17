@@ -55,6 +55,19 @@ import kotlinx.coroutines.delay
 
 private const val ONLINE_TICK_MS = 5_000L
 
+/** Width of both side columns (mockup px); the centre keeps what 790 + 820 left it. */
+internal const val SIDE_COLUMN = 805f
+
+/** Temps and Trip share one height: 366 with the PM2.5 line, 290 without. */
+internal fun bottomCardHeight(hasPmRow: Boolean): Float = if (hasPmRow) 366f else 290f
+
+/** The cards that swap places in the top row of the side columns. */
+internal enum class SideCard { RANGE, MEDIA }
+
+/** (left, right) top cards; with [mediaLeft] the player and the range card swap. */
+internal fun topCards(mediaLeft: Boolean): Pair<SideCard, SideCard> =
+    if (mediaLeft) SideCard.MEDIA to SideCard.RANGE else SideCard.RANGE to SideCard.MEDIA
+
 /**
  * The Graphite home (tools/graphite/design): top bar, six cards on the SPEC §2 grid, the menu.
  * The palette and the card look follow GraphiteLookState (Settings); live values redraw at most
@@ -97,18 +110,26 @@ fun GraphiteHome(
                 // The six cards. Tasks 6–9 swap each *Slot call here for its card (same arguments).
                 Row(Modifier.fillMaxWidth().weight(1f), horizontalArrangement = Arrangement.spacedBy(px(20))) {
                     val hasFuelTank = data.fuelPercent != null || tankL != null
-                    Column(Modifier.width(px(790)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
-                        // The PM2.5 line makes the temperatures 76 taller; the range card above gives the room.
-                        RangeCard(data, soh, tankL, capacityKwh, compact = pmSides != null, Modifier.fillMaxWidth().weight(1f))
-                        TempsCard(data, pmSides, Modifier.fillMaxWidth().height(px(if (pmSides != null) 290 + 76 else 290)))
+                    val (leftTop, rightTop) = topCards(GraphiteLookState.mediaLeft)
+                    val bottomH = px(bottomCardHeight(pmSides != null))
+                    // Both side columns: the top card takes the rest, Temps and Trip share one height
+                    // (the PM2.5 line makes both taller; the top cards give the room).
+                    @Composable
+                    fun TopCard(card: SideCard, modifier: Modifier) = when (card) {
+                        SideCard.RANGE -> RangeCard(data, soh, tankL, capacityKwh, compact = pmSides != null, modifier)
+                        SideCard.MEDIA -> MediaCard(music, controls, compact = pmSides != null, modifier)
+                    }
+                    Column(Modifier.width(px(SIDE_COLUMN)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
+                        TopCard(leftTop, Modifier.fillMaxWidth().weight(1f))
+                        TempsCard(data, pmSides, Modifier.fillMaxWidth().height(bottomH))
                     }
                     Column(Modifier.weight(1f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         GalleryCard(Modifier.fillMaxWidth().height(px(404)))
                         EnergyCard(energy, period, vm::select, hasFuelTank, Modifier.fillMaxWidth().weight(1f))
                     }
-                    Column(Modifier.width(px(820)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
-                        MediaCard(music, controls, Modifier.fillMaxWidth().weight(1f))
-                        TripCard(trip, hasFuelTank, Modifier.fillMaxWidth().height(px(252)))
+                    Column(Modifier.width(px(SIDE_COLUMN)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
+                        TopCard(rightTop, Modifier.fillMaxWidth().weight(1f))
+                        TripCard(trip, hasFuelTank, tall = pmSides != null, Modifier.fillMaxWidth().height(bottomH))
                     }
                 }
                 BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)))

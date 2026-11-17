@@ -52,7 +52,7 @@ import com.bydmate.app.ui.home.common.px
 import kotlin.math.roundToInt
 
 @Composable
-internal fun Controls(music: NowPlaying, controls: MusicControls) {
+internal fun Controls(music: NowPlaying, controls: MusicControls, compact: Boolean = false) {
     val p = LocalGr.current
     Row(
         Modifier.fillMaxWidth().padding(horizontal = px(6)),
@@ -65,7 +65,7 @@ internal fun Controls(music: NowPlaying, controls: MusicControls) {
         CtrlButton(R.drawable.gr_ic_prev, 44f, p.textPrimary, true) { controls.previous() }
         val playSource = remember { MutableInteractionSource() }
         Box(
-            Modifier.size(px(112)).pressScale(playSource, true).clip(CircleShape)
+            Modifier.size(px(if (compact) 96 else 112)).pressScale(playSource, true).clip(CircleShape)
                 .background(Brush.verticalGradient(listOf(p.playTop, p.playBottom)))
                 .clickable(interactionSource = playSource, indication = null) { controls.playPause() },
             contentAlignment = Alignment.Center,
@@ -131,12 +131,12 @@ private const val VOL_KNOB = 14f
 
 /** The media volume row in its sunken block; the whole block takes the touch, not just the 28 px bar. */
 @Composable
-internal fun MediaVolume(volume: GrVolume) {
+internal fun MediaVolume(volume: GrVolume, compact: Boolean = false) {
     val p = LocalGr.current
     val ctx = LocalContext.current
     InsetBox(26f, Modifier.fillMaxWidth().volumeInput(volume) { v -> GraphiteVolume.set(ctx, v) }) {
         Row(
-            Modifier.fillMaxWidth().padding(horizontal = px(VOL_PAD), vertical = px(18)),
+            Modifier.fillMaxWidth().padding(horizontal = px(VOL_PAD), vertical = px(if (compact) 14 else 18)),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(px(VOL_GAP)),
         ) {

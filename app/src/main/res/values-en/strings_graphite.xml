@@ -31,4 +31,6 @@
     <string name="home_gr_set_relief">Relief</string>
     <string name="home_gr_set_edges">2.5D edges</string>
     <string name="home_gr_set_edges_desc">A rounded bevel along the card edges, like 2.5D glass</string>
+    <string name="home_gr_set_media_left">Player on the left</string>
+    <string name="home_gr_set_media_left_desc">Swaps the range and the player</string>
 </resources>

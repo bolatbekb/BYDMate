@@ -31,4 +31,6 @@
     <string name="home_gr_set_relief">Рэльеф</string>
     <string name="home_gr_set_edges">Краі 2.5D</string>
     <string name="home_gr_set_edges_desc">Закруглены скос па краі картак, як у шкла 2.5D</string>
+    <string name="home_gr_set_media_left">Плэер злева</string>
+    <string name="home_gr_set_media_left_desc">Мяняе месцамі запас ходу і плэер</string>
 </resources>

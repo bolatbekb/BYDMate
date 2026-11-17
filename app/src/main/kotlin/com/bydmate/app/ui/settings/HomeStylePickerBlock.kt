@@ -91,4 +91,10 @@ private fun GraphiteLookRows() {
         checked = GraphiteLookState.edges25d,
         onCheckedChange = { GraphiteLookState.selectEdges25d(context, it) },
     )
+    SettingToggleRow(
+        title = stringResource(R.string.home_gr_set_media_left),
+        description = stringResource(R.string.home_gr_set_media_left_desc),
+        checked = GraphiteLookState.mediaLeft,
+        onCheckedChange = { GraphiteLookState.selectMediaLeft(context, it) },
+    )
 }

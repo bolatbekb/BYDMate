@@ -31,4 +31,6 @@
     <string name="home_gr_set_relief">Profil</string>
     <string name="home_gr_set_edges">Krawędzie 2.5D</string>
     <string name="home_gr_set_edges_desc">Zaokrąglony skos na krawędziach kart, jak w szkle 2.5D</string>
+    <string name="home_gr_set_media_left">Odtwarzacz po lewej</string>
+    <string name="home_gr_set_media_left_desc">Zamienia miejscami zasięg i odtwarzacz</string>
 </resources>

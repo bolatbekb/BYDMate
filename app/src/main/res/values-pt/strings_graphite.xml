@@ -31,4 +31,6 @@
     <string name="home_gr_set_relief">Relevo</string>
     <string name="home_gr_set_edges">Bordas 2.5D</string>
     <string name="home_gr_set_edges_desc">Chanfro arredondado nas bordas dos cartões, como o vidro 2.5D</string>
+    <string name="home_gr_set_media_left">Leitor à esquerda</string>
+    <string name="home_gr_set_media_left_desc">Troca de lugar a autonomia e o leitor</string>
 </resources>

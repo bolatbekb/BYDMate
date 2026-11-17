@@ -69,9 +69,12 @@ object TripCardCalc {
     }
 }
 
-/** «Текущая поездка» / «Последняя поездка» card: km on the left, up to four stats in a 2x2 grid on the right. */
+/**
+ * «Текущая поездка» / «Последняя поездка» card: km on the left, up to four stats in a 2x2 grid on the right.
+ * [tall]: the 366 px card (PM2.5 shown) opens the stat rows 28 apart instead of 18.
+ */
 @Composable
-fun TripCard(model: TripCardModel, hasFuelTank: Boolean, modifier: Modifier) {
+fun TripCard(model: TripCardModel, hasFuelTank: Boolean, tall: Boolean, modifier: Modifier) {
     val p = LocalGr.current
     val lang = LocalGrLang.current
     val cells = tripCells(model, hasFuelTank, p.electric, p.textPrimary, lang)
@@ -94,7 +97,7 @@ fun TripCard(model: TripCardModel, hasFuelTank: Boolean, modifier: Modifier) {
                 }
             }
             Spacer(Modifier.width(px(28)))
-            Column(Modifier.weight(1.25f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(18), Alignment.CenterVertically)) {
+            Column(Modifier.weight(1.25f).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(if (tall) 28 else 18), Alignment.CenterVertically)) {
                 for (row in cells.chunked(2)) {
                     Row(Modifier.fillMaxWidth().height(IntrinsicSize.Min), horizontalArrangement = Arrangement.spacedBy(px(26))) {
                         // an odd last cell takes the whole row: a hidden stat leaves no hole
