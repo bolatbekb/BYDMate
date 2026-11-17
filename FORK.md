@@ -111,7 +111,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | `data/local/EnergyDataReader.kt` | кеш `isAvailable()` | +11/−0 | `353c5775` (2026-11-15) |
 | `data/loop/SharedAdaptiveLoop.kt` | параметр `screenOn` и `nextInterval()` | +10/−2 | `353c5775` (2026-11-15) → `92007d9b` (2026-11-15) |
 | `test/.../SettingsViewModelTest.kt` | эталонная шапка лога: из сравнения убраны строки `display…` форка | +2/−0 | `879f279c` (2026-11-15) → `606b78ae` (2026-11-15) |
-| `res/values/themes.xml` | тёмный фон окна при запуске вместо белого светлой темы (`fork_window_background` в `colors_fork.xml`), владелец 2026-11-17 | +4/−1 | этот коммит (2026-11-17) |
+| `res/values/themes.xml` | тёмный фон окна при запуске вместо белого светлой темы (`fork_window_background` в `colors_fork.xml`), владелец 2026-11-17 | +4/−1 | `f3113624` (2026-11-17) |
 
 ### Что форк добавил своими файлами
 
