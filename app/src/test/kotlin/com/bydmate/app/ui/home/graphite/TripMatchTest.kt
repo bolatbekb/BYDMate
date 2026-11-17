@@ -43,9 +43,9 @@ class TripMatchTest {
             base = TripCounters(100.0, null, null, null), latest = TripCounters(100.05, null, null, null),
         )
         val fin = est(t(8, 5), t(8, 39))
-        assertTrue(TripMatch.pending(LiveTripState(open, fin), recorded, t(10, 6)).isEmpty())
+        assertTrue(TripMatch.pending(LiveTripState(open, listOf(fin)), recorded, t(10, 6)).isEmpty())
         val moved = open.copy(latest = TripCounters(103.2, null, null, null))
-        val p = TripMatch.pending(LiveTripState(moved, fin), recorded, t(10, 6))
+        val p = TripMatch.pending(LiveTripState(moved, listOf(fin)), recorded, t(10, 6))
         assertEquals(1, p.size)
         assertEquals(t(10, 6), p[0].endMs)
         assertEquals(3.2, p[0].km, 1e-9)

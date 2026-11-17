@@ -44,20 +44,20 @@ object TripCardCalc {
     /** [today] — recorded trips of today (rows); [dayStartMs] — local midnight. */
     fun from(live: LiveTripState, today: List<TripRow>, dayStartMs: Long): TripCardModel {
         val open = live.open?.estimate()
-        if (open != null && open.km >= LiveTripTracker.MOVED_KM) {
+        if (open != null && movedKm(open.km)) {
             return model(TripCardMode.CURRENT, open.toRow())
         }
         val recorded = today.filter { (it.km ?: 0.0) > 0.0 }
-        val finished = live.finished?.takeIf {
+        val finished = live.finished.filter {
             it.startMs >= dayStartMs && it.km > 0.0 && !TripMatch.confirmed(it, today)
-        }?.toRow()
-        val last = (recorded + listOfNotNull(finished)).maxByOrNull { it.startMs }
+        }.map { it.toRow() }
+        val last = (recorded + finished).maxByOrNull { it.startMs }
         return if (last == null) TripCardModel.EMPTY else model(TripCardMode.LAST, last)
     }
 
     private fun model(mode: TripCardMode, r: TripRow): TripCardModel {
         val km = r.km
-        val minutes = r.endMs?.let { ((it - r.startMs) / 60_000L).toInt() }
+        val minutes = r.endMs?.let { ((it - r.startMs) / 60_000L).toInt() }?.takeIf { it >= 0 }
         val avg = if (km != null && km > 0.0) minutes?.takeIf { it > 0 }?.let { (km / (it / 60.0)).roundToInt() } else null
         val share = if (r.hevKm != null && km != null && km > 0.0) {
             (100.0 * (1.0 - r.hevKm / km)).roundToInt().coerceIn(0, 100)

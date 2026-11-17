@@ -32,8 +32,8 @@ object TripMatch {
         else minOf(end, e.endMs) - maxOf(r.startMs, e.startMs) > MIN_OVERLAP_MS
     }
 
-    /** The open session (its estimate up to [nowMs]) and the finished one that moved and are not recorded yet. */
+    /** The open session (its estimate up to [nowMs]) and the finished ones that moved and are not recorded yet. */
     fun pending(live: LiveTripState, recorded: List<TripRow>, nowMs: Long): List<TripEstimate> =
-        listOfNotNull(live.open?.estimate()?.copy(endMs = nowMs), live.finished)
-            .filter { it.km >= LiveTripTracker.MOVED_KM && !confirmed(it, recorded) }
+        (listOfNotNull(live.open?.estimate()?.copy(endMs = nowMs)) + live.finished)
+            .filter { movedKm(it.km) && !confirmed(it, recorded) }
 }
