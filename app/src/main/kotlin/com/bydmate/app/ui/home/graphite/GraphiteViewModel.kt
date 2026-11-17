@@ -97,12 +97,11 @@ class GraphiteViewModel @Inject constructor(
             combine(window(p, now), LiveTrip.state) { trips, live ->
                 val rows = trips.map { it.toRow() }
                 val pending = TripMatch.pending(live, rows, System.currentTimeMillis()).map { it.toRow() }
-                EnergyBuckets.build(rows + pending, p, now, l)
+                EnergyBuckets.build(rows + pending, p, now, l).also { GraphiteWarm.energy[EnergyKey(p, l)] = it }
             }
         }
-        .onEach { GraphiteWarm.energy[it.period] = it }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.energy[_period.value])
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.energy[EnergyKey(_period.value, lang.value)])
 
     /** The trip card: today's recorded trips + the live session; the day rolls over with [date]. */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -147,7 +146,7 @@ class GraphiteViewModel @Inject constructor(
     val pm25: StateFlow<Pm25?> = flow {
         while (true) {
             val read = if (demo) Result.success(DEMO_PM25) else runCatching { pm25Reader.read() }
-            read.onSuccess { GraphiteWarm.pm25 = it?.let(Pm25Memo::Reading) ?: Pm25Memo.None }
+            read.onSuccess { GraphiteWarm.onPmRead(it) }
             emit(warmPm())
             delay(PM25_POLL_MS)
         }

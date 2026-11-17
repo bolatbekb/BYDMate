@@ -20,6 +20,19 @@ internal data class WarmPrefs(
     val capacityKwh: Double?,
 )
 
+/**
+ * The PM2.5 memo after one more read. A null read also happens while the autoservice is not connected yet, so
+ * "no sensor" is stored only after two nulls in a row; one null keeps [current]. Returns the memo and the new count.
+ */
+internal fun nextPmMemo(current: Pm25Memo, read: Pm25?, nullsInARow: Int): Pair<Pm25Memo, Int> {
+    if (read != null) return Pm25Memo.Reading(read) to 0
+    val nulls = nullsInARow + 1
+    return (if (nulls >= 2) Pm25Memo.None else current) to nulls
+}
+
+/** Key of a warm energy series: its labels depend on the app language. */
+internal data class EnergyKey(val period: ChartPeriod, val lang: GrLang)
+
 /** Pure text codec of [WarmPrefs]: `W1|pm|soh|tank|capacity|E`; any damage decodes to the empty value. */
 internal object GraphiteWarmCodec {
     private const val HEAD = "W1"
@@ -70,68 +83,65 @@ internal object GraphiteWarmCodec {
 /**
  * The last known Graphite values, for the whole process: the home's ViewModel starts from them so the first
  * frame has the final layout. PM2.5, SOH and the capacities survive a restart in prefs (written only when one
- * changes); the energy series and the trip card live in memory only.
+ * changes); the energy series and the trip card live in memory only. Safe to use from any thread.
  */
 object GraphiteWarm {
     private const val PREFS = "bydmate_graphite_warm"
     private const val PREFS_DEMO = "bydmate_graphite_warm_demo"
     private const val KEY = "state"
 
+    private val lock = Any()
     private var prefs: android.content.SharedPreferences? = null
     private var started = false
     private var saved: String? = null
 
-    internal var pm25: Pm25Memo = Pm25Memo.Unknown
-        set(value) {
-            if (field != value) {
-                field = value
-                save()
-            }
-        }
-    var sohPercent: Float? = null
-        set(value) {
-            if (field != value) {
-                field = value
-                save()
-            }
-        }
-    var tankL: Double? = null
-        set(value) {
-            if (field != value) {
-                field = value
-                save()
-            }
-        }
-    var capacityKwh: Double? = null
-        set(value) {
-            if (field != value) {
-                field = value
-                save()
-            }
-        }
+    @Volatile internal var pm25: Pm25Memo = Pm25Memo.Unknown
+        set(value) = change { if (field != value) { field = value; true } else false }
+    @Volatile var sohPercent: Float? = null
+        set(value) = change { if (field != value) { field = value; true } else false }
+    @Volatile var tankL: Double? = null
+        set(value) = change { if (field != value) { field = value; true } else false }
+    @Volatile var capacityKwh: Double? = null
+        set(value) = change { if (field != value) { field = value; true } else false }
 
-    val energy: MutableMap<ChartPeriod, EnergySeries> = java.util.concurrent.ConcurrentHashMap()
+    /** Consecutive empty PM2.5 reads in this process (see [nextPmMemo]). */
+    @Volatile internal var pmNullsInARow: Int = 0
+
+    internal val energy: MutableMap<EnergyKey, EnergySeries> = java.util.concurrent.ConcurrentHashMap()
     @Volatile var trip: TripCardModel? = null
 
     /** The period the chart showed last in this process; the chart grows in only when it changes. */
     @Volatile var lastShownPeriod: ChartPeriod? = null
 
-    fun init(context: Context) {
+    /** Applies one more PM2.5 read to the memo. */
+    internal fun onPmRead(read: Pm25?) = synchronized(lock) {
+        val (memo, nulls) = nextPmMemo(pm25, read, pmNullsInARow)
+        pmNullsInARow = nulls
+        pm25 = memo
+    }
+
+    fun init(context: Context): Unit = synchronized(lock) {
         if (started) return
         started = true
         val name = if (DemoMode.isOn(context)) PREFS_DEMO else PREFS
-        prefs = runCatching { context.applicationContext.getSharedPreferences(name, Context.MODE_PRIVATE) }.getOrNull()
-        val raw = runCatching { prefs?.getString(KEY, null) }.getOrNull()
+        val p = runCatching { context.applicationContext.getSharedPreferences(name, Context.MODE_PRIVATE) }.getOrNull()
+        val raw = runCatching { p?.getString(KEY, null) }.getOrNull()
         val w = GraphiteWarmCodec.decode(raw)
         saved = raw
+        // prefs is still null here, so the assignments do not write; one save at the end.
         // Values already recorded before init win over the stored ones.
         if (pm25 == Pm25Memo.Unknown) pm25 = w.pm25
         if (sohPercent == null) sohPercent = w.sohPercent
         if (tankL == null) tankL = w.tankL
         if (capacityKwh == null) capacityKwh = w.capacityKwh
+        prefs = p
+        save()
     }
 
-    private fun save() {
+    /** Runs a setter body under the lock; saves when it reports a change. */
+    private inline fun change(body: () -> Boolean): Unit = synchronized(lock) { if (body()) save() }
+
+    private fun save(): Unit = synchronized(lock) {
         val p = prefs ?: return
         val text = GraphiteWarmCodec.encode(WarmPrefs(pm25, sohPercent, tankL, capacityKwh))
         if (text == saved) return

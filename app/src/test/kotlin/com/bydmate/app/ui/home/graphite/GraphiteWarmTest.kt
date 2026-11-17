@@ -26,4 +26,23 @@ class GraphiteWarmTest {
         val x = WarmPrefs(Pm25Memo.Reading(Pm25(12, null, 1, null)), null, null, null)
         assertEquals(x, GraphiteWarmCodec.decode(GraphiteWarmCodec.encode(x)))
     }
+
+    private val pm = Pm25(12, 35, 1, 2)
+
+    @Test fun oneNullKeepsReading() {
+        assertEquals(Pm25Memo.Reading(pm) to 1, nextPmMemo(Pm25Memo.Reading(pm), null, 0))
+    }
+
+    @Test fun twoNullsMakeNone() {
+        assertEquals(Pm25Memo.None to 2, nextPmMemo(Pm25Memo.Reading(pm), null, 1))
+    }
+
+    @Test fun oneNullKeepsUnknown() {
+        assertEquals(Pm25Memo.Unknown to 1, nextPmMemo(Pm25Memo.Unknown, null, 0))
+    }
+
+    @Test fun readingAfterNoneAndResetsCounter() {
+        assertEquals(Pm25Memo.Reading(pm) to 0, nextPmMemo(Pm25Memo.None, pm, 5))
+        assertEquals(Pm25Memo.Reading(pm) to 1, nextPmMemo(Pm25Memo.Reading(pm), null, 0))
+    }
 }
