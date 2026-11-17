@@ -108,39 +108,3 @@ private class EnergyTally(n: Int) {
         period = period,
     )
 }
-
-data class TodayStats(
-    val minutes: Int,
-    val avgKmh: Int?,
-    val electricShare: Int?,
-    val kwh: Double?,
-    val litres: Double?,
-)
-
-object TodayStatsCalc {
-    fun from(trips: List<TripEntity>): TodayStats {
-        var ms = 0L; var kmDriven = 0.0
-        var kwh = 0.0; var anyKwh = false
-        var lit = 0.0; var anyFuel = false
-        val rows = trips.map { it.toRow() }
-        for (t in rows) {
-            val end = t.endMs
-            if (end != null && end > t.startMs) {
-                ms += end - t.startMs
-                t.drivenKm()?.let { kmDriven += it }
-            }
-            t.kwh?.takeIf { it.isFinite() }?.let { kwh += it; anyKwh = true }
-            t.litres?.takeIf { it.isFinite() }?.let { lit += it; anyFuel = true }
-        }
-        val minutes = (ms / 60_000.0).roundToInt()
-        // Finished trips only: km and hours must cover the same trips.
-        val avg = if (minutes > 0 && kmDriven > 0.0) (kmDriven / (ms / 3_600_000.0)).roundToInt() else null
-        return TodayStats(
-            minutes = minutes,
-            avgKmh = avg,
-            electricShare = if (anyFuel) electricShare(rows) else null,
-            kwh = if (anyKwh) kwh.coerceAtLeast(0.0) else null,
-            litres = if (anyFuel) lit else null,
-        )
-    }
-}

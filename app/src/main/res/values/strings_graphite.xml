@@ -21,7 +21,8 @@
     <string name="home_gr_no_music">Нет музыки</string>
     <string name="home_gr_now_playing">Сейчас играет</string>
     <string name="home_gr_paused">Пауза</string>
-    <string name="home_gr_today_title">Пробег сегодня</string>
+    <string name="home_gr_trip_current">Текущая поездка</string>
+    <string name="home_gr_trip_last">Последняя поездка</string>
     <string name="home_gr_set_scheme">Цветовая схема</string>
     <string name="home_gr_set_scheme_desc">Цвета главной Graphite; остальное приложение — по «Оформлению»</string>
     <string name="home_gr_set_material">Материал</string>

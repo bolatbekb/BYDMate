@@ -21,7 +21,8 @@
     <string name="home_gr_no_music">Няма музыкі</string>
     <string name="home_gr_now_playing">Зараз грае</string>
     <string name="home_gr_paused">Паўза</string>
-    <string name="home_gr_today_title">Прабег сёння</string>
+    <string name="home_gr_trip_current">Бягучая паездка</string>
+    <string name="home_gr_trip_last">Апошняя паездка</string>
     <string name="home_gr_set_scheme">Каляровая схема</string>
     <string name="home_gr_set_scheme_desc">Колеры галоўнага экрана Graphite; астатняя праграма — па «Афармленні»</string>
     <string name="home_gr_set_material">Матэрыял</string>

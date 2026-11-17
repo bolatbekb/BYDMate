@@ -21,7 +21,8 @@
     <string name="home_gr_no_music">Sem música</string>
     <string name="home_gr_now_playing">Tocando agora</string>
     <string name="home_gr_paused">Pausado</string>
-    <string name="home_gr_today_title">Percorrido hoje</string>
+    <string name="home_gr_trip_current">Viagem atual</string>
+    <string name="home_gr_trip_last">Última viagem</string>
     <string name="home_gr_set_scheme">Esquema de cores</string>
     <string name="home_gr_set_scheme_desc">Cores da tela inicial Graphite; o resto do aplicativo segue “Aparência”</string>
     <string name="home_gr_set_material">Material</string>

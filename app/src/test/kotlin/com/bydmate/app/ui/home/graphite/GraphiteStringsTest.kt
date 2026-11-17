@@ -56,7 +56,6 @@ class GraphiteStringsTest {
         assertEquals("68% на электротяге", ctx.getString(R.string.home_gr_energy_ev_share, "68"))
         assertEquals("Одометр 12 345 км", ctx.getString(R.string.home_gr_odometer, "12 345 км"))
         assertEquals("До 100%", ctx.getString(R.string.home_gr_footer_to_full))
-        assertEquals("Пробег сегодня", ctx.getString(R.string.home_gr_today_title))
         assertEquals(
             "Цвета главной Graphite; остальное приложение — по «Оформлению»",
             ctx.getString(R.string.home_gr_set_scheme_desc),

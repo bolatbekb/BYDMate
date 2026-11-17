@@ -75,6 +75,13 @@ class GraphiteViewModel @Inject constructor(
         }
     }.distinctUntilChanged()
 
+    private val minute = flow {
+        while (true) {
+            emit(Unit)
+            delay(60_000)
+        }
+    }
+
     /** Trips of [p]'s window. getByDateRange is inclusive on both ends, hence end - 1. */
     private fun window(p: ChartPeriod, now: ZonedDateTime) = tripDao.getByDateRange(
         ChartBuckets.windowStart(p, now).toInstant().toEpochMilli(),
@@ -102,12 +109,19 @@ class GraphiteViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    /** The trip card: today's recorded trips + the live session; the day rolls over with [date]. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    val today: StateFlow<TodayStats?> = date
-        .flatMapLatest { window(ChartPeriod.DAY, ZonedDateTime.now(ZoneId.systemDefault())) }
-        .map { trips -> TodayStatsCalc.from(trips) }
+    val trip: StateFlow<TripCardModel> = date
+        .flatMapLatest {
+            val zone = ZoneId.systemDefault()
+            val now = ZonedDateTime.now(zone)
+            val dayStart = now.toLocalDate().atStartOfDay(zone).toInstant().toEpochMilli()
+            combine(window(ChartPeriod.DAY, now), LiveTrip.state, minute) { trips, live, _ ->
+                TripCardCalc.from(live, trips.map { it.toRow() }, System.currentTimeMillis(), dayStart)
+            }
+        }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TripCardModel.EMPTY)
 
     // The last good SOH and when it was read: kept across WhileSubscribed restarts, so returning to
     // the screen neither re-reads before 10 min nor loses the value to a failed read.

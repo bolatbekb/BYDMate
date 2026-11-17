@@ -133,12 +133,12 @@ class GraphiteLocaleTest {
         assertEquals("13.8", voltageText(13.84, GrLang.EN))
     }
 
-    @Test fun todayCellsInEnglish() {
-        val s = TodayStats(minutes = 72, avgKmh = 39, electricShare = 68, kwh = 8.4, litres = 2.1)
-        val cells = todayCells(s, hasFuelTank = true, electric = Color.Green, primary = Color.White, lang = GrLang.EN)
+    @Test fun tripCellsInEnglish() {
+        val s = TripCardModel(TripCardMode.CURRENT, 40.0, 72, 39, 68, 8.4, 2.1)
+        val cells = tripCells(s, hasFuelTank = true, electric = Color.Green, primary = Color.White, lang = GrLang.EN)
         assertEquals(listOf("1 h 12 min", "68%", "39 km/h", "8.4 · 2.1"), cells.map { it.value })
         assertEquals(listOf("on the road", "electric", "avg speed", "kWh · l"), cells.map { it.label })
-        val zh = todayCells(null, hasFuelTank = false, electric = Color.Green, primary = Color.White, lang = GrLang.ZH)
+        val zh = tripCells(TripCardModel.EMPTY, hasFuelTank = false, electric = Color.Green, primary = Color.White, lang = GrLang.ZH)
         assertEquals("千瓦时", zh.last().label)
     }
 
@@ -171,7 +171,7 @@ class GraphiteLocaleTest {
             ) + (1..4).mapNotNull { pm25Quality(it, lang)?.first } +
                 GrMaterial.entries.map { it.title(lang) } + GrRelief.entries.map { it.title(lang) } +
                 listOf("tech_panel", "trips", "charges", "automation", "settings").map { menuItem(it, "x", lang).second } +
-                todayCells(null, true, Color.Green, Color.White, lang).flatMap { listOf(it.value, it.label) } +
+                tripCells(TripCardModel.EMPTY, true, Color.Green, Color.White, lang).flatMap { listOf(it.value, it.label) } +
                 lang.words.let { listOf(it.km, it.kwh, it.litre, it.kmh, it.rpm, it.cabin, it.outside) }
             for (t in texts) assertEquals("$lang: $t", false, t.cyrillic())
         }

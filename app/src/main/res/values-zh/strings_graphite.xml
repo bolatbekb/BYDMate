@@ -21,7 +21,8 @@
     <string name="home_gr_no_music">暂无音乐</string>
     <string name="home_gr_now_playing">正在播放</string>
     <string name="home_gr_paused">已暂停</string>
-    <string name="home_gr_today_title">今日里程</string>
+    <string name="home_gr_trip_current">当前行程</string>
+    <string name="home_gr_trip_last">上次行程</string>
     <string name="home_gr_set_scheme">配色方案</string>
     <string name="home_gr_set_scheme_desc">Graphite 主屏幕的配色；应用其余部分遵循“外观”设置</string>
     <string name="home_gr_set_material">材质</string>

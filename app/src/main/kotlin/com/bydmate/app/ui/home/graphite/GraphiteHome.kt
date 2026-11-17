@@ -71,7 +71,7 @@ fun GraphiteHome(
 ) {
     val period by vm.period.collectAsStateWithLifecycle()
     val energy by vm.energy.collectAsStateWithLifecycle()
-    val today by vm.today.collectAsStateWithLifecycle()
+    val trip by vm.trip.collectAsStateWithLifecycle()
     val soh by vm.sohPercent.collectAsStateWithLifecycle()
     val pm25 by vm.pm25.collectAsStateWithLifecycle()
     val lang = rememberGrLang()
@@ -108,7 +108,7 @@ fun GraphiteHome(
                     }
                     Column(Modifier.width(px(820)).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(px(20))) {
                         MediaCard(music, controls, Modifier.fillMaxWidth().weight(1f))
-                        TodayCard(data.todayKm, today, hasFuelTank, Modifier.fillMaxWidth().height(px(252)))
+                        TripCard(trip, hasFuelTank, Modifier.fillMaxWidth().height(px(252)))
                     }
                 }
                 BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)))
