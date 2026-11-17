@@ -79,4 +79,37 @@ class MediaActionsTest {
         assertEquals(Triple<Boolean?, Boolean?, Int?>(null, null, null), stateOf(listOf(a("shuffle"), a("repeat"))))
         assertEquals(true, stateOf(listOf(a("like", active = true))).first)
     }
+
+    @Test fun shownOptimisticWindow() {
+        val opt = Optimistic(true, 1000L)
+        assertEquals(true, shown(false, opt, 2999L))
+        assertEquals(false, shown(false, opt, 3000L))
+        assertEquals(true, shown(true, opt, 1500L))
+        assertEquals(false, shown(false, null, 1500L))
+    }
+
+    @Test fun shownEndsEarlyWhenPollAgrees() {
+        val opt = Optimistic(2, 0L)
+        assertEquals(2, shown(1, opt, 500L))
+        assertEquals(2, shown(2, opt, 500L))
+    }
+
+    @Test fun dislikeArmTwoTap() {
+        val arm = DislikeArm()
+        assertEquals(false, arm.tap(100L))
+        assertEquals(true, arm.armed(100L + 2999L))
+        assertEquals(false, arm.armed(100L + 3000L))
+        assertEquals(true, arm.tap(1100L))
+        assertEquals(false, arm.armed(1100L))
+        assertEquals(false, arm.tap(1200L))
+        assertEquals(true, arm.armed(1300L))
+    }
+
+    @Test fun dislikeArmExpiredTapRearms() {
+        val arm = DislikeArm()
+        assertEquals(false, arm.tap(0L))
+        assertEquals(false, arm.tap(3500L))
+        assertEquals(true, arm.armed(3600L))
+        assertEquals(false, arm.armed(0L - 1))
+    }
 }

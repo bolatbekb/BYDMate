@@ -61,7 +61,16 @@ internal fun Controls(music: NowPlaying, controls: MusicControls, compact: Boole
     ) {
         val shuffle = music.shuffleAction
         val repeat = music.repeatAction
-        CtrlButton(R.drawable.gr_ic_shuffle, 34f, p.textTertiary, shuffle != null) { shuffle?.let(controls::custom) }
+        val shuffleOpt = rememberOptimistic(music.shuffleOn)
+        val repeatOpt = rememberOptimistic(music.repeatMode)
+        val shuffleOn = shuffleOpt.value == true
+        val mode = repeatOpt.value
+        CtrlButton(R.drawable.gr_ic_shuffle, 34f, if (shuffleOn) p.highlight else p.textTertiary, shuffle != null) {
+            shuffle?.let {
+                controls.custom(it)
+                shuffleOpt.expect(shuffleOpt.value?.not())
+            }
+        }
         CtrlButton(R.drawable.gr_ic_prev, 44f, p.textPrimary, true) { controls.previous() }
         val playSource = remember { MutableInteractionSource() }
         Box(
@@ -92,7 +101,15 @@ internal fun Controls(music: NowPlaying, controls: MusicControls, compact: Boole
             }
         }
         CtrlButton(R.drawable.gr_ic_next, 44f, p.textPrimary, true) { controls.next() }
-        CtrlButton(R.drawable.gr_ic_repeat, 34f, p.textTertiary, repeat != null) { repeat?.let(controls::custom) }
+        CtrlButton(
+            if (mode == 1) R.drawable.gr_ic_repeat_one else R.drawable.gr_ic_repeat, 34f,
+            if (mode == 1 || mode == 2) p.highlight else p.textTertiary, repeat != null,
+        ) {
+            repeat?.let {
+                controls.custom(it)
+                repeatOpt.expect(nextRepeatMode(repeatOpt.value))
+            }
+        }
     }
 }
 
@@ -100,7 +117,7 @@ private const val ICON_MS = 200
 
 /** Shrinks to 0.92 while [source] is pressed and springs back; nothing when not [enabled]. */
 @Composable
-private fun Modifier.pressScale(source: MutableInteractionSource, enabled: Boolean): Modifier {
+internal fun Modifier.pressScale(source: MutableInteractionSource, enabled: Boolean): Modifier {
     val pressed by source.collectIsPressedAsState()
     val scale by animateFloatAsState(if (enabled && pressed) 0.92f else 1f, spring(dampingRatio = 0.5f), label = "press")
     return this.graphicsLayer {

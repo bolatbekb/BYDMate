@@ -1,5 +1,6 @@
 package com.bydmate.app.ui.home.graphite
 
+import android.graphics.Bitmap
 import android.os.SystemClock
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
@@ -18,6 +19,14 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.setValue
+import com.bydmate.app.ui.home.DislikeArm
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -41,6 +50,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -82,27 +92,39 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
     val volume = rememberVolume()
     CardBody(modifier) {
         val label = music.sourceLabel
-        CardHeader(R.drawable.gr_ic_note, label ?: stringResource(R.string.home_gr_media_title))
+        CardHeader(
+            R.drawable.gr_ic_note, label ?: stringResource(R.string.home_gr_media_title),
+            modifier = Modifier.openSource(music.hasTrack) { controls.openSource() },
+            trailing = { MediaActionButtons(music, controls) },
+        )
         Spacer(Modifier.height(px(if (compact) 14 else 22)))
+        // The content lambda reads the live music through a State, so it updates even if AnimatedContent
+        // keeps the lambda it first composed an entry with.
+        val live by rememberUpdatedState(music)
         val slide = with(LocalDensity.current) { px(12).roundToPx() }
         // A new track cross-fades the cover and the text, the new one rising 12 px; the same
         // track (play / pause, position) updates in place.
         Box(Modifier.fillMaxWidth().height(px(cover))) {
             // The glow breathes in its own layer behind the cover (unclipped, so the blur shows).
             Box(Modifier.size(px(cover)).graphicsLayer().coverGlow(music.isPlaying && music.hasTrack, cover))
+            // The target is the track's face, not the per-second NowPlaying: Compose keeps an entry per
+            // target, and a new object every poll made them pile up. Only what changes with the track is
+            // in the face (the outgoing track keeps its own text and cover while it fades); the live
+            // state (playing) is read from the current music.
             AnimatedContent(
-                targetState = music,
-                contentKey = { it.trackKey() },
+                targetState = music.face(),
+                contentKey = { it.key },
                 transitionSpec = {
                     (fadeIn(tween(TRACK_MS)) + slideInVertically(tween(TRACK_MS)) { slide }) togetherWith fadeOut(tween(TRACK_MS)) using
                         SizeTransform(clip = false)
                 },
                 modifier = Modifier.fillMaxSize(),
                 label = "track",
-            ) { m ->
+            ) { face ->
+                val open = Modifier.openSource(face.hasTrack) { controls.openSource() }
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(px(30))) {
-                    Cover(m, cover)
-                    Meta(m, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)))
+                    Cover(face.art, cover, open)
+                    Meta(face, live.isPlaying, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)).then(open))
                 }
             }
         }
@@ -117,8 +139,17 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
 
 private const val TRACK_MS = 400
 
-/** What makes a track a new one for the cross-fade. */
-private fun NowPlaying.trackKey(): Triple<String?, String?, String?> = Triple(title, artist, album)
+/** What the cross-fade shows of a track; equal faces are the same target, so a poll adds no entry. */
+private data class TrackFace(
+    val title: String?, val artist: String?, val album: String?, val year: Int?, val art: Bitmap?,
+) {
+    val hasTrack: Boolean get() = !title.isNullOrBlank()
+
+    /** What makes a track a new one for the cross-fade (the art arriving later updates in place). */
+    val key: Triple<String?, String?, String?> get() = Triple(title, artist, album)
+}
+
+private fun NowPlaying.face() = TrackFace(title, artist, album, year, art)
 
 /**
  * A soft glow behind the cover (its 24-radius square, blur 28) whose alpha breathes 0.10 ↔ 0.28
@@ -160,18 +191,17 @@ private const val GLOW_HALF_MS = 2_000
 private const val GLOW_FADE_MS = 400
 
 @Composable
-private fun Cover(music: NowPlaying, side: Float) {
+private fun Cover(art: Bitmap?, side: Float, open: Modifier) {
     val p = LocalGr.current
-    val art = music.art
     if (art != null) {
         val image = remember(art) { art.asImageBitmap() }
         Image(
             image, contentDescription = null, contentScale = ContentScale.Crop,
-            modifier = Modifier.size(px(side)).clip(RoundedCornerShape(px(24)))
+            modifier = Modifier.size(px(side)).then(open).clip(RoundedCornerShape(px(24)))
                 .border(px(1), Color.White.copy(alpha = 0.08f), RoundedCornerShape(px(24))),
         )
     } else {
-        InsetBox(24f, Modifier.size(px(side))) {
+        InsetBox(24f, Modifier.size(px(side)).then(open)) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 GrIcon(R.drawable.gr_ic_note, 72f, p.textTertiary)
             }
@@ -180,7 +210,7 @@ private fun Cover(music: NowPlaying, side: Float) {
 }
 
 @Composable
-private fun Meta(music: NowPlaying, modifier: Modifier) {
+private fun Meta(music: TrackFace, isPlaying: Boolean, modifier: Modifier) {
     val p = LocalGr.current
     Column(modifier, verticalArrangement = Arrangement.Bottom) {
         if (!music.hasTrack) {
@@ -189,13 +219,13 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
-                stringResource(if (music.isPlaying) R.string.home_gr_now_playing else R.string.home_gr_paused).uppercase(Locale.getDefault()),
+                stringResource(if (isPlaying) R.string.home_gr_now_playing else R.string.home_gr_paused).uppercase(Locale.getDefault()),
                 maxLines = 1, softWrap = false, overflow = TextOverflow.Ellipsis,
                 style = grStyle(19f, 400, 2f, p.textTertiary, tnum = false),
                 modifier = Modifier.weight(1f, fill = false),
             )
             Spacer(Modifier.width(px(10)))
-            Equalizer(music.isPlaying, p.highlight)
+            Equalizer(isPlaying, p.highlight)
         }
         Spacer(Modifier.height(px(12)))
         FitText(music.title.orEmpty(), grStyle(50f, 500, -1f, p.textPrimary, tnum = false), 50f, 36f, Modifier, lineBox = true)
