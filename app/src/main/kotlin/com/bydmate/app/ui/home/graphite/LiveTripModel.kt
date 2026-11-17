@@ -17,10 +17,12 @@ data class TripCounters(val odometerKm: Double?, val elecKwh: Double?, val fuelL
     /** Takes the reported fields of [o], keeps the rest. */
     fun advanceBy(o: TripCounters) = o.fillFrom(this)
 
-    /** True when any counter reported by both went backwards from [base] (the session so far). */
+    /**
+     * True when the odometer went backwards from [base] (the session so far). Only the odometer
+     * does: the BMS kWh counter is net and drops on regen, so it never splits a session.
+     */
     fun isBelow(base: TripCounters): Boolean =
-        less(odometerKm, base.odometerKm) || less(elecKwh, base.elecKwh) ||
-            less(fuelL, base.fuelL) || less(hevKm, base.hevKm)
+        odometerKm != null && base.odometerKm != null && odometerKm < base.odometerKm
 
     companion object {
         private const val MIN_ODOMETER_KM = 1.0
@@ -31,8 +33,6 @@ data class TripCounters(val odometerKm: Double?, val elecKwh: Double?, val fuelL
             fuelL = d.fuelTotalL?.takeIf { it > 0.0 },
             hevKm = d.mileageHevKm?.toDouble()?.takeIf { it > 0.0 },
         )
-
-        private fun less(a: Double?, b: Double?) = a != null && b != null && a < b
     }
 }
 
@@ -51,14 +51,14 @@ data class LiveSession(
     fun estimate() = TripEstimate(
         startMs = startMs,
         endMs = lastOnMs,
-        km = delta(base.odometerKm, latest.odometerKm) ?: 0.0,
+        km = delta(base.odometerKm, latest.odometerKm)?.coerceAtLeast(0.0) ?: 0.0,
         kwh = delta(base.elecKwh, latest.elecKwh),
         litres = delta(base.fuelL, latest.fuelL),
         hevKm = delta(base.hevKm, latest.hevKm),
     )
 
     private fun delta(from: Double?, to: Double?): Double? =
-        if (from == null || to == null) null else (to - from).coerceAtLeast(0.0)
+        if (from == null || to == null) null else to - from
 }
 
 data class LiveTripState(val open: LiveSession? = null, val finished: TripEstimate? = null)
@@ -114,7 +114,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     }
 
     private fun LiveSession.advance(c: TripCounters, nowMs: Long) = copy(
-        lastOnMs = nowMs, lastReadingMs = nowMs, base = base.fillFrom(c), latest = latest.advanceBy(c),
+        lastOnMs = edge.lastOnMs, lastReadingMs = nowMs, base = base.fillFrom(c), latest = latest.advanceBy(c),
     )
 
     private fun finishOpen() {

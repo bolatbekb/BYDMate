@@ -52,16 +52,18 @@ class LiveTripTrackerTest {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tr.onReading(reading(17000.0, 2650.0), t0)
         tr.onReading(reading(17012.4, 2652.0), t0 + 10_000)
-        var lastOn = t0 + 10_000
         var changed = false
+        var lastBeforeClose = 0L
         for (i in 2..20) {
             val now = t0 + i * 10_000L
             changed = tr.onReading(reading(17012.4, 2652.0, power = 0), now) || changed
-            if (tr.state.open != null) lastOn = now
+            if (tr.state.open != null) lastBeforeClose = now
         }
         assertTrue(changed)
         assertNull(tr.state.open)
-        assertEquals(lastOn, tr.state.finished!!.endMs)
+        // The odometer last "grew" against the t0 reading, which leaves the 60 s window at t0 + 60 s.
+        assertEquals(t0 + 60_000, tr.state.finished!!.endMs)
+        assertTrue(lastBeforeClose > t0 + 60_000)
         assertEquals(12.4, tr.state.finished!!.km, 1e-9)
     }
 
@@ -94,6 +96,16 @@ class LiveTripTrackerTest {
         tr.onReading(reading(17000.5), t0 + 20_000)
         assertEquals(17000.5, tr.state.open!!.base.odometerKm!!, 1e-9)
         assertEquals(10.0, tr.state.finished!!.km, 1e-9)
+    }
+
+    @Test
+    fun regenDipDoesNotSplitSession() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.onReading(reading(17000.0, 2650.0), t0)
+        tr.onReading(reading(17001.0, 2651.0), t0 + 10_000)
+        tr.onReading(reading(17002.0, 2650.8), t0 + 20_000)
+        assertEquals(t0, tr.state.open!!.startMs)
+        assertEquals(0.8, tr.state.open!!.estimate().kwh!!, 1e-9)
     }
 
     private fun resumable(lastReading: Long) = LiveTripState(
