@@ -42,12 +42,17 @@ internal fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
     val measurer = rememberTextMeasurer()
     val shownPeriod = series?.period
     val n = series?.kwh?.size ?: 0
-    // A fresh Animatable per period: the new series' first frame already draws at 0 (no flash).
-    val grow = remember(shownPeriod) { Animatable(0f) }
+    // A fresh Animatable per period. Grown at once unless the user moved to another period: opening
+    // the home or returning to it must not replay the grow-in (the values are fully visible at total).
+    val grow = remember(shownPeriod) {
+        val grown = shownPeriod == null || !shouldGrow(GraphiteWarm.lastShownPeriod, shownPeriod)
+        Animatable(if (grown) growTotalMs(n).toFloat() else 0f)
+    }
     LaunchedEffect(grow) {
         if (shownPeriod == null) return@LaunchedEffect
+        GraphiteWarm.lastShownPeriod = shownPeriod
         val total = growTotalMs(n)
-        grow.animateTo(total.toFloat(), tween(total, easing = LinearEasing))
+        if (grow.value < total) grow.animateTo(total.toFloat(), tween(total, easing = LinearEasing))
     }
     // The labels are measured when the cache builds (new series, size, scheme or language), not per frame.
     val font = GraphiteLookState.font

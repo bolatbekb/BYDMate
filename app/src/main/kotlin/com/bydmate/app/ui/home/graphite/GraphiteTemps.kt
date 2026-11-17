@@ -166,7 +166,7 @@ private fun GrPalette.tone(t: Tone): Color = when (t) {
 private fun TempBar(fraction: Float?, stops: List<Pair<Float, Color>>, trackAfter: Boolean, modifier: Modifier) {
     val p = LocalGr.current
     val known = fraction != null
-    val eased by animatedValue(fraction ?: 0f, "tempKnob")
+    val eased by animatedValue(fraction, "tempKnob")
     Canvas(modifier.fillMaxWidth().height(px(6))) {
         val f = eased
         val r = CornerRadius(px(3).toPx())

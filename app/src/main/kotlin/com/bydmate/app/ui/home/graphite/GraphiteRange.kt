@@ -137,7 +137,7 @@ private fun RangeBar(total: Int?, ev: Int?, modifier: Modifier) {
     val p = LocalGr.current
     val evKm = (ev ?: 0).coerceAtLeast(0)
     val fuelKm = if (total == null) 0 else (total - evKm).coerceAtLeast(0)
-    val share by animatedValue(if (evKm + fuelKm > 0) evKm.toFloat() / (evKm + fuelKm) else 0f, "rangeSplit")
+    val share by animatedValue(if (evKm + fuelKm > 0) evKm.toFloat() / (evKm + fuelKm) else null, "rangeSplit")
     val known = total != null
     Canvas(modifier.fillMaxWidth().height(px(14)).clip(RoundedCornerShape(px(7)))) {
         if (!known) {
@@ -260,9 +260,9 @@ private fun percentText(percent: Int?, p: GrPalette): AnnotatedString = buildAnn
 @Composable
 private fun GaugeDial(percent: Int?, accent: Color, centerIcon: Int, shimmer: Boolean, rpm: Int?) {
     val p = LocalGr.current
-    val frac by animatedValue(((percent ?: 0) / 100f).coerceIn(0f, 1f), "gauge")
+    val frac by animatedValue(percent?.let { (it / 100f).coerceIn(0f, 1f) }, "gauge")
     val ring = rpm != null
-    val rpmFrac by animatedValue(rpmFraction(rpm), "rpm")
+    val rpmFrac by animatedValue(rpm?.let { rpmFraction(it) }, "rpm")
     // The transition exists only while charging: nothing ticks at rest.
     val phase: State<Float>? = if (shimmer) {
         rememberInfiniteTransition(label = "charge").animateFloat(

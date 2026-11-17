@@ -1,6 +1,9 @@
 package com.bydmate.app.ui.home.graphite
 
+import com.bydmate.app.ui.home.cdrive.ChartPeriod
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GraphiteAnimTest {
@@ -26,5 +29,17 @@ class GraphiteAnimTest {
         assertEquals(0f, rpmFraction(0), eps)
         assertEquals(0.2f, rpmFraction(1200), eps)
         assertEquals(1f, rpmFraction(9000), eps)
+    }
+
+    @Test fun shouldAnimateOnlyBetweenTwoKnownValues() {
+        assertFalse(shouldAnimate(null, 0.5f))
+        assertTrue(shouldAnimate(0.5f, 0.7f))
+        assertFalse(shouldAnimate(0.5f, null))
+    }
+
+    @Test fun shouldGrowOnlyWhenThePeriodChanges() {
+        assertFalse(shouldGrow(null, ChartPeriod.DAY))
+        assertFalse(shouldGrow(ChartPeriod.DAY, ChartPeriod.DAY))
+        assertTrue(shouldGrow(ChartPeriod.DAY, ChartPeriod.WEEK))
     }
 }
