@@ -1,4 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="Theme.BYDMate" parent="Theme.AppCompat.Light.NoActionBar" />
+    <style name="Theme.BYDMate" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- fork: dark starting window instead of the light theme's white (FORK.md) -->
+        <item name="android:windowBackground">@color/fork_window_background</item>
+    </style>
 </resources>
