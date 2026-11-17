@@ -45,6 +45,22 @@ class MediaActionsTest {
         assertNull(pickLike(listOf(a("q", "«Не нравится»"))))
     }
 
+    @Test fun likeOnlyPlayerHasNoDislike() {
+        assertNull(pickDislike(listOf(a("x", "Мне нравится"))))
+    }
+
+    @Test fun dislikeNamedNeNravitsya() {
+        val list = listOf(a("y", "Не нравится"))
+        assertEquals("y", pickDislike(list)?.action)
+        assertNull(pickLike(list))
+    }
+
+    @Test fun removeFromLikedIsLikeNotDislike() {
+        val list = listOf(a("z", "Убрать из «Мне нравится»"))
+        assertEquals("z", pickLike(list)?.action)
+        assertNull(pickDislike(list))
+    }
+
     @Test fun likedOfCases() {
         assertEquals(true, likedOf(a("like", "Like", active = true)))
         assertEquals(false, likedOf(a("like", "Убрать", active = false)))

@@ -4,7 +4,7 @@ package com.bydmate.app.ui.home
 data class MediaAction(val action: String, val name: String?, val active: Boolean?, val mode: Int?)
 
 /** Characters after which an exclusion phrase still counts as the start of a word. */
-private const val PHRASE_START = " «\"'("
+private const val PHRASE_START = " «\"'(_-:."
 
 /** True when [phrase] occurs in [text] at its start or right after a space or one of «"'( . */
 private fun hasPhrase(text: String, phrase: String): Boolean {
@@ -18,7 +18,7 @@ private fun hasPhrase(text: String, phrase: String): Boolean {
 
 /**
  * Exact (case-insensitive) [exact] action id first; then the first action whose id or name contains
- * one of [words] and none of [exclude] as a whole word or phrase («Мне нравится» holds «не нравится»
+ * one of [words] (also as a whole word or phrase) and none of [exclude] as a whole word or phrase («Мне нравится» holds «не нравится»
  * as a raw substring, so exclusions never match inside a word).
  */
 internal fun pickAction(
@@ -32,7 +32,7 @@ internal fun pickAction(
     val x = exclude.map { it.lowercase() }
     return actions.firstOrNull { act ->
         val texts = listOfNotNull(act.action, act.name).map { it.lowercase() }
-        texts.any { t -> w.any { it in t } } && texts.none { t -> x.any { hasPhrase(t, it) } }
+        texts.any { t -> w.any { hasPhrase(t, it) } } && texts.none { t -> x.any { hasPhrase(t, it) } }
     }
 }
 

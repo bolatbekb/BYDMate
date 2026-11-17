@@ -135,15 +135,13 @@ object NowPlayingSource : MusicControls {
         }
     }
 
-    /** Stops the poll and lets go of everything UI-scoped: this object lives as long as the process. */
+    /** Stops the poll and lets go of the UI-scoped scope and controller: this object lives as long as the process. */
     fun stopPolling() {
         job?.cancel()
         job = null
         scope = null
         controller = null
-        artKey = null
-        artBitmap = null
-        _state.value = _state.value.copy(art = null)
+        // The last cover (one bounded bitmap) stays, so the home shows a full first frame on return.
     }
 
     private fun refresh() {
