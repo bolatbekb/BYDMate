@@ -19,14 +19,6 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.layout.requiredSize
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
-import androidx.compose.runtime.setValue
-import com.bydmate.app.ui.home.DislikeArm
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -92,12 +84,7 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
     val volume = rememberVolume()
     CardBody(modifier) {
         val label = music.sourceLabel
-        CardHeader(
-            R.drawable.gr_ic_note, label ?: stringResource(R.string.home_gr_media_title),
-            modifier = Modifier.openSource(music.hasTrack) { controls.openSource() },
-            trailing = { MediaActionButtons(music, controls) },
-        )
-        Spacer(Modifier.height(px(if (compact) 14 else 22)))
+        MediaHeader(music, controls, label ?: stringResource(R.string.home_gr_media_title), if (compact) 14f else 22f)
         // The content lambda reads the live music through a State, so it updates even if AnimatedContent
         // keeps the lambda it first composed an entry with.
         val live by rememberUpdatedState(music)

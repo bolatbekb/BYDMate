@@ -112,4 +112,14 @@ class MediaActionsTest {
         assertEquals(true, arm.armed(3600L))
         assertEquals(false, arm.armed(0L - 1))
     }
+
+    @Test fun dislikeArmDoesNotCarryOverToNextTrack() {
+        val arm = DislikeArm()
+        assertEquals(false, arm.tap(0L, "A"))
+        assertEquals(true, arm.armed(500L, "A"))
+        assertEquals(false, arm.armed(500L, "B"))
+        assertEquals(false, arm.tap(1000L, "B")) // not sent, arms for B
+        assertEquals(true, arm.armed(1500L, "B"))
+        assertEquals(true, arm.tap(2000L, "B"))
+    }
 }

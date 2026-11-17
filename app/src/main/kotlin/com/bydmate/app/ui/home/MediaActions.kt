@@ -85,18 +85,21 @@ internal fun <T> shown(polled: T, opt: Optimistic<T>?, nowMs: Long): T =
 /** Two-tap dislike: the first tap arms for 3 s, a second one inside the window sends and resets. */
 internal class DislikeArm {
     private var armedAt: Long? = null
+    private var track: Any? = null
 
-    /** True when the dislike should be sent now. */
-    fun tap(nowMs: Long): Boolean {
-        if (armed(nowMs)) {
+    /** True when the dislike should be sent now. A tap on another [trackKey] than the armed one only re-arms. */
+    fun tap(nowMs: Long, trackKey: Any? = null): Boolean {
+        if (armed(nowMs, trackKey)) {
             armedAt = null
             return true
         }
         armedAt = nowMs
+        track = trackKey
         return false
     }
 
-    fun armed(nowMs: Long): Boolean = armedAt?.let { nowMs >= it && nowMs - it < DISLIKE_ARM_MS } ?: false
+    fun armed(nowMs: Long, trackKey: Any? = null): Boolean =
+        trackKey == track && armedAt?.let { nowMs >= it && nowMs - it < DISLIKE_ARM_MS } ?: false
 
     /** Ms until the window ends (0 when not armed). */
     fun remainingMs(nowMs: Long): Long = armedAt?.let { (it + DISLIKE_ARM_MS - nowMs).coerceAtLeast(0) } ?: 0L

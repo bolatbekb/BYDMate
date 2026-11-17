@@ -61,8 +61,8 @@ internal fun Controls(music: NowPlaying, controls: MusicControls, compact: Boole
     ) {
         val shuffle = music.shuffleAction
         val repeat = music.repeatAction
-        val shuffleOpt = rememberOptimistic(music.shuffleOn)
-        val repeatOpt = rememberOptimistic(music.repeatMode)
+        val shuffleOpt = rememberOptimistic(music.shuffleOn, Triple(music.title, music.artist, music.album))
+        val repeatOpt = rememberOptimistic(music.repeatMode, Triple(music.title, music.artist, music.album))
         val shuffleOn = shuffleOpt.value == true
         val mode = repeatOpt.value
         CtrlButton(R.drawable.gr_ic_shuffle, 34f, if (shuffleOn) p.highlight else p.textTertiary, shuffle != null) {
