@@ -17,12 +17,19 @@ object DemoCar {
     private const val ODOMETER_START_KM = 17_057.4
     private const val LIFETIME_KWH_START = 2_650.0
     private const val SOC_START = 78.0
+    private const val FUEL_START_L = 1_250.0
+    private const val HEV_KM_START = 5_200.0
+    private const val EV_KM_START = 11_857.0
+    private const val FUEL_L_PER_KM = 0.06
     private const val ENGINE_PERIOD_MS = 10_000L
 
     private val startMs = System.currentTimeMillis()
     private var lastMs = startMs
     private var odometerKm = ODOMETER_START_KM
     private var usedKwh = 0.0
+    private var fuelTotalL = FUEL_START_L
+    private var hevKm = HEV_KM_START
+    private var evKm = EV_KM_START
 
     @Synchronized
     private fun step(nowMs: Long): Triple<Double, Double, Double> {
@@ -32,6 +39,12 @@ object DemoCar {
         val powerKw = speed * 0.16 + 2.5 + 9 * sin(t / 5.3)
         val dtH = ((nowMs - lastMs).coerceIn(0, 10_000)) / 3_600_000.0
         odometerKm += speed * dtH
+        if (engineRpm(nowMs) > 0) {
+            fuelTotalL += speed * dtH * FUEL_L_PER_KM
+            hevKm += speed * dtH
+        } else {
+            evKm += speed * dtH
+        }
         usedKwh += max(powerKw, -40.0) * dtH
         lastMs = nowMs
         return Triple(speed, powerKw, t)
@@ -111,6 +124,9 @@ object DemoCar {
             fuelPercent = 64,
             fuelRangeKm = 540,
             evRangeKm = (soc / 100 * 125).roundToInt(),
+            fuelTotalL = fuelTotalL,
+            mileageHevKm = hevKm.toInt(),
+            mileageEvKm = evKm.toInt(),
         )
     }
 

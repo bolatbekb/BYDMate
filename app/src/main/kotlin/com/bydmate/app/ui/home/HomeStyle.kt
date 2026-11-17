@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import com.bydmate.app.ui.home.graphite.GraphiteLookState
+import com.bydmate.app.ui.home.graphite.LiveTrip
 
 /** Which home screen the Dashboard tab shows. Fork-local; stored in its own prefs file. */
 enum class HomeStyle(val id: String, val title: String) {
@@ -39,6 +40,7 @@ object HomeStyleState {
         if (id == HomeStyle.REMOVED_RS) select(context, current)
         CassetteRotation.init(context)
         DayMileage.init(context)
+        LiveTrip.init(context)
         GraphiteLookState.init(context)
     }
 
