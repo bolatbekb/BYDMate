@@ -11,6 +11,7 @@ import androidx.compose.ui.res.stringResource
 import com.bydmate.app.ui.navigation.Screen
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -69,9 +70,20 @@ private fun RetroHome(
     }
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
-    DisposableEffect(Unit) {
-        NowPlayingSource.start(context, scope)
-        onDispose { NowPlayingSource.stopPolling() }
+    // The media poll runs only while the app is STARTED (not behind the navigator); resumes at once on return.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> NowPlayingSource.start(context, scope)
+                Lifecycle.Event.ON_STOP -> NowPlayingSource.stopPolling()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            NowPlayingSource.stopPolling()
+        }
     }
     val music by NowPlayingSource.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.bydmate.app.fork.DriveModeSupport.ensureProbed(context) }
