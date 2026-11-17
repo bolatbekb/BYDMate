@@ -65,13 +65,33 @@ val GrInter: FontFamily = FontFamily(
     },
 )
 
+/** Rajdhani Medium, the cluster's numerals (BYD DiLink); digits and Latin only, no Cyrillic. */
+val GrRajdhani: FontFamily = FontFamily(Font(R.font.gr_rajdhani, weight = FontWeight.Medium))
+
+/** Numbers this big (mockup px) take Rajdhani under the DiLink font. */
+private const val NUMERAL_MIN_SIZE = 46f
+
 /**
  * Inter text: [size] and [tracking] in mockup px. The mockup sets "cv11" and "ss01" on the whole
  * page; [tnum] adds tabular figures.
  */
-fun grStyle(size: Float, weight: Int, tracking: Float = 0f, color: Color, tnum: Boolean = true): TextStyle = TextStyle(
+fun grStyle(size: Float, weight: Int, tracking: Float = 0f, color: Color, tnum: Boolean = true): TextStyle {
+    // DiLink: big tabular numbers in Rajdhani (as the cluster's speed), all other text in Roboto.
+    val dilink = GraphiteLookState.font == GrFont.DILINK
+    val numeral = dilink && tnum && size >= NUMERAL_MIN_SIZE
+    return grTextStyle(
+        size, if (numeral) 500 else weight, if (dilink) 0f else tracking, color, tnum,
+        when {
+            numeral -> GrRajdhani
+            dilink -> FontFamily.Default
+            else -> GrInter
+        },
+    )
+}
+
+private fun grTextStyle(size: Float, weight: Int, tracking: Float, color: Color, tnum: Boolean, family: FontFamily) = TextStyle(
     color = color,
-    fontFamily = GrInter,
+    fontFamily = family,
     fontWeight = FontWeight(weight),
     fontSize = fs(size),
     letterSpacing = fs(tracking),

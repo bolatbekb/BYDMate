@@ -21,6 +21,7 @@ enum class GrScheme(val id: String, val title: String, val palette: GrPalette) {
     HUB("hub", "Hub", GrHub),
     ONE("one", "One", GrOne),
     CODE("code", "Code", GrCode),
+    DILINK("dilink", "DiLink", GrDiLink),
     ;
 
     companion object {
@@ -68,6 +69,17 @@ enum class GrRelief(val id: String) {
     }
 }
 
+/** The Graphite home's type: Inter everywhere, or DiLink — Roboto text with Rajdhani numerals. [id] is stored. */
+enum class GrFont(val id: String, val title: String) {
+    INTER("inter", "Inter"),
+    DILINK("dilink", "DiLink"),
+    ;
+
+    companion object {
+        fun fromId(id: String?): GrFont = entries.firstOrNull { it.id == id } ?: INTER
+    }
+}
+
 /** Material, relief and 2.5D edges of the cards; the default is the plain look. */
 data class GrLook(
     val material: GrMaterial = GrMaterial.NONE,
@@ -100,6 +112,7 @@ object GraphiteLookState {
     private const val KEY_MATERIAL = "graphite_material"
     private const val KEY_RELIEF = "graphite_relief"
     private const val KEY_EDGES = "graphite_edges25d"
+    private const val KEY_FONT = "graphite_font"
 
     // The app skin's file (SkinState): read once here to move a Graphite skin over.
     private const val SKIN_PREFS = "bydmate_skin"
@@ -113,6 +126,8 @@ object GraphiteLookState {
     var relief: GrRelief by mutableStateOf(GrRelief.FLAT)
         private set
     var edges25d: Boolean by mutableStateOf(false)
+        private set
+    var font: GrFont by mutableStateOf(GrFont.INTER)
         private set
 
     val look: GrLook get() = GrLook(material, relief, edges25d)
@@ -133,6 +148,7 @@ object GraphiteLookState {
             material = GrMaterial.fromId(prefs.getString(KEY_MATERIAL, null))
             relief = GrRelief.fromId(prefs.getString(KEY_RELIEF, null))
             edges25d = prefs.getBoolean(KEY_EDGES, false)
+            font = GrFont.fromId(prefs.getString(KEY_FONT, null))
         }
     }
 
@@ -154,6 +170,11 @@ object GraphiteLookState {
     fun selectEdges25d(context: Context, on: Boolean) {
         edges25d = on
         prefs(context).edit().putBoolean(KEY_EDGES, on).apply()
+    }
+
+    fun selectFont(context: Context, value: GrFont) {
+        font = value
+        prefs(context).edit().putString(KEY_FONT, value.id).apply()
     }
 
     private fun prefs(context: Context) = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)

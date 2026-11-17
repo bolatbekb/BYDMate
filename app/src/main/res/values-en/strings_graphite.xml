@@ -23,6 +23,7 @@
     <string name="home_gr_paused">Paused</string>
     <string name="home_gr_trip_current">Current trip</string>
     <string name="home_gr_trip_last">Last trip</string>
+    <string name="home_gr_set_font">Font</string>
     <string name="home_gr_set_scheme">Color scheme</string>
     <string name="home_gr_set_scheme_desc">Colors of the Graphite home; the rest of the app follows “Appearance”</string>
     <string name="home_gr_set_material">Material</string>

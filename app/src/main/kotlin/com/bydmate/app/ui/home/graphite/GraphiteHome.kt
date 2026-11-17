@@ -222,7 +222,7 @@ private fun RowScope.MenuKey(
             GrIcon(icon, if (icon == R.drawable.gr_ic_car) 34f else 32f, color)
             Text(label, maxLines = 1, softWrap = false, style = grStyle(26f, 400, color = color, tnum = false))
         }
-        if (active) ActiveBar(p.electric, Modifier.align(Alignment.BottomCenter).padding(bottom = px(10)))
+        if (active) ActiveBar(p.highlight, Modifier.align(Alignment.BottomCenter).padding(bottom = px(10)))
     }
 }
 

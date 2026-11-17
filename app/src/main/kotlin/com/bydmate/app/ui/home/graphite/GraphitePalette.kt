@@ -44,7 +44,12 @@ data class GrPalette(
     val edgeStyle: Boolean,
     // Прошлые столбики на 70 % (владелец, 2026-11-17: на 35–42 % в машине тускло).
     val dimOpacity: Float,
+    /** Selection and progress colour (media progress, equalizer, active menu bar); null = [electric]. */
+    val accent: Color? = null,
 )
+
+/** The colour of selection and progress: the scheme's accent, else the electric colour. */
+val GrPalette.highlight: Color get() = accent ?: electric
 
 val GrSoft = GrPalette(
 

@@ -84,3 +84,27 @@ val GrCode = GrPalette(
     spotify = Color(0xFF1ED760),
     look = PhotoLook(0.82f, 0.9f, 1.06f), edgeStyle = false, dimOpacity = 0.70f,
 )
+
+/**
+ * DiLink: the head unit's own UI5 dark theme (BYD DiLink 5.0, `byd_widget_color_base_color1..9`,
+ * accent #45A2FF, new-energy teal and amber; ~/dev/bydmate_designkit/PALETTE.md).
+ */
+val GrDiLink = GrPalette(
+    bg = Color(0xFF0F1117), bgGlow = Color(0xFF151A24),
+    cardTop = Color(0xFF20242E), cardBottom = Color(0xFF1B1F28),
+    cardEdge = Color(0x992F3543), cardEdgeTop = Color(0x1AEEF5FF),
+    cardInnerGlow = Color(0x00000000), cardOuterGlow = Color(0xB3000000),
+    divider = Color(0xCC2F3543), track = Color(0xFF2F3543),
+    chip = Color(0xFF252A34), chipEdge = Color(0x14EEF5FF),
+    inset = Color(0xFF171A22), insetEdge = Color(0x99000000),
+    tabActive = Color(0xFF2F3543), tabActiveEdge = Color(0x3345A2FF),
+    textPrimary = Color(0xFFEEF5FF), textSecondary = Color(0xFFB3BCCB), textTertiary = Color(0xFF717D90),
+    electric = Color(0xFF00C9A7), fuel = Color(0xFFFFB16A), fuelDeep = Color(0xFFDA7D3A),
+    heat = Color(0xFFFF4D66), cold = Color(0xFF45A2FF), coldDeep = Color(0xFF2270BE),
+    progressStart = Color(0xFF2270BE), progressEnd = Color(0xFF45A2FF),
+    playTop = Color(0xFFEEF5FF), playBottom = Color(0xFFB3BCCB),
+    photoTint = Color(0xFFDDE6F5), photoShade = Color(0xB80F1117), photoShadeBottom = Color(0xE00F1117),
+    spotify = Color(0xFF1ED760),
+    look = PhotoLook(0.85f, 0.95f, 1.04f), edgeStyle = false, dimOpacity = 0.70f,
+    accent = Color(0xFF45A2FF),
+)

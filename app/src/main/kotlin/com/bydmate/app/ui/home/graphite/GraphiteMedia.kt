@@ -126,7 +126,7 @@ private fun NowPlaying.trackKey(): Triple<String?, String?, String?> = Triple(ti
 @Composable
 private fun Modifier.coverGlow(on: Boolean): Modifier {
     val p = LocalGr.current
-    val color = if (p == GrSoft) p.progressEnd else p.electric
+    val color = if (p == GrSoft) p.progressEnd else p.highlight
     val fade by animateFloatAsState(if (on) 1f else 0f, tween(GLOW_FADE_MS), label = "glowFade")
     val breath: State<Float>? = if (on) {
         rememberInfiniteTransition(label = "glow").animateFloat(
@@ -193,7 +193,7 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
                 modifier = Modifier.weight(1f, fill = false),
             )
             Spacer(Modifier.width(px(10)))
-            Equalizer(music.isPlaying, p.electric)
+            Equalizer(music.isPlaying, p.highlight)
         }
         Spacer(Modifier.height(px(12)))
         FitText(music.title.orEmpty(), grStyle(50f, 500, -1f, p.textPrimary, tnum = false), 50f, 36f, Modifier)

@@ -8,16 +8,17 @@ import org.junit.Test
 class GraphiteLookTest {
     @Test fun schemeIdsRoundTrip() {
         for (s in GrScheme.entries) assertSame(s, GrScheme.fromId(s.id))
-        assertEquals(listOf("soft", "dark", "edge", "mocha", "hub", "one", "code"), GrScheme.entries.map { it.id })
+        assertEquals(listOf("soft", "dark", "edge", "mocha", "hub", "one", "code", "dilink"), GrScheme.entries.map { it.id })
     }
 
     @Test fun schemeTitlesAndPalettes() {
-        assertEquals(listOf("Soft", "Dark", "Edge", "Mocha", "Hub", "One", "Code"), GrScheme.entries.map { it.title })
+        assertEquals(listOf("Soft", "Dark", "Edge", "Mocha", "Hub", "One", "Code", "DiLink"), GrScheme.entries.map { it.title })
         assertSame(GrSoft, GrScheme.SOFT.palette)
         assertSame(GrDark, GrScheme.DARK.palette)
         assertSame(GrEdge, GrScheme.EDGE.palette)
         assertSame(GrMocha, GrScheme.MOCHA.palette)
         assertSame(GrHub, GrScheme.HUB.palette)
+        assertSame(GrDiLink, GrScheme.DILINK.palette)
         assertSame(GrOne, GrScheme.ONE.palette)
         assertSame(GrCode, GrScheme.CODE.palette)
     }
@@ -73,5 +74,11 @@ class GraphiteLookTest {
         assertNull(schemeFromLegacySkin("classic"))
         assertNull(schemeFromLegacySkin("graphite")) // Graphite Pro stays an app skin
         assertNull(schemeFromLegacySkin("graphite_neon"))
+    }
+
+    @Test fun fontIdsRoundTripAndDefaultIsInter() {
+        for (f in GrFont.entries) assertSame(f, GrFont.fromId(f.id))
+        assertSame(GrFont.INTER, GrFont.fromId(null))
+        assertSame(GrFont.INTER, GrFont.fromId("nope"))
     }
 }

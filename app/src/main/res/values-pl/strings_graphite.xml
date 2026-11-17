@@ -23,6 +23,7 @@
     <string name="home_gr_paused">Pauza</string>
     <string name="home_gr_trip_current">Bieżąca podróż</string>
     <string name="home_gr_trip_last">Ostatnia podróż</string>
+    <string name="home_gr_set_font">Czcionka</string>
     <string name="home_gr_set_scheme">Schemat kolorów</string>
     <string name="home_gr_set_scheme_desc">Kolory ekranu głównego Graphite; reszta aplikacji według ustawienia „Wygląd”</string>
     <string name="home_gr_set_material">Materiał</string>

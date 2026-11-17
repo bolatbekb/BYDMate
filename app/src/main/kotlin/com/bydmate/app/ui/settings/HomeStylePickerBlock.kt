@@ -17,6 +17,7 @@ import com.bydmate.app.ui.home.HomeStyle
 import com.bydmate.app.ui.home.HomeStyleState
 import com.bydmate.app.ui.home.graphite.GraphiteLookState
 import com.bydmate.app.ui.home.graphite.GrMaterial
+import com.bydmate.app.ui.home.graphite.GrFont
 import com.bydmate.app.ui.home.graphite.GrRelief
 import com.bydmate.app.ui.home.graphite.GrScheme
 import com.bydmate.app.ui.home.graphite.rememberGrLang
@@ -63,6 +64,13 @@ private fun GraphiteLookRows() {
         options = schemes.map { it.title },
         selectedIndex = schemes.indexOf(GraphiteLookState.scheme),
         onSelect = { GraphiteLookState.selectScheme(context, schemes[it]) },
+    )
+    SettingChipRow(
+        title = stringResource(R.string.home_gr_set_font),
+        // Font names are names: the same in every language.
+        options = GrFont.entries.map { it.title },
+        selectedIndex = GrFont.entries.indexOf(GraphiteLookState.font),
+        onSelect = { GraphiteLookState.selectFont(context, GrFont.entries[it]) },
     )
     SettingChipRow(
         title = stringResource(R.string.home_gr_set_material),

@@ -50,7 +50,8 @@ internal fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
         grow.animateTo(total.toFloat(), tween(total, easing = LinearEasing))
     }
     // The labels are measured when the cache builds (new series, size, scheme or language), not per frame.
-    val chart = remember(series, hasFuelTank, p, lang, measurer, grow) {
+    val font = GraphiteLookState.font
+    val chart = remember(series, hasFuelTank, p, lang, font, measurer, grow) {
         Modifier.drawWithCache {
             if (series == null) return@drawWithCache onDrawBehind {}
             val frame = EnergyFrame(series, hasFuelTank, px(1).toPx(), size.width, size.height)
