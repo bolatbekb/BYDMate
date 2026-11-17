@@ -107,7 +107,7 @@ fun CardBody(modifier: Modifier, bottom: Int = 30, content: @Composable ColumnSc
     )
 }
 
-/** Card header: icon 26 TextTertiary, gap 12, title 23/450/0.1 TextSecondary; [trailing] on the right. */
+/** Card header: icon 26 TextTertiary, gap 12, title 24/450/0.1 TextSecondary; [trailing] on the right. */
 @Composable
 fun CardHeader(
     icon: Int,
@@ -139,7 +139,7 @@ fun GrIcon(id: Int, size: Float, tint: Color) {
 
 /**
  * Top-bar chip (SPEC §5): height 56, radius 28, padding 18 left / 24 right, gap 12 after [lead];
- * [text] 22/500 TextPrimary, then [note] 20/400 TextTertiary after a space.
+ * [text] 22/500 TextPrimary, then [note] 19/400 TextTertiary after a space.
  */
 @Composable
 fun Chip(text: String, modifier: Modifier = Modifier, note: String? = null, lead: (@Composable () -> Unit)? = null) {

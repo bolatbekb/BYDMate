@@ -89,4 +89,48 @@ class GraphiteRulesTest {
         assertFalse(isOnline(connected = true, lastDataAtMs = 0L, nowMs = now))
         assertFalse(isOnline(connected = true, lastDataAtMs = now - 120_000, nowMs = now))
     }
+
+    /** Left edges and widths of the scale labels as RangeScaleRow lays them out (19 px, 737 wide). */
+    private fun layoutOf(total: Int, w: Float = 737f): Pair<List<Int>, Pair<List<Float>, List<Float>>> {
+        val ticks = rangeScale(total).ticks
+        val widths = ticks.map { it.toString().length * 12.3f + if (it >= 1000) 3.5f else 0f }
+        val lefts = ticks.indices.map { i ->
+            when (i) {
+                0 -> 0f
+                ticks.lastIndex -> w - widths[i]
+                else -> (ticks[i].toFloat() / total * w - widths[i] / 2f).coerceIn(0f, w - widths[i])
+            }
+        }
+        return ticks to (lefts to widths)
+    }
+
+    private fun shown(total: Int): List<Int> {
+        val (ticks, lw) = layoutOf(total)
+        return visibleTicks(lw.first, lw.second, 16f).map { ticks[it] }
+    }
+
+    @Test fun normalScaleKeepsEveryLabel() {
+        assertEquals(rangeScale(637).ticks, shown(637))
+    }
+
+    @Test fun nearTotalLabelIsDropped() {
+        for (total in listOf(1100, 1110, 1124, 650)) {
+            val s = shown(total)
+            assertEquals(0, s.first()); assertEquals(total, s.last())
+        }
+        assertFalse(1000 in shown(1100))
+        assertFalse(1200 in shown(1300))
+        assertFalse(1200 in shown(1349))
+        assertFalse(600 in shown(650))
+    }
+
+    @Test fun keptLabelsNeverTouch() {
+        for (total in 100..2500 step 7) {
+            val (_, lw) = layoutOf(total)
+            val keep = visibleTicks(lw.first, lw.second, 16f)
+            keep.zipWithNext().forEach { (a, b) ->
+                assertTrue("total $total", lw.first[b] - (lw.first[a] + lw.second[a]) >= 16f)
+            }
+        }
+    }
 }

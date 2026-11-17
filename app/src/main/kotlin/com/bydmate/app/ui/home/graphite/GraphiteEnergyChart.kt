@@ -169,7 +169,8 @@ private class EnergyChartContent(
             text(if (k == 0f) "0" else axisNumber(f.maxK * k), style(19f, 400, p.textTertiary), lx, y + 6, 1)
             if (f.hasFuel) text(if (k == 0f) "0" else axisNumber(f.maxL * k), style(19f, 400, p.textTertiary), rx, y + 6, 2)
         }
-        text(lang.words.kwh, style(19f, 400, p.textTertiary), lx, f.top - 12, 1)
+        // Left-aligned at the chart edge: a wide unit (千瓦时) must not cross into the card padding.
+        text(lang.words.kwh, style(19f, 400, p.textTertiary), 0f, f.top - 12, 2)
         if (f.hasFuel) text(lang.words.litre, style(19f, 400, p.textTertiary), rx, f.top - 12, 2)
     }
 

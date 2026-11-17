@@ -158,7 +158,7 @@ private fun RangeBar(total: Int?, ev: Int?, modifier: Modifier) {
     }
 }
 
-/** Tick labels at value/total of the width; the first hugs the left edge, the last the right. */
+/** Tick labels at value/total of the width; the first hugs the left edge, the last the right; a middle label too close to a neighbour is skipped. */
 @Composable
 private fun RangeScaleRow(ticks: List<Int>, total: Int, modifier: Modifier) {
     val p = LocalGr.current
@@ -171,15 +171,16 @@ private fun RangeScaleRow(ticks: List<Int>, total: Int, modifier: Modifier) {
         val placeables = measurables.map { it.measure(c.copy(minWidth = 0, minHeight = 0)) }
         val w = c.maxWidth
         val h = placeables.maxOfOrNull { it.height } ?: 0
-        layout(w, h) {
-            placeables.forEachIndexed { i, pl ->
-                val x = when (i) {
-                    0 -> 0
-                    placeables.lastIndex -> w - pl.width
-                    else -> (ticks[i].toFloat() / total * w - pl.width / 2f).toInt().coerceIn(0, w - pl.width)
-                }
-                pl.place(IntOffset(x, 0))
+        val lefts = placeables.mapIndexed { i, pl ->
+            when (i) {
+                0 -> 0
+                placeables.lastIndex -> w - pl.width
+                else -> (ticks[i].toFloat() / total * w - pl.width / 2f).toInt().coerceIn(0, w - pl.width)
             }
+        }
+        val show = visibleTicks(lefts.map { it.toFloat() }, placeables.map { it.width.toFloat() }, px(16).toPx())
+        layout(w, h) {
+            show.forEach { placeables[it].place(IntOffset(lefts[it], 0)) }
         }
     }
 }

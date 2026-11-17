@@ -184,7 +184,7 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
     val p = LocalGr.current
     Column(modifier, verticalArrangement = Arrangement.Bottom) {
         if (!music.hasTrack) {
-            FitText(stringResource(R.string.home_gr_no_music), grStyle(50f, 500, -1f, p.textSecondary, tnum = false), 50f, 36f, Modifier)
+            FitText(stringResource(R.string.home_gr_no_music), grStyle(50f, 500, -1f, p.textSecondary, tnum = false), 50f, 36f, Modifier, lineBox = true)
             return@Column
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -198,15 +198,15 @@ private fun Meta(music: NowPlaying, modifier: Modifier) {
             Equalizer(music.isPlaying, p.highlight)
         }
         Spacer(Modifier.height(px(12)))
-        FitText(music.title.orEmpty(), grStyle(50f, 500, -1f, p.textPrimary, tnum = false), 50f, 36f, Modifier)
+        FitText(music.title.orEmpty(), grStyle(50f, 500, -1f, p.textPrimary, tnum = false), 50f, 36f, Modifier, lineBox = true)
         if (!music.artist.isNullOrBlank()) {
             Spacer(Modifier.height(px(12)))
-            FitText(music.artist, grStyle(30f, 400, color = p.textSecondary, tnum = false), 30f, 22f, Modifier)
+            FitText(music.artist, grStyle(30f, 400, color = p.textSecondary, tnum = false), 30f, 22f, Modifier, lineBox = true)
         }
         val sub = listOfNotNull(music.album?.takeIf { it.isNotBlank() }, music.year?.toString()).joinToString(" · ")
         if (sub.isNotEmpty()) {
             Spacer(Modifier.height(px(8)))
-            FitText(sub, grStyle(22f, 400, color = p.textTertiary, tnum = false), 22f, 17f, Modifier)
+            FitText(sub, grStyle(22f, 400, color = p.textTertiary, tnum = false), 22f, 17f, Modifier, lineBox = true)
         }
     }
 }

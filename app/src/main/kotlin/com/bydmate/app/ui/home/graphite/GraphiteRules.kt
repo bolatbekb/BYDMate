@@ -25,6 +25,26 @@ internal fun rangeScale(totalKm: Int): RangeScale {
     return RangeScale(ticks)
 }
 
+/**
+ * Indices of the scale labels to draw, given each label's left edge and width. The first and the
+ * last always stay; a middle one is dropped when it comes closer than [minGap] to the label kept
+ * before it or to the last one.
+ */
+internal fun visibleTicks(lefts: List<Float>, widths: List<Float>, minGap: Float): List<Int> {
+    if (lefts.size <= 2) return lefts.indices.toList()
+    val last = lefts.lastIndex
+    val kept = mutableListOf(0)
+    var prevRight = lefts[0] + widths[0]
+    for (i in 1 until last) {
+        if (lefts[i] >= prevRight + minGap && lefts[i] + widths[i] <= lefts[last] - minGap) {
+            kept += i
+            prevRight = lefts[i] + widths[i]
+        }
+    }
+    kept += last
+    return kept
+}
+
 internal enum class TempKind(val min: Int, val max: Int) {
     OUTSIDE(-30, 50), CABIN(0, 35), BATTERY(-10, 44)
 }
