@@ -22,6 +22,10 @@ class GraphiteLookTest {
         assertSame(GrCode, GrScheme.CODE.palette)
     }
 
+    @Test fun everySchemeShowsPastBarsAt70Percent() {
+        GrScheme.entries.forEach { assertEquals(it.id, 0.70f, it.palette.dimOpacity, 0f) }
+    }
+
     @Test fun unknownSchemeIsDark() {
         assertSame(GrScheme.DARK, GrScheme.fromId(null))
         assertSame(GrScheme.DARK, GrScheme.fromId("graphite_soft"))

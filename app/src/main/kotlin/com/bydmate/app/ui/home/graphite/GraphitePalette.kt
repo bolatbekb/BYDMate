@@ -42,6 +42,7 @@ data class GrPalette(
     val spotify: Color,
     val look: PhotoLook,
     val edgeStyle: Boolean,
+    // Прошлые столбики на 70 % (владелец, 2026-11-17: на 35–42 % в машине тускло).
     val dimOpacity: Float,
 )
 
@@ -82,7 +83,7 @@ val GrSoft = GrPalette(
     spotify = Color(0xFF1ED760), // Значок источника
     look = PhotoLook(0.9f, 1.0f, 1.03f),
     edgeStyle = false,
-    dimOpacity = 0.42f,
+    dimOpacity = 0.70f,
 )
 
 val GrDark = GrPalette(
@@ -122,7 +123,7 @@ val GrDark = GrPalette(
     spotify = Color(0xFF1ED760), // Значок источника
     look = PhotoLook(0.8f, 0.82f, 1.08f),
     edgeStyle = false,
-    dimOpacity = 0.35f,
+    dimOpacity = 0.70f,
 )
 
 val GrEdge = GrPalette(
@@ -162,5 +163,5 @@ val GrEdge = GrPalette(
     spotify = Color(0xFF1ED760), // Значок источника
     look = PhotoLook(0.7f, 0.74f, 1.12f),
     edgeStyle = true,
-    dimOpacity = 0.35f,
+    dimOpacity = 0.70f,
 )

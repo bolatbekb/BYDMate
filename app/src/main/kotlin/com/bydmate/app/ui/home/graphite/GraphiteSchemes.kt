@@ -25,7 +25,7 @@ val GrMocha = GrPalette(
     playTop = Color(0xFFF6EEE2), playBottom = Color(0xFFD9CBB6),
     photoTint = Color(0xFFE8D7C0), photoShade = Color(0xB81E1A16), photoShadeBottom = Color(0xE01E1A16),
     spotify = Color(0xFF1ED760),
-    look = PhotoLook(0.85f, 0.95f, 1.04f), edgeStyle = false, dimOpacity = 0.38f,
+    look = PhotoLook(0.85f, 0.95f, 1.04f), edgeStyle = false, dimOpacity = 0.70f,
 )
 
 val GrHub = GrPalette(
@@ -44,7 +44,7 @@ val GrHub = GrPalette(
     playTop = Color(0xFFF0F6FC), playBottom = Color(0xFFC9D1D9),
     photoTint = Color(0xFFB8C7DB), photoShade = Color(0xA80D1117), photoShadeBottom = Color(0xE60D1117),
     spotify = Color(0xFF1ED760),
-    look = PhotoLook(0.8f, 0.85f, 1.06f), edgeStyle = false, dimOpacity = 0.35f,
+    look = PhotoLook(0.8f, 0.85f, 1.06f), edgeStyle = false, dimOpacity = 0.70f,
 )
 
 val GrOne = GrPalette(
@@ -63,7 +63,7 @@ val GrOne = GrPalette(
     playTop = Color(0xFFE6E9EF), playBottom = Color(0xFFABB2BF),
     photoTint = Color(0xFFC9CEDA), photoShade = Color(0xB821252B), photoShadeBottom = Color(0xE021252B),
     spotify = Color(0xFF1ED760),
-    look = PhotoLook(0.85f, 0.9f, 1.05f), edgeStyle = false, dimOpacity = 0.38f,
+    look = PhotoLook(0.85f, 0.9f, 1.05f), edgeStyle = false, dimOpacity = 0.70f,
 )
 
 val GrCode = GrPalette(
@@ -82,5 +82,5 @@ val GrCode = GrPalette(
     playTop = Color(0xFFE8E8E8), playBottom = Color(0xFFBDBDBD),
     photoTint = Color(0xFFC8CCD2), photoShade = Color(0xB8181818), photoShadeBottom = Color(0xE0181818),
     spotify = Color(0xFF1ED760),
-    look = PhotoLook(0.82f, 0.9f, 1.06f), edgeStyle = false, dimOpacity = 0.35f,
+    look = PhotoLook(0.82f, 0.9f, 1.06f), edgeStyle = false, dimOpacity = 0.70f,
 )
