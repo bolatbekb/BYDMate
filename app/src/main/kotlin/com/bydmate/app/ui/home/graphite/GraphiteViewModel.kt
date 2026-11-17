@@ -40,6 +40,7 @@ import java.util.Locale
 import javax.inject.Inject
 
 @HiltViewModel
+@Suppress("LongParameterList") // Hilt constructor injection
 class GraphiteViewModel @Inject constructor(
     private val tripDao: TripDao,
     ledger: LedgerRepository,

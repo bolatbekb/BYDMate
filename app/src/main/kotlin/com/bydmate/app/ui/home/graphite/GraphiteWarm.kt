@@ -82,7 +82,9 @@ internal object GraphiteWarmCodec {
             capacityKwh = p[4].takeIf { it.isNotEmpty() }?.toDouble()?.takeIf { it.isFinite() },
             trip = if (v1) null else tripOrNull(p[5]),
         )
-    } catch (@Suppress("SwallowedException") e: RuntimeException) {
+    } catch (@Suppress("SwallowedException") e: IllegalArgumentException) {
+        EMPTY
+    } catch (@Suppress("SwallowedException") e: java.time.format.DateTimeParseException) {
         EMPTY
     }
 
