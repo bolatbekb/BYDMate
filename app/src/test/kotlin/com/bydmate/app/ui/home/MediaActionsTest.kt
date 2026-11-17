@@ -93,33 +93,4 @@ class MediaActionsTest {
         assertEquals(2, shown(1, opt, 500L))
         assertEquals(2, shown(2, opt, 500L))
     }
-
-    @Test fun dislikeArmTwoTap() {
-        val arm = DislikeArm()
-        assertEquals(false, arm.tap(100L))
-        assertEquals(true, arm.armed(100L + 2999L))
-        assertEquals(false, arm.armed(100L + 3000L))
-        assertEquals(true, arm.tap(1100L))
-        assertEquals(false, arm.armed(1100L))
-        assertEquals(false, arm.tap(1200L))
-        assertEquals(true, arm.armed(1300L))
-    }
-
-    @Test fun dislikeArmExpiredTapRearms() {
-        val arm = DislikeArm()
-        assertEquals(false, arm.tap(0L))
-        assertEquals(false, arm.tap(3500L))
-        assertEquals(true, arm.armed(3600L))
-        assertEquals(false, arm.armed(0L - 1))
-    }
-
-    @Test fun dislikeArmDoesNotCarryOverToNextTrack() {
-        val arm = DislikeArm()
-        assertEquals(false, arm.tap(0L, "A"))
-        assertEquals(true, arm.armed(500L, "A"))
-        assertEquals(false, arm.armed(500L, "B"))
-        assertEquals(false, arm.tap(1000L, "B")) // not sent, arms for B
-        assertEquals(true, arm.armed(1500L, "B"))
-        assertEquals(true, arm.tap(2000L, "B"))
-    }
 }

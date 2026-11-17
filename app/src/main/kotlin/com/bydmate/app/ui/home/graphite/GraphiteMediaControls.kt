@@ -60,11 +60,10 @@ internal fun Controls(music: NowPlaying, controls: MusicControls, compact: Boole
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         val shuffle = music.shuffleAction
-        val repeat = music.repeatAction
         val shuffleOpt = rememberOptimistic(music.shuffleOn, Triple(music.title, music.artist, music.album))
-        val repeatOpt = rememberOptimistic(music.repeatMode, Triple(music.title, music.artist, music.album))
+        val likeOpt = rememberOptimistic(music.liked, Triple(music.title, music.artist, music.album))
         val shuffleOn = shuffleOpt.value == true
-        val mode = repeatOpt.value
+        val liked = likeOpt.value == true
         CtrlButton(R.drawable.gr_ic_shuffle, 34f, if (shuffleOn) p.highlight else p.textTertiary, shuffle != null) {
             shuffle?.let {
                 controls.custom(it)
@@ -102,12 +101,12 @@ internal fun Controls(music: NowPlaying, controls: MusicControls, compact: Boole
         }
         CtrlButton(R.drawable.gr_ic_next, 44f, p.textPrimary, true) { controls.next() }
         CtrlButton(
-            if (mode == 1) R.drawable.gr_ic_repeat_one else R.drawable.gr_ic_repeat, 34f,
-            if (mode == 1 || mode == 2) p.highlight else p.textTertiary, repeat != null,
+            if (liked) R.drawable.gr_ic_heart_filled else R.drawable.gr_ic_heart, 34f,
+            if (liked) p.highlight else p.textTertiary, music.likeAction != null,
         ) {
-            repeat?.let {
-                controls.custom(it)
-                repeatOpt.expect(nextRepeatMode(repeatOpt.value))
+            if (music.likeAction != null) {
+                controls.like()
+                likeOpt.expect(likeOpt.value?.not())
             }
         }
     }

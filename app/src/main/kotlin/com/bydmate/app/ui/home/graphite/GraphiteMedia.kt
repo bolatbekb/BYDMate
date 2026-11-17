@@ -84,7 +84,11 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
     val volume = rememberVolume()
     CardBody(modifier) {
         val label = music.sourceLabel
-        MediaHeader(music, controls, label ?: stringResource(R.string.home_gr_media_title), if (compact) 14f else 22f)
+        CardHeader(
+            R.drawable.gr_ic_note, label ?: stringResource(R.string.home_gr_media_title),
+            modifier = Modifier.openSource(music.hasTrack) { controls.openSource() },
+        )
+        Spacer(Modifier.height(px(if (compact) 14f else 22f)))
         // The content lambda reads the live music through a State, so it updates even if AnimatedContent
         // keeps the lambda it first composed an entry with.
         val live by rememberUpdatedState(music)
