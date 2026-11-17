@@ -87,7 +87,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 
 ### Где возможен конфликт: правки в файлах автора
 
-**Сверено с git 2026-11-17.** База автора — `ff2f6f30` (2026-11-15), последний влитый коммит `upstream/main`. Форк — ветка `perf/graphite-first-frame` на `5769bf4b` (в ней `main` и быстрое открытие главной). С базы в форке 132 коммита: изменено 19 файлов автора (около 180 строк), добавлено 317 своих файлов, удалённых нет. При конфликте ищи в этих файлах метку `fork`.
+**Сверено с git 2026-11-17.** База автора — `ff2f6f30` (2026-11-15), последний влитый коммит `upstream/main`. Форк — ветка `perf/graphite-first-frame` на `453d255f` (в ней `main` и быстрое открытие главной). С базы в форке 135 коммитов: изменено 19 файлов автора (около 180 строк), добавлено 317 своих файлов, удалённых нет. При конфликте ищи в этих файлах метку `fork`.
 
 Столбец «Коммиты»: первый коммит форка, тронувший файл, → последний. Текущее состояние правки — по последнему. Пути `.kt` даны от `app/src/main/kotlin/com/bydmate/app/`.
 
@@ -132,8 +132,8 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | Стойка C-Drive | `ui/home/cdrive/*`, `res/drawable-nodpi/cd_*.webp`, `tools/cdrive/*` | `d932b91f` (2026-11-16) → `8c1e923b` |
 | Общие детали главных (рамка макета, `px`/`fs`, шкалы) | `ui/home/common/*`, `tools/common/*` | `acccf158` (2026-11-17) |
 | Пробег за сегодня по одометру | `ui/home/DayMileage.kt` | `031bc50c` (2026-11-16) |
-| Главная Graphite | `ui/home/graphite/*` (31 файл), `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_*.webp`, `res/font/gr_inter.ttf`, `res/values*/strings_graphite.xml`, `tools/graphite/*` | `f2be6756` (2026-11-16) → `5769bf4b` (2026-11-17) |
-| Быстрое открытие главной: тёплые значения с прошлого запуска (`GraphiteWarm.kt`), правила движения (`GraphiteAnim.kt`: без анимации «в никуда» и с «неизвестного», рост графика только при смене периода), тёмное окно при запуске (`res/values/colors_fork.xml`) | `ui/home/graphite/GraphiteWarm.kt`, `GraphiteAnim.kt`, `res/values/colors_fork.xml` | `283e63ac` → `e2e0a360` → `5769bf4b` (2026-11-17) |
+| Главная Graphite | `ui/home/graphite/*` (31 файл), `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_*.webp`, `res/font/gr_inter.ttf`, `res/values*/strings_graphite.xml`, `tools/graphite/*` | `f2be6756` (2026-11-16) → `453d255f` (2026-11-17) |
+| Быстрое открытие главной: тёплые значения с прошлого запуска (`GraphiteWarm.kt`), правила движения (`GraphiteAnim.kt`: без анимации «в никуда» и с «неизвестного», рост графика только при смене периода), тёмное окно при запуске (`res/values/colors_fork.xml`) | `ui/home/graphite/GraphiteWarm.kt`, `GraphiteAnim.kt`, `res/values/colors_fork.xml` | `283e63ac` → `e2e0a360` → `453d255f` (2026-11-17) |
 | Схема и шрифт DiLink | `GraphiteSchemes.kt` (`GrDiLink`), `GraphiteLook.kt` (`GrFont`), `res/font/gr_rajdhani.ttf` | `b90c3dd5` (2026-11-17) |
 | «Текущая поездка», одна на сессию зажигания | `ui/home/graphite/LiveTrip.kt`, `LiveTripModel.kt`, `TripRows.kt`, `GraphiteTrip.kt` | появилась в `50a47ff0` (4.4.1.10); сессия зажигания — `d793a761` → `5e0d62c4` (2026-11-17) |
 | Учёт заправок и расходов | `fork/ledger/*` (28), `ui/settings/LedgerSection.kt`, `res/values*/strings_ledger.xml`, `app/schemas/…LedgerDatabase/1.json` | `25d33f0b` (2026-11-16) → `ee9c1ca5` |
