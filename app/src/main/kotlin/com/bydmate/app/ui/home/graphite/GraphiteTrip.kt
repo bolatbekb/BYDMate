@@ -58,7 +58,10 @@ object TripCardCalc {
     private fun model(mode: TripCardMode, r: TripRow): TripCardModel {
         val km = r.km
         val minutes = r.endMs?.let { ((it - r.startMs) / 60_000L).toInt() }?.takeIf { it >= 0 }
-        val avg = if (km != null && km > 0.0) minutes?.takeIf { it > 0 }?.let { (km / (it / 60.0)).roundToInt() } else null
+        val durationMs = r.endMs?.let { it - r.startMs }
+        val avg = if (km != null && km > 0.0) {
+            durationMs?.takeIf { it >= 60_000L }?.let { (km / (it / 3_600_000.0)).roundToInt() }
+        } else null
         val share = if (r.hevKm != null && km != null && km > 0.0) {
             (100.0 * (1.0 - r.hevKm / km)).roundToInt().coerceIn(0, 100)
         } else null

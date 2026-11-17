@@ -30,6 +30,20 @@ class TripCardCalcTest {
         assertEquals(24, m.avgKmh)
     }
 
+    @Test fun avgUsesExactDuration() {
+        val live = LiveTripState(open(t0800, t0800 + 90_000L, 2.0))
+        val m = TripCardCalc.from(live, emptyList(), day)
+        assertEquals(TripCardMode.CURRENT, m.mode)
+        assertEquals(1, m.minutes)
+        assertEquals(80, m.avgKmh)
+    }
+
+    @Test fun avgHiddenUnderOneMinute() {
+        val live = LiveTripState(open(t0800, t0800 + 59_000L, 0.9))
+        val m = TripCardCalc.from(live, emptyList(), day)
+        assertNull(m.avgKmh)
+    }
+
     @Test fun justSwitchedOnShowsLastTrip() {
         val live = LiveTripState(open(t0800 + 60 * min, t0800 + 60 * min, 0.05))
         val today = listOf(row(t0800, t0800 + 30 * min, 30.0))
