@@ -1,7 +1,10 @@
 package com.bydmate.app.ui.home
 
+import android.app.PendingIntent
+import android.content.ActivityNotFoundException
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
 import android.media.MediaMetadata
 import android.media.session.MediaController
@@ -42,6 +45,15 @@ data class NowPlaying(
     val repeatAction: String? = null,
     /** PlaybackState speed (1 = normal), for running the position between polls. */
     val playbackSpeed: Float = 1f,
+    /** Custom-action ids for «like» / «dislike» (null: the player has none). */
+    val likeAction: String? = null,
+    val dislikeAction: String? = null,
+    /** Is the track liked (null: unknown). */
+    val liked: Boolean? = null,
+    /** Shuffle on (null: unknown). */
+    val shuffleOn: Boolean? = null,
+    /** Repeat mode: 0 off, 1 track, 2 list (null: unknown). */
+    val repeatMode: Int? = null,
 ) {
     /** 0..1 through the track; 0.5 when unknown, so the two tape packs look even. */
     val progress: Float
@@ -64,6 +76,11 @@ interface MusicControls {
     fun previous()
     /** Sends a session custom action (shuffle / repeat). */
     fun custom(action: String) {}
+    /** Like / dislike the current track (Graphite only; the retro homes never call these). */
+    fun like() {}
+    fun dislike() {}
+    /** Opens the app that is playing. */
+    fun openSource() {}
 }
 
 /**
@@ -102,6 +119,9 @@ object NowPlayingSource : MusicControls {
     private var demoPos = 134_000L
     private var demoPlaying = true
     private var demoTickAt = SystemClock.elapsedRealtime()
+    private var demoLiked = false
+    private var demoShuffle = false
+    private var demoRepeat = 0
 
     fun start(context: Context, scope: CoroutineScope) {
         appContext = context.applicationContext
@@ -115,27 +135,21 @@ object NowPlayingSource : MusicControls {
         }
     }
 
+    /** Stops the poll and lets go of everything UI-scoped: this object lives as long as the process. */
     fun stopPolling() {
         job?.cancel()
         job = null
+        scope = null
+        controller = null
+        artKey = null
+        artBitmap = null
+        _state.value = _state.value.copy(art = null)
     }
 
     private fun refresh() {
         val ctx = appContext ?: return
         val winding = SystemClock.elapsedRealtime() < windingUntil
-        if (DemoMode.isOn(ctx)) {
-            val now = SystemClock.elapsedRealtime()
-            if (demoPlaying) demoPos += now - demoTickAt
-            demoTickAt = now
-            val (artist, title, dur) = demoTracks[demoIdx]
-            if (demoPos >= dur) { demoIdx = (demoIdx + 1) % demoTracks.size; demoPos = 0 }
-            val t = demoTracks[demoIdx]
-            _state.value = NowPlaying(
-                t.first, t.second, demoPlaying, demoPos, t.third, winding, "Моя волна",
-                album = demoAlbums[demoIdx].first, year = demoAlbums[demoIdx].second, sourceLabel = "Моя волна",
-            )
-            return
-        }
+        if (DemoMode.isOn(ctx)) { _state.value = demoNowPlaying(winding); return }
         val msm = ctx.getSystemService(Context.MEDIA_SESSION_SERVICE) as? MediaSessionManager ?: return
         val controllers = try {
             msm.getActiveSessions(ComponentName(ctx, MediaSessionListenerService::class.java))
@@ -159,7 +173,9 @@ object NowPlayingSource : MusicControls {
         val title = md?.getString(MediaMetadata.METADATA_KEY_TITLE)
         val artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
         val album = md?.getString(MediaMetadata.METADATA_KEY_ALBUM)
-        val actions = pb?.customActions.orEmpty()
+        val actions = pb?.customActions.orEmpty().map { it.toMediaAction() }
+        val like = pickLike(actions)
+        val (liked, shuffleOn, repeatMode) = stateOf(actions)
         _state.value = NowPlaying(
             artist = artist,
             title = title,
@@ -172,16 +188,39 @@ object NowPlayingSource : MusicControls {
             year = md?.getLong(MediaMetadata.METADATA_KEY_YEAR)?.takeIf { it > 0 }?.toInt(),
             art = artFor(md, "$title|$artist|$album", c.packageName),
             sourceLabel = labelFor(ctx, c.packageName),
-            shuffleAction = findAction(actions, "shuffle"),
-            repeatAction = findAction(actions, "repeat"),
+            shuffleAction = pickShuffle(actions)?.action,
+            repeatAction = pickRepeat(actions)?.action,
             playbackSpeed = pb?.playbackSpeed?.takeIf { it > 0f } ?: 1f,
+            likeAction = like?.action,
+            dislikeAction = pickDislike(actions)?.action,
+            liked = liked,
+            shuffleOn = shuffleOn,
+            repeatMode = repeatMode,
         )
     }
 
-    private fun findAction(actions: List<PlaybackState.CustomAction>, word: String): String? =
-        actions.firstOrNull {
-            it.action.contains(word, ignoreCase = true) || it.name?.toString()?.contains(word, ignoreCase = true) == true
-        }?.action
+    private fun demoNowPlaying(winding: Boolean): NowPlaying {
+        val now = SystemClock.elapsedRealtime()
+        if (demoPlaying) demoPos += now - demoTickAt
+        demoTickAt = now
+        val (artist, title, dur) = demoTracks[demoIdx]
+        if (demoPos >= dur) { demoIdx = (demoIdx + 1) % demoTracks.size; demoPos = 0 }
+        val t = demoTracks[demoIdx]
+        return NowPlaying(
+            t.first, t.second, demoPlaying, demoPos, t.third, winding, "Моя волна",
+            album = demoAlbums[demoIdx].first, year = demoAlbums[demoIdx].second, sourceLabel = "Моя волна",
+            likeAction = DEMO_LIKE, dislikeAction = DEMO_DISLIKE, liked = demoLiked,
+            shuffleAction = DEMO_SHUFFLE, shuffleOn = demoShuffle,
+            repeatAction = DEMO_REPEAT, repeatMode = demoRepeat,
+        )
+    }
+
+    private fun PlaybackState.CustomAction.toMediaAction() = MediaAction(
+        action = action,
+        name = name?.toString(),
+        active = extras?.takeIf { it.containsKey("active") }?.getBoolean("active"),
+        mode = extras?.takeIf { it.containsKey("mode") }?.getInt("mode"),
+    )
 
     /**
      * Scaled once per «title|artist|album»; the first non-null cover for a key wins (each poll
@@ -240,6 +279,10 @@ object NowPlayingSource : MusicControls {
     }
 
     private const val TAG = "NowPlaying"
+    private const val DEMO_LIKE = "like"
+    private const val DEMO_DISLIKE = "dislike"
+    private const val DEMO_SHUFFLE = "shuffle"
+    private const val DEMO_REPEAT = "repeat"
 
     private fun labelFor(ctx: Context, pkg: String): String? {
         if (labelCache.containsKey(pkg)) return labelCache[pkg]
@@ -276,8 +319,58 @@ object NowPlayingSource : MusicControls {
     }
 
     override fun custom(action: String) {
-        if (!demo()) controller?.transportControls?.sendCustomAction(action, null)
+        if (demo()) {
+            when (action) {
+                DEMO_LIKE -> demoLiked = !demoLiked
+                DEMO_SHUFFLE -> demoShuffle = !demoShuffle
+                DEMO_REPEAT -> demoRepeat = when (demoRepeat) { 0 -> 2; 2 -> 1; else -> 0 }
+            }
+        } else {
+            controller?.transportControls?.sendCustomAction(action, null)
+        }
         refresh()
+    }
+
+    override fun like() { _state.value.likeAction?.let { custom(it) } }
+
+    override fun dislike() {
+        val act = _state.value.dislikeAction ?: return
+        if (demo()) { demoLiked = false; next() } else { custom(act); wind() }
+    }
+
+    override fun openSource() {
+        val ctx = appContext ?: return
+        if (demo()) return
+        val c = controller ?: return
+        val session = c.sessionActivity
+        // Android 14+ would need ActivityOptions.setPendingIntentBackgroundActivityStartMode for send(); DiLink 12 (API 31) does not.
+        var plan = openPlan(session != null, session == null && hasLaunch(ctx, c.packageName))
+        if (plan == OpenPlan.SESSION) {
+            try {
+                session?.send()
+                return
+            } catch (_: PendingIntent.CanceledException) {
+                Log.d(TAG, "open: session activity cancelled, launching the app")
+                plan = OpenPlan.LAUNCH
+            }
+        }
+        if (plan == OpenPlan.LAUNCH) startLaunch(ctx, c.packageName)
+    }
+
+    private fun launchIntentOf(ctx: Context, pkg: String): Intent? =
+        runCatching { ctx.packageManager.getLaunchIntentForPackage(pkg) }.getOrNull()
+
+    private fun hasLaunch(ctx: Context, pkg: String) = launchIntentOf(ctx, pkg) != null
+
+    private fun startLaunch(ctx: Context, pkg: String) {
+        val intent = launchIntentOf(ctx, pkg)?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) ?: return
+        try {
+            ctx.startActivity(intent)
+        } catch (_: ActivityNotFoundException) {
+            Log.d(TAG, "open: no activity for $pkg")
+        } catch (_: SecurityException) {
+            Log.d(TAG, "open: launch of $pkg refused")
+        }
     }
 
     override fun next() {
