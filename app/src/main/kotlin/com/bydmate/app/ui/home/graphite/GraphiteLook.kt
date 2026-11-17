@@ -9,7 +9,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 /*
  * The Graphite home's own look, chosen in Settings › Приложение › «Главный экран» › Graphite:
  * the colour scheme, the card material, the relief and the 2.5D edges. The rest of the app keeps
- * the skin from «Оформление».
+ * the skin from «Цвета приложения».
  */
 
 /** A colour scheme of the Graphite home; [id] is stored, [title] shown as is. */

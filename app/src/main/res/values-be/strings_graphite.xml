@@ -25,7 +25,7 @@
     <string name="home_gr_trip_last">Апошняя паездка</string>
     <string name="home_gr_set_font">Шрыфт</string>
     <string name="home_gr_set_scheme">Каляровая схема</string>
-    <string name="home_gr_set_scheme_desc">Колеры галоўнага экрана Graphite; астатняя праграма — па «Афармленні»</string>
+    <string name="home_gr_set_scheme_desc">Колеры галоўнага экрана Graphite; астатняя праграма — па «Колерах праграмы»</string>
     <string name="home_gr_set_material">Матэрыял</string>
     <string name="home_gr_set_material_desc">Фактура паверхні картак</string>
     <string name="home_gr_set_relief">Рэльеф</string>

@@ -59,7 +59,7 @@ class GraphiteStringsTest {
         assertEquals("Текущая поездка", ctx.getString(R.string.home_gr_trip_current))
         assertEquals("Последняя поездка", ctx.getString(R.string.home_gr_trip_last))
         assertEquals(
-            "Цвета главной Graphite; остальное приложение — по «Оформлению»",
+            "Цвета главной Graphite; остальное приложение — по «Цветам приложения»",
             ctx.getString(R.string.home_gr_set_scheme_desc),
         )
     }

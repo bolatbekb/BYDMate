@@ -47,7 +47,7 @@ internal fun HomeStylePickerBlock() {
     }
 }
 
-/** The Graphite home's own look; the rest of the app keeps the skin from «Оформление». */
+/** The Graphite home's own look; the rest of the app keeps the skin from «Цвета приложения». */
 @Composable
 private fun GraphiteLookRows() {
     val context = LocalContext.current

@@ -25,7 +25,7 @@
     <string name="home_gr_trip_last">Последняя поездка</string>
     <string name="home_gr_set_font">Шрифт</string>
     <string name="home_gr_set_scheme">Цветовая схема</string>
-    <string name="home_gr_set_scheme_desc">Цвета главной Graphite; остальное приложение — по «Оформлению»</string>
+    <string name="home_gr_set_scheme_desc">Цвета главной Graphite; остальное приложение — по «Цветам приложения»</string>
     <string name="home_gr_set_material">Материал</string>
     <string name="home_gr_set_material_desc">Фактура поверхности карточек</string>
     <string name="home_gr_set_relief">Рельеф</string>

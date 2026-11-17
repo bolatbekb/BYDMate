@@ -179,7 +179,7 @@ object Skins {
         )
     )
 
-    /** «Оформление»: the app-wide skins. The Graphite home has its own schemes (GraphiteLookState). */
+    /** «Цвета приложения»: the app-wide skins. The Graphite home has its own schemes (GraphiteLookState). */
     val ALL = listOf(CLASSIC, COCKPIT, GRAPHITE, VOLT, TELEMETRY, OLED)
 
     fun byId(id: String?): Skin = ALL.firstOrNull { it.id == id } ?: CLASSIC

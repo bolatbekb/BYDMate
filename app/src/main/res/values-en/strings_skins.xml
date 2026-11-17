@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="settings_skin_title">App colours</string>
+    <string name="settings_skin_title">App colors</string>
     <string name="fork_settings_section_appearance">Appearance</string>
     <string name="settings_skin_desc">App color scheme. Applies instantly, no restart.</string>
     <string name="settings_home_title">Home screen</string>
