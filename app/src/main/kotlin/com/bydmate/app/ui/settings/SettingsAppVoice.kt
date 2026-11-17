@@ -88,8 +88,7 @@ internal fun AppSection(state: SettingsUiState, viewModel: SettingsViewModel) {
     LanguageBlock(currentLang = lang, onLanguageChange = viewModel::setAppLanguage)
     val fontScale by viewModel.fontScale.collectAsState()
     FontScaleBlock(current = fontScale, onChange = viewModel::setFontScale)
-    SkinPickerBlock()
-    HomeStylePickerBlock()
+    // fork: home screen and app colours moved to AppearanceSection («Внешний вид»)
     DemoModeBlock()
     ScreenshotBlock()
 

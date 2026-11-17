@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="settings_skin_title">Оформление</string>
+    <string name="settings_skin_title">Цвета приложения</string>
+    <string name="fork_settings_section_appearance">Внешний вид</string>
     <string name="settings_skin_desc">Цветовая схема приложения. Меняется сразу, без перезапуска.</string>
     <string name="settings_home_title">Главный экран</string>
     <string name="settings_home_desc">Как выглядит первая вкладка: стандартная главная или ретро-стойка с кассетной декой.</string>

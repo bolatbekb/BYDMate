@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="settings_skin_title">Афармленне</string>
+    <string name="settings_skin_title">Колеры праграмы</string>
+    <string name="fork_settings_section_appearance">Знешні выгляд</string>
     <string name="settings_skin_desc">Каляровая схема праграмы. Мяняецца адразу, без перазапуску.</string>
     <string name="settings_home_title">Галоўны экран</string>
     <string name="settings_home_desc">Як выглядае першая ўкладка: стандартная галоўная або рэтра-стойка з касетнай дэкай.</string>
