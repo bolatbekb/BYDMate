@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -99,8 +100,9 @@ class GraphiteViewModel @Inject constructor(
                 EnergyBuckets.build(rows + pending, p, now, l)
             }
         }
+        .onEach { GraphiteWarm.energy[it.period] = it }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.energy[_period.value])
 
     /** The trip card: today's recorded trips + the live session; the day rolls over with [date]. */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -113,12 +115,13 @@ class GraphiteViewModel @Inject constructor(
                 TripCardCalc.from(live, trips.map { it.toRow() }, dayStart)
             }
         }
+        .onEach { GraphiteWarm.trip = it }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), TripCardModel.EMPTY)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.trip ?: TripCardModel.EMPTY)
 
     // The last good SOH and when it was read: kept across WhileSubscribed restarts, so returning to
     // the screen neither re-reads before 10 min nor loses the value to a failed read.
-    @Volatile private var sohLast: Float? = null
+    @Volatile private var sohLast: Float? = GraphiteWarm.sohPercent
     @Volatile private var sohReadAt = 0L
 
     /** Battery SOH, %: read at once, then every 10 min; a failed read keeps the last good value. */
@@ -133,27 +136,37 @@ class GraphiteViewModel @Inject constructor(
             delay((SOH_POLL_MS - (SystemClock.elapsedRealtime() - sohReadAt)).coerceAtLeast(1_000L))
         }
     }
+        .onEach { v -> v?.let { GraphiteWarm.sohPercent = it } }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.sohPercent)
 
-    /** PM2.5, read at once and every minute; null = no sensor. Demo shows a fixed reading. */
+    /**
+     * PM2.5, read at once and every minute; null = no sensor. Demo shows a fixed reading. Starts from the last
+     * known reading; a failed read keeps it.
+     */
     val pm25: StateFlow<Pm25?> = flow {
         while (true) {
-            emit(if (demo) DEMO_PM25 else runCatching { pm25Reader.read() }.getOrNull())
+            val read = if (demo) Result.success(DEMO_PM25) else runCatching { pm25Reader.read() }
+            read.onSuccess { GraphiteWarm.pm25 = it?.let(Pm25Memo::Reading) ?: Pm25Memo.None }
+            emit(warmPm())
             delay(PM25_POLL_MS)
         }
     }
         .distinctUntilChanged()
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), warmPm())
+
+    private fun warmPm(): Pm25? = (GraphiteWarm.pm25 as? Pm25Memo.Reading)?.pm
 
     val tankCapacityL: StateFlow<Double?> = flow { emit(runCatching { ledger.tankCapacityL() }.getOrNull()) }
+        .onEach { v -> v?.let { GraphiteWarm.tankL = it } }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.tankL)
 
     val batteryCapacityKwh: StateFlow<Double?> = flow { emit(runCatching { settings.getBatteryCapacity() }.getOrNull()) }
+        .onEach { v -> v?.let { GraphiteWarm.capacityKwh = it } }
         .flowOn(Dispatchers.IO)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.capacityKwh)
 
     private companion object {
         const val KEY = "graphite_chart_period"
