@@ -10,6 +10,8 @@ import android.media.MediaMetadata
 import android.media.session.MediaController
 import android.media.session.MediaSessionManager
 import android.media.session.PlaybackState
+import android.os.Handler
+import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
 import com.bydmate.app.demo.DemoMode
@@ -30,6 +32,10 @@ data class NowPlaying(
     val artist: String? = null,
     val title: String? = null,
     val isPlaying: Boolean = false,
+    /**
+     * The player's own position anchor: the position at [positionAtMs] (elapsedRealtime). It changes
+     * only when the player reports a new one; [livePosition] runs it forward.
+     */
     val positionMs: Long? = null,
     val durationMs: Long? = null,
     /** Short-lived: true right after Prev/Next, so the reels spin fast like a tape winding. */
@@ -54,6 +60,8 @@ data class NowPlaying(
     val shuffleOn: Boolean? = null,
     /** Repeat mode: 0 off, 1 track, 2 list (null: unknown). */
     val repeatMode: Int? = null,
+    /** elapsedRealtime at which [positionMs] was true (fork: the anchor of the running position). */
+    val positionAtMs: Long = 0L,
 ) {
     /** 0..1 through the track; 0.5 when unknown, so the two tape packs look even. */
     val progress: Float
@@ -97,6 +105,14 @@ object NowPlayingSource : MusicControls {
     private var job: Job? = null
     private var appContext: Context? = null
     private var controller: MediaController? = null
+    // F3: the metadata (and the cover in it) is fetched once per controller; the callback pushes changes.
+    private val metaGate = MetadataGate<MediaMetadata>()
+    private var callbackOn: MediaController? = null
+    private val callback = object : MediaController.Callback() {
+        override fun onMetadataChanged(metadata: MediaMetadata?) { metaGate.set(metadata); refresh() }
+        override fun onPlaybackStateChanged(state: PlaybackState?) { refresh() }
+        override fun onSessionDestroyed() { refresh() }
+    }
     private var windingUntil = 0L
 
     // Album art: only the current one is kept, scaled once per track.
@@ -116,7 +132,7 @@ object NowPlayingSource : MusicControls {
     )
     private val demoAlbums = listOf("Группа крови" to 1988, "Гранатовый альбом" to 1998, "Золотая коллекция" to 2005)
     private var demoIdx = 0
-    private var demoPos = 134_000L
+    private var demoPos = 134_000L // the anchor: the position at demoTickAt
     private var demoPlaying = true
     private var demoTickAt = SystemClock.elapsedRealtime()
     private var demoLiked = false
@@ -141,7 +157,24 @@ object NowPlayingSource : MusicControls {
         job = null
         scope = null
         controller = null
+        dropCallback()
         // The last cover (one bounded bitmap) stays, so the home shows a full first frame on return.
+    }
+
+    private fun dropCallback() {
+        callbackOn?.let { runCatching { it.unregisterCallback(callback) } }
+        callbackOn = null
+        metaGate.reset()
+    }
+
+    /** Keeps one controller (and its callback) per session token; a new token re-reads the metadata once. */
+    private fun sticky(c: MediaController): MediaController {
+        val on = callbackOn
+        if (on != null && on.sessionToken == c.sessionToken) return on
+        dropCallback()
+        c.registerCallback(callback, Handler(Looper.getMainLooper()))
+        callbackOn = c
+        return c
     }
 
     private fun refresh() {
@@ -153,21 +186,20 @@ object NowPlayingSource : MusicControls {
             msm.getActiveSessions(ComponentName(ctx, MediaSessionListenerService::class.java))
         } catch (_: SecurityException) {
             controller = null
+            dropCallback()
             _state.value = NowPlaying()
             return
         }
-        val c = controllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
+        val picked = controllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
             ?: controllers.firstOrNull()
+        if (picked == null) { controller = null; dropCallback(); _state.value = NowPlaying(); return }
+        val c = sticky(picked)
         controller = c
-        if (c == null) { _state.value = NowPlaying(); return }
-        val md = c.metadata
+        val md = metaGate.get(c.sessionToken) { c.metadata }
         val pb = c.playbackState
-        val now = SystemClock.elapsedRealtime()
         val playing = pb?.state == PlaybackState.STATE_PLAYING
-        val pos = pb?.let { st ->
-            if (st.position < 0) null
-            else st.position + if (playing) ((now - st.lastPositionUpdateTime) * st.playbackSpeed).toLong() else 0L
-        }
+        // The player's own anchor, not extrapolated: it stays equal between changes, so nothing is republished.
+        val pos = pb?.position?.takeIf { it >= 0 }
         val title = md?.getString(MediaMetadata.METADATA_KEY_TITLE)
         val artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
         val album = md?.getString(MediaMetadata.METADATA_KEY_ALBUM)
@@ -194,23 +226,35 @@ object NowPlayingSource : MusicControls {
             liked = liked,
             shuffleOn = shuffleOn,
             repeatMode = repeatMode,
+            positionAtMs = pb?.lastPositionUpdateTime ?: 0L,
         )
     }
 
     private fun demoNowPlaying(winding: Boolean): NowPlaying {
-        val now = SystemClock.elapsedRealtime()
-        if (demoPlaying) demoPos += now - demoTickAt
-        demoTickAt = now
-        val (artist, title, dur) = demoTracks[demoIdx]
-        if (demoPos >= dur) { demoIdx = (demoIdx + 1) % demoTracks.size; demoPos = 0 }
+        // The anchor moves only on a command or at the end of a track, so a poll republishes nothing.
+        if (demoCurrentPos() >= demoTracks[demoIdx].third) {
+            demoIdx = (demoIdx + 1) % demoTracks.size
+            demoPos = 0
+            demoTickAt = SystemClock.elapsedRealtime()
+        }
         val t = demoTracks[demoIdx]
         return NowPlaying(
             t.first, t.second, demoPlaying, demoPos, t.third, winding, "Моя волна",
+            positionAtMs = demoTickAt,
             album = demoAlbums[demoIdx].first, year = demoAlbums[demoIdx].second, sourceLabel = "Моя волна",
             likeAction = DEMO_LIKE, dislikeAction = DEMO_DISLIKE, liked = demoLiked,
             shuffleAction = DEMO_SHUFFLE, shuffleOn = demoShuffle,
             repeatAction = DEMO_REPEAT, repeatMode = demoRepeat,
         )
+    }
+
+    private fun demoCurrentPos(): Long =
+        demoPos + if (demoPlaying) SystemClock.elapsedRealtime() - demoTickAt else 0L
+
+    /** Folds the elapsed time into the anchor; call before a command changes the demo player. */
+    private fun demoFold() {
+        demoPos = demoCurrentPos()
+        demoTickAt = SystemClock.elapsedRealtime()
     }
 
     private fun PlaybackState.CustomAction.toMediaAction() = MediaAction(
@@ -303,17 +347,17 @@ object NowPlayingSource : MusicControls {
     override fun playPause() = if (_state.value.isPlaying) pause() else play()
 
     override fun play() {
-        if (demo()) demoPlaying = true else controller?.transportControls?.play()
+        if (demo()) { demoFold(); demoPlaying = true } else controller?.transportControls?.play()
         refresh()
     }
 
     override fun pause() {
-        if (demo()) demoPlaying = false else controller?.transportControls?.pause()
+        if (demo()) { demoFold(); demoPlaying = false } else controller?.transportControls?.pause()
         refresh()
     }
 
     override fun stop() {
-        if (demo()) { demoPlaying = false; demoPos = 0 } else controller?.transportControls?.stop()
+        if (demo()) { demoPlaying = false; demoPos = 0; demoTickAt = SystemClock.elapsedRealtime() } else controller?.transportControls?.stop()
         refresh()
     }
 
@@ -373,13 +417,13 @@ object NowPlayingSource : MusicControls {
     }
 
     override fun next() {
-        if (demo()) { demoIdx = (demoIdx + 1) % demoTracks.size; demoPos = 0; demoPlaying = true }
+        if (demo()) { demoIdx = (demoIdx + 1) % demoTracks.size; demoPos = 0; demoTickAt = SystemClock.elapsedRealtime(); demoPlaying = true }
         else controller?.transportControls?.skipToNext()
         wind()
     }
 
     override fun previous() {
-        if (demo()) { demoIdx = (demoIdx + demoTracks.size - 1) % demoTracks.size; demoPos = 0; demoPlaying = true }
+        if (demo()) { demoIdx = (demoIdx + demoTracks.size - 1) % demoTracks.size; demoPos = 0; demoTickAt = SystemClock.elapsedRealtime(); demoPlaying = true }
         else controller?.transportControls?.skipToPrevious()
         wind()
     }

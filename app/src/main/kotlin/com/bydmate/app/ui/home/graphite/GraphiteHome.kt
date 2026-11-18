@@ -19,6 +19,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -76,7 +77,7 @@ internal fun topCards(mediaLeft: Boolean): Pair<SideCard, SideCard> =
 @Composable
 fun GraphiteHome(
     data: HomeData,
-    music: NowPlaying,
+    music: State<NowPlaying>, // read only inside the media card, so a track change recomposes just that card
     controls: MusicControls,
     tabs: List<RetroTab>,
     onTab: (RetroTab) -> Unit,

@@ -3,9 +3,13 @@ package com.bydmate.app.ui.home
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import android.os.SystemClock
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import com.bydmate.app.ui.navigation.Screen
@@ -16,9 +20,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bydmate.app.service.TrackingService
-import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.delay
 import com.bydmate.app.ui.dashboard.DashboardViewModel
 import com.bydmate.app.ui.home.kenwood.KenwoodHome
 import com.bydmate.app.ui.home.onkyo.OnkyoHome
@@ -46,9 +48,9 @@ fun ForkHome(onOpenTab: (String) -> Unit, standard: @Composable () -> Unit) {
     }
 }
 
-private const val LIVE_SAMPLE_MS = 1_000L
+/** Retro counters (tape time, progress) run on this local tick; the source publishes only on change. */
+private const val COUNTER_TICK_MS = 1_000L
 
-@OptIn(FlowPreview::class)
 @Composable
 private fun RetroHome(
     style: HomeStyle,
@@ -56,13 +58,22 @@ private fun RetroHome(
     onTab: (RetroTab) -> Unit,
     viewModel: DashboardViewModel = hiltViewModel(),
 ) {
-    val state by viewModel.uiState.collectAsStateWithLifecycle()
-    // Push patches lastData up to every 200 ms; the stack redraws at most once a second.
-    // The current snapshot first, then a sample a second, so the stack never opens blank.
-    val liveFlow = remember {
-        TrackingService.lastData.sample(LIVE_SAMPLE_MS).onStart { emit(TrackingService.lastData.value) }
+    // One flow builds HomeData off Main: the inputs are combined, sampled once a second, built and
+    // compared there; the home recomposes only when a value on screen changed. The first value is
+    // built from the current snapshot, so the home never opens blank.
+    val dataFlow = remember(viewModel) {
+        homeDataFlow(
+            viewModel.uiState, TrackingService.lastData,
+            com.bydmate.app.fork.DriveModeSupport.supported, DayMileage.todayKm,
+        )
     }
-    val live by liveFlow.collectAsStateWithLifecycle(initialValue = null)
+    val initial = remember(viewModel) {
+        HomeData.from(
+            viewModel.uiState.value, TrackingService.lastData.value,
+            com.bydmate.app.fork.DriveModeSupport.supported.value, DayMileage.todayKm.value,
+        )
+    }
+    val data by dataFlow.collectAsStateWithLifecycle(initialValue = initial)
     // Same as the author's screen: period totals and the insight reload on every resume.
     val lifecycleOwner = LocalLifecycleOwner.current
     LaunchedEffect(lifecycleOwner) {
@@ -85,16 +96,35 @@ private fun RetroHome(
             NowPlayingSource.stopPolling()
         }
     }
-    val music by NowPlayingSource.state.collectAsStateWithLifecycle()
+    // A State, not a value: only the readers below recompose when the music changes.
+    val music = NowPlayingSource.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.bydmate.app.fork.DriveModeSupport.ensureProbed(context) }
-    val profiles by com.bydmate.app.fork.DriveModeSupport.supported.collectAsStateWithLifecycle()
-    val todayKm by DayMileage.todayKm.collectAsStateWithLifecycle()
-    val data = remember(state, live, profiles, todayKm) { HomeData.from(state, live, profiles, todayKm) }
     when (style) {
-        HomeStyle.KENWOOD -> KenwoodHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
-        HomeStyle.ONKYO -> OnkyoHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
-        HomeStyle.CDRIVE -> CdHome(data = data, music = music, controls = NowPlayingSource, tabs = tabs, onTab = onTab)
+        HomeStyle.KENWOOD -> LiveMusic(music) { KenwoodHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) }
+        HomeStyle.ONKYO -> LiveMusic(music) { OnkyoHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) }
+        HomeStyle.CDRIVE -> LiveMusic(music) { CdHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) }
         HomeStyle.GRAPHITE -> GraphiteHome(data, music, NowPlayingSource, tabs, onTab)
         HomeStyle.STANDARD -> Unit
     }
+}
+
+/**
+ * The retro homes read the music as a value: this gives them the published state with its position
+ * run to now, ticking once a second while a track plays (the source itself publishes only on change).
+ */
+@Composable
+private fun LiveMusic(music: State<NowPlaying>, content: @Composable (NowPlaying) -> Unit) {
+    val published = music.value
+    var now by remember { mutableLongStateOf(SystemClock.elapsedRealtime()) }
+    val owner = LocalLifecycleOwner.current
+    LaunchedEffect(owner, published.isPlaying) {
+        if (!published.isPlaying) return@LaunchedEffect
+        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                now = SystemClock.elapsedRealtime()
+                delay(COUNTER_TICK_MS)
+            }
+        }
+    }
+    content(published.advancedTo(now))
 }

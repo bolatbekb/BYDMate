@@ -64,6 +64,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
+import com.bydmate.app.ui.home.livePosition
 import com.bydmate.app.ui.home.common.px
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -73,7 +74,8 @@ internal fun coverSide(compact: Boolean): Float = if (compact) 192f else 230f
 
 /** «Медиа» card: source pill, cover and title, progress, transport row and media volume. */
 @Composable
-fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modifier: Modifier) {
+fun MediaCard(musicState: State<NowPlaying>, controls: MusicControls, compact: Boolean, modifier: Modifier) {
+    val music = musicState.value
     val cover = coverSide(compact)
     val volume = rememberVolume()
     CardBody(modifier) {
@@ -256,39 +258,22 @@ private const val EQ_H = 14f
 private const val EQ_REST = 0.2f
 private const val EQ_EASE_MS = 300
 
-/** The anchor of the shown position: the poll it runs from, on the elapsedRealtime clock. */
-private class PositionClock {
-    var anchor = PolledPosition(0L, 0L, null, playing = false)
-}
-
 /**
- * The position to show: the last poll, run forward in real time every 250 ms while playing with a
- * known duration. A poll re-anchors it when play state, track length or speed changed, or when it
- * is a seek ([reanchors]); a poll within the tolerance leaves the running clock alone (no jitter).
+ * The position to show, run from the anchor the source published ([livePosition]): once on every
+ * new anchor, then once a second while playing with a known duration. The anchor does not move
+ * between polls, so there is nothing to smooth.
  */
 @Composable
 private fun rememberShownPosition(music: NowPlaying): State<Long?> {
-    val clock = remember { PositionClock() }
-    val shown = remember { mutableStateOf(music.positionMs) }
-    val pos = music.positionMs
-    val dur = music.durationMs
-    val playing = music.isPlaying
-    val speed = music.playbackSpeed
+    val shown = remember { mutableStateOf(music.livePosition(SystemClock.elapsedRealtime())) }
     val owner = LocalLifecycleOwner.current
-    LaunchedEffect(pos, playing, dur, speed, owner) {
-        if (pos == null) {
-            shown.value = null
-            return@LaunchedEffect
-        }
-        val now = SystemClock.elapsedRealtime()
-        val poll = PolledPosition(pos, now, dur, playing, speed)
-        if (shown.value == null || reanchors(clock.anchor, poll, now)) clock.anchor = poll
-        shown.value = extrapolatePosition(clock.anchor, now)
-        if (!playing || dur == null) return@LaunchedEffect
+    LaunchedEffect(music.positionMs, music.positionAtMs, music.isPlaying, music.durationMs, music.playbackSpeed, owner) {
+        shown.value = music.livePosition(SystemClock.elapsedRealtime())
+        if (!music.isPlaying || music.positionMs == null || music.durationMs == null) return@LaunchedEffect
         // Runs only while the screen is started; it picks up the real time again on return.
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
-                shown.value = extrapolatePosition(clock.anchor, SystemClock.elapsedRealtime())
+                shown.value = music.livePosition(SystemClock.elapsedRealtime())
                 delay(POSITION_TICK_MS)
             }
         }

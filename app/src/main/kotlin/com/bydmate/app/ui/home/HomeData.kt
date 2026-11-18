@@ -1,5 +1,6 @@
 package com.bydmate.app.ui.home
 
+import androidx.compose.runtime.Immutable
 import com.bydmate.app.data.remote.DiParsData
 import com.bydmate.app.ui.dashboard.DashboardUiState
 import java.text.SimpleDateFormat
@@ -9,6 +10,7 @@ import java.util.Locale
 import kotlin.math.roundToInt
 
 /** A tab the retro homes draw as a key on the deck: the author's bottom-bar items minus Home. */
+@Immutable
 data class RetroTab(
     val route: String,
     val label: String,
@@ -17,12 +19,14 @@ data class RetroTab(
 )
 
 /** One line of the day's log on the retro screens. */
+@Immutable
 data class HomeEvent(val time: String, val title: String, val cost: String, val fuel: Boolean)
 
 /**
  * Everything the retro home screens draw, already in display form. Null means the car did
  * not report it: the screens show a dash, never a made-up value.
  */
+@Immutable
 data class HomeData(
     val socPercent: Int?,
     val fuelPercent: Int?,
