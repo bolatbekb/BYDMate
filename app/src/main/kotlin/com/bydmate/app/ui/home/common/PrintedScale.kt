@@ -57,9 +57,10 @@ internal fun MeterNeedle(
     originY: Int,
     modifier: Modifier,
     painter: NeedlePainter,
+    tweenMs: Int = 700, // fork: the rpm needle eases for 150 ms
 ) {
     // read in the draw phase only: the swing redraws this canvas, never recomposes the screen
-    val angleState = animateFloatAsState(scale.angleOf(value), tween(700), label = "needle")
+    val angleState = animateFloatAsState(scale.angleOf(value), tween(tweenMs), label = "needle")
     Canvas(modifier.clipToBounds()) {
         val angle = angleState.value
         val s = K * density // px per mockup pixel

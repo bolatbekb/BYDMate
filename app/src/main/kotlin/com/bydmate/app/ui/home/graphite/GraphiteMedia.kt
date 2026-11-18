@@ -6,11 +6,7 @@ import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -39,7 +35,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.State
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -72,7 +67,6 @@ import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.common.px
 import java.util.Locale
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 
 /** Cover side (mockup px) in the regular and the compact card (compact: the PM2.5 line shortens the top cards). */
 internal fun coverSide(compact: Boolean): Float = if (compact) 192f else 230f
@@ -92,12 +86,14 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
         // The content lambda reads the live music through a State, so it updates even if AnimatedContent
         // keeps the lambda it first composed an entry with.
         val live by rememberUpdatedState(music)
+        // one ~12-fps clock for the glow and the equalizer, so they change in the same frame
+        val clock = rememberStepClock(music.isPlaying && music.hasTrack)
         val slide = with(LocalDensity.current) { px(12).roundToPx() }
         // A new track cross-fades the cover and the text, the new one rising 12 px; the same
         // track (play / pause, position) updates in place.
         Box(Modifier.fillMaxWidth().height(px(cover))) {
             // The glow breathes in its own layer behind the cover (unclipped, so the blur shows).
-            Box(Modifier.size(px(cover)).graphicsLayer().coverGlow(music.isPlaying && music.hasTrack, cover))
+            Box(Modifier.size(px(cover)).graphicsLayer().coverGlow(music.isPlaying && music.hasTrack, cover, clock))
             // The target is the track's identity (title / artist / album), not the per-second NowPlaying:
             // Compose keeps an entry per target, so anything that changes within one track (a late cover
             // or year) must stay out of it. Those are read live per child below.
@@ -121,7 +117,7 @@ fun MediaCard(music: NowPlaying, controls: MusicControls, compact: Boolean, modi
                 }
                 Row(Modifier.fillMaxSize(), horizontalArrangement = Arrangement.spacedBy(px(30))) {
                     Cover(held.art, cover, open)
-                    Meta(face, held.year, live.isPlaying, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)).then(open))
+                    Meta(face, held.year, live.isPlaying, clock, Modifier.weight(1f).fillMaxHeight().padding(bottom = px(6)).then(open))
                 }
             }
         }
@@ -155,17 +151,10 @@ private class HeldMedia {
  * Electric, or ProgressEnd on Soft, where Electric is mint.
  */
 @Composable
-private fun Modifier.coverGlow(on: Boolean, coverSide: Float): Modifier {
+private fun Modifier.coverGlow(on: Boolean, coverSide: Float, clock: State<Float>): Modifier {
     val p = LocalGr.current
     val color = if (p == GrSoft) p.progressEnd else p.highlight
     val fade by animateFloatAsState(if (on) 1f else 0f, tween(GLOW_FADE_MS), label = "glowFade")
-    val breath: State<Float>? = if (on) {
-        rememberInfiniteTransition(label = "glow").animateFloat(
-            GLOW_MIN, GLOW_MAX,
-            infiniteRepeatable(tween(GLOW_HALF_MS, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-            label = "breath",
-        )
-    } else null
     val last = remember { floatArrayOf(GLOW_MIN) } // the breath to fade out from
     return this.drawWithCache {
         val u = px(1).toPx()
@@ -173,7 +162,8 @@ private fun Modifier.coverGlow(on: Boolean, coverSide: Float): Modifier {
         val r = 24 * u
         val paint = blurPaint(color, 28 * u)
         onDrawBehind {
-            val b = breath?.value?.also { last[0] = it } ?: last[0]
+            // the breath follows the shared 12-fps clock; off, it fades from where it stopped
+            val b = if (on) glowBreath(clock.value).also { last[0] = it } else last[0]
             val a = b * fade
             if (a > 0.001f) {
                 paint.color = color.copy(alpha = a).toArgb()
@@ -183,9 +173,6 @@ private fun Modifier.coverGlow(on: Boolean, coverSide: Float): Modifier {
     }
 }
 
-private const val GLOW_MIN = 0.10f
-private const val GLOW_MAX = 0.28f
-private const val GLOW_HALF_MS = 2_000
 private const val GLOW_FADE_MS = 400
 
 @Composable
@@ -208,7 +195,7 @@ private fun Cover(art: Bitmap?, side: Float, open: Modifier) {
 }
 
 @Composable
-private fun Meta(music: TrackFace, year: Int?, isPlaying: Boolean, modifier: Modifier) {
+private fun Meta(music: TrackFace, year: Int?, isPlaying: Boolean, clock: State<Float>, modifier: Modifier) {
     val p = LocalGr.current
     Column(modifier, verticalArrangement = Arrangement.Bottom) {
         if (!music.hasTrack) {
@@ -223,7 +210,7 @@ private fun Meta(music: TrackFace, year: Int?, isPlaying: Boolean, modifier: Mod
                 modifier = Modifier.weight(1f, fill = false),
             )
             Spacer(Modifier.width(px(10)))
-            Equalizer(isPlaying, p.highlight)
+            Equalizer(isPlaying, p.highlight, clock)
         }
         Spacer(Modifier.height(px(12)))
         FitText(music.title.orEmpty(), grStyle(50f, 500, -1f, p.textPrimary, tnum = false), 50f, 36f, Modifier, lineBox = true)
@@ -245,28 +232,14 @@ private fun Meta(music: TrackFace, year: Int?, isPlaying: Boolean, modifier: Mod
  * ease to 0.2 in 300 ms and the loop ends.
  */
 @Composable
-private fun Equalizer(playing: Boolean, color: Color) {
-    val clock = remember { mutableFloatStateOf(0f) }
+private fun Equalizer(playing: Boolean, color: Color, clock: State<Float>) {
     val live = remember { Animatable(if (playing) 1f else 0f) }
-    val owner = LocalLifecycleOwner.current
-    LaunchedEffect(playing, owner) {
-        if (playing) {
-            launch { live.animateTo(1f, tween(EQ_EASE_MS)) }
-            // Ticks only while the screen is started (not under navigation).
-            owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                val start = SystemClock.elapsedRealtime() - (clock.floatValue * 1000).toLong()
-                while (true) {
-                    clock.floatValue = (SystemClock.elapsedRealtime() - start) / 1000f
-                    delay(EQ_TICK_MS)
-                }
-            }
-        } else {
-            live.animateTo(0f, tween(EQ_EASE_MS))
-        }
+    LaunchedEffect(playing) {
+        live.animateTo(if (playing) 1f else 0f, tween(EQ_EASE_MS))
     }
     Canvas(Modifier.size(px(4 * EQ_BAR + 3 * EQ_GAP), px(EQ_H)).graphicsLayer()) {
         val u = px(1).toPx()
-        val t = clock.floatValue
+        val t = clock.value
         val k = live.value
         val r = CornerRadius(2 * u)
         for (i in 0 until 4) {
@@ -281,7 +254,6 @@ private const val EQ_BAR = 4f
 private const val EQ_GAP = 3f
 private const val EQ_H = 14f
 private const val EQ_REST = 0.2f
-private const val EQ_TICK_MS = 83L
 private const val EQ_EASE_MS = 300
 
 /** The anchor of the shown position: the poll it runs from, on the elapsedRealtime clock. */

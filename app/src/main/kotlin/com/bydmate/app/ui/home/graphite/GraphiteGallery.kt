@@ -52,7 +52,7 @@ private const val FADE_MS = 1400
 private const val ZOOM_MS = 200_000
 private const val ZOOM_FROM = 1.02f
 private const val ZOOM_TO = 1.08f
-private const val ZOOM_STEP_MS = 300L
+private const val ZOOM_STEP_MS = 1_500L
 
 /** Linear 1.02 -> 1.08 over 200 s and back, [elapsedMs] after the start. */
 internal fun galleryZoom(elapsedMs: Long): Float {
@@ -118,8 +118,8 @@ fun GalleryCard(modifier: Modifier) {
         }
     }
     val filter = remember(p.look, p.photoTint) { ColorFilter.colorMatrix(ColorMatrix(photoMatrix(p.look, p.photoTint))) }
-    // A step every 300 ms (0.00009 of scale, invisible) instead of a frame every vsync: the card
-    // is redrawn ~3 times a second, not 60. Read only in graphicsLayer, so
+    // A step every 1.5 s (0.00045 of scale, 0.4 px on the card, invisible) instead of a frame every
+    // vsync: the card is redrawn ~0.7 times a second, not 60. Read only in graphicsLayer, so
     // no recomposition; the loop waits on the frame clock, which is paused while the screen is stopped.
     var zoom by remember { mutableFloatStateOf(ZOOM_FROM) }
     LaunchedEffect(Unit) {

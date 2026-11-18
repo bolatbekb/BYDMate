@@ -268,7 +268,9 @@ private fun GaugeDial(percent: Int?, accent: Color, centerIcon: Int, shimmer: Bo
     val p = LocalGr.current
     val frac by animatedValue(percent?.let { (it / 100f).coerceIn(0f, 1f) }, "gauge")
     val ring = rpm != null
-    val rpmFrac by animatedValue(rpm?.let { rpmFraction(it) }, "rpm")
+    // 100-rpm steps with hysteresis and a 150-ms ease: the dial no longer redraws on every poll
+    val rpmStep = rememberQuantizedRpm(rpm)
+    val rpmFrac by animatedValue(rpmStep?.let { rpmFraction(it) }, "rpm", RpmSpec)
     // The transition exists only while charging: nothing ticks at rest.
     val phase: State<Float>? = if (shimmer) {
         rememberInfiniteTransition(label = "charge").animateFloat(

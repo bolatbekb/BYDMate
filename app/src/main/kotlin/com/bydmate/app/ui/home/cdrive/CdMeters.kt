@@ -31,6 +31,8 @@ import com.bydmate.app.ui.home.common.at
 import com.bydmate.app.ui.home.common.fs
 import com.bydmate.app.ui.home.common.groupThousands
 import com.bydmate.app.ui.home.common.px
+import com.bydmate.app.ui.home.graphite.RPM_TWEEN_MS
+import com.bydmate.app.ui.home.graphite.rememberQuantizedRpm
 import java.util.Locale
 
 /** Engine speed 0…6 ×1000 rpm: the needle angle of each printed number, measured from the hub. */
@@ -71,16 +73,17 @@ private val HubDot = Color(0xFFC4EC3E)
 @Composable
 internal fun CdMeters(d: HomeData) {
     val rpm = d.engineRpm
+    val rpmStep = rememberQuantizedRpm(rpm) // fork: 100-rpm steps, so the needle does not redraw on every poll
     MeterNeedle(
-        CdRpmScale, rpm?.let { it.coerceAtLeast(0) / 1000.0 }, 1384, 612,
-        Modifier.at(1384, 612, 541, 296).graphicsLayer(), painter = CdNeedle,
+        CdRpmScale, rpmStep?.let { it / 1000.0 }, 1384, 612,
+        Modifier.at(1384, 612, 541, 296).graphicsLayer(), painter = CdNeedle, tweenMs = RPM_TWEEN_MS,
     )
     MeterValue(rpmText(rpm), "об/мин", 1701, 850, 41f, 31f, RpmCyan)
 
     val kw = d.compressorKw?.takeIf { it.isFinite() }
     MeterNeedle(
         CdCompressorScale, kw?.coerceAtLeast(0.0), 1928, 612,
-        Modifier.at(1928, 612, 560, 296).graphicsLayer(), painter = CdNeedle,
+        Modifier.at(1928, 612, 560, 296).graphicsLayer(), painter = CdNeedle, tweenMs = RPM_TWEEN_MS,
     )
     MeterValue(kwText(kw), "кВт", 2189, 856, 41f, 31f, KwCyan)
 }

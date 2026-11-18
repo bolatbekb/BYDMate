@@ -1,6 +1,7 @@
 package com.bydmate.app.ui.home.graphite
 
 import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationSpec
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
@@ -18,6 +19,33 @@ import kotlin.math.min
 
 private val ValueSpec = tween<Float>(500, easing = FastOutSlowInEasing)
 
+/** The short ease of a quantized value (rpm): at most 150 ms, so a step never keeps the frames running. */
+internal val RpmSpec = tween<Float>(RPM_TWEEN_MS, easing = FastOutSlowInEasing)
+internal const val RPM_TWEEN_MS = 150
+internal const val RPM_STEP = 100
+private const val RPM_HYSTERESIS = 50
+
+/**
+ * Engine speed in [RPM_STEP]-rpm steps with a ±[RPM_HYSTERESIS] dead band: [held] (the step shown
+ * so far) stays until [raw] is more than a step plus the band (150 rpm) away from it, then it
+ * snaps to the nearest step of [raw]. Null stays null; negative reads as 0.
+ */
+internal fun quantizeRpm(raw: Int?, held: Int?): Int? {
+    if (raw == null) return null
+    val r = raw.coerceAtLeast(0)
+    if (held != null && kotlin.math.abs(r - held) <= RPM_STEP + RPM_HYSTERESIS) return held
+    return (r + RPM_STEP / 2) / RPM_STEP * RPM_STEP
+}
+
+/** [rpm] as a held step (see [quantizeRpm]); recomposes only when the step changes. */
+@Composable
+internal fun rememberQuantizedRpm(rpm: Int?): Int? {
+    var held by remember { mutableStateOf<Int?>(null) }
+    val q = quantizeRpm(rpm, held)
+    if (q != held) held = q
+    return q
+}
+
 /** Ease only between two known values: the first one after "unknown" (open, data arriving) is snapped. */
 internal fun shouldAnimate(previous: Float?, target: Float?): Boolean = previous != null && target != null
 
@@ -32,7 +60,7 @@ internal fun shouldGrow(lastShown: ChartPeriod?, period: ChartPeriod): Boolean =
  */
 @Suppress("UnusedParameter") // [label] names the call site, as animateFloatAsState's did
 @Composable
-internal fun animatedValue(target: Float?, label: String): State<Float> {
+internal fun animatedValue(target: Float?, label: String, spec: AnimationSpec<Float> = ValueSpec): State<Float> {
     val anim = remember { Animatable(target ?: 0f) }
     var previous by remember { mutableStateOf(target) }
     LaunchedEffect(target) {
@@ -41,7 +69,7 @@ internal fun animatedValue(target: Float?, label: String): State<Float> {
         } else if (target == anim.value && !anim.isRunning) {
             // already there (the first composition with a known value): no 500 ms tween to nowhere
         } else if (shouldAnimate(previous, target)) {
-            anim.animateTo(target, ValueSpec)
+            anim.animateTo(target, spec)
         } else {
             anim.snapTo(target)
         }
