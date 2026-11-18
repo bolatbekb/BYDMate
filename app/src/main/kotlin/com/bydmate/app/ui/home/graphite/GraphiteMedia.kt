@@ -296,7 +296,7 @@ private fun rememberShownPosition(music: NowPlaying): State<Long?> {
     return shown
 }
 
-private const val POSITION_TICK_MS = 250L
+private const val POSITION_TICK_MS = 1_000L // fork: the bar moves about 1 px/s, so a 250-ms tick only woke the frame clock
 
 @Composable
 private fun Progress(music: NowPlaying) {

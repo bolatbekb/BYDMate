@@ -34,10 +34,20 @@ class StepClockTest {
     }
 
     @Test fun quantizerHoldsInsideTheBand() {
-        assertEquals(1500, quantizeRpm(1640, 1500))
-        assertEquals(1500, quantizeRpm(1350, 1500))
-        assertEquals(1700, quantizeRpm(1651, 1500)) // 151 away: snaps to the nearest step
-        assertEquals(1300, quantizeRpm(1349, 1500))
+        assertEquals(1400, quantizeRpm(1499, 1400))
+        assertEquals(1500, quantizeRpm(1501, 1400))
+        assertEquals(1400, quantizeRpm(1300, 1400))
+        assertEquals(1300, quantizeRpm(1299, 1400))
+    }
+
+    @Test fun quantizerSlowRampMovesInSingleSteps() {
+        var held: Int? = 1400
+        val seen = ArrayList<Int?>()
+        for (raw in 1400..1620 step 10) {
+            held = quantizeRpm(raw, held)
+            if (seen.lastOrNull() != held) seen.add(held)
+        }
+        assertEquals(listOf<Int?>(1400, 1500, 1600), seen)
     }
 
     @Test fun quantizerJitterDoesNotMove() {

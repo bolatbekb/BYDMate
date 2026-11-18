@@ -83,7 +83,7 @@ internal fun CdMeters(d: HomeData) {
     val kw = d.compressorKw?.takeIf { it.isFinite() }
     MeterNeedle(
         CdCompressorScale, kw?.coerceAtLeast(0.0), 1928, 612,
-        Modifier.at(1928, 612, 560, 296).graphicsLayer(), painter = CdNeedle, tweenMs = RPM_TWEEN_MS,
+        Modifier.at(1928, 612, 560, 296).graphicsLayer(), painter = CdNeedle,
     )
     MeterValue(kwText(kw), "кВт", 2189, 856, 41f, 31f, KwCyan)
 }
