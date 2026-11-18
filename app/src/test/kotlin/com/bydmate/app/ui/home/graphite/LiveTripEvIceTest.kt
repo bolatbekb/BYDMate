@@ -43,10 +43,56 @@ class LiveTripEvIceTest {
     }
 
     @Test
-    fun rpmNullCountsEv() {
-        val s = tracker(17000.0 to null, 17000.2 to null).state.open!!
-        assertEquals(0.2, s.evKm!!, 1e-9)
+    fun rpmNeverSeenCountsNothingAndKeepsCounterDelta() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.onTick(anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
+        tr.onTick(anchor, reading(17000.2, null).copy(mileageHevKm = 5003), t0 + 10_000)
+        val s = tr.state.open!!
         assertEquals(0.0, s.iceKm!!, 1e-9)
+        assertEquals(0.0, s.evKm!!, 1e-9)
+        val e = s.estimate()
+        assertNull(e.iceKm)
+        assertNull(e.evKm)
+        assertEquals(3.0, e.hevKm!!, 1e-9)
+    }
+
+    @Test
+    fun rpmBecomingKnownMidSessionCoversOnlyLaterKm() {
+        // 0.1 km before any rpm (unclassified), then 1.9 km with rpm known: 95 % covered.
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.onTick(anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
+        tr.onTick(anchor, reading(17000.1, null).copy(mileageHevKm = 5000), t0 + 10_000)
+        tr.onTick(anchor, reading(17001.0, 0).copy(mileageHevKm = 5000), t0 + 20_000) // 0.9 km, rpm known at the end: EV
+        tr.onTick(anchor, reading(17002.0, 800).copy(mileageHevKm = 5001), t0 + 30_000) // 1.0 km ICE
+        val s = tr.state.open!!
+        assertEquals(1.0, s.iceKm!!, 1e-9)
+        assertEquals(0.9, s.evKm!!, 1e-9)
+        val e = s.estimate() // 1.9 of 2.0 km: the rule is used
+        assertEquals(1.0, e.iceKm!!, 1e-9)
+        assertEquals(1.0, e.hevKm!!, 1e-9)
+    }
+
+    @Test
+    fun lowCoverageFallsBackToCounterDelta() {
+        // 1.0 km before rpm, 0.2 km after: 17 % covered.
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.onTick(anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
+        tr.onTick(anchor, reading(17001.0, null).copy(mileageHevKm = 5000), t0 + 10_000)
+        tr.onTick(anchor, reading(17001.2, 900).copy(mileageHevKm = 5002), t0 + 20_000)
+        val e = tr.state.open!!.estimate()
+        assertNull(e.iceKm)
+        assertNull(e.evKm)
+        assertEquals(2.0, e.hevKm!!, 1e-9)
+    }
+
+    @Test
+    fun rpmSeenSurvivesRestart() {
+        val tr = tracker(17000.0 to 0, 17000.2 to null)
+        val back = LiveTripCodec.decode(LiveTripCodec.encode(tr.state)).open!!
+        assertTrue(back.rpmSeen)
+        assertEquals(tr.state.open, back)
+        assertTrue(LiveTripCodec.decode("L5|7,1,2,17000.0,,,,17001.0,,,${",".repeat(8)}0.4,0.6,900|-|E").open!!.rpmSeen)
+        assertFalse(LiveTripCodec.decode("L5|7,1,2,17000.0,,,,17001.0,,,${",".repeat(8)}0.0,0.0,|-|E").open!!.rpmSeen)
     }
 
     @Test
@@ -134,7 +180,7 @@ class LiveTripEvIceTest {
                 iceKm = 0.4, evKm = 0.6, lastRpm = 900),
             finished = listOf(TripEstimate(5L, 6L, 12.4, 1.0, 0.6, 3.0, null, 3.0, 9.4)),
         )
-        assertTrue(LiveTripCodec.encode(s).startsWith("L5|"))
+        assertTrue(LiveTripCodec.encode(s).startsWith("L6|"))
         assertEquals(s, LiveTripCodec.decode(LiveTripCodec.encode(s)))
     }
 
@@ -204,11 +250,11 @@ class LiveTripEvIceTest {
     }
 
     @Test
-    fun restoreIgnoresLegacyOnceNewKeysExist() {
+    fun restoreKeepsOpenKeyAndTakesLegacyFinishedWhenNoFinishedFile() {
         val legacy = LiveTripCodec.encode(LiveTripState(finished = fin))
         val r = LiveTripPersistence.restore(LiveTripPersistence.encodeOpen(LiveTripState()), null, legacy)
-        assertFalse(r.migrated)
-        assertTrue(r.state.finished.isEmpty())
+        assertTrue(r.migrated) // a downgrade bounce: the legacy list is better than none
+        assertEquals(fin, r.state.finished)
     }
 
     @Test
@@ -216,5 +262,41 @@ class LiveTripEvIceTest {
         val r = LiveTripPersistence.restore(null, null, null)
         assertEquals(LiveTripState(), r.state)
         assertFalse(r.migrated)
+    }
+
+    @Test
+    fun restoreMigratesSameFileFinishedKey() {
+        val r = LiveTripPersistence.restore(
+            LiveTripPersistence.encodeOpen(LiveTripState(open = open)), null, null, LiveTripPersistence.encodeFinished(LiveTripState(finished = fin)),
+        )
+        assertTrue(r.migrated)
+        assertEquals(LiveTripState(open, fin), r.state)
+    }
+
+    @Test
+    fun restorePrefersFinishedFileOverOldKeys() {
+        val newer = fin + TripEstimate(8L, 9L, 3.0, null, null, null)
+        val r = LiveTripPersistence.restore(
+            LiveTripPersistence.encodeOpen(LiveTripState(open = open)),
+            LiveTripPersistence.encodeFinished(LiveTripState(finished = newer)),
+            null, LiveTripPersistence.encodeFinished(LiveTripState(finished = fin)),
+        )
+        assertEquals(newer, r.state.finished)
+    }
+
+    @Test
+    fun restoreRecoversOpenFromLegacyWhenCrashedAfterFinishedWrite() {
+        val legacy = LiveTripCodec.encode(LiveTripState(open = open, finished = fin))
+        val r = LiveTripPersistence.restore(null, LiveTripPersistence.encodeFinished(LiveTripState(finished = fin)), legacy)
+        assertEquals(open, r.state.open)
+        assertEquals(fin, r.state.finished)
+    }
+
+    @Test
+    fun restoreSurvivesGarbageLegacyAndFinishedOnly() {
+        assertEquals(LiveTripState(), LiveTripPersistence.restore(null, null, "junk").state)
+        val r = LiveTripPersistence.restore(null, LiveTripPersistence.encodeFinished(LiveTripState(finished = fin)), null)
+        assertNull(r.state.open)
+        assertEquals(fin, r.state.finished)
     }
 }

@@ -1,6 +1,7 @@
 package com.bydmate.app.ui.home.graphite
 
 import android.content.Context
+import android.content.SharedPreferences
 import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.service.TrackingService
 import kotlinx.coroutines.CoroutineScope
@@ -21,6 +22,8 @@ import kotlinx.coroutines.launch
 object LiveTrip {
     private const val PREFS = "bydmate_live_trip"
     private const val PREFS_DEMO = "bydmate_live_trip_demo"
+    private const val PREFS_FINISHED = "bydmate_live_trip_finished"
+    private const val PREFS_FINISHED_DEMO = "bydmate_live_trip_finished_demo"
     private const val KEY_LEGACY = "state"
     private const val KEY_OPEN = "open"
     private const val KEY_FINISHED = "finished"
@@ -36,26 +39,11 @@ object LiveTrip {
     fun init(context: Context) {
         if (started) return
         started = true
-        val name = if (DemoMode.isOn(context)) PREFS_DEMO else PREFS
-        val prefs = runCatching { context.applicationContext.getSharedPreferences(name, Context.MODE_PRIVATE) }.getOrNull()
-        fun read(key: String) = runCatching { prefs?.getString(key, null) }.getOrNull()
-        val restored = LiveTripPersistence.restore(read(KEY_OPEN), read(KEY_FINISHED), read(KEY_LEGACY))
+        val store = PrefsStore(context.applicationContext, DemoMode.isOn(context))
+        val restored = store.restore()
         val tracker = LiveTripTracker(restored.state, System.currentTimeMillis())
         _state.value = tracker.state
-        var savedFinished: List<TripEstimate>? = if (restored.migrated) null else restored.state.finished
-        fun save() {
-            runCatching {
-                val edit = prefs?.edit() ?: return@runCatching
-                edit.putString(KEY_OPEN, LiveTripPersistence.encodeOpen(tracker.state))
-                val saved = savedFinished
-                if (saved == null || LiveTripPersistence.shouldSaveFinished(saved, tracker.state.finished)) {
-                    edit.putString(KEY_FINISHED, LiveTripPersistence.encodeFinished(tracker.state))
-                    savedFinished = tracker.state.finished
-                }
-                edit.remove(KEY_LEGACY).apply()
-            }
-        }
-        if (tracker.state != restored.state || restored.migrated) save()
+        if (tracker.state != restored.state || restored.migrated) store.save(tracker.state)
         var lastPublishMs = System.currentTimeMillis()
         var lastSaveMs = lastPublishMs
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
@@ -70,7 +58,7 @@ object LiveTrip {
                     }
                     if (shouldSave(transition, now, lastSaveMs)) {
                         lastSaveMs = now
-                        save()
+                        store.save(tracker.state)
                     }
             }
         }
@@ -81,4 +69,37 @@ object LiveTrip {
 
     internal fun shouldSave(transition: Boolean, nowMs: Long, lastSaveMs: Long): Boolean =
         transition || nowMs - lastSaveMs >= SAVE_EVERY_MS
+
+    /** The prefs side: the open session in one file, the finished list in its own, written only when it changed. */
+    private class PrefsStore(context: Context, demo: Boolean) {
+        private val open = prefs(context, if (demo) PREFS_DEMO else PREFS)
+        private val finished = prefs(context, if (demo) PREFS_FINISHED_DEMO else PREFS_FINISHED)
+        private var savedFinished: List<TripEstimate>? = null
+
+        private fun prefs(context: Context, file: String) =
+            runCatching { context.getSharedPreferences(file, Context.MODE_PRIVATE) }.getOrNull()
+
+        private fun read(p: SharedPreferences?, key: String) = runCatching { p?.getString(key, null) }.getOrNull()
+
+        fun restore(): LiveTripPersistence.Restored {
+            val r = LiveTripPersistence.restore(
+                read(open, KEY_OPEN), read(finished, KEY_FINISHED), read(open, KEY_LEGACY), read(open, KEY_FINISHED),
+            )
+            if (!r.migrated) savedFinished = r.state.finished
+            return r
+        }
+
+        fun save(state: LiveTripState) {
+            runCatching {
+                // The finished file first: a crash between the two leaves the old keys to restore from.
+                val saved = savedFinished
+                if (saved == null || LiveTripPersistence.shouldSaveFinished(saved, state.finished)) {
+                    finished?.edit()?.putString(KEY_FINISHED, LiveTripPersistence.encodeFinished(state))?.apply()
+                    savedFinished = state.finished
+                }
+                open?.edit()?.putString(KEY_OPEN, LiveTripPersistence.encodeOpen(state))
+                    ?.remove(KEY_LEGACY)?.remove(KEY_FINISHED)?.apply()
+            }
+        }
+    }
 }

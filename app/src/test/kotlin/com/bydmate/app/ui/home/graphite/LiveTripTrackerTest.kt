@@ -41,7 +41,7 @@ class LiveTripTrackerTest {
         assertEquals(12.4, e.km, 1e-9)
         assertEquals(2.1, e.kwh!!, 1e-9)
         assertEquals(0.6, e.litres!!, 1e-9)
-        assertEquals(0.0, e.hevKm!!, 1e-9) // no engine rpm in the readings: all km are EV, so no ICE km
+        assertEquals(4.0, e.hevKm!!, 1e-9) // no rpm ever seen: the counter delta stands
     }
 
     @Test
@@ -220,8 +220,8 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun codecWritesL5AndReadsL2() {
-        assertTrue(LiveTripCodec.encode(sample).startsWith("L5|"))
+    fun codecWritesL6AndReadsL2() {
+        assertTrue(LiveTripCodec.encode(sample).startsWith("L6|"))
         val open = LiveTripCodec.decode("L2|5,6,7,17000.0,,,,17001.0,,,|-|E").open!!
         assertEquals(5L, open.anchorMs)
         assertEquals(5L, open.startMs)
