@@ -11,12 +11,12 @@ object TripLogEvents {
     /** A rebase shorter than this is a restart artifact (the demo odometer restarts a few metres lower), not news. */
     private const val MIN_REBASE_KM = 0.001
 
-    fun diff(before: LiveTripState, after: LiveTripState, anchorMs: Long?, nowMs: Long): List<TripEvent> {
+    fun diff(before: LiveTripState, after: LiveTripState): List<TripEvent> {
         val was = before.open
         val now = after.open
         val sameSession = was != null && now != null && was.startMs == now.startMs
         val out = ArrayList<TripEvent>()
-        if (was != null && !sameSession) out += finish(was, before, after, anchorMs, nowMs)
+        if (was != null && !sameSession) out += finish(was, before, after)
         if (now != null && !sameSession) {
             out += TripEvent("open", listOf("anchor" to now.anchorMs, "start" to now.startMs, "odo" to now.latest.odometerKm))
         }
@@ -24,18 +24,14 @@ object TripLogEvents {
         return out
     }
 
-    private fun finish(was: LiveSession, before: LiveTripState, after: LiveTripState, anchorMs: Long?, nowMs: Long): TripEvent {
-        val reason = when {
-            nowMs - was.lastSeenMs > LiveTripTracker.GAP_MS -> "gap"
-            anchorMs == null -> "anchor_null"
-            else -> "anchor_change"
-        }
+    /** The reason of a finish is the tracker's `cycle_new` / `off` / `migrate` event beside it. */
+    private fun finish(was: LiveSession, before: LiveTripState, after: LiveTripState): TripEvent {
         val est = was.estimate()
         val kept = after.finished.lastOrNull().let { it != null && it !in before.finished }
         return TripEvent(
             "finish",
             listOf(
-                "reason" to reason, "start" to was.startMs, "lastSeen" to was.lastSeenMs, "km" to est.km, "kwh" to est.kwh,
+                "start" to was.startMs, "lastSeen" to was.lastSeenMs, "km" to est.km, "kwh" to est.kwh,
                 "l" to est.litres, "ice" to est.iceKm, "ev" to est.evKm, "kept" to kept,
             ),
         )
@@ -44,7 +40,6 @@ object TripLogEvents {
     /** Adopt, rebase and dropped-energy events of one session between two calls. */
     private fun within(was: LiveSession, now: LiveSession): List<TripEvent> {
         val out = ArrayList<TripEvent>()
-        if (was.anchorMs != now.anchorMs) out += TripEvent("adopt", listOf("from" to was.anchorMs, "to" to now.anchorMs))
         val b0 = was.base.odometerKm
         val b1 = now.base.odometerKm
         if (b0 != null && b1 != null && abs(b1 - b0) >= MIN_REBASE_KM) {

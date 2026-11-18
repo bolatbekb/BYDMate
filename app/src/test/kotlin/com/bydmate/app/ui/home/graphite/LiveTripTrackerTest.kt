@@ -20,8 +20,11 @@ class LiveTripTrackerTest {
     private val anchorA = 500L
     private val anchorB = 900L
 
-    private fun tick(tr: LiveTripTracker, anchor: Long?, odo: Double?, elec: Double? = null, now: Long) =
-        tr.onTick(anchor, reading(odo, elec), now)
+    private val nextBoot = TEST_BOOT.copy(bootCount = 8)
+
+    @Suppress("LongParameterList")
+    private fun tick(tr: LiveTripTracker, anchor: Long?, odo: Double?, elec: Double? = null, now: Long, boot: BootInfo = TEST_BOOT) =
+        tr.onTick(boot, anchor, reading(odo, elec), now)
 
     @Test
     fun firstTickWithAnchorOpensSession() {
@@ -34,9 +37,9 @@ class LiveTripTrackerTest {
     @Test
     fun deltasGrowWithCounters() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onTick(anchorA, reading(17000.0, 2650.0, 300.0, 5000.0), t0)
-        for (i in 1..14) tr.onTick(anchorA, reading(17000.0, 2650.0, 300.0, 5000.0), t0 + i * 10_000L)
-        tr.onTick(anchorA, reading(17012.4, 2652.1, 300.6, 5004.0), t0 + 150_000) // 12.4 km: under 300 km/h
+        tr.onTick(TEST_BOOT, anchorA, reading(17000.0, 2650.0, 300.0, 5000.0), t0)
+        for (i in 1..14) tr.onTick(TEST_BOOT, anchorA, reading(17000.0, 2650.0, 300.0, 5000.0), t0 + i * 10_000L)
+        tr.onTick(TEST_BOOT, anchorA, reading(17012.4, 2652.1, 300.6, 5004.0), t0 + 150_000) // 12.4 km: under 300 km/h
         val e = tr.state.open!!.estimate()
         assertEquals(12.4, e.km, 1e-9)
         assertEquals(2.1, e.kwh!!, 1e-9)
@@ -71,24 +74,25 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun anchorNullAfterSeenFinishes() {
+    fun anchorNullNoLongerFinishes() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tick(tr, anchorA, 17000.0, null, t0)
         tick(tr, anchorA, 17003.0, null, t0 + 60_000)
-        assertTrue(tick(tr, null, 17003.0, null, t0 + 70_000))
-        assertNull(tr.state.open)
-        assertEquals(3.0, tr.state.finished.last().km, 1e-9)
+        assertFalse(tick(tr, null, 17003.0, null, t0 + 70_000))
+        assertNotNull(tr.state.open)
+        assertTrue(tr.state.finished.isEmpty())
     }
 
     @Test
-    fun anchorChangeFinishesAndOpensNew() {
+    fun newBootFinishesAndOpensNew() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tick(tr, anchorA, 17000.0, null, t0)
         tick(tr, anchorA, 17002.0, null, t0 + 60_000)
-        assertTrue(tick(tr, anchorB, 17002.0, null, t0 + 70_000))
+        assertTrue(tick(tr, anchorB, 17002.0, null, t0 + 70_000, nextBoot))
         assertEquals(1, tr.state.finished.size)
         assertEquals(2.0, tr.state.finished.last().km, 1e-9)
         assertEquals(anchorB, tr.state.open!!.anchorMs)
+        assertEquals(nextBoot, tr.state.open!!.boot)
         assertEquals(0.0, tr.state.open!!.estimate().km, 1e-9)
     }
 
@@ -100,10 +104,10 @@ class LiveTripTrackerTest {
     )
 
     @Test
-    fun firstAnchorAfterRestoreIsAdopted() {
+    fun restoredSessionIsAdoptedIntoTheCurrentBoot() {
         val tr = LiveTripTracker(restored(t0), t0 + 20_000)
         assertFalse(tick(tr, anchorB, 17005.0, null, t0 + 30_000))
-        assertEquals(anchorB, tr.state.open!!.anchorMs)
+        assertEquals(TEST_BOOT, tr.state.open!!.boot)
         assertEquals(5.0, tr.state.open!!.estimate().km, 1e-9)
         assertTrue(tr.state.finished.isEmpty())
     }
@@ -115,20 +119,20 @@ class LiveTripTrackerTest {
         assertNotNull(tr.state.open)
         tick(tr, null, 17005.0, null, t0 + 60_000)
         assertNotNull(tr.state.open)
-        assertTrue(tick(tr, null, 17005.0, null, t0 + 130_000))
-        assertNull(tr.state.open)
-        assertEquals(5.0, tr.state.finished.last().km, 1e-9)
+        assertFalse(tick(tr, null, 17005.0, null, t0 + 130_000))
+        assertNotNull(tr.state.open)
+        assertTrue(tr.state.finished.isEmpty())
     }
 
     @Test
-    fun gapFinishesEvenWithSameAnchor() {
+    fun longGapWithSameBootContinues() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tick(tr, anchorA, 17000.0, null, t0)
         tick(tr, anchorA, 17002.0, null, t0 + 60_000)
-        val t = t0 + 60_000
-        assertTrue(tick(tr, anchorA, 17002.0, null, t + 3 * 60_000))
-        assertEquals(2.0, tr.state.finished.last().km, 1e-9)
-        assertEquals(t + 180_000, tr.state.open!!.startMs)
+        assertFalse(tick(tr, anchorA, 17002.0, null, t0 + 60_000 + 3 * 60_000))
+        assertTrue(tr.state.finished.isEmpty())
+        assertEquals(t0, tr.state.open!!.startMs)
+        assertEquals(2.0, tr.state.open!!.estimate().km, 1e-9)
     }
 
     @Test
@@ -165,12 +169,12 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun adoptedTripKeepsCountingThenNewAnchorFinishes() {
+    fun adoptedTripKeepsCountingThenNewBootFinishes() {
         val tr = LiveTripTracker(restored(t0), t0 + 20_000)
         tick(tr, anchorB, 17005.0, null, t0 + 30_000)
         tick(tr, anchorB, 17008.0, null, t0 + 60_000)
         assertEquals(8.0, tr.state.open!!.estimate().km, 1e-9)
-        assertTrue(tick(tr, 1300L, 17008.0, null, t0 + 70_000))
+        assertTrue(tick(tr, 1300L, 17008.0, null, t0 + 70_000, nextBoot))
         assertEquals(8.0, tr.state.finished.last().km, 1e-9)
         assertEquals(1300L, tr.state.open!!.anchorMs)
         assertEquals(0.0, tr.state.open!!.estimate().km, 1e-9)
@@ -181,7 +185,7 @@ class LiveTripTrackerTest {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tick(tr, anchorA, 17000.0, null, t0)
         tick(tr, anchorA, 17002.0, null, t0 + 10_000)
-        tr.onTick(anchorA, null, t0 + 60_000)
+        tr.onTick(TEST_BOOT, anchorA, null, t0 + 60_000)
         assertEquals(t0 + 60_000, tr.state.open!!.estimate().endMs)
         assertEquals(2.0, tr.state.open!!.estimate().km, 1e-9)
     }
@@ -220,8 +224,8 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun codecWritesL6AndReadsL2() {
-        assertTrue(LiveTripCodec.encode(sample).startsWith("L6|"))
+    fun codecWritesL7AndReadsL2() {
+        assertTrue(LiveTripCodec.encode(sample).startsWith("L7|"))
         val open = LiveTripCodec.decode("L2|5,6,7,17000.0,,,,17001.0,,,|-|E").open!!
         assertEquals(5L, open.anchorMs)
         assertEquals(5L, open.startMs)
@@ -265,7 +269,7 @@ class LiveTripTrackerTest {
             anchorA, t0 - 600_000, t0, TripCounters(17000.0, null, null, null), TripCounters(18600.0, null, null, null),
         )
         val tr = LiveTripTracker(LiveTripState(open, listOf(prev)), t0 + 400_000)
-        tick(tr, null, null, null, t0 + 400_000)
+        tr.onTick(TEST_BOOT, null, null, t0 + 400_000)
         assertNull(tr.state.open)
         assertEquals(listOf(prev), tr.state.finished)
     }
@@ -273,7 +277,7 @@ class LiveTripTrackerTest {
     private fun drive(tr: LiveTripTracker, anchor: Long, from: Double, km: Double, start: Long): Long {
         tick(tr, anchor, from, null, start)
         tick(tr, anchor, from + km, null, start + 10_000)
-        tick(tr, null, from + km, null, start + 20_000)
+        tick(tr, null, from + km, null, start + 20_000, nextBoot.copy(bootCount = 999)) // a reboot ends the trip
         return start + 30_000
     }
 
@@ -339,7 +343,7 @@ class LiveTripTrackerTest {
     }
 
     private fun gearTick(tr: LiveTripTracker, gear: Int?, elec: Double?, now: Long, fuel: Double? = null) =
-        tr.onTick(anchorA, reading(17000.0, elec, fuel).copy(gear = gear, speed = if (gear == 4) 40 else 0), now)
+        tr.onTick(TEST_BOOT, anchorA, reading(17000.0, elec, fuel).copy(gear = gear, speed = if (gear == 4) 40 else 0), now)
 
     @Test
     fun modeOfCodes() {
@@ -365,7 +369,7 @@ class LiveTripTrackerTest {
     fun nullGearAndSpeedUseOdometerMovement() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         fun blind(odo: Double, now: Long) =
-            tr.onTick(anchorA, reading(odo, 2650.0).copy(gear = null, speed = null), now)
+            tr.onTick(TEST_BOOT, anchorA, reading(odo, 2650.0).copy(gear = null, speed = null), now)
         blind(17000.0, t0)
         blind(17000.0, t0 + 10_000) // not moved: PARK
         blind(17000.2, t0 + 20_000) // moved: DRIVE from the next interval on
@@ -414,19 +418,21 @@ class LiveTripTrackerTest {
     fun tickerBeatGoesToLastMode() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         gearTick(tr, 1, 2650.0, t0)
-        tr.onTick(anchorA, null, t0 + 10_000)
+        tr.onTick(TEST_BOOT, anchorA, null, t0 + 10_000)
         assertEquals(10_000L, tr.state.open!!.split.parkMs)
         assertEquals(Mode.PARK, tr.state.open!!.lastMode)
     }
 
     @Test
-    fun gapIsNotAttributed() {
+    fun gapInDriveWithMovedOdometerGoesToDriving() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onTick(anchorA, reading(17000.0, 2650.0).copy(gear = 4, speed = 40), t0)
-        tr.onTick(anchorA, reading(17000.5, 2650.1).copy(gear = 4, speed = 40), t0 + 10_000)
-        tr.onTick(anchorA, reading(17001.0, 2650.2).copy(gear = 4, speed = 40), t0 + 10_000 + LiveTripTracker.GAP_MS + 1)
-        assertEquals(10_000L, tr.state.finished.single().split!!.driveMs)
-        assertEquals(0L, tr.state.open!!.split.driveMs)
+        tr.onTick(TEST_BOOT, anchorA, reading(17000.0, 2650.0).copy(gear = 1, speed = 0), t0)
+        tr.onTick(TEST_BOOT, anchorA, reading(17000.0, 2650.1).copy(gear = 1, speed = 0), t0 + 10_000)
+        tr.onTick(TEST_BOOT, anchorA, reading(17003.0, 2650.5).copy(gear = 1, speed = 0), t0 + 10_000 + 130_000)
+        val sp = tr.state.open!!.split
+        assertEquals(130_000L, sp.driveMs)
+        assertEquals(10_000L, sp.parkMs)
+        assertEquals(0.4, sp.driveKwh, 1e-9)
     }
 
     @Test
@@ -462,19 +468,19 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun anchorChangeStartsZeroSplit() {
+    fun newBootStartsZeroSplit() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         gearTick(tr, 1, 2650.0, t0)
         gearTick(tr, 1, 2650.1, t0 + 10_000)
-        tr.onTick(anchorB, reading(17000.0, 2650.1).copy(gear = 1, speed = 0), t0 + 20_000)
+        tr.onTick(nextBoot, anchorB, reading(17000.0, 2650.1).copy(gear = 1, speed = 0), t0 + 20_000)
         assertEquals(DrivePark(), tr.state.open!!.split)
     }
 
     @Test
     fun odometerRebaseDoesNotTouchEnergySplit() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onTick(anchorA, reading(17000.0, 2650.0).copy(gear = 4, speed = 40), t0)
-        tr.onTick(anchorA, reading(16000.0, 2650.1).copy(gear = 4, speed = 40), t0 + 10_000)
+        tr.onTick(TEST_BOOT, anchorA, reading(17000.0, 2650.0).copy(gear = 4, speed = 40), t0)
+        tr.onTick(TEST_BOOT, anchorA, reading(16000.0, 2650.1).copy(gear = 4, speed = 40), t0 + 10_000)
         assertEquals(0.1, tr.state.open!!.split.driveKwh, 1e-9)
     }
 

@@ -2,6 +2,8 @@ package com.bydmate.app.ui.home.graphite
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.SystemClock
+import android.provider.Settings
 import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.service.TrackingService
 import kotlinx.coroutines.CoroutineScope
@@ -14,6 +16,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import java.time.ZoneId
 
 /**
  * The live trip for the whole process: fed by the tracking service's readings and its ignition session whether or
@@ -30,6 +33,7 @@ object LiveTrip {
     private const val TICK_MS = 10_000L
     private const val PUBLISH_EVERY_MS = 10_000L
     private const val SAVE_EVERY_MS = 10_000L
+    private const val MS_PER_S = 1000L
 
     private val _state = MutableStateFlow(LiveTripState())
     val state: StateFlow<LiveTripState> = _state.asStateFlow()
@@ -44,7 +48,16 @@ object LiveTrip {
         val store = PrefsStore(context.applicationContext, demo)
         val restored = store.restore()
         val tracker = LiveTripTracker(restored.state, System.currentTimeMillis())
-        TripLog.event(System.currentTimeMillis(), "process_start", listOf("demo" to demo))
+        val clock = BootClock(context.applicationContext)
+        val startMs = System.currentTimeMillis()
+        val boot0 = clock.read(startMs)
+        TripLog.event(
+            startMs, "process_start",
+            listOf(
+                "demo" to demo, "boot" to boot0.bootCount, "bootAt" to TripLogFormat.clock(boot0.bootMs, ZoneId.systemDefault()),
+                "sleepS" to boot0.sleepMs / MS_PER_S, "uptimeS" to (startMs - boot0.bootMs - boot0.sleepMs) / MS_PER_S,
+            ),
+        )
         restored.state.open?.let {
             TripLog.event(
                 System.currentTimeMillis(), "restore",
@@ -62,11 +75,11 @@ object LiveTrip {
                 .collect { (anchor, data) ->
                     val now = System.currentTimeMillis()
                     val before = tracker.state
-                    val transition = tracker.onTick(anchor, data, now)
+                    val transition = tracker.onTick(clock.read(now), anchor, data, now)
                     // Logging must never cost the trip.
                     runCatching {
                         TripLog.tick(now, TripTick.of(anchor, data, tracker.state.open), tracker.state.open != null)
-                        TripLogEvents.diff(before, tracker.state, anchor, now).forEach { TripLog.event(now, it.name, it.fields) }
+                        (tracker.drainEvents() + TripLogEvents.diff(before, tracker.state)).forEach { TripLog.event(now, it.name, it.fields) }
                     }
                     if (shouldPublish(transition, now, lastPublishMs)) {
                         lastPublishMs = now
@@ -77,6 +90,15 @@ object LiveTrip {
                         store.save(tracker.state)
                     }
             }
+        }
+    }
+
+    /** Reads the head unit's boot: `BOOT_COUNT` (null if unreadable), the wall time of the boot, the time asleep. */
+    private class BootClock(private val context: Context) {
+        fun read(nowMs: Long): BootInfo {
+            val elapsed = SystemClock.elapsedRealtime()
+            val count = runCatching { Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT) }.getOrNull()
+            return BootInfo(count, nowMs - elapsed, elapsed - SystemClock.uptimeMillis())
         }
     }
 

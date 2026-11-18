@@ -17,7 +17,7 @@ class LiveTripEvIceTest {
 
     private fun tracker(vararg steps: Pair<Double, Int?>): LiveTripTracker {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        steps.forEachIndexed { i, (odo, rpm) -> tr.onTick(anchor, reading(odo, rpm), t0 + i * 10_000L) }
+        steps.forEachIndexed { i, (odo, rpm) -> tr.onTick(TEST_BOOT, anchor, reading(odo, rpm), t0 + i * 10_000L) }
         return tr
     }
 
@@ -45,8 +45,8 @@ class LiveTripEvIceTest {
     @Test
     fun rpmNeverSeenCountsNothingAndKeepsCounterDelta() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onTick(anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
-        tr.onTick(anchor, reading(17000.2, null).copy(mileageHevKm = 5003), t0 + 10_000)
+        tr.onTick(TEST_BOOT, anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
+        tr.onTick(TEST_BOOT, anchor, reading(17000.2, null).copy(mileageHevKm = 5003), t0 + 10_000)
         val s = tr.state.open!!
         assertEquals(0.0, s.iceKm!!, 1e-9)
         assertEquals(0.0, s.evKm!!, 1e-9)
@@ -60,10 +60,10 @@ class LiveTripEvIceTest {
     fun rpmBecomingKnownMidSessionCoversOnlyLaterKm() {
         // 0.1 km before any rpm (unclassified), then 1.9 km with rpm known: 95 % covered.
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onTick(anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
-        tr.onTick(anchor, reading(17000.1, null).copy(mileageHevKm = 5000), t0 + 10_000)
-        tr.onTick(anchor, reading(17001.0, 0).copy(mileageHevKm = 5000), t0 + 20_000) // 0.9 km, rpm known at the end: EV
-        tr.onTick(anchor, reading(17002.0, 800).copy(mileageHevKm = 5001), t0 + 30_000) // 1.0 km ICE
+        tr.onTick(TEST_BOOT, anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
+        tr.onTick(TEST_BOOT, anchor, reading(17000.1, null).copy(mileageHevKm = 5000), t0 + 10_000)
+        tr.onTick(TEST_BOOT, anchor, reading(17001.0, 0).copy(mileageHevKm = 5000), t0 + 20_000) // 0.9 km, rpm known at the end: EV
+        tr.onTick(TEST_BOOT, anchor, reading(17002.0, 800).copy(mileageHevKm = 5001), t0 + 30_000) // 1.0 km ICE
         val s = tr.state.open!!
         assertEquals(1.0, s.iceKm!!, 1e-9)
         assertEquals(0.9, s.evKm!!, 1e-9)
@@ -76,9 +76,9 @@ class LiveTripEvIceTest {
     fun lowCoverageFallsBackToCounterDelta() {
         // 1.0 km before rpm, 0.2 km after: 17 % covered.
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onTick(anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
-        tr.onTick(anchor, reading(17001.0, null).copy(mileageHevKm = 5000), t0 + 10_000)
-        tr.onTick(anchor, reading(17001.2, 900).copy(mileageHevKm = 5002), t0 + 20_000)
+        tr.onTick(TEST_BOOT, anchor, reading(17000.0, null).copy(mileageHevKm = 5000), t0)
+        tr.onTick(TEST_BOOT, anchor, reading(17001.0, null).copy(mileageHevKm = 5000), t0 + 10_000)
+        tr.onTick(TEST_BOOT, anchor, reading(17001.2, 900).copy(mileageHevKm = 5002), t0 + 20_000)
         val e = tr.state.open!!.estimate()
         assertNull(e.iceKm)
         assertNull(e.evKm)
@@ -119,16 +119,16 @@ class LiveTripEvIceTest {
     @Test
     fun tickerBeatWithoutDataKeepsRpmAndKm() {
         val tr = tracker(17000.0 to 1000)
-        tr.onTick(anchor, null, t0 + 10_000)
-        tr.onTick(anchor, reading(17000.2, 0), t0 + 20_000)
+        tr.onTick(TEST_BOOT, anchor, null, t0 + 10_000)
+        tr.onTick(TEST_BOOT, anchor, reading(17000.2, 0), t0 + 20_000)
         assertEquals(0.2, tr.state.open!!.iceKm!!, 1e-9)
     }
 
     @Test
     fun estimateHevKmIsIceKm() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        tr.onTick(anchor, reading(17000.0, 0).copy(mileageHevKm = 5000), t0)
-        tr.onTick(anchor, reading(17000.2, 1200).copy(mileageHevKm = 5003), t0 + 10_000)
+        tr.onTick(TEST_BOOT, anchor, reading(17000.0, 0).copy(mileageHevKm = 5000), t0)
+        tr.onTick(TEST_BOOT, anchor, reading(17000.2, 1200).copy(mileageHevKm = 5003), t0 + 10_000)
         val e = tr.state.open!!.estimate()
         assertEquals(0.2, e.hevKm!!, 1e-9)
         assertEquals(0.2, e.iceKm!!, 1e-9)
@@ -150,7 +150,7 @@ class LiveTripEvIceTest {
     @Test
     fun finishedKeepsIceAndEv() {
         val tr = tracker(17000.0 to 0, 17000.1 to 800, 17000.2 to 0)
-        tr.onTick(null, null, t0 + 40_000)
+        tr.onTick(TEST_BOOT.copy(bootCount = 8), null, null, t0 + 40_000)
         val f = tr.state.finished.single()
         assertEquals(0.2, f.iceKm!!, 1e-9)
         assertEquals(0.0, f.evKm!!, 1e-9)
@@ -180,7 +180,7 @@ class LiveTripEvIceTest {
                 iceKm = 0.4, evKm = 0.6, lastRpm = 900),
             finished = listOf(TripEstimate(5L, 6L, 12.4, 1.0, 0.6, 3.0, null, 3.0, 9.4)),
         )
-        assertTrue(LiveTripCodec.encode(s).startsWith("L6|"))
+        assertTrue(LiveTripCodec.encode(s).startsWith("L7|"))
         assertEquals(s, LiveTripCodec.decode(LiveTripCodec.encode(s)))
     }
 

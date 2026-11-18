@@ -108,41 +108,44 @@ class TripLogTest {
 
     private fun reading(odo: Double?, kwh: Double? = 2650.0) = diParsData(mileage = odo, totalElecConsumption = kwh).copy(engineRpm = 0, gear = 4, speed = 40)
 
-    private fun events(tr: LiveTripTracker, anc: Long?, d: com.bydmate.app.data.remote.DiParsData?, now: Long): List<String> {
+    private fun events(tr: LiveTripTracker, anc: Long?, d: com.bydmate.app.data.remote.DiParsData?, now: Long, boot: BootInfo = TEST_BOOT): List<String> {
         val before = tr.state
-        tr.onTick(anc, d, now)
-        return TripLogEvents.diff(before, tr.state, anc, now).map { it.name + ":" + it.fields.joinToString(",") { f -> "${f.first}=${f.second}" } }
+        tr.onTick(boot, anc, d, now)
+        return (tr.drainEvents() + TripLogEvents.diff(before, tr.state)).map { it.name + ":" + it.fields.joinToString(",") { f -> "${f.first}=${f.second}" } }
     }
 
     @Test
     fun openFinishRebaseAndDroppedEnergy() {
         val t0 = at("2026-11-18", "08:00:00")
         val tr = LiveTripTracker(LiveTripState(), t0)
-        assertTrue(events(tr, anchor, reading(17000.0), t0)[0].startsWith("open:"))
+        assertTrue(events(tr, anchor, reading(17000.0), t0).any { it.startsWith("open:") })
         assertTrue(events(tr, anchor, reading(17000.2), t0 + 10_000).isEmpty())
         // odometer goes backwards: rebase
         assertEquals("rebase", events(tr, anchor, reading(16990.0), t0 + 20_000).first().substringBefore(':'))
         // a counter step no car can make: energy dropped
         val e = events(tr, anchor, reading(16990.1, kwh = 2900.0), t0 + 30_000)
         assertTrue(e.toString(), e.any { it.startsWith("energy_dropped:what=kwh") })
-        // anchor switched off
-        val fin = events(tr, null, null, t0 + 40_000)
-        assertTrue(fin.toString(), fin.single().startsWith("finish:reason=anchor_null"))
+        // a new boot
+        val fin = events(tr, null, null, t0 + 40_000, TEST_BOOT.copy(bootCount = 8))
+        assertTrue(fin.toString(), fin.single().startsWith("finish:start="))
     }
 
     @Test
-    fun gapAndAnchorChangeReasons() {
+    fun cycleEvents() {
         val t0 = at("2026-11-18", "08:00:00")
         val tr = LiveTripTracker(LiveTripState(), t0)
-        events(tr, anchor, reading(17000.0), t0)
+        val first = events(tr, anchor, reading(17000.0), t0)
+        assertTrue(first.toString(), first[0].startsWith("cycle_new:reason=first,boot=7"))
         events(tr, anchor, reading(17000.5), t0 + 10_000)
-        val gap = events(tr, anchor, reading(17001.0), t0 + 10_000 + LiveTripTracker.GAP_MS + 1_000)
-        assertTrue(gap.toString(), gap[0].startsWith("finish:reason=gap") && gap[1].startsWith("open:"))
-        val tr2 = LiveTripTracker(LiveTripState(), t0)
-        events(tr2, anchor, reading(17000.0), t0)
-        events(tr2, anchor, reading(17001.0), t0 + 10_000)
-        val change = events(tr2, anchor + 1, reading(17001.1), t0 + 20_000)
-        assertTrue(change.toString(), change[0].startsWith("finish:reason=anchor_change") && change[0].contains("kept=true"))
+        val gap = events(tr, anchor, reading(17001.0), t0 + 10_000 + 90_000)
+        assertTrue(gap.toString(), gap.single().startsWith("cycle_continue:gapS=90,moved="))
+        val boot = events(tr, anchor, reading(17001.0), t0 + 110_000 + 10_000, TEST_BOOT.copy(bootCount = 8))
+        assertTrue(boot.toString(), boot[0].startsWith("cycle_new:reason=boot,boot=8") && boot[1].startsWith("finish:") && boot[2].startsWith("open:"))
+        val on = reading(17001.0).copy(powerState = 2)
+        val off = on.copy(powerState = 0)
+        events(tr, anchor, off, t0 + 130_000, TEST_BOOT.copy(bootCount = 8))
+        val end = events(tr, anchor, off, t0 + 140_000, TEST_BOOT.copy(bootCount = 8))
+        assertTrue(end.toString(), end[0].startsWith("off:since=") && end[1].startsWith("finish:"))
     }
 
     @Test
