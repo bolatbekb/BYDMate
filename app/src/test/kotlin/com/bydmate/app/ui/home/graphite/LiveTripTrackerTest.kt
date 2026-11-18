@@ -355,6 +355,29 @@ class LiveTripTrackerTest {
     }
 
     @Test
+    fun modeOfOdometerFallbackOnlyWithoutGearAndSpeed() {
+        assertEquals(Mode.DRIVE, modeOf(null, null, 0.05))
+        assertEquals(Mode.PARK, modeOf(null, null, 0.04))
+        assertEquals(Mode.PARK, modeOf(null, null, null))
+        assertEquals(Mode.PARK, modeOf(null, 0, 1.0))
+        assertEquals(Mode.PARK, modeOf(1, null, 1.0))
+    }
+
+    @Test
+    fun nullGearAndSpeedUseOdometerMovement() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        fun blind(odo: Double, now: Long) =
+            tr.onTick(anchorA, reading(odo, 2650.0).copy(gear = null, speed = null), now)
+        blind(17000.0, t0)
+        blind(17000.0, t0 + 10_000) // not moved: PARK
+        blind(17000.2, t0 + 20_000) // moved: DRIVE from the next interval on
+        blind(17000.4, t0 + 30_000)
+        val sp = tr.state.open!!.split
+        assertEquals(20_000L, sp.parkMs)
+        assertEquals(10_000L, sp.driveMs)
+    }
+
+    @Test
     fun parkStopCountsToPark() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         gearTick(tr, 1, 2650.0, t0)

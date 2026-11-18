@@ -49,7 +49,7 @@ class TripCellsTest {
     @Test fun recordedTripHasDashesForParking() {
         val m = TripCardModel(TripCardMode.LAST, 30.0, 30, null, 5.0, 1.0, null, null)
         val cells = tripCells(m, hasFuelTank = true, primary = t)
-        assertEquals(listOf("30 мин", "—", "5,0 · 1,0", "— · —"), cells.map { it.value })
+        assertEquals(listOf("30 мин", "—", "5,0 · 1,0", "—"), cells.map { it.value })
     }
 
     @Test fun negativeEnergyIsShownAsZero() {

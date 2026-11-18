@@ -38,12 +38,23 @@ data class TripCounters(val odometerKm: Double?, val elecKwh: Double?, val fuelL
 /** Driving (R/D) or standing (P/N). */
 enum class Mode { DRIVE, PARK }
 
-/** Gear 2 (R) and 4 (D) drive, 1 (P) and 3 (N) park; any other gear reading falls back to the speed. */
-internal fun modeOf(gear: Int?, speed: Int?): Mode = when (gear) {
+/**
+ * Gear 2 (R) and 4 (D) drive, 1 (P) and 3 (N) park; any other gear reading falls back to the speed.
+ * With neither gear nor speed, [odoDeltaKm] (odometer movement since the previous tick) decides.
+ */
+internal fun modeOf(gear: Int?, speed: Int?, odoDeltaKm: Double? = null): Mode = when (gear) {
     2, 4 -> Mode.DRIVE
     1, 3 -> Mode.PARK
-    else -> if ((speed ?: 0) > 0) Mode.DRIVE else Mode.PARK
+    else -> when {
+        speed != null -> if (speed > 0) Mode.DRIVE else Mode.PARK
+        else -> if ((odoDeltaKm ?: 0.0) >= ODO_MOVED_KM) Mode.DRIVE else Mode.PARK
+    }
 }
+
+private const val ODO_MOVED_KM = 0.05
+
+private fun odoDelta(from: TripCounters, to: TripCounters): Double? =
+    if (from.odometerKm == null || to.odometerKm == null) null else to.odometerKm - from.odometerKm
 
 /** Time, energy and fuel of a trip split into driving and standing. */
 data class DrivePark(
@@ -192,7 +203,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
         val litres = counterDelta(latest.fuelL, c.fuelL)
         return copy(
             lastSeenMs = nowMs, base = rebased.fillFrom(c), latest = latest.advanceBy(c),
-            split = attributed(kwh, litres, nowMs), lastMode = modeOf(data.gear, data.speed),
+            split = attributed(kwh, litres, nowMs), lastMode = modeOf(data.gear, data.speed, odoDelta(latest, c)),
         )
     }
 

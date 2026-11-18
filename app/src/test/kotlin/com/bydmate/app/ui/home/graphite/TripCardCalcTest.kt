@@ -13,11 +13,11 @@ class TripCardCalcTest {
     private fun counters(odo: Double, kwh: Double? = null, fuel: Double? = null, hev: Double? = null) =
         TripCounters(odo, kwh, fuel, hev)
 
-    private fun open(startMs: Long, lastSeenMs: Long, km: Double, kwh: Double? = null) =
+    private fun open(startMs: Long, lastSeenMs: Long, km: Double, kwh: Double? = null, fuel: Double? = null) =
         LiveSession(
             startMs, startMs, lastSeenMs,
-            counters(1000.0, kwh?.let { 100.0 }),
-            counters(1000.0 + km, kwh?.let { 100.0 + it }),
+            counters(1000.0, kwh?.let { 100.0 }, fuel?.let { 50.0 }),
+            counters(1000.0 + km, kwh?.let { 100.0 + it }, fuel?.let { 50.0 + it }),
         )
 
     private fun row(startMs: Long, endMs: Long?, km: Double?) = TripRow(startMs, endMs, km, null, null, null)
@@ -26,7 +26,7 @@ class TripCardCalcTest {
 
     @Test fun drivingShowsCurrentWithSplit() {
         val s = split(
-            open(t0800, t0800 + 60 * min, 12.4),
+            open(t0800, t0800 + 60 * min, 12.4, kwh = 5.5, fuel = 0.8),
             DrivePark(driveMs = 42 * min + 30_000, parkMs = 15 * min + 59_000, driveKwh = 4.9, parkKwh = 0.6, driveL = 0.8),
         )
         val m = TripCardCalc.from(LiveTripState(s), emptyList(), day)
@@ -101,7 +101,7 @@ class TripCardCalcTest {
 
     @Test fun negativeEnergyShowsZero() {
         val s = split(
-            open(t0800, t0800 + 10 * min, 5.0),
+            open(t0800, t0800 + 10 * min, 5.0, kwh = 1.0, fuel = 0.5),
             DrivePark(driveMs = 10 * min, driveKwh = -0.3, driveL = -0.1),
         )
         val m = TripCardCalc.from(LiveTripState(s), emptyList(), day)
@@ -113,5 +113,42 @@ class TripCardCalcTest {
     @Test fun sessionFromYesterdayStillCurrent() {
         val live = LiveTripState(open(day - 10 * min, day + 20 * min, 3.0))
         assertEquals(TripCardMode.CURRENT, TripCardCalc.from(live, emptyList(), day).mode)
+    }
+
+    @Test fun missingKwhCounterReadsDash() {
+        val d = DrivePark(driveMs = 10 * min, parkMs = 5 * min, driveL = 0.8, parkL = 0.1)
+        val live = LiveTripState(open(t0800, t0800 + 15 * min, 5.0, kwh = null).copy(split = d))
+        val m = TripCardCalc.from(live, emptyList(), day)
+        assertNull(m.driveKwh)
+        assertNull(m.parkKwh)
+    }
+
+    @Test fun missingFuelCounterReadsDashInLitres() {
+        val d = DrivePark(driveMs = 10 * min, parkMs = 5 * min, driveKwh = 4.9, parkKwh = 0.6)
+        val live = LiveTripState(open(t0800, t0800 + 15 * min, 5.0, kwh = 5.5).copy(split = d))
+        val m = TripCardCalc.from(live, emptyList(), day)
+        assertEquals(4.9, m.driveKwh!!, 1e-9)
+        assertNull(m.driveL)
+        assertNull(m.parkL)
+        val cells = tripCells(m, hasFuelTank = true, primary = androidx.compose.ui.graphics.Color.White)
+        assertEquals(listOf("4,9 · —", "0,6 · —"), cells.drop(2).map { it.value })
+    }
+
+    @Test fun finishedSplitWinsOverOverlappingRecordedRow() {
+        val fin = TripEstimate(t0800, t0800 + 40 * min, 20.0, 3.0, null, null, DrivePark(driveMs = 30 * min, parkMs = 10 * min, driveKwh = 2.5, parkKwh = 0.5))
+        val today = listOf(TripRow(t0800, t0800 + 41 * min, 20.0, 3.0, null, null))
+        val m = TripCardCalc.from(LiveTripState(null, listOf(fin)), today, day)
+        assertEquals(TripCardMode.LAST, m.mode)
+        assertEquals(30, m.driveMinutes)
+        assertEquals(10, m.parkMinutes)
+        assertEquals(0.5, m.parkKwh!!, 1e-9)
+    }
+
+    @Test fun recordedRowAloneShowsTotalsAndNoPark() {
+        val today = listOf(TripRow(t0800, t0800 + 41 * min, 20.0, 3.0, null, null))
+        val m = TripCardCalc.from(LiveTripState(), today, day)
+        assertEquals(41, m.driveMinutes)
+        assertNull(m.parkMinutes)
+        assertNull(m.parkKwh)
     }
 }

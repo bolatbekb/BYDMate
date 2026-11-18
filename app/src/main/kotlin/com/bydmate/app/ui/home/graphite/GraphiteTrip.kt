@@ -47,9 +47,14 @@ object TripCardCalc {
         if (open != null && movedKm(open.km)) {
             return fromEstimate(TripCardMode.CURRENT, open)
         }
-        val recorded = today.filter { (it.km ?: 0.0) > 0.0 }.map { it.startMs to fromRow(TripCardMode.LAST, it) }
+        // a finished estimate with a split wins over the recorded rows it overlaps: the driver keeps
+        // seeing «в пути» / «стоянка» after power-on; a recorded trip alone shows its totals as «в пути»
+        val withSplit = live.finished.filter { it.startMs >= dayStartMs && it.km > 0.0 && it.split != null }
+        val recorded = today.filter { r ->
+            (r.km ?: 0.0) > 0.0 && withSplit.none { TripMatch.confirmed(it, listOf(r)) }
+        }.map { it.startMs to fromRow(TripCardMode.LAST, it) }
         val finished = live.finished.filter {
-            it.startMs >= dayStartMs && it.km > 0.0 && !TripMatch.confirmed(it, today)
+            it.startMs >= dayStartMs && it.km > 0.0 && (it.split != null || !TripMatch.confirmed(it, today))
         }.map { it.startMs to fromEstimate(TripCardMode.LAST, it) }
         return (recorded + finished).maxByOrNull { it.first }?.second ?: TripCardModel.EMPTY
     }
@@ -59,10 +64,12 @@ object TripCardCalc {
     /** A live trip with its drive / park split; an estimate without one (old data) reads as a recorded trip. */
     private fun fromEstimate(mode: TripCardMode, e: TripEstimate): TripCardModel {
         val s = e.split ?: return fromRow(mode, e.toRow())
+        // a counter the car never reported (or an implausible total) is unknown, not a measured zero
+        fun kwh(v: Double) = v.takeIf { e.kwh != null }?.coerceAtLeast(0.0)
+        fun litres(v: Double) = v.takeIf { e.litres != null }?.coerceAtLeast(0.0)
         return TripCardModel(
             mode, e.km, minutes(s.driveMs), minutes(s.parkMs),
-            s.driveKwh.coerceAtLeast(0.0), s.driveL.coerceAtLeast(0.0),
-            s.parkKwh.coerceAtLeast(0.0), s.parkL.coerceAtLeast(0.0),
+            kwh(s.driveKwh), litres(s.driveL), kwh(s.parkKwh), litres(s.parkL),
         )
     }
 
@@ -127,20 +134,31 @@ internal fun tripCells(
 ): List<TripCell> {
     val w = lang.words
     val empty = m.mode == TripCardMode.EMPTY
-    val none = if (empty) "0" else "—"
     fun time(min: Int?) = if (min != null || empty) grDuration(min ?: 0, lang) else "—"
-    fun energy(kwh: Double?, litres: Double?, suffix: String): TripCell {
-        val k = kwh?.let { grDec(it.coerceAtLeast(0.0), lang = lang) } ?: none
-        val l = litres?.let { grDec(it.coerceAtLeast(0.0), lang = lang) } ?: none
-        return if (hasFuelTank) TripCell("$k · $l", "${w.kwh} · ${w.litre} $suffix", primary)
-        else TripCell(k, "${w.kwh} $suffix", primary)
-    }
     return listOf(
         TripCell(time(m.driveMinutes), w.onTheRoad, primary),
         TripCell(time(m.parkMinutes), w.parked, primary),
-        energy(m.driveKwh, m.driveL, w.onDriveSuffix),
-        energy(m.parkKwh, m.parkL, w.onParkSuffix),
+        energyCell(m, park = false, hasFuelTank, lang).let { TripCell(it.first, it.second, primary) },
+        energyCell(m, park = true, hasFuelTank, lang).let { TripCell(it.first, it.second, primary) },
     )
+}
+
+/** «kWh · l» of one bucket; a value the trip lacks reads «—» (zero on the empty card), both lacking one «—». */
+private fun energyCell(
+    m: TripCardModel, park: Boolean, hasFuelTank: Boolean, lang: GrLang,
+): Pair<String, String> {
+    val w = lang.words
+    val empty = m.mode == TripCardMode.EMPTY
+    val kwh = if (park) m.parkKwh else m.driveKwh
+    val litres = if (park) m.parkL else m.driveL
+    val suffix = if (park) w.onParkSuffix else w.onDriveSuffix
+    val none = if (empty) "0" else "—"
+    fun num(v: Double?) = v?.let { grDec(it.coerceAtLeast(0.0), lang = lang) } ?: none
+    val label = if (hasFuelTank) "${w.kwh} · ${w.litre} $suffix" else "${w.kwh} $suffix"
+    val value = if (hasFuelTank) "${num(kwh)} · ${num(litres)}" else num(kwh)
+    // nothing known at all reads one dash, not «— · —»
+    val allUnknown = !empty && kwh == null && (litres == null || !hasFuelTank)
+    return (if (allUnknown) "—" else value) to label
 }
 
 @Composable
