@@ -5,6 +5,7 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.bydmate.app.data.local.database.AppDatabase
 import com.bydmate.app.data.local.entity.TripEntity
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -116,7 +117,7 @@ class TripBackfillTest {
             socEnd = 60, tempAvgC = 5.0, avgSpeedKmh = 50.0, cost = 1.1, odometerStartKm = 100.0, odometerEndKm = 140.0,
             source = "energydata", bydId = 77L, fuelCost = null)
         val id = dao.insert(full)
-        val n = TripBackfill.pass(dao, listOf(dao.getById(id)!!), listOf(est()), now)
+        val n = TripBackfill.pass(db, listOf(dao.getById(id)!!), listOf(est()), now)
         assertEquals(1, n)
         val after = dao.getById(id)!!
         assertEquals(2.0, after.fuelLiters!!, 1e-9)
@@ -129,7 +130,7 @@ class TripBackfillTest {
         val id = dao.insert(row(0))
         val fills = TripBackfill.plan(listOf(dao.getById(id)!!), listOf(est()), now)
         dao.update(dao.getById(id)!!.copy(fuelLiters = 1.7))
-        assertEquals(1, TripBackfill.apply(dao, fills, now))
+        assertEquals(1, TripBackfill.apply(db, fills, now))
         val after = dao.getById(id)!!
         assertEquals(1.7, after.fuelLiters!!, 1e-9)
         assertEquals(38.0, after.hevKm!!, 1e-9)
@@ -141,7 +142,7 @@ class TripBackfillTest {
         val fills = TripBackfill.plan(listOf(dao.getById(id)!!), listOf(est()), now)
         dao.update(dao.getById(id)!!.copy(fuelLiters = 1.7, hevKm = 5.0))
         val logged = mutableListOf<String>()
-        assertEquals(0, TripBackfill.apply(dao, fills, now) { _, name, _ -> logged += name })
+        assertEquals(0, TripBackfill.apply(db, fills, now) { _, name, _ -> logged += name })
         assertEquals(5.0, dao.getById(id)!!.hevKm!!, 1e-9)
         assertTrue(logged.isEmpty())
     }
@@ -150,16 +151,16 @@ class TripBackfillTest {
         val dao = db.tripDao()
         val id = dao.insert(row(0))
         val e = listOf(est())
-        assertEquals(1, TripBackfill.pass(dao, listOf(dao.getById(id)!!), e, now))
+        assertEquals(1, TripBackfill.pass(db, listOf(dao.getById(id)!!), e, now))
         val once = dao.getById(id)
-        assertEquals(0, TripBackfill.pass(dao, listOf(dao.getById(id)!!), e, now))
+        assertEquals(0, TripBackfill.pass(db, listOf(dao.getById(id)!!), e, now))
         assertEquals(once, dao.getById(id))
     }
 
     @Test fun `a fully recorded row is unchanged`() = runBlocking {
         val dao = db.tripDao()
         val id = dao.insert(row(0).with(1.0, 2.0))
-        assertEquals(0, TripBackfill.pass(dao, listOf(dao.getById(id)!!), listOf(est()), now))
+        assertEquals(0, TripBackfill.pass(db, listOf(dao.getById(id)!!), listOf(est()), now))
         assertEquals(1.0, dao.getById(id)!!.fuelLiters!!, 1e-9)
         assertEquals(2.0, dao.getById(id)!!.hevKm!!, 1e-9)
     }
@@ -168,10 +169,38 @@ class TripBackfillTest {
         val dao = db.tripDao()
         val id = dao.insert(row(0))
         val logged = mutableListOf<List<Pair<String, Any?>>>()
-        val n = TripBackfill.apply(dao, listOf(Fill(999, 1.0, 1.0), Fill(id, 2.0, 38.0)), now) { _, _, f -> logged += f }
+        val n = TripBackfill.apply(db, listOf(Fill(999, 1.0, 1.0), Fill(id, 2.0, 38.0)), now) { _, _, f -> logged += f }
         assertEquals(1, n)
         assertEquals(1, logged.size)
         assertEquals(id, logged[0].first { it.first == "id" }.second)
         assertNull(dao.getById(999))
+    }
+
+    @Test fun `other columns changed by the author after the plan stay as stored`() = runBlocking {
+        val dao = db.tripDao()
+        val id = dao.insert(row(0))
+        val fills = TripBackfill.plan(listOf(dao.getById(id)!!), listOf(est()), now)
+        dao.update(dao.getById(id)!!.copy(distanceKm = 41.5, cost = 3.3, fuelCost = 9.0))
+        assertEquals(1, TripBackfill.apply(db, fills, now))
+        val after = dao.getById(id)!!
+        assertEquals(41.5, after.distanceKm!!, 1e-9)
+        assertEquals(3.3, after.cost!!, 1e-9)
+        assertEquals(9.0, after.fuelCost!!, 1e-9)
+        assertEquals(2.0, after.fuelLiters!!, 1e-9)
+        assertEquals(38.0, after.hevKm!!, 1e-9)
+    }
+
+    @Test fun `trigger ignores a republished identical finished list`() = runBlocking {
+        val rows = kotlinx.coroutines.flow.MutableStateFlow(emptyList<TripEntity>())
+        val fin = kotlinx.coroutines.flow.MutableSharedFlow<List<TripEstimate>>(replay = 1)
+        val out = mutableListOf<Any>()
+        val job = kotlinx.coroutines.GlobalScope.launch(kotlinx.coroutines.Dispatchers.Unconfined) {
+            TripBackfill.trigger(rows, fin).collect { out += it }
+        }
+        fin.emit(listOf(est())); fin.emit(listOf(est())); fin.emit(listOf(est()))
+        assertEquals(1, out.size)
+        fin.emit(listOf(est(km = 41.0)))
+        assertEquals(2, out.size)
+        job.cancel()
     }
 }

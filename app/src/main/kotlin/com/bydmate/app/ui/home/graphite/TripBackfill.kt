@@ -1,7 +1,8 @@
 package com.bydmate.app.ui.home.graphite
 
 import android.content.Context
-import com.bydmate.app.data.local.dao.TripDao
+import androidx.room.withTransaction
+import com.bydmate.app.data.local.database.AppDatabase
 import com.bydmate.app.data.local.entity.TripEntity
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
@@ -12,7 +13,10 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
@@ -22,7 +26,7 @@ data class Fill(val tripId: Long, val fuelLiters: Double?, val hevKm: Double?)
 @EntryPoint
 @InstallIn(SingletonComponent::class)
 interface TripBackfillEntryPoint {
-    fun tripDao(): TripDao
+    fun database(): AppDatabase
 }
 
 /**
@@ -32,9 +36,9 @@ interface TripBackfillEntryPoint {
 object TripBackfill {
     const val WINDOW_MS = 31L * 24 * 3_600_000
     private const val DEBOUNCE_MS = 5_000L
-    private var started = false
+    @Volatile private var started = false
 
-    /** The plan: for each recent row with a gap, the share of its best-overlapping estimate (as in [TripMatch.merge]). */
+    /** The plan: for each recent row with a gap, the share of its best-overlapping estimate (as in [TripMatch.overlapMs]). */
     fun plan(rows: List<TripEntity>, estimates: List<TripEstimate>, nowMs: Long): List<Fill> =
         rows.mapNotNull { r ->
             if (r.startTs < nowMs - WINDOW_MS) return@mapNotNull null
@@ -50,24 +54,48 @@ object TripBackfill {
             if (litres == null && hev == null) null else Fill(r.id, litres, hev)
         }
 
-    /** Writes the fills; returns how many rows were changed. Fields that became non-null meanwhile are skipped. */
-    suspend fun apply(dao: TripDao, fills: List<Fill>, nowMs: Long, log: (Long, String, List<Pair<String, Any?>>) -> Unit = TripLog::event): Int {
+    /**
+     * Writes the fills; returns how many rows were changed. Each row is re-read and updated inside one Room
+     * transaction, so the author's whole-row writes cannot land between the read and our write; fields that
+     * became non-null meanwhile are skipped. A failure on one row does not stop the others.
+     */
+    suspend fun apply(
+        db: AppDatabase, fills: List<Fill>, nowMs: Long,
+        log: (Long, String, List<Pair<String, Any?>>) -> Unit = TripLog::event,
+    ): Int {
         var written = 0
         for (f in fills) {
-            val cur = dao.getById(f.tripId)
-            val litres = f.fuelLiters?.takeIf { cur != null && cur.fuelLiters == null }
-            val hev = f.hevKm?.takeIf { cur != null && cur.hevKm == null }
-            if (cur != null && (litres != null || hev != null)) {
-                dao.update(cur.copy(fuelLiters = litres ?: cur.fuelLiters, hevKm = hev ?: cur.hevKm))
+            val done = try {
+                db.withTransaction {
+                    val dao = db.tripDao()
+                    val cur = dao.getById(f.tripId)
+                    val litres = f.fuelLiters?.takeIf { cur != null && cur.fuelLiters == null }
+                    val hev = f.hevKm?.takeIf { cur != null && cur.hevKm == null }
+                    if (cur != null && (litres != null || hev != null)) {
+                        dao.update(cur.copy(fuelLiters = litres ?: cur.fuelLiters, hevKm = hev ?: cur.hevKm))
+                        Triple(f.tripId, litres, hev)
+                    } else null
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+                log(nowMs, "backfill_error", listOf("id" to f.tripId, "e" to e.javaClass.simpleName))
+                null
+            }
+            if (done != null) {
                 written++
-                log(nowMs, "backfill", listOf("id" to f.tripId, "litres" to litres, "hevKm" to hev))
+                log(nowMs, "backfill", listOf("id" to done.first, "litres" to done.second, "hevKm" to done.third))
             }
         }
         return written
     }
 
-    suspend fun pass(dao: TripDao, rows: List<TripEntity>, estimates: List<TripEstimate>, nowMs: Long): Int =
-        apply(dao, plan(rows, estimates, nowMs), nowMs)
+    suspend fun pass(db: AppDatabase, rows: List<TripEntity>, estimates: List<TripEstimate>, nowMs: Long): Int =
+        apply(db, plan(rows, estimates, nowMs), nowMs)
+
+    /** Re-runs on a trips-table change or a changed finished list, not on every live-state publish. */
+    internal fun trigger(rows: Flow<List<TripEntity>>, finished: Flow<List<TripEstimate>>): Flow<Pair<List<TripEntity>, List<TripEstimate>>> =
+        combine(rows, finished.distinctUntilChanged()) { r, f -> r to f }
 
     @OptIn(FlowPreview::class)
     fun start(context: Context) {
@@ -76,14 +104,14 @@ object TripBackfill {
         val app = context.applicationContext
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
             try {
-                val dao = EntryPointAccessors.fromApplication(app, TripBackfillEntryPoint::class.java).tripDao()
+                val db = EntryPointAccessors.fromApplication(app, TripBackfillEntryPoint::class.java).database()
                 // The lower bound is fixed at start and only grows the window; plan() applies the exact 31 days.
-                val rows = dao.getByDateRange(System.currentTimeMillis() - WINDOW_MS, Long.MAX_VALUE)
-                combine(rows, LiveTrip.state) { r, s -> r to s.finished }
+                val rows = db.tripDao().getByDateRange(System.currentTimeMillis() - WINDOW_MS, Long.MAX_VALUE)
+                trigger(rows, LiveTrip.state.map { it.finished })
                     .debounce(DEBOUNCE_MS)
                     .collect { (r, finished) ->
                         try {
-                            pass(dao, r, finished, System.currentTimeMillis())
+                            pass(db, r, finished, System.currentTimeMillis())
                         } catch (e: CancellationException) {
                             throw e
                         } catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
