@@ -401,10 +401,60 @@ class LiveTripTrackerTest {
     @Test
     fun gapIsNotAttributed() {
         val tr = LiveTripTracker(LiveTripState(), t0)
-        gearTick(tr, 4, 2650.0, t0)
-        gearTick(tr, 4, 2650.1, t0 + 10_000)
-        gearTick(tr, 4, 2650.2, t0 + 10_000 + LiveTripTracker.GAP_MS + 1)
+        tr.onTick(anchorA, reading(17000.0, 2650.0).copy(gear = 4, speed = 40), t0)
+        tr.onTick(anchorA, reading(17000.5, 2650.1).copy(gear = 4, speed = 40), t0 + 10_000)
+        tr.onTick(anchorA, reading(17001.0, 2650.2).copy(gear = 4, speed = 40), t0 + 10_000 + LiveTripTracker.GAP_MS + 1)
+        assertEquals(10_000L, tr.state.finished.single().split!!.driveMs)
         assertEquals(0L, tr.state.open!!.split.driveMs)
+    }
+
+    @Test
+    fun implausibleEnergyJumpAddsOnlyTime() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        gearTick(tr, 4, 2650.0, t0, 300.0)
+        gearTick(tr, 4, 2850.0, t0 + 10_000, 300.0)
+        gearTick(tr, 4, 3.0, t0 + 20_000, 5000.0)
+        val sp = tr.state.open!!.split
+        assertEquals(20_000L, sp.driveMs)
+        assertEquals(0.0, sp.driveKwh, 0.0)
+        assertEquals(0.0, sp.driveL, 0.0)
+    }
+
+    @Test
+    fun normalTenMinuteParkStepCounts() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        gearTick(tr, 1, 2650.0, t0)
+        for (i in 1..60) gearTick(tr, 1, 2650.0 + 0.25 * i / 60, t0 + i * 10_000L)
+        assertEquals(0.25, tr.state.open!!.split.parkKwh, 1e-9)
+    }
+
+    @Test
+    fun restoreFromL4KeepsSplitAndMode() {
+        val a = LiveTripTracker(LiveTripState(), t0)
+        gearTick(a, 1, 2650.0, t0)
+        gearTick(a, 1, 2650.1, t0 + 10_000)
+        val b = LiveTripTracker(LiveTripCodec.decode(LiveTripCodec.encode(a.state)), t0 + 10_000)
+        gearTick(b, 1, 2650.2, t0 + 20_000)
+        val sp = b.state.open!!.split
+        assertEquals(20_000L, sp.parkMs)
+        assertEquals(0.2, sp.parkKwh, 1e-9)
+    }
+
+    @Test
+    fun anchorChangeStartsZeroSplit() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        gearTick(tr, 1, 2650.0, t0)
+        gearTick(tr, 1, 2650.1, t0 + 10_000)
+        tr.onTick(anchorB, reading(17000.0, 2650.1).copy(gear = 1, speed = 0), t0 + 20_000)
+        assertEquals(DrivePark(), tr.state.open!!.split)
+    }
+
+    @Test
+    fun odometerRebaseDoesNotTouchEnergySplit() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.onTick(anchorA, reading(17000.0, 2650.0).copy(gear = 4, speed = 40), t0)
+        tr.onTick(anchorA, reading(16000.0, 2650.1).copy(gear = 4, speed = 40), t0 + 10_000)
+        assertEquals(0.1, tr.state.open!!.split.driveKwh, 1e-9)
     }
 
     @Test

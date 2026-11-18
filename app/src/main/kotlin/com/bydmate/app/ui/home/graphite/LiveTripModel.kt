@@ -201,7 +201,12 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     /** The split with the interval since [LiveSession.lastSeenMs] and the deltas added to [LiveSession.lastMode]. */
     private fun LiveSession.attributed(kwh: Double, litres: Double, nowMs: Long): DrivePark {
         val mode = lastMode ?: return split
-        return split.add(mode, (nowMs - lastSeenMs).coerceAtLeast(0), kwh, litres)
+        val ms = (nowMs - lastSeenMs).coerceAtLeast(0)
+        val h = ms / MS_PER_HOUR
+        // An implausible step (counter reset or scale change) adds no energy, only the time.
+        val k = kwh.takeIf { it in -(1.0 + MAX_KW * h)..(1.0 + MAX_KW * h) } ?: 0.0
+        val l = litres.takeIf { it in -0.5..(0.5 + MAX_LITRES_PER_H * h) } ?: 0.0
+        return split.add(mode, ms, k, l)
     }
 
     /** The base shifted by an odometer glitch (backwards or a jump), so the glitch step is not counted. */
@@ -235,6 +240,8 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
         val KWH_RANGE = -5.0..500.0
         val LITRES_RANGE = -1.0..100.0
         private const val MS_PER_HOUR = 3_600_000.0
+        private const val MAX_KW = 300.0
+        private const val MAX_LITRES_PER_H = 60.0
     }
 }
 
