@@ -21,7 +21,7 @@ import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.launch
 
 /** What to write into one recorded trip: only the non-null fields are to be filled. */
-data class Fill(val tripId: Long, val fuelLiters: Double?, val hevKm: Double?)
+data class TripFill(val tripId: Long, val fuelLiters: Double?, val hevKm: Double?)
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -38,29 +38,49 @@ object TripBackfill {
     private const val DEBOUNCE_MS = 5_000L
     @Volatile private var started = false
 
-    /** The plan: for each recent row with a gap, the share of its best-overlapping estimate (as in [TripMatch.overlapMs]). */
-    fun plan(rows: List<TripEntity>, estimates: List<TripEstimate>, nowMs: Long): List<Fill> =
-        rows.mapNotNull { r ->
-            if (r.startTs < nowMs - WINDOW_MS) return@mapNotNull null
-            if (r.fuelLiters != null && r.hevKm != null) return@mapNotNull null
-            val rk = r.distanceKm?.takeIf { it.isFinite() && it > 0.0 } ?: return@mapNotNull null
-            val row = r.toRow()
-            val e = estimates.maxByOrNull { TripMatch.overlapMs(row, it) }
-                ?.takeIf { TripMatch.overlapMs(row, it) > 0L } ?: return@mapNotNull null
-            if (!(e.km > 0.0)) return@mapNotNull null
-            val share = minOf(1.0, rk / e.km)
-            val litres = if (r.fuelLiters == null) e.litres?.times(share) else null
-            val hev = if (r.hevKm == null) e.iceKm?.times(share) else null
-            if (litres == null && hev == null) null else Fill(r.id, litres, hev)
-        }
+    /** The estimate must have seen at least this share of the row's own duration. */
+    const val MIN_COVERAGE = 0.8
+    private const val MAX_LITRES = 60.0
+
+    private fun round1(v: Double) = Math.round(v * 10.0) / 10.0
+
+    /**
+     * The plan: for each recent finished row with a gap, the estimate that covers at least [MIN_COVERAGE] of the row's
+     * duration (the largest overlap wins). Values scale by the rate `row km / estimate km`, uncapped: litres to 0..60 L,
+     * hev km (the engine km) to 0..row km, both rounded to 0.1.
+     */
+    fun plan(rows: List<TripEntity>, estimates: List<TripEstimate>, nowMs: Long): List<TripFill> =
+        rows.mapNotNull { r -> if (r.startTs < nowMs - WINDOW_MS) null else planRow(r, estimates) }
+
+    private fun planRow(r: TripEntity, estimates: List<TripEstimate>): TripFill? {
+        if (r.fuelLiters != null && r.hevKm != null) return null
+        val end = r.endTs ?: return null
+        val dur = end - r.startTs
+        val rk = r.distanceKm?.takeIf { it.isFinite() && it > 0.0 }
+        val best = estimates.maxByOrNull { overlap(r.startTs, end, it) }
+        if (dur <= 0L || rk == null || best == null) return null
+        if (!(best.km > 0.0)) return null
+        val o = overlap(r.startTs, end, best)
+        if (o <= TripMatch.MIN_OVERLAP_MS || o < MIN_COVERAGE * dur) return null
+        val ratio = rk / best.km
+        val litres = scaled(r.fuelLiters == null, best.litres, ratio, MAX_LITRES)
+        val hev = scaled(r.hevKm == null, best.hevKm, ratio, rk)
+        return if (litres == null && hev == null) null else TripFill(r.id, litres, hev)
+    }
+
+    /** [v] × [ratio] clamped to 0..[max] and rounded to 0.1, or null when [wanted] is false or there is no value. */
+    private fun scaled(wanted: Boolean, v: Double?, ratio: Double, max: Double): Double? =
+        if (!wanted) null else v?.times(ratio)?.takeIf { it.isFinite() }?.coerceIn(0.0, max)?.let(::round1)
+
+    private fun overlap(start: Long, end: Long, e: TripEstimate): Long = minOf(end, e.endMs) - maxOf(start, e.startMs)
 
     /**
      * Writes the fills; returns how many rows were changed. Each row is re-read and updated inside one Room
      * transaction, so the author's whole-row writes cannot land between the read and our write; fields that
      * became non-null meanwhile are skipped. A failure on one row does not stop the others.
      */
-    suspend fun apply(
-        db: AppDatabase, fills: List<Fill>, nowMs: Long,
+    suspend fun write(
+        db: AppDatabase, fills: List<TripFill>, nowMs: Long,
         log: (Long, String, List<Pair<String, Any?>>) -> Unit = TripLog::event,
     ): Int {
         var written = 0
@@ -91,7 +111,7 @@ object TripBackfill {
     }
 
     suspend fun pass(db: AppDatabase, rows: List<TripEntity>, estimates: List<TripEstimate>, nowMs: Long): Int =
-        apply(db, plan(rows, estimates, nowMs), nowMs)
+        write(db, plan(rows, estimates, nowMs), nowMs)
 
     /** Re-runs on a trips-table change or a changed finished list, not on every live-state publish. */
     internal fun trigger(rows: Flow<List<TripEntity>>, finished: Flow<List<TripEstimate>>): Flow<Pair<List<TripEntity>, List<TripEstimate>>> =

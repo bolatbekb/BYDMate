@@ -46,14 +46,20 @@ internal fun fitFontSize(maxSize: Float, minSize: Float, step: Float = 2f, fits:
 fun FitText(text: String, style: TextStyle, maxSize: Float, minSize: Float, modifier: Modifier, lineBox: Boolean = false) =
     FitText(AnnotatedString(text), style, maxSize, minSize, modifier, lineBox)
 
-/** [FitText] for styled text (bold spans); sizes in the spans must be left to [style]. */
+/**
+ * [FitText] for styled text (bold spans); sizes in the spans must be left to [style].
+ *
+ * [fitTo]: when set, the size is fitted to this text (the widest the line can get) instead of to [text], and [text]
+ * is drawn at that size, so a value that changes (an rpm) does not change the font size.
+ */
 @Composable
 fun FitText(
     text: AnnotatedString, style: TextStyle, maxSize: Float, minSize: Float, modifier: Modifier, lineBox: Boolean = false,
+    fitTo: AnnotatedString? = null,
 ) {
     val measurer = rememberTextMeasurer()
-    val policy = remember(text, style, maxSize, minSize, measurer, lineBox) {
-        FitPolicy(measurer, text, style, maxSize, minSize, lineBox)
+    val policy = remember(text, style, maxSize, minSize, measurer, lineBox, fitTo) {
+        FitPolicy(measurer, text, style, maxSize, minSize, lineBox, fitTo)
     }
     Layout(
         modifier = modifier.drawBehind { policy.result?.let { drawText(it, topLeft = Offset(0f, policy.shift)) } },
@@ -64,6 +70,7 @@ fun FitText(
 /** Measured for the height and baseline of an Inter line of a style: one Latin line is as tall as any other. */
 private const val INTER_LINE = "0"
 
+@Suppress("LongParameterList")
 private class FitPolicy(
     val measurer: TextMeasurer,
     val text: AnnotatedString,
@@ -71,18 +78,20 @@ private class FitPolicy(
     val maxSize: Float,
     val minSize: Float,
     val lineBox: Boolean,
+    val fitTo: AnnotatedString? = null,
 ) : MeasurePolicy {
     var result: TextLayoutResult? = null
 
     /** How far the text is drawn up to sit on the Inter line's baseline; 0 unless [lineBox] trims a line. */
     var shift = 0f
 
-    private fun natural(size: Float): TextLayoutResult =
-        measurer.measure(text, style.sized(size), maxLines = 1, softWrap = false)
+    private fun natural(size: Float, t: AnnotatedString = text): TextLayoutResult =
+        measurer.measure(t, style.sized(size), maxLines = 1, softWrap = false)
 
     private fun layoutFor(maxW: Int): TextLayoutResult {
         if (maxW == Constraints.Infinity) return natural(maxSize)
-        val size = fitFontSize(maxSize, minSize) { natural(it).size.width <= maxW }
+        val sizing = fitTo ?: text
+        val size = fitFontSize(maxSize, minSize) { natural(it, sizing).size.width <= maxW }
         return measurer.measure(
             text, style.sized(size), overflow = TextOverflow.Ellipsis, softWrap = false, maxLines = 1,
             constraints = Constraints(maxWidth = maxW),

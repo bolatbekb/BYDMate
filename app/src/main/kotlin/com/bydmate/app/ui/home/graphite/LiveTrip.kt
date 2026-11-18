@@ -63,8 +63,11 @@ object LiveTrip {
                     val now = System.currentTimeMillis()
                     val before = tracker.state
                     val transition = tracker.onTick(anchor, data, now)
-                    TripLog.tick(now, TripTick.of(anchor, data, tracker.state.open))
-                    TripLogEvents.diff(before, tracker.state, anchor, now).forEach { TripLog.event(now, it.name, it.fields) }
+                    // Logging must never cost the trip.
+                    runCatching {
+                        TripLog.tick(now, TripTick.of(anchor, data, tracker.state.open), tracker.state.open != null)
+                        TripLogEvents.diff(before, tracker.state, anchor, now).forEach { TripLog.event(now, it.name, it.fields) }
+                    }
                     if (shouldPublish(transition, now, lastPublishMs)) {
                         lastPublishMs = now
                         _state.value = tracker.state

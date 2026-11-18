@@ -83,8 +83,10 @@ class TripLogStore(
     private val clock: () -> Long,
     private val zone: ZoneId = ZoneId.systemDefault(),
     private val keepDays: Int = 3,
+    private val maxDayBytes: Long = MAX_DAY_BYTES,
 ) {
     private var lastDay: LocalDate? = null
+    private var cappedDay: LocalDate? = null
 
     init { prune() }
 
@@ -99,7 +101,14 @@ class TripLogStore(
         if (day != lastDay) prune()
         dir.mkdirs()
         val f = fileOf(day)
-        val text = if (f.length() == 0L) TripLogFormat.header(day) + "\n" + line + "\n" else line + "\n"
+        // Past the cap only event lines go on, announced once per day.
+        var capLine: String? = null
+        if (f.length() >= maxDayBytes && !line.startsWith(EVENT_PREFIX)) {
+            if (cappedDay == day) return
+            cappedDay = day
+            capLine = TripLogFormat.event(tsMs, "tick_cap", zone, listOf("bytes" to f.length()))
+        }
+        val text = if (capLine != null) capLine + "\n" else if (f.length() == 0L) TripLogFormat.header(day) + "\n" + line + "\n" else line + "\n"
         FileOutputStream(f, true).use { it.write(text.toByteArray(Charsets.UTF_8)); it.flush() }
     }
 
@@ -115,29 +124,81 @@ class TripLogStore(
         }
     }
 
-    /** The kept files' lines, oldest day first. */
+    /**
+     * The newest lines of the kept files, oldest first, from at most [maxBytes] of file data (older data is dropped
+     * first; a "(truncated)" line leads when anything was). Nothing larger than that is ever held in memory.
+     */
     @Synchronized
-    fun readLines(): List<String> =
-        (dir.listFiles() ?: emptyArray()).filter { it.name.endsWith(".log") }.sortedBy { it.name }
-            .flatMap { runCatching { it.readLines() }.getOrDefault(emptyList()) }
+    fun readLines(maxBytes: Long = MAX_DUMP_BYTES): List<String> {
+        val files = (dir.listFiles() ?: emptyArray()).filter { it.name.endsWith(".log") }.sortedByDescending { it.name }
+        var left = maxBytes
+        var truncated = false
+        val parts = ArrayList<List<String>>()
+        for (f in files) {
+            if (left <= 0L) { truncated = true; break }
+            val part = runCatching { tail(f, left) }.getOrNull()
+            if (part != null) {
+                if (part.cut) truncated = true
+                left -= part.bytes
+                parts += part.lines
+            }
+        }
+        val out = ArrayList<String>()
+        if (truncated) out += "(truncated: older log lines omitted)"
+        parts.asReversed().forEach { out += it }
+        return out
+    }
+
+    private class Tail(val lines: List<String>, val bytes: Long, val cut: Boolean)
+
+    private fun tail(f: File, max: Long): Tail {
+        val len = f.length()
+        if (len <= max) return Tail(f.readLines(), len, false)
+        java.io.RandomAccessFile(f, "r").use { r ->
+            r.seek(len - max)
+            val buf = ByteArray(max.toInt())
+            r.readFully(buf)
+            val text = String(buf, Charsets.UTF_8)
+            val nl = text.indexOf('\n')
+            val lines = (if (nl >= 0) text.substring(nl + 1) else "").lines().dropLastWhile { it.isEmpty() }
+            return Tail(lines, max, true)
+        }
+    }
+
+    companion object {
+        const val MAX_DAY_BYTES = 4L * 1024 * 1024
+        const val MAX_DUMP_BYTES = 8L * 1024 * 1024
+        const val EVENT_PREFIX = "# EVENT"
+    }
 }
 
 /**
- * Decides which ticks are written. With an open session (anchor set) every tick; without one, a tick only when a
- * logged value changed or [QUIET_MS] passed since the last written one, so a parked car does not write every 10 s.
+ * Decides which ticks are written. With an open session: at most one line per [TICK_MS], and at once when a discrete
+ * field changed (anchor, gear, mode, power state, rpm or speed switching between 0 and above 0). Without one, a tick
+ * only when a logged value changed or [quietMs] passed since the last written one, so a parked car writes little.
  */
-class TickThrottle(private val quietMs: Long = QUIET_MS) {
+class TickThrottle(private val quietMs: Long = QUIET_MS, private val tickMs: Long = TICK_MS) {
     private var last: TripTick? = null
     private var lastMs = Long.MIN_VALUE
 
     @Synchronized
-    fun allow(tick: TripTick, nowMs: Long): Boolean {
-        val write = tick.anchorMs != null || tick != last || nowMs - lastMs >= quietMs || nowMs < lastMs
+    fun allow(tick: TripTick, nowMs: Long, sessionOpen: Boolean): Boolean {
+        val prev = last
+        val write = if (prev == null || nowMs < lastMs) true
+        else if (sessionOpen) nowMs - lastMs >= tickMs || discreteChanged(prev, tick)
+        else tick != prev || nowMs - lastMs >= quietMs
         if (write) { last = tick; lastMs = nowMs }
         return write
     }
 
-    companion object { const val QUIET_MS = 5 * 60_000L }
+    private fun discreteChanged(a: TripTick, b: TripTick): Boolean =
+        a.anchorMs != b.anchorMs || a.gear != b.gear || a.mode != b.mode || a.powerState != b.powerState ||
+            ((a.rpm ?: 0) > 0) != ((b.rpm ?: 0) > 0) || ((a.speed ?: 0) > 0) != ((b.speed ?: 0) > 0)
+
+    companion object {
+        const val QUIET_MS = 5 * 60_000L
+        const val TICK_MS = 2_000L
+    }
 }
 
 /**
@@ -178,9 +239,9 @@ object TripLog {
         runCatching { Log.w(TAG, "trip log write failed (reported once, later failures are silent): ${t.message}") }
     }
 
-    fun tick(nowMs: Long, tick: TripTick) {
+    fun tick(nowMs: Long, tick: TripTick, sessionOpen: Boolean) {
         val q = queue ?: return
-        if (!throttle.allow(tick, nowMs)) return
+        if (!throttle.allow(tick, nowMs, sessionOpen)) return
         q.trySend(Item(nowMs, TripLogFormat.tick(nowMs, tick, zone)))
     }
 

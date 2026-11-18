@@ -235,7 +235,12 @@ private fun RangeGauge(
                                 append("$ice ")
                                 withStyle(SpanStyle(fontWeight = FontWeight(500))) { append("${grInt(running, lang)} ${lang.words.rpm}") }
                             },
-                            grStyle(19f, 400, color = p.fuel, tnum = false), 19f, 15f, Modifier,
+                            grStyle(19f, 400, color = p.fuel, tnum = true), 19f, 15f, Modifier,
+                            // The size is fitted once, to the widest rpm, so it does not jump as the rpm changes.
+                            fitTo = buildAnnotatedString {
+                                append("$ice ")
+                                withStyle(SpanStyle(fontWeight = FontWeight(500))) { append("${grInt(8888, lang)} ${lang.words.rpm}") }
+                            },
                         )
                     }
                 }

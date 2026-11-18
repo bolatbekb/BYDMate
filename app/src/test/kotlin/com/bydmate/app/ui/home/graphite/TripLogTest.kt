@@ -49,7 +49,6 @@ class TripLogTest {
         println(line)
         assertEquals("# EVENT open t=08:00:00 anchor=5 odo=17000.5 x=-", line)
         println(TripLogFormat.event(at("2026-11-18", "08:10:00"), "finish", zone, listOf("reason" to "gap", "kept" to true)))
-        println(TripLogFormat.event(at("2026-11-18", "08:10:01"), "merge", zone, listOf("row" to 1L, "share" to 0.5, "took" to "l+ice")))
     }
 
     @Test
@@ -150,12 +149,87 @@ class TripLogTest {
     fun idleTicksAreThrottledAndChangesPassThrough() {
         val th = TickThrottle(300_000)
         val idle = TripTick.of(null, null, null)
-        assertTrue(th.allow(idle, 0))
-        assertFalse(th.allow(idle, 10_000))
-        assertFalse(th.allow(idle, 299_000))
-        assertTrue(th.allow(idle, 300_000))
-        assertTrue(th.allow(idle.copy(speed = 5), 310_000))
-        assertTrue(th.allow(idle.copy(anchorMs = 1L), 320_000))
-        assertTrue(th.allow(idle.copy(anchorMs = 1L), 330_000))
+        assertTrue(th.allow(idle, 0, false))
+        assertFalse(th.allow(idle, 10_000, false))
+        assertFalse(th.allow(idle, 299_000, false))
+        assertTrue(th.allow(idle, 300_000, false))
+        assertTrue(th.allow(idle.copy(speed = 5), 310_000, false))
+    }
+
+    private val drive = TripTick(anchor, 4, 40, 0, 1, 17000.0, 2650.0, 10.0, 5, Mode.DRIVE, 1.0, 0.0, 1.0, 1000, 0)
+
+    @Test
+    fun openSessionWritesOncePerTwoSecondsAndAtOnceOnDiscreteChange() {
+        val th = TickThrottle()
+        assertTrue(th.allow(drive, 0, true))
+        // a changing odometer or dr= alone does not pass inside 2 s
+        assertFalse(th.allow(drive.copy(odoKm = 17000.1, driveMs = 1200), 500, true))
+        assertFalse(th.allow(drive.copy(speed = 55, odoKm = 17000.2), 1_900, true))
+        assertTrue(th.allow(drive, 2_000, true))
+        assertFalse(th.allow(drive, 3_999, true))
+        assertTrue(th.allow(drive, 4_000, true))
+        // discrete changes pass at once: gear, mode, powerState, rpm 0 <-> >0, speed 0 <-> >0, anchor
+        assertTrue(th.allow(drive.copy(gear = 3), 4_100, true))
+        assertTrue(th.allow(drive.copy(gear = 3, mode = Mode.PARK), 4_200, true))
+        assertTrue(th.allow(drive.copy(gear = 3, mode = Mode.PARK, powerState = 2), 4_300, true))
+        val p = drive.copy(gear = 3, mode = Mode.PARK, powerState = 2)
+        assertTrue(th.allow(p.copy(rpm = 1500), 4_400, true))
+        assertFalse(th.allow(p.copy(rpm = 1600), 4_500, true))
+        assertTrue(th.allow(p.copy(rpm = 0), 4_600, true))
+        assertTrue(th.allow(p.copy(rpm = 0, speed = 0), 4_700, true))
+        assertTrue(th.allow(p.copy(rpm = 0, speed = 0, anchorMs = anchor + 1), 4_800, true))
+    }
+
+    @Test
+    fun throttleKeysOnTheOpenSessionNotTheAnchor() {
+        val th = TickThrottle(300_000)
+        val t = drive.copy(mode = null)
+        assertTrue(th.allow(t, 0, false))
+        assertFalse(th.allow(t, 10_000, false))
+        assertFalse(th.allow(t, 20_000, false))
+    }
+
+    @Test
+    fun dayFileCapKeepsEventsAndMarksOnce() {
+        val now = at("2026-11-18")
+        val dir = tmp.newFolder("cap")
+        val store = TripLogStore(dir, { now }, zone, maxDayBytes = 200)
+        repeat(10) { store.append(now, "x".repeat(40) + it) }
+        store.append(now, "tick-after-cap")
+        store.append(now, "# EVENT open t=08:00:00")
+        store.append(now, "tick-after-cap2")
+        val lines = java.io.File(dir, "2026-11-18.log").readLines()
+        assertEquals(1, lines.count { it.startsWith("# EVENT tick_cap") })
+        assertFalse(lines.contains("tick-after-cap"))
+        assertFalse(lines.contains("tick-after-cap2"))
+        assertTrue(lines.contains("# EVENT open t=08:00:00"))
+    }
+
+    @Test
+    fun dumpReadIsBoundedAndKeepsTheNewest() {
+        var now = at("2026-11-17")
+        val dir = tmp.newFolder("dump")
+        val store = TripLogStore(dir, { now }, zone)
+        java.io.File(dir, "2026-11-16.log").writeText((1..100).joinToString("") { "old$it\n" })
+        java.io.File(dir, "2026-11-17.log").writeText((1..100).joinToString("") { "mid$it\n" })
+        now = at("2026-11-18")
+        store.append(now, "new1"); store.append(now, "new2")
+        val all = store.readLines(Long.MAX_VALUE)
+        assertEquals("old1", all.first())
+        val small = store.readLines(300)
+        assertEquals("(truncated: older log lines omitted)", small.first())
+        assertEquals("new2", small.last())
+        assertTrue(small.contains("new1"))
+        assertFalse(small.any { it.startsWith("old") })
+        assertTrue(small.drop(1).all { it.startsWith("mid") || it.startsWith("new") || it.startsWith("#") })
+        assertTrue(small.drop(1).sumOf { it.length + 1 } <= 300)
+    }
+
+    @Test
+    fun aMicroRebaseIsNotLogged() {
+        val t0 = at("2026-11-18", "08:00:00")
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        events(tr, anchor, reading(17057.4004), t0)
+        assertTrue(events(tr, anchor, reading(17057.4), t0 + 10_000).isEmpty())
     }
 }

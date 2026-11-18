@@ -278,7 +278,7 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun twoDrivesBothPending() {
+    fun twoDrivesBothKept() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         var now = drive(tr, anchorA, 17000.0, 1.5, t0)
         now = drive(tr, anchorB, 17005.0, 1.5, now)

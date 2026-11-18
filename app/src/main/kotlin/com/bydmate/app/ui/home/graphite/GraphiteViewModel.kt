@@ -97,7 +97,7 @@ class GraphiteViewModel @Inject constructor(
     val energy: StateFlow<EnergySeries?> = combine(_period, hour, lang) { p, _, l -> p to l }
         .flatMapLatest { (p, l) ->
             val now = ZonedDateTime.now(ZoneId.systemDefault())
-            combine(window(p, now), LiveTrip.state) { trips, live ->
+            window(p, now).map { trips ->
                 EnergyBuckets.build(trips.map { it.toRow() }, p, now, l).also { GraphiteWarm.energy[EnergyKey(p, l)] = it }
             }
         }

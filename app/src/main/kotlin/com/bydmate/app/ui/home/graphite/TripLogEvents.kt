@@ -8,6 +8,8 @@ class TripEvent(val name: String, val fields: List<Pair<String, Any?>>)
 /** Pure event detection from the tracker's state before and after one call: the tracker itself is not touched. */
 object TripLogEvents {
     private const val EPS = 1e-9
+    /** A rebase shorter than this is a restart artifact (the demo odometer restarts a few metres lower), not news. */
+    private const val MIN_REBASE_KM = 0.001
 
     fun diff(before: LiveTripState, after: LiveTripState, anchorMs: Long?, nowMs: Long): List<TripEvent> {
         val was = before.open
@@ -45,7 +47,7 @@ object TripLogEvents {
         if (was.anchorMs != now.anchorMs) out += TripEvent("adopt", listOf("from" to was.anchorMs, "to" to now.anchorMs))
         val b0 = was.base.odometerKm
         val b1 = now.base.odometerKm
-        if (b0 != null && b1 != null && abs(b1 - b0) > EPS) {
+        if (b0 != null && b1 != null && abs(b1 - b0) >= MIN_REBASE_KM) {
             out += TripEvent("rebase", listOf("shiftKm" to (b1 - b0), "odoWas" to was.latest.odometerKm, "odoNow" to now.latest.odometerKm))
         }
         if (was.lastMode != null) {
