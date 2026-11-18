@@ -185,8 +185,8 @@ class LiveTripTrackerTest {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tick(tr, anchorA, 17000.0, null, t0)
         tick(tr, anchorA, 17002.0, null, t0 + 10_000)
-        tr.onTick(TEST_BOOT, anchorA, null, t0 + 60_000)
-        assertEquals(t0 + 60_000, tr.state.open!!.estimate().endMs)
+        tr.onTick(TEST_BOOT, anchorA, null, t0 + 30_000)
+        assertEquals(t0 + 30_000, tr.state.open!!.estimate().endMs)
         assertEquals(2.0, tr.state.open!!.estimate().km, 1e-9)
     }
 

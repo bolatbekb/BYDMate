@@ -86,22 +86,33 @@ data class TripEstimate(
 )
 
 /**
- * The head unit's boot: [bootCount] = `Settings.Global.BOOT_COUNT` (null when unreadable), [bootMs] = wall time of the
- * boot (now - elapsedRealtime), [sleepMs] = time the head unit spent asleep since the boot (elapsedRealtime - uptime).
- * The head unit reboots at every ignition on, so one boot is one ignition cycle.
+ * What the head unit says about its own clock. [bootCount] = `Settings.Global.BOOT_COUNT` (null when unreadable),
+ * [elapsedMs] = `elapsedRealtime` (counts sleep; goes backwards only on a real reboot), [sleepMs] = time spent asleep
+ * since the boot (elapsedRealtime - uptime). The head unit QUICKBOOTS: it does not reboot at ignition, it suspends and
+ * resumes, so the sleep time and the previous process's exit reason are the signals of a new ignition cycle.
  */
-data class BootInfo(val bootCount: Int?, val bootMs: Long, val sleepMs: Long) {
-    /** Same boot: equal counts when both are known, else the boot times within [LiveTripTracker.BOOT_SLACK_MS]. */
-    fun sameBoot(o: BootInfo): Boolean =
-        if (bootCount != null && o.bootCount != null) bootCount == o.bootCount
-        else abs(bootMs - o.bootMs) <= LiveTripTracker.BOOT_SLACK_MS
+data class BootInfo(val bootCount: Int?, val elapsedMs: Long, val sleepMs: Long) {
+    /** Uptime = awake time since the boot. */
+    val uptimeMs: Long get() = elapsedMs - sleepMs
 }
+
+/** How the previous process of the app ended (ApplicationExitInfo): [reasonCode], the system's [description], [atMs]. */
+data class ExitInfo(val reasonCode: Int, val description: String?, val atMs: Long) {
+    /** The head unit force-stops every app at switch-off "due to quickboot". */
+    val quickboot: Boolean get() = description?.contains("quickboot", ignoreCase = true) == true
+}
+
+/**
+ * The cycle closed by a confirmed off, kept until a new cycle shows: [bootCount], [elapsedAtLastMs], [sleepAtLastMs]
+ * are the clock values of its last tick, [atMs] that tick's time. A restart while the car is still off opens nothing.
+ */
+data class ClosedCycle(val bootCount: Int?, val elapsedAtLastMs: Long, val sleepAtLastMs: Long, val atMs: Long)
 
 /**
  * One ignition cycle's trip. [anchorMs] is the author's `TrackingService.sessionStartedAt` at its opening (only for
  * analysis and the migration), [startMs] when this trip started, [lastSeenMs] the last on-tick while it was live.
- * [boot] = the boot it belongs to (null = saved before 4.4.1.16), [sleepAtLastMs] = the head unit's sleep time at the
- * last tick, [offSinceMs] = when the first `powerState == 0` reading came (null = the car is on).
+ * [boot] = the clocks it opened with (null = saved before 4.4.1.16), [elapsedAtLastMs] / [sleepAtLastMs] = the head
+ * unit's clocks at the last tick, [offSinceMs] = the time of the first fresh `powerState == 0` reading (null = on).
  */
 data class LiveSession(
     val anchorMs: Long,
@@ -121,6 +132,7 @@ data class LiveSession(
     val rpmSeen: Boolean = false,
     val boot: BootInfo? = null,
     val sleepAtLastMs: Long = 0,
+    val elapsedAtLastMs: Long = 0,
     val offSinceMs: Long? = null,
 ) {
     /**
@@ -162,27 +174,43 @@ data class LiveSession(
 /** A trip of at least [LiveTripTracker.MOVED_KM]; the small epsilon keeps 17000.1 - 17000.0 (0.0999..) a move. */
 fun movedKm(km: Double): Boolean = km >= LiveTripTracker.MOVED_KM - 1e-6
 
-/** [finished]: unconfirmed finished drives, newest last, at most [LiveTripTracker.MAX_FINISHED]. */
-data class LiveTripState(val open: LiveSession? = null, val finished: List<TripEstimate> = emptyList())
+/** [finished]: unconfirmed finished drives, newest last, at most [LiveTripTracker.MAX_FINISHED]; [closed]: see [ClosedCycle]. */
+data class LiveTripState(
+    val open: LiveSession? = null,
+    val finished: List<TripEstimate> = emptyList(),
+    val closed: ClosedCycle? = null,
+)
 
 /**
- * Builds the trip in progress from the car's cumulative counters. A session is one ignition cycle, identified by the
- * head unit's boot ([BootInfo]): it lives from the car switched on to switched off, however long it stands or however
- * long the app was away, and is fed by a steady ticker. It ends on a new boot, on the head unit having slept, or on
- * the car seen off (`powerState == 0` for [OFF_CONFIRM_MS]). An odometer glitch rebases the odometer instead.
+ * Builds the trip in progress from the car's cumulative counters. A session is one ignition cycle: it lives from the
+ * car switched on to switched off, however long it stands or however long the app was away, and is fed by a steady
+ * ticker. A new cycle is told by (in this order): the previous process dying "due to quickboot" time growing, a changed BOOT_COUNT, elapsedRealtime going backwards, a confirmed off (`powerState == 0` on fresh
+ * readings spanning [OFF_CONFIRM_MS]), and as a last resort a process gap over [GAP_FALLBACK_MS]. Anything else (a
+ * crash, an update, a swipe) continues the trip. An odometer glitch rebases the odometer instead.
+ *
+ * [nowMs] is the process start; [exit] how the previous process ended (read once at the start).
  */
 @Suppress("TooManyFunctions") // one state machine: the cycle rules, the opening, the counters and the attribution
-class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
+class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: ExitInfo? = null) {
     var state: LiveTripState = initial
         private set
 
+    private val processStartMs = nowMs
     private val events = ArrayList<TripEvent>()
 
-    /** Why the next session opens: first, or after a finish by boot / sleep / off / migrate. */
+    /** Why the next session opens: first, or after a finish by quickboot / sleep / boot / reboot / off / gap_fallback / migrate. */
     private var openReason = REASON_FIRST
 
-    /** True after the car was seen off: only a real `powerState >= 1` reading opens the next session. */
-    private var closedByOff = false
+    /** True while a new cycle detected at the process start has not opened its session yet: it starts at the process start. */
+    private var startAtProcess = true
+    private var firstTick = true
+
+    /** [onTick]'s `readingAtMs` of the last fresh reading; the ticker re-feeds the same reading with the same time. */
+    private var lastReadingAtMs = 0L
+
+    /** This tick's freshness and reading time, for [feed]. */
+    private var tickFresh = false
+    private var tickReadingAtMs = 0L
 
     /**
      * Time the odometer last changed; the jump limit measures from it. The ticker re-feeds the same
@@ -198,44 +226,87 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     fun drainEvents(): List<TripEvent> = events.toList().also { events.clear() }
 
     /**
-     * Feeds one tick: the head unit's boot, the author's session anchor (identity no more, only for the log and the
-     * migration of an old session), the latest reading and the time. Returns true when a session opened or finished
-     * (the caller publishes at once).
+     * Feeds one tick: the head unit's clocks, the author's session anchor (only for the log and the migration), the
+     * latest reading with the time it was taken ([readingAtMs]; a reading seen again with the same time is stale: it
+     * decides nothing) and the time now. Returns true when a session opened or finished (the caller publishes at once).
      */
-    fun onTick(boot: BootInfo, anchorMs: Long?, data: DiParsData?, nowMs: Long): Boolean {
+    fun onTick(boot: BootInfo, anchorMs: Long?, data: DiParsData?, nowMs: Long, readingAtMs: Long = nowMs): Boolean {
+        val fresh = data != null && readingAtMs != lastReadingAtMs
+        if (fresh) lastReadingAtMs = readingAtMs
         var changed = endOnCycleChange(boot, anchorMs, nowMs)
         val ps = data?.powerState
-        state.open?.let { s ->
-            if (ps == 0) {
-                changed = offStep(s, boot, nowMs) || changed
-            } else {
-                state = state.copy(open = follow(s, boot, data, nowMs))
-            }
-        }
+        tickFresh = fresh
+        tickReadingAtMs = readingAtMs
+        state.open?.let { changed = feed(it, boot, data, nowMs) || changed }
         if (state.open == null && data != null && mayOpen(ps)) {
-            state = state.copy(open = openSession(boot, anchorMs, data, nowMs))
+            state = state.copy(open = openSession(boot, anchorMs, data, if (startAtProcess && nowMs - processStartMs <= START_WINDOW_MS) processStartMs else nowMs, nowMs), closed = null)
             changed = true
         }
+        firstTick = false
         expireFinished(nowMs)
         return changed
     }
 
-    /** A session opens unless the car reads off, or was seen off and shows no `powerState` yet. */
-    private fun mayOpen(ps: Int?): Boolean = ps != 0 && !(closedByOff && ps == null)
+    /** One tick into the open session: a fresh off reading, a fresh reading, or a stale / missing one that holds. Returns true on a finish. */
+    private fun feed(s: LiveSession, boot: BootInfo, data: DiParsData?, nowMs: Long): Boolean {
+        val fresh = tickFresh
+        val ps = data?.powerState
+        when {
+            fresh && ps == 0 -> return offStep(s, boot, tickReadingAtMs)
+            fresh && (ps != null || s.offSinceMs == null) -> state = state.copy(open = follow(s, boot, data, nowMs))
+            // A stale or missing reading holds a process gap and a pending off for the first fresh reading.
+            s.offSinceMs != null || nowMs - s.lastSeenMs > GAP_NOTE_MS -> Unit
+            else -> state = state.copy(open = s.ticked(nowMs).stamped(boot))
+        }
+        return false
+    }
 
-    /** A boot change, a sleep, or a session of an old format that is not the one running now ends the open session. */
+    /** A session opens unless the car reads off, or was seen off and shows no `powerState` yet. */
+    private fun mayOpen(ps: Int?): Boolean = ps != 0 && !(state.closed != null && ps == null)
+
+    private fun LiveSession.stamped(b: BootInfo) = copy(sleepAtLastMs = b.sleepMs, elapsedAtLastMs = b.elapsedMs)
+
+    /**
+     * The first new-cycle signal in the evidence order, or null (same cycle). [last] = the clocks and the time of the
+     * last tick of the cycle compared with; the process-gap fallback (by elapsedRealtime, immune to wall-clock corrections) only counts at the process start or for an open session.
+     */
+    private fun cycleSignal(boot: BootInfo, last: ClosedCycle, open: Boolean): String? = when {
+        firstTick && exit?.quickboot == true && exit.atMs >= last.atMs - EXIT_SLACK_MS -> REASON_QUICKBOOT
+        boot.sleepMs - last.sleepAtLastMs > SLEEP_SLACK_MS -> REASON_SLEEP
+        last.bootCount != null && boot.bootCount != null && last.bootCount != boot.bootCount -> REASON_BOOT
+        boot.elapsedMs < last.elapsedAtLastMs -> REASON_REBOOT
+        (firstTick || open) && boot.elapsedMs - last.elapsedAtLastMs > GAP_FALLBACK_MS -> REASON_GAP_FALLBACK
+        else -> null
+    }
+
+    /** A new-cycle signal, or an old-format session that is not the one running now, ends the open session (or the closed marker). */
     private fun endOnCycleChange(boot: BootInfo, anchorMs: Long?, nowMs: Long): Boolean {
-        val s = state.open ?: return false
+        val s = state.open
+        if (s == null) {
+            val c = state.closed ?: return false
+            val why = cycleSignal(boot, c, open = false) ?: return false
+            state = state.copy(closed = null)
+            openReason = why
+            startAtProcess = firstTick
+            return false
+        }
         val was = s.boot
-        val reason = when {
-            was == null -> migrate(s, boot, anchorMs, nowMs)
-            !was.sameBoot(boot) -> REASON_BOOT
-            boot.sleepMs - s.sleepAtLastMs > SLEEP_SLACK_MS -> REASON_SLEEP
-            else -> null
+        val reason = if (was == null) {
+            migrate(s, boot, anchorMs, nowMs)
+        } else {
+            cycleSignal(boot, ClosedCycle(was.bootCount, s.elapsedAtLastMs, s.sleepAtLastMs, s.lastSeenMs), open = true)
         } ?: return false
+        events += TripEvent(
+            "cycle_end",
+            listOf(
+                "reason" to reason, "sleepDeltaS" to (boot.sleepMs - s.sleepAtLastMs) / MS_PER_SECOND,
+                "uptimeDeltaS" to (boot.uptimeMs - (s.elapsedAtLastMs - s.sleepAtLastMs)) / MS_PER_SECOND,
+                "exit" to exit?.description?.takeIf { firstTick },
+            ),
+        )
         finishOpen()
-        closedByOff = false
         openReason = reason
+        startAtProcess = firstTick
         return true
     }
 
@@ -243,53 +314,65 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     private fun migrate(s: LiveSession, boot: BootInfo, anchorMs: Long?, nowMs: Long): String? {
         val adopt = anchorMs == s.anchorMs || nowMs - s.lastSeenMs <= MIGRATE_FRESH_MS
         events += TripEvent("migrate", listOf("result" to if (adopt) "adopt" else "finish", "anchor" to anchorMs, "ageS" to (nowMs - s.lastSeenMs) / MS_PER_SECOND))
-        if (adopt) state = state.copy(open = s.copy(boot = boot, sleepAtLastMs = boot.sleepMs))
+        if (adopt) state = state.copy(open = s.copy(boot = boot).stamped(boot))
         return if (adopt) null else REASON_MIGRATE
     }
 
-    /** A `powerState == 0` reading: the first only marks the time, one that spans [OFF_CONFIRM_MS] ends the cycle at its last on-tick. */
-    private fun offStep(s: LiveSession, boot: BootInfo, nowMs: Long): Boolean {
+    /**
+     * A fresh `powerState == 0` reading: the first only marks its time, a later one [OFF_CONFIRM_MS] after it ends the
+     * cycle at its last on-tick (the session's lastSeen is not moved meanwhile).
+     */
+    private fun offStep(s: LiveSession, boot: BootInfo, readingAtMs: Long): Boolean {
         val since = s.offSinceMs
         if (since == null) {
-            state = state.copy(open = s.copy(offSinceMs = nowMs, boot = s.boot ?: boot))
+            state = state.copy(open = s.copy(offSinceMs = readingAtMs))
             return false
         }
-        if (nowMs - since < OFF_CONFIRM_MS) return false
-        events += TripEvent("off", listOf("since" to since, "lastOn" to s.lastSeenMs))
+        if (readingAtMs - since < OFF_CONFIRM_MS) return false
+        events += TripEvent("off", listOf("since" to since, "lastOn" to s.lastSeenMs, "sleepDeltaS" to (boot.sleepMs - s.sleepAtLastMs) / MS_PER_SECOND))
+        val closed = ClosedCycle(s.boot?.bootCount, s.elapsedAtLastMs, s.sleepAtLastMs, s.lastSeenMs)
         finishOpen()
-        closedByOff = true
+        state = state.copy(closed = closed)
         openReason = REASON_OFF
+        startAtProcess = false
         return true
     }
 
     /**
-     * Opens a session at the first reading. One place for what Task 2 adds: the start time and a catch-up base from
-     * the persisted counters go here.
+     * Opens a session at the first reading, starting at [startMs]. One place for what Task 2 adds: a catch-up base from
+     * the persisted counters goes here.
      */
-    private fun openSession(boot: BootInfo, anchorMs: Long?, data: DiParsData, nowMs: Long): LiveSession {
+    private fun openSession(boot: BootInfo, anchorMs: Long?, data: DiParsData, startMs: Long, nowMs: Long): LiveSession {
         val c = TripCounters.of(data)
         events += TripEvent(
             "cycle_new",
-            listOf("reason" to openReason, "boot" to boot.bootCount, "bootMs" to boot.bootMs, "anchor" to anchorMs, "odo" to c.odometerKm),
+            listOf(
+                "reason" to (if (state.closed != null) REASON_OFF else openReason), "boot" to boot.bootCount,
+                "elapsedS" to boot.elapsedMs / MS_PER_SECOND, "sleepS" to boot.sleepMs / MS_PER_SECOND,
+                "anchor" to anchorMs, "odo" to c.odometerKm,
+            ),
         )
         openReason = REASON_FIRST
-        closedByOff = false
+        startAtProcess = false
         lastOdoMs = nowMs
         return LiveSession(
-            anchorMs ?: nowMs, nowMs, nowMs, c, c, lastMode = modeOf(data.gear, data.speed), lastRpm = data.engineRpm,
-            rpmSeen = data.engineRpm != null, boot = boot, sleepAtLastMs = boot.sleepMs,
+            anchorMs ?: nowMs, startMs, nowMs, c, c, lastMode = modeOf(data.gear, data.speed), lastRpm = data.engineRpm,
+            rpmSeen = data.engineRpm != null, boot = boot, sleepAtLastMs = boot.sleepMs, elapsedAtLastMs = boot.elapsedMs,
         )
     }
 
-    /** Continues the session with a tick; a gap in ticks inside the cycle is noted for the log. */
+    /** Continues the session with a fresh reading; a gap in ticks inside the cycle is attributed by the odometer and noted. */
     private fun follow(s: LiveSession, boot: BootInfo, data: DiParsData?, nowMs: Long): LiveSession {
+        val c = TripCounters.of(checkNotNull(data))
         val gapMs = nowMs - s.lastSeenMs
-        val next = if (data == null) s.ticked(nowMs) else s.advance(TripCounters.of(data), data, nowMs)
+        val next = s.advance(c, data, nowMs)
         if (gapMs > GAP_NOTE_MS) {
-            val moved = if (data == null) null else odoDelta(s.latest, TripCounters.of(data))
-            events += TripEvent("cycle_continue", listOf("gapS" to gapMs / MS_PER_SECOND, "moved" to moved))
+            events += TripEvent(
+                "cycle_continue",
+                listOf("gapS" to gapMs / MS_PER_SECOND, "moved" to odoDelta(s.latest, c), "sleepDeltaS" to (boot.sleepMs - s.sleepAtLastMs) / MS_PER_SECOND),
+            )
         }
-        return next.copy(sleepAtLastMs = boot.sleepMs, offSinceMs = null)
+        return next.stamped(boot).let { if (data.powerState != null) it.copy(offSinceMs = null) else it }
     }
 
     /** An odometer step no car can drive in the time since the last reading: a scale change of the counter. */
@@ -343,7 +426,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
 
     private fun finishOpen() {
         val estimate = state.open?.estimate()?.takeIf { movedKm(it.km) && it.km <= MAX_TRIP_KM }
-        state = LiveTripState(open = null, finished = (state.finished + listOfNotNull(estimate)).takeLast(MAX_FINISHED))
+        state = state.copy(open = null, finished = (state.finished + listOfNotNull(estimate)).takeLast(MAX_FINISHED))
     }
 
     private fun expireFinished(nowMs: Long) {
@@ -352,8 +435,14 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     }
 
     companion object {
-        /** Boot times of one boot differ by clock jitter only; used when `BOOT_COUNT` is unreadable. */
-        const val BOOT_SLACK_MS = 5_000L
+        /** The previous process's exit is told to be "after the last tick" within this much (clock granularity). */
+        const val EXIT_SLACK_MS = 5_000L
+
+        /** No other signal, but this long without a tick: a new cycle all the same. */
+        const val GAP_FALLBACK_MS = 10 * 60_000L
+
+        /** A cycle detected at the process start begins at it if its session opens within this long. */
+        const val START_WINDOW_MS = 120_000L
 
         /** The head unit's sleep time may grow by this much between two ticks within a cycle. */
         const val SLEEP_SLACK_MS = 5_000L
@@ -371,6 +460,9 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
         private const val REASON_SLEEP = "sleep"
         private const val REASON_OFF = "off"
         private const val REASON_MIGRATE = "migrate"
+        private const val REASON_QUICKBOOT = "quickboot"
+        private const val REASON_REBOOT = "reboot"
+        private const val REASON_GAP_FALLBACK = "gap_fallback"
         private const val MS_PER_SECOND = 1000L
         const val MOVED_KM = 0.1
         const val FINISHED_TTL_MS = 31 * 24 * 3_600_000L
@@ -397,6 +489,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
  * without split, all without ice/ev km). The closing `E` makes a truncated string fail; any failure decodes
  * to an empty state.
  */
+@Suppress("TooManyFunctions") // one function per field group of the text form
 object LiveTripCodec {
     private const val HEAD = "L7"
     private const val HEAD_V6 = "L6"
@@ -413,32 +506,43 @@ object LiveTripCodec {
     private const val ICE_FIELDS = 2
     private const val SESSION_ICE_FIELDS = 3
     private const val SESSION_SEEN_FIELD = 1
-    private const val SESSION_BOOT_FIELDS = 5
+    private const val SESSION_BOOT_FIELDS = 6
+    private const val CLOSED_FIELDS = 4
 
     fun encode(s: LiveTripState): String {
-        val open = s.open?.let { o ->
-            listOf(o.anchorMs, o.startMs, o.lastSeenMs).joinToString(",") +
-                "," + counters(o.base) + "," + counters(o.latest) + "," + split(o.split) + "," + (o.lastMode?.name ?: "") +
-                "," + listOf(o.iceKm, o.evKm, o.lastRpm).joinToString(",") { it?.toString() ?: "" } +
-                "," + (if (o.rpmSeen) "1" else "0") +
-                "," + listOf(o.boot?.bootCount, o.boot?.bootMs, o.boot?.sleepMs, o.sleepAtLastMs, o.offSinceMs)
-                    .joinToString(",") { it?.toString() ?: "" }
-        } ?: NONE
+        val open = s.open?.let { sessionText(it) } ?: NONE
         val fin = s.finished.takeIf { it.isNotEmpty() }?.joinToString(";") {
             listOf(it.startMs, it.endMs, it.km, it.kwh ?: "", it.litres ?: "", it.hevKm ?: "").joinToString(",") +
                 "," + (it.split?.let { sp -> split(sp) } ?: ",".repeat(SPLIT_FIELDS - 1)) +
                 "," + listOf(it.iceKm, it.evKm).joinToString(",") { v -> v?.toString() ?: "" }
         } ?: NONE
-        return listOf(HEAD, open, fin, TAIL).joinToString("|")
+        val closed = s.closed?.let { listOf(it.bootCount, it.elapsedAtLastMs, it.sleepAtLastMs, it.atMs).joinToString(",") { v -> v?.toString() ?: "" } } ?: NONE
+        return listOf(HEAD, open, fin, closed, TAIL).joinToString("|")
     }
 
     fun decode(raw: String?): LiveTripState = try {
         val parts = raw.orEmpty().split("|")
-        require(parts.size == 4 && parts[0] in listOf(HEAD, HEAD_V6, HEAD_V5, HEAD_V4, HEAD_V3, HEAD_V2, HEAD_V1) && parts[3] == TAIL)
+        require(parts[0] in listOf(HEAD, HEAD_V6, HEAD_V5, HEAD_V4, HEAD_V3, HEAD_V2, HEAD_V1))
         val v = parts[0].substring(1).toInt()
-        LiveTripState(open = session(parts[1], parts[0], v), finished = estimates(parts[2], v))
+        require(parts.size == (if (v >= 7) 5 else 4) && parts.last() == TAIL)
+        LiveTripState(open = session(parts[1], parts[0], v), finished = estimates(parts[2], v), closed = if (v >= 7) closed(parts[3]) else null)
     } catch (@Suppress("SwallowedException") e: IllegalArgumentException) {
         LiveTripState()
+    }
+
+    private fun sessionText(o: LiveSession): String =
+        listOf(o.anchorMs, o.startMs, o.lastSeenMs).joinToString(",") +
+            "," + counters(o.base) + "," + counters(o.latest) + "," + split(o.split) + "," + (o.lastMode?.name ?: "") +
+            "," + listOf(o.iceKm, o.evKm, o.lastRpm).joinToString(",") { it?.toString() ?: "" } +
+            "," + (if (o.rpmSeen) "1" else "0") +
+            "," + listOf(o.boot?.bootCount, o.boot?.elapsedMs, o.boot?.sleepMs, o.sleepAtLastMs, o.elapsedAtLastMs, o.offSinceMs)
+                .joinToString(",") { it?.toString() ?: "" }
+
+    private fun closed(s: String): ClosedCycle? {
+        if (s == NONE) return null
+        val f = s.split(",")
+        require(f.size == CLOSED_FIELDS)
+        return ClosedCycle(f[0].takeIf { it.isNotEmpty() }?.toInt(), f[1].toLong(), f[2].toLong(), f[3].toLong())
     }
 
     private fun split(d: DrivePark) =
@@ -507,7 +611,7 @@ object LiveTripCodec {
 object LiveTripPersistence {
     class Restored(val state: LiveTripState, val migrated: Boolean)
 
-    fun encodeOpen(s: LiveTripState): String = LiveTripCodec.encode(LiveTripState(open = s.open))
+    fun encodeOpen(s: LiveTripState): String = LiveTripCodec.encode(LiveTripState(open = s.open, closed = s.closed))
 
     fun encodeFinished(s: LiveTripState): String = LiveTripCodec.encode(LiveTripState(finished = s.finished))
 
@@ -520,13 +624,14 @@ object LiveTripPersistence {
      */
     fun restore(openRaw: String?, finishedRaw: String?, legacyRaw: String?, oldFinishedRaw: String? = null): Restored {
         val legacy = legacyRaw?.let { LiveTripCodec.decode(it) }
-        val open = if (openRaw != null) LiveTripCodec.decode(openRaw).open else legacy?.open
+        val openState = openRaw?.let { LiveTripCodec.decode(it) }
+        val open = if (openRaw != null) openState?.open else legacy?.open
         val finished = when {
             finishedRaw != null -> LiveTripCodec.decode(finishedRaw).finished
             oldFinishedRaw != null -> LiveTripCodec.decode(oldFinishedRaw).finished
             else -> legacy?.finished.orEmpty()
         }
-        return Restored(LiveTripState(open, finished), migrated = legacyRaw != null || oldFinishedRaw != null)
+        return Restored(LiveTripState(open, finished, openState?.closed), migrated = legacyRaw != null || oldFinishedRaw != null)
     }
 }
 
@@ -540,10 +645,13 @@ private fun LiveSession.withRpmFields(f: List<String>, at: Int, v: Int): LiveSes
     )
 }
 
-/** L7 session tail at [at]: boot count, boot ms, sleep ms (all empty = no boot), sleep at the last tick, off-since. */
+/** L7 session tail at [at]: boot count, elapsed, sleep (the last two empty = no boot), sleep and elapsed at the last tick, off-since. */
 private fun LiveSession.withBootFields(f: List<String>, at: Int, v: Int): LiveSession {
     if (v < 7) return this
-    val bootMs = f[at + 1].takeIf { it.isNotEmpty() }?.toLong()
-    val boot = bootMs?.let { BootInfo(f[at].takeIf { c -> c.isNotEmpty() }?.toInt(), it, f[at + 2].toLong()) }
-    return copy(boot = boot, sleepAtLastMs = f[at + 3].toLong(), offSinceMs = f[at + 4].takeIf { it.isNotEmpty() }?.toLong())
+    val elapsed = f[at + 1].takeIf { it.isNotEmpty() }?.toLong()
+    val boot = elapsed?.let { BootInfo(f[at].takeIf { c -> c.isNotEmpty() }?.toInt(), it, f[at + 2].toLong()) }
+    return copy(
+        boot = boot, sleepAtLastMs = f[at + 3].toLong(), elapsedAtLastMs = f[at + 4].toLong(),
+        offSinceMs = f[at + 5].takeIf { it.isNotEmpty() }?.toLong(),
+    )
 }

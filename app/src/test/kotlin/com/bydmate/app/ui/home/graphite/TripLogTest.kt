@@ -127,7 +127,7 @@ class TripLogTest {
         assertTrue(e.toString(), e.any { it.startsWith("energy_dropped:what=kwh") })
         // a new boot
         val fin = events(tr, null, null, t0 + 40_000, TEST_BOOT.copy(bootCount = 8))
-        assertTrue(fin.toString(), fin.single().startsWith("finish:start="))
+        assertTrue(fin.toString(), fin.any { it.startsWith("cycle_end:reason=boot") } && fin.any { it.startsWith("finish:start=") })
     }
 
     @Test
@@ -140,7 +140,7 @@ class TripLogTest {
         val gap = events(tr, anchor, reading(17001.0), t0 + 10_000 + 90_000)
         assertTrue(gap.toString(), gap.single().startsWith("cycle_continue:gapS=90,moved="))
         val boot = events(tr, anchor, reading(17001.0), t0 + 110_000 + 10_000, TEST_BOOT.copy(bootCount = 8))
-        assertTrue(boot.toString(), boot[0].startsWith("cycle_new:reason=boot,boot=8") && boot[1].startsWith("finish:") && boot[2].startsWith("open:"))
+        assertTrue(boot.toString(), boot[0].startsWith("cycle_end:reason=boot,sleepDeltaS=0") && boot[1].startsWith("cycle_new:reason=boot,boot=8") && boot[2].startsWith("finish:") && boot[3].startsWith("open:"))
         val on = reading(17001.0).copy(powerState = 2)
         val off = on.copy(powerState = 0)
         events(tr, anchor, off, t0 + 130_000, TEST_BOOT.copy(bootCount = 8))

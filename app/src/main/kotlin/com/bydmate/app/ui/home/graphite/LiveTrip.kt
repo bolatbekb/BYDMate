@@ -1,7 +1,9 @@
 package com.bydmate.app.ui.home.graphite
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Build
 import android.os.SystemClock
 import android.provider.Settings
 import com.bydmate.app.demo.DemoMode
@@ -47,15 +49,19 @@ object LiveTrip {
         TripLog.init(context, demo)
         val store = PrefsStore(context.applicationContext, demo)
         val restored = store.restore()
-        val tracker = LiveTripTracker(restored.state, System.currentTimeMillis())
         val clock = BootClock(context.applicationContext)
         val startMs = System.currentTimeMillis()
-        val boot0 = clock.read(startMs)
+        val boot0 = clock.read()
+        val exit = clock.lastExit()
+        val tracker = LiveTripTracker(restored.state, startMs, exit)
         TripLog.event(
             startMs, "process_start",
             listOf(
-                "demo" to demo, "boot" to boot0.bootCount, "bootAt" to TripLogFormat.clock(boot0.bootMs, ZoneId.systemDefault()),
-                "sleepS" to boot0.sleepMs / MS_PER_S, "uptimeS" to (startMs - boot0.bootMs - boot0.sleepMs) / MS_PER_S,
+                "demo" to demo, "exitReason" to exit?.reasonCode, "exitDesc" to exit?.description?.replace(' ', '_'),
+                "exitAt" to exit?.atMs?.let { TripLogFormat.clock(it, ZoneId.systemDefault()) }, "bootCount" to boot0.bootCount,
+                "elapsedS" to boot0.elapsedMs / MS_PER_S, "uptimeS" to boot0.uptimeMs / MS_PER_S, "sleepS" to boot0.sleepMs / MS_PER_S,
+                "lastElapsedS" to restored.state.open?.elapsedAtLastMs?.div(MS_PER_S),
+                "lastSleepS" to restored.state.open?.sleepAtLastMs?.div(MS_PER_S), "closed" to (restored.state.closed != null),
             ),
         )
         restored.state.open?.let {
@@ -75,11 +81,12 @@ object LiveTrip {
                 .collect { (anchor, data) ->
                     val now = System.currentTimeMillis()
                     val before = tracker.state
-                    val transition = tracker.onTick(clock.read(now), anchor, data, now)
+                    val transition = tracker.onTick(clock.read(), anchor, data, now, TrackingService.lastDataAtMs)
+                    val cycleEvents = tracker.drainEvents()
                     // Logging must never cost the trip.
                     runCatching {
                         TripLog.tick(now, TripTick.of(anchor, data, tracker.state.open), tracker.state.open != null)
-                        (tracker.drainEvents() + TripLogEvents.diff(before, tracker.state)).forEach { TripLog.event(now, it.name, it.fields) }
+                        (cycleEvents + TripLogEvents.diff(before, tracker.state)).forEach { TripLog.event(now, it.name, it.fields) }
                     }
                     if (shouldPublish(transition, now, lastPublishMs)) {
                         lastPublishMs = now
@@ -93,13 +100,21 @@ object LiveTrip {
         }
     }
 
-    /** Reads the head unit's boot: `BOOT_COUNT` (null if unreadable), the wall time of the boot, the time asleep. */
+    /** Reads the head unit's clocks and how the previous process ended. */
     private class BootClock(private val context: Context) {
-        fun read(nowMs: Long): BootInfo {
+        fun read(): BootInfo {
             val elapsed = SystemClock.elapsedRealtime()
             val count = runCatching { Settings.Global.getInt(context.contentResolver, Settings.Global.BOOT_COUNT) }.getOrNull()
-            return BootInfo(count, nowMs - elapsed, elapsed - SystemClock.uptimeMillis())
+            return BootInfo(count, elapsed, elapsed - SystemClock.uptimeMillis())
         }
+
+        /** The newest exit record of this app (API 30+): the head unit's quickboot kill shows here. */
+        fun lastExit(): ExitInfo? = runCatching {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) return null
+            val am = context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            am.getHistoricalProcessExitReasons(context.packageName, 0, 1).firstOrNull()
+                ?.let { ExitInfo(it.reason, it.description, it.timestamp) }
+        }.getOrNull()
     }
 
     internal fun shouldPublish(transition: Boolean, nowMs: Long, lastPublishMs: Long): Boolean =

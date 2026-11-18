@@ -12,7 +12,7 @@ import org.junit.Test
 /** One trip per ignition cycle: the head unit's boot, not the author's session, decides. */
 class LiveTripCycleTest {
     private val t0 = 10_000_000L
-    private val boot = BootInfo(bootCount = 41, bootMs = 1_000L, sleepMs = 0L)
+    private val boot = BootInfo(bootCount = 41, elapsedMs = 1_000L, sleepMs = 0L)
     private val min = 60_000L
 
     private fun reading(odo: Double, gear: Int = 1, speed: Int = 0, ps: Int? = 2, elec: Double? = 2650.0): DiParsData =
@@ -60,7 +60,7 @@ class LiveTripCycleTest {
     fun differentBootCountFinishesAndOpensNew() {
         val tr = started()
         tr.tick(reading(17001.5, 4, 40), t0 + 10_000)
-        assertTrue(tr.tick(reading(17001.5), t0 + 20_000, boot.copy(bootCount = 42, bootMs = 99_999L)))
+        assertTrue(tr.tick(reading(17001.5), t0 + 20_000, boot.copy(bootCount = 42)))
         assertEquals(1.5, tr.state.finished.single().km, 1e-9)
         assertEquals(t0 + 10_000, tr.state.finished.single().endMs)
         assertEquals(t0 + 20_000, tr.state.open!!.startMs)
@@ -74,6 +74,7 @@ class LiveTripCycleTest {
         assertTrue(tr.tick(reading(17001.5), t0 + 20_000, boot.copy(sleepMs = 60_000L)))
         assertEquals(1, tr.state.finished.size)
         assertEquals(boot.copy(sleepMs = 60_000L), tr.state.open!!.boot)
+        assertEquals(t0 + 10_000, tr.state.finished.single().endMs)
     }
 
     @Test
@@ -84,14 +85,36 @@ class LiveTripCycleTest {
     }
 
     @Test
-    fun nullBootCountFallsBackToBootTimeWithJitter() {
+    fun nullBootCountWithMonotonicElapsedIsTheSameCycleEvenWhenTheWallClockJumps() {
         val nb = BootInfo(null, 1_000L, 0L)
         val tr = LiveTripTracker(LiveTripState(), t0)
         tr.tick(reading(17000.0), t0, nb)
-        assertFalse(tr.tick(reading(17000.0), t0 + 10_000, nb.copy(bootMs = 3_000L)))
+        assertFalse(tr.tick(reading(17000.0), t0 + 2 * 3_600_000L, nb.copy(elapsedMs = 31_000L)))
         assertTrue(tr.state.finished.isEmpty())
-        assertTrue(tr.tick(reading(17000.0), t0 + 20_000, nb.copy(bootMs = 31_000L)))
+        assertEquals(t0, tr.state.open!!.startMs)
+    }
+
+    @Test
+    fun elapsedGoingBackwardsIsARebootEvenWithNullCount() {
+        val nb = BootInfo(null, 100_000L, 0L)
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.tick(reading(17000.0), t0, nb)
+        tr.tick(reading(17001.5, 4, 40), t0 + 10_000, nb.copy(elapsedMs = 110_000L))
+        assertTrue(tr.tick(reading(17001.5), t0 + 20_000, nb.copy(elapsedMs = 5_000L)))
+        assertEquals(1, tr.state.finished.size)
         assertEquals(t0 + 20_000, tr.state.open!!.startMs)
+    }
+
+    @Test
+    fun gapFallbackAfterElevenMinutesWithoutAnyOtherSignal() {
+        val tr = started()
+        tr.tick(reading(17001.5, 4, 40), t0 + 10_000, boot.copy(elapsedMs = 11_000L))
+        tr.drainEvents()
+        assertTrue(tr.tick(reading(17001.5), t0 + 20_000, boot.copy(elapsedMs = 11_000L + 11 * min)))
+        val ev = tr.drainEvents()
+        assertEquals("gap_fallback", ev.first { it.name == "cycle_end" }.fields.first { it.first == "reason" }.second)
+        assertEquals("gap_fallback", ev.first { it.name == "cycle_new" }.fields.first { it.first == "reason" }.second)
+        assertEquals(1, tr.state.finished.size)
     }
 
     @Test
@@ -209,7 +232,7 @@ class LiveTripCycleTest {
     private val full = LiveTripState(
         open = LiveSession(
             7L, 1L, 2L, TripCounters(17000.0, null, 300.5, null), TripCounters(17012.4, 2652.1, null, 4.0),
-            boot = BootInfo(41, 123_456L, 7_000L), sleepAtLastMs = 6_500L, offSinceMs = 99L,
+            boot = BootInfo(41, 123_456L, 7_000L), sleepAtLastMs = 6_500L, elapsedAtLastMs = 120_000L, offSinceMs = 99L,
         ),
         finished = listOf(TripEstimate(5L, 6L, 12.4, null, 0.6, null)),
     )
@@ -222,6 +245,10 @@ class LiveTripCycleTest {
         assertEquals(noCount, LiveTripCodec.decode(LiveTripCodec.encode(noCount)))
         val noBoot = full.copy(open = full.open!!.copy(boot = null))
         assertEquals(noBoot, LiveTripCodec.decode(LiveTripCodec.encode(noBoot)))
+        val closed = LiveTripState(closed = ClosedCycle(945, 95_000_000L, 90_000_000L, 1234L))
+        assertEquals(closed, LiveTripCodec.decode(LiveTripCodec.encode(closed)))
+        val closedNoCount = LiveTripState(closed = ClosedCycle(null, 1L, 2L, 3L))
+        assertEquals(closedNoCount, LiveTripCodec.decode(LiveTripCodec.encode(closedNoCount)))
     }
 
     @Test
@@ -232,5 +259,138 @@ class LiveTripCycleTest {
         assertNull(open.offSinceMs)
         assertEquals(7L, open.anchorMs)
         assertTrue(open.rpmSeen)
+    }
+
+    // ---- the quickboot head unit: restarts, fresh readings, the closed marker ----
+
+    private val quickbootExit = ExitInfo(10, "stop com.bydmate.app due to quickboot", t0 + 5_000L)
+    private val crashExit = ExitInfo(4, "crash", t0 + 5_000L)
+    private val day = BootInfo(945, 1_000_000L, 100_000L)
+
+    /** A saved trip of 5 km in a given gear mode whose last tick was [lastSeen] on the clocks of [day]. */
+    private fun saved(lastSeen: Long, mode: Mode, closed: ClosedCycle? = null) = LiveTripState(
+        open = if (closed != null) null else LiveSession(
+            500L, lastSeen - 600_000, lastSeen, TripCounters(17000.0, 2650.0, null, null), TripCounters(17005.0, 2650.0, null, null),
+            lastMode = mode, boot = day, sleepAtLastMs = day.sleepMs, elapsedAtLastMs = day.elapsedMs,
+        ),
+        closed = closed,
+    )
+
+    @Test
+    fun quickbootRestoreIsANewCycle() {
+        val restart = t0 + 3 * 3_600_000L
+        val tr = LiveTripTracker(saved(t0, Mode.PARK), restart, quickbootExit)
+        val later = day.copy(elapsedMs = day.elapsedMs + 3 * 3_600_000L, sleepMs = day.sleepMs + 3 * 3_600_000L)
+        assertTrue(tr.onTick(later, null, null, restart))
+        assertEquals(t0, tr.state.finished.single().endMs)
+        assertNull(tr.state.open)
+        assertTrue(tr.onTick(later, null, reading(17005.0), restart + 20_000))
+        assertEquals(restart, tr.state.open!!.startMs)
+        assertEquals(0.0, tr.state.open!!.estimate().km, 1e-9)
+    }
+
+    @Test
+    fun quickbootExitAloneSplitsEvenWithoutAnyClockChange() {
+        val tr = LiveTripTracker(saved(t0, Mode.PARK), t0 + 10_000, quickbootExit)
+        assertTrue(tr.onTick(day, null, null, t0 + 10_000))
+        assertEquals("quickboot", tr.drainEvents().first { it.name == "cycle_end" }.fields.first { it.first == "reason" }.second)
+    }
+
+    @Test
+    fun anOldQuickbootExitBeforeTheLastTickDoesNotSplit() {
+        val tr = LiveTripTracker(saved(t0, Mode.PARK), t0 + 10_000, quickbootExit.copy(atMs = t0 - 60_000))
+        assertFalse(tr.onTick(day, null, null, t0 + 10_000))
+        assertNotNull(tr.state.open)
+    }
+
+    @Test
+    fun crashRestoreContinuesWithTheGapInDriving() {
+        val tr = LiveTripTracker(saved(t0, Mode.PARK), t0 + 40_000, crashExit)
+        val now = day.copy(elapsedMs = day.elapsedMs + 40_000L)
+        assertFalse(tr.onTick(now, null, null, t0 + 40_000))
+        assertFalse(tr.onTick(now, null, reading(17005.4), t0 + 41_000))
+        assertTrue(tr.state.finished.isEmpty())
+        val sp = tr.state.open!!.split
+        assertEquals(41_000L, sp.driveMs)
+        assertEquals(0L, sp.parkMs)
+        assertEquals(5.4, tr.state.open!!.estimate().km, 1e-9)
+    }
+
+    @Test
+    fun theFirstNoDataTickAfterARestartDoesNotConsumeTheGap() {
+        val tr = LiveTripTracker(saved(t0, Mode.DRIVE), t0 + 9 * min, crashExit)
+        val now = day.copy(elapsedMs = day.elapsedMs + 9 * min)
+        tr.onTick(now, null, null, t0 + 9 * min)
+        tr.onTick(now, null, null, t0 + 9 * min + 10_000)
+        assertEquals(t0, tr.state.open!!.lastSeenMs)
+        assertEquals(DrivePark(), tr.state.open!!.split)
+        tr.onTick(now, null, reading(17005.0), t0 + 9 * min + 20_000, readingAtMs = 1L)
+        val sp = tr.state.open!!.split
+        assertEquals(9 * min + 20_000, sp.parkMs)
+        assertEquals(0L, sp.driveMs)
+    }
+
+    @Test
+    fun aFreshOffReadingRefedByTheTickerDoesNotConfirmTheOff() {
+        val tr = started()
+        tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 10_000, readingAtMs = 9_000L)
+        for (i in 1..3) assertFalse(tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 10_000 + i * 10_000L, readingAtMs = 9_000L))
+        assertNotNull(tr.state.open)
+        assertEquals(9_000L, tr.state.open!!.offSinceMs)
+        assertEquals(t0, tr.state.open!!.lastSeenMs)
+        assertFalse(tr.onTick(boot, null, reading(17000.0, ps = 2), t0 + 50_000, readingAtMs = 40_000L))
+        assertTrue(tr.state.finished.isEmpty())
+        assertNull(tr.state.open!!.offSinceMs)
+    }
+
+    @Test
+    fun twoFreshOffReadingsSixSecondsApartConfirmTheOff() {
+        val tr = started()
+        tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 10_000, readingAtMs = 10_000L)
+        assertFalse(tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 13_000, readingAtMs = 13_000L))
+        assertTrue(tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 16_000, readingAtMs = 16_000L))
+        assertNull(tr.state.open)
+        assertNotNull(tr.state.closed)
+        assertEquals(t0, tr.drainEvents().first { it.name == "off" }.fields.first { it.first == "lastOn" }.second)
+    }
+
+    @Test
+    fun aNullPowerStateDoesNotClearAPendingOff() {
+        val tr = started()
+        tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 10_000, readingAtMs = 10_000L)
+        tr.onTick(boot, null, reading(17000.0, ps = null), t0 + 15_000, readingAtMs = 15_000L)
+        assertEquals(10_000L, tr.state.open!!.offSinceMs)
+        assertTrue(tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 20_000, readingAtMs = 20_000L))
+    }
+
+    @Test
+    fun restartWhileStillOffOpensNothingUntilANewCycleShows() {
+        val tr = started()
+        tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 10_000, readingAtMs = 10_000L)
+        tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 20_000, readingAtMs = 20_000L)
+        val restored = LiveTripPersistence.restore(LiveTripPersistence.encodeOpen(tr.state), LiveTripPersistence.encodeFinished(tr.state), null).state
+        assertNotNull(restored.closed)
+        val clocks = boot.copy(elapsedMs = boot.elapsedMs + 60_000L)
+        val re = LiveTripTracker(restored, t0 + 60_000, crashExit)
+        assertFalse(re.onTick(clocks, null, reading(17000.0, ps = null), t0 + 61_000, readingAtMs = 61_000L))
+        assertNull(re.state.open)
+        assertFalse(re.onTick(clocks, null, reading(17000.0, ps = 0), t0 + 71_000, readingAtMs = 71_000L))
+        assertNull(re.state.open)
+        // the next ignition: the sleep time grew
+        val woke = clocks.copy(elapsedMs = clocks.elapsedMs + 3_600_000L, sleepMs = 3_600_000L)
+        assertTrue(re.onTick(woke, null, reading(17000.0, ps = 2), t0 + 3_700_000, readingAtMs = 3_700_000L))
+        assertNotNull(re.state.open)
+        assertNull(re.state.closed)
+    }
+
+    @Test
+    fun anOnReadingAfterAnOffInTheSameCycleOpensANewSession() {
+        val tr = started()
+        tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 10_000, readingAtMs = 10_000L)
+        tr.onTick(boot, null, reading(17000.0, ps = 0), t0 + 20_000, readingAtMs = 20_000L)
+        assertNull(tr.state.open)
+        assertTrue(tr.onTick(boot, null, reading(17000.0, ps = 2), t0 + 30_000, readingAtMs = 30_000L))
+        assertNotNull(tr.state.open)
+        assertNull(tr.state.closed)
     }
 }
