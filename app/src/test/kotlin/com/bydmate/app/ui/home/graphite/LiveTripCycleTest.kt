@@ -189,7 +189,7 @@ class LiveTripCycleTest {
     @Test
     fun cycleEventsAreReported() {
         val tr = started()
-        assertEquals("cycle_new", tr.drainEvents().single().name)
+        assertEquals(listOf("cycle_new", "catch_up_rejected"), tr.drainEvents().map { it.name })
         tr.tick(reading(17001.0), t0 + 2 * min)
         assertEquals("cycle_continue", tr.drainEvents().single().name)
         assertTrue(tr.drainEvents().isEmpty())

@@ -140,7 +140,7 @@ class TripLogTest {
         val gap = events(tr, anchor, reading(17001.0), t0 + 10_000 + 90_000)
         assertTrue(gap.toString(), gap.single().startsWith("cycle_continue:gapS=90,moved="))
         val boot = events(tr, anchor, reading(17001.0), t0 + 110_000 + 10_000, TEST_BOOT.copy(bootCount = 8))
-        assertTrue(boot.toString(), boot[0].startsWith("cycle_end:reason=boot,sleepDeltaS=0") && boot[1].startsWith("cycle_new:reason=boot,boot=8") && boot[2].startsWith("finish:") && boot[3].startsWith("open:"))
+        assertTrue(boot.toString(), boot[0].startsWith("cycle_end:reason=boot,sleepDeltaS=0") && boot[1].startsWith("cycle_new:reason=boot,boot=8") && boot[2].startsWith("catch_up:") && boot[3].startsWith("finish:") && boot[4].startsWith("open:"))
         val on = reading(17001.0).copy(powerState = 2)
         val off = on.copy(powerState = 0)
         events(tr, anchor, off, t0 + 130_000, TEST_BOOT.copy(bootCount = 8))

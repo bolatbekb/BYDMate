@@ -54,6 +54,9 @@ internal fun modeOf(gear: Int?, speed: Int?, odoDeltaKm: Double? = null): Mode =
 
 private const val ODO_MOVED_KM = 0.05
 
+/** On a car with a tank (a hybrid) the engine rpm reads null while the engine is off: that is rpm 0, not unknown. */
+internal fun effectiveRpm(d: DiParsData): Int? = d.engineRpm ?: if (d.fuelTotalL != null || d.fuelPercent != null) 0 else null
+
 private fun odoDelta(from: TripCounters, to: TripCounters): Double? =
     if (from.odometerKm == null || to.odometerKm == null) null else to.odometerKm - from.odometerKm
 
@@ -107,6 +110,9 @@ data class ExitInfo(val reasonCode: Int, val description: String?, val atMs: Lon
  * are the clock values of its last tick, [atMs] that tick's time. A restart while the car is still off opens nothing.
  */
 data class ClosedCycle(val bootCount: Int?, val elapsedAtLastMs: Long, val sleepAtLastMs: Long, val atMs: Long)
+
+/** The counters of the last tick of a finished session ([atMs] = that tick); the next session's catch-up starts from them. */
+data class LastCounters(val counters: TripCounters, val atMs: Long)
 
 /**
  * One ignition cycle's trip. [anchorMs] is the author's `TrackingService.sessionStartedAt` at its opening (only for
@@ -174,11 +180,12 @@ data class LiveSession(
 /** A trip of at least [LiveTripTracker.MOVED_KM]; the small epsilon keeps 17000.1 - 17000.0 (0.0999..) a move. */
 fun movedKm(km: Double): Boolean = km >= LiveTripTracker.MOVED_KM - 1e-6
 
-/** [finished]: unconfirmed finished drives, newest last, at most [LiveTripTracker.MAX_FINISHED]; [closed]: see [ClosedCycle]. */
+/** [finished]: unconfirmed finished drives, newest last, at most [LiveTripTracker.MAX_FINISHED]; [closed]: see [ClosedCycle]; [last]: see [LastCounters]. */
 data class LiveTripState(
     val open: LiveSession? = null,
     val finished: List<TripEstimate> = emptyList(),
     val closed: ClosedCycle? = null,
+    val last: LastCounters? = null,
 )
 
 /**
@@ -239,7 +246,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         tickReadingAtMs = readingAtMs
         state.open?.let { changed = feed(it, boot, data, nowMs) || changed }
         if (state.open == null && data != null && mayOpen(ps)) {
-            state = state.copy(open = openSession(boot, anchorMs, data, if (startAtProcess && nowMs - processStartMs <= START_WINDOW_MS) processStartMs else nowMs, nowMs), closed = null)
+            state = state.copy(open = openSession(boot, anchorMs, data, if (startAtProcess && nowMs - processStartMs <= START_WINDOW_MS) processStartMs else nowMs, nowMs), closed = null, last = null)
             changed = true
         }
         firstTick = false
@@ -339,8 +346,10 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
     }
 
     /**
-     * Opens a session at the first reading, starting at [startMs]. One place for what Task 2 adds: a catch-up base from
-     * the persisted counters goes here.
+     * Opens a session at the first reading [nowMs], starting at [startMs]. The counters of the previous session's last
+     * tick are the catch-up base when the odometer step is plausible: what was driven before the app started then
+     * counts, and the interval [startMs, nowMs] goes to driving if the car moved in it, else to standing. Otherwise the
+     * base is the first reading and the interval is standing with no energy.
      */
     private fun openSession(boot: BootInfo, anchorMs: Long?, data: DiParsData, startMs: Long, nowMs: Long): LiveSession {
         val c = TripCounters.of(data)
@@ -355,10 +364,43 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         openReason = REASON_FIRST
         startAtProcess = false
         lastOdoMs = nowMs
-        return LiveSession(
-            anchorMs ?: nowMs, startMs, nowMs, c, c, lastMode = modeOf(data.gear, data.speed), lastRpm = data.engineRpm,
-            rpmSeen = data.engineRpm != null, boot = boot, sleepAtLastMs = boot.sleepMs, elapsedAtLastMs = boot.elapsedMs,
+        val rpm = effectiveRpm(data)
+        val fresh = LiveSession(
+            anchorMs ?: nowMs, startMs, startMs, c, c, lastMode = Mode.PARK, lastRpm = rpm,
+            rpmSeen = rpm != null, boot = boot, sleepAtLastMs = boot.sleepMs, elapsedAtLastMs = boot.elapsedMs,
         )
+        val caught = catchUp(fresh, c, nowMs)
+        return caught.copy(lastSeenMs = nowMs, lastMode = modeOf(data.gear, data.speed))
+    }
+
+    /** The session with the pre-app interval attributed, from the last counters when they are plausible. */
+    private fun catchUp(s: LiveSession, c: TripCounters, nowMs: Long): LiveSession {
+        val last = state.last?.counters
+        val was = last?.odometerKm
+        val now = c.odometerKm
+        val reason = when {
+            was == null || now == null -> REJECT_UNKNOWN
+            now < was -> REJECT_BACKWARDS
+            now - was > CATCH_UP_BASE_KM + MAX_CATCH_UP_KMH * (nowMs - s.startMs + CATCH_UP_SLACK_MS) / MS_PER_HOUR -> REJECT_TOO_FAR
+            else -> null
+        }
+        if (last == null || reason != null) {
+            events += TripEvent("catch_up_rejected", listOf("reason" to reason, "lastOdo" to was, "odo" to now))
+            return s.copy(split = s.attributed(0.0, 0.0, nowMs, Mode.PARK))
+        }
+        val mode = if (checkNotNull(now) - checkNotNull(was) >= ODO_MOVED_KM) Mode.DRIVE else Mode.PARK
+        val kwh = counterDelta(last.elecKwh, c.elecKwh)
+        val litres = counterDelta(last.fuelL, c.fuelL)
+        val split = s.attributed(kwh, litres, nowMs, mode)
+        events += TripEvent(
+            "catch_up",
+            listOf(
+                "km" to now - was, "kwh" to (split.driveKwh + split.parkKwh).takeIf { c.elecKwh != null && last.elecKwh != null },
+                "l" to (split.driveL + split.parkL).takeIf { c.fuelL != null && last.fuelL != null },
+                "mode" to mode.name, "ms" to nowMs - s.startMs,
+            ),
+        )
+        return s.copy(base = last.fillFrom(c), split = split)
     }
 
     /** Continues the session with a fresh reading; a gap in ticks inside the cycle is attributed by the odometer and noted. */
@@ -400,7 +442,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         return copy(
             lastSeenMs = nowMs, base = rebased.fillFrom(c), latest = latest.advanceBy(c),
             split = attributed(kwh, litres, nowMs, gapMode), lastMode = modeOf(data.gear, data.speed, odoDelta(latest, c)),
-        ).counting(if (glitch) null else odoDelta(latest, c), data.engineRpm)
+        ).counting(if (glitch) null else odoDelta(latest, c), effectiveRpm(data))
     }
 
     private fun counterDelta(from: Double?, to: Double?): Double = if (from == null || to == null) 0.0 else to - from
@@ -426,7 +468,8 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
 
     private fun finishOpen() {
         val estimate = state.open?.estimate()?.takeIf { movedKm(it.km) && it.km <= MAX_TRIP_KM }
-        state = state.copy(open = null, finished = (state.finished + listOfNotNull(estimate)).takeLast(MAX_FINISHED))
+        val last = state.open?.let { LastCounters(it.latest, it.lastSeenMs) } ?: state.last
+        state = state.copy(open = null, finished = (state.finished + listOfNotNull(estimate)).takeLast(MAX_FINISHED), last = last)
     }
 
     private fun expireFinished(nowMs: Long) {
@@ -468,6 +511,14 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         const val FINISHED_TTL_MS = 31 * 24 * 3_600_000L
         const val MAX_FINISHED = 400
 
+        /** Catch-up window: the odometer step may be this much plus [MAX_CATCH_UP_KMH] over the pre-app interval and its slack. */
+        const val CATCH_UP_BASE_KM = 0.5
+        const val MAX_CATCH_UP_KMH = 200.0
+        const val CATCH_UP_SLACK_MS = 120_000L
+        private const val REJECT_UNKNOWN = "unknown"
+        private const val REJECT_BACKWARDS = "backwards"
+        private const val REJECT_TOO_FAR = "too_far"
+
         /** Share of the trip km the rpm rule must cover for the estimate to use it. */
         const val MIN_RPM_COVERAGE = 0.9
 
@@ -484,7 +535,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
 }
 
 /**
- * Pure-Kotlin text form of [LiveTripState] for the prefs: `L7|open|finished|E`, fields joined by
+ * Pure-Kotlin text form of [LiveTripState] for the prefs: `L7|open|finished|closed|last|E`, fields joined by
  * commas, null = empty field, finished drives joined by `;`. `L6`, `L5`, `L4`, `L3`, `L2` and `L1` still read (older ones
  * without split, all without ice/ev km). The closing `E` makes a truncated string fail; any failure decodes
  * to an empty state.
@@ -508,24 +559,27 @@ object LiveTripCodec {
     private const val SESSION_SEEN_FIELD = 1
     private const val SESSION_BOOT_FIELDS = 6
     private const val CLOSED_FIELDS = 4
+    private const val LAST_FIELDS = 5
 
     fun encode(s: LiveTripState): String {
         val open = s.open?.let { sessionText(it) } ?: NONE
-        val fin = s.finished.takeIf { it.isNotEmpty() }?.joinToString(";") {
-            listOf(it.startMs, it.endMs, it.km, it.kwh ?: "", it.litres ?: "", it.hevKm ?: "").joinToString(",") +
-                "," + (it.split?.let { sp -> split(sp) } ?: ",".repeat(SPLIT_FIELDS - 1)) +
-                "," + listOf(it.iceKm, it.evKm).joinToString(",") { v -> v?.toString() ?: "" }
-        } ?: NONE
+        val fin = s.finished.takeIf { it.isNotEmpty() }?.joinToString(";") { estimateText(it) } ?: NONE
         val closed = s.closed?.let { listOf(it.bootCount, it.elapsedAtLastMs, it.sleepAtLastMs, it.atMs).joinToString(",") { v -> v?.toString() ?: "" } } ?: NONE
-        return listOf(HEAD, open, fin, closed, TAIL).joinToString("|")
+        val last = s.last?.let { counters(it.counters) + "," + it.atMs } ?: NONE
+        return listOf(HEAD, open, fin, closed, last, TAIL).joinToString("|")
     }
+
+    private fun estimateText(it: TripEstimate): String =
+        listOf(it.startMs, it.endMs, it.km, it.kwh ?: "", it.litres ?: "", it.hevKm ?: "").joinToString(",") +
+            "," + (it.split?.let { sp -> split(sp) } ?: ",".repeat(SPLIT_FIELDS - 1)) +
+            "," + listOf(it.iceKm, it.evKm).joinToString(",") { v -> v?.toString() ?: "" }
 
     fun decode(raw: String?): LiveTripState = try {
         val parts = raw.orEmpty().split("|")
         require(parts[0] in listOf(HEAD, HEAD_V6, HEAD_V5, HEAD_V4, HEAD_V3, HEAD_V2, HEAD_V1))
         val v = parts[0].substring(1).toInt()
-        require(parts.size == (if (v >= 7) 5 else 4) && parts.last() == TAIL)
-        LiveTripState(open = session(parts[1], parts[0], v), finished = estimates(parts[2], v), closed = if (v >= 7) closed(parts[3]) else null)
+        require(parts.size == (if (v >= 7) 6 else 4) && parts.last() == TAIL)
+        LiveTripState(open = session(parts[1], parts[0], v), finished = estimates(parts[2], v), closed = if (v >= 7) closed(parts[3]) else null, last = if (v >= 7) last(parts[4]) else null)
     } catch (@Suppress("SwallowedException") e: IllegalArgumentException) {
         LiveTripState()
     }
@@ -543,6 +597,13 @@ object LiveTripCodec {
         val f = s.split(",")
         require(f.size == CLOSED_FIELDS)
         return ClosedCycle(f[0].takeIf { it.isNotEmpty() }?.toInt(), f[1].toLong(), f[2].toLong(), f[3].toLong())
+    }
+
+    private fun last(s: String): LastCounters? {
+        if (s == NONE) return null
+        val f = s.split(",")
+        require(f.size == LAST_FIELDS)
+        return LastCounters(counters(f, 0), f[4].toLong())
     }
 
     private fun split(d: DrivePark) =
@@ -611,7 +672,7 @@ object LiveTripCodec {
 object LiveTripPersistence {
     class Restored(val state: LiveTripState, val migrated: Boolean)
 
-    fun encodeOpen(s: LiveTripState): String = LiveTripCodec.encode(LiveTripState(open = s.open, closed = s.closed))
+    fun encodeOpen(s: LiveTripState): String = LiveTripCodec.encode(LiveTripState(open = s.open, closed = s.closed, last = s.last))
 
     fun encodeFinished(s: LiveTripState): String = LiveTripCodec.encode(LiveTripState(finished = s.finished))
 
@@ -631,7 +692,7 @@ object LiveTripPersistence {
             oldFinishedRaw != null -> LiveTripCodec.decode(oldFinishedRaw).finished
             else -> legacy?.finished.orEmpty()
         }
-        return Restored(LiveTripState(open, finished, openState?.closed), migrated = legacyRaw != null || oldFinishedRaw != null)
+        return Restored(LiveTripState(open, finished, openState?.closed, openState?.last), migrated = legacyRaw != null || oldFinishedRaw != null)
     }
 }
 

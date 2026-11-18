@@ -44,7 +44,7 @@ class LiveTripTrackerTest {
         assertEquals(12.4, e.km, 1e-9)
         assertEquals(2.1, e.kwh!!, 1e-9)
         assertEquals(0.6, e.litres!!, 1e-9)
-        assertEquals(4.0, e.hevKm!!, 1e-9) // no rpm ever seen: the counter delta stands
+        assertEquals(0.0, e.hevKm!!, 1e-9) // a car with a tank: a null rpm is the engine off, so all 12.4 km are EV
     }
 
     @Test
