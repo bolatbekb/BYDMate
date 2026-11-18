@@ -5,12 +5,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.media.AudioManager
+import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.withTimeoutOrNull
 
 internal const val VOLUME_CHANGED_ACTION = "android.media.VOLUME_CHANGED_ACTION"
+@Volatile private var registerFailureLogged = false
 private const val EXTRA_VOLUME_STREAM_TYPE = "android.media.EXTRA_VOLUME_STREAM_TYPE"
 
 /** The fallback poll for a head unit that never sends the volume broadcast. */
@@ -44,7 +46,7 @@ internal suspend fun watchMusicVolume(context: Context, read: () -> Unit) {
     }
     runCatching {
         ContextCompat.registerReceiver(context, receiver, IntentFilter(VOLUME_CHANGED_ACTION), ContextCompat.RECEIVER_NOT_EXPORTED)
-    }
+    }.onFailure { if (!registerFailureLogged) { registerFailureLogged = true; Log.w("VolumeWatch", "volume receiver not registered, 10-s poll only: ${it.message}") } }
     try {
         readOnPingOrTimeout(pings, VOLUME_FALLBACK_MS, read)
     } finally {

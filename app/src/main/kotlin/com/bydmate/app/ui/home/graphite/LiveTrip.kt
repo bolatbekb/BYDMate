@@ -18,11 +18,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.sample
-import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -85,9 +83,10 @@ object LiveTrip {
         var lastSaveMs = lastPublishMs
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             val ticks = flow { while (true) { emit(Unit); delay(TICK_MS) } }
-            val readings = sampledReadings(TrackingService.lastData) { TrackingService.lastDataAtMs }
-            combine(readings, TrackingService.sessionStartedAt, ticks) { r, anchor, _ -> Triple(anchor, r.first, r.second) }
-                .collect { (anchor, data, dataAtMs) ->
+            beats(TrackingService.lastData, TrackingService.sessionStartedAt, ticks)
+                .collect { anchor ->
+                    // read live on every beat, the time first: an identical poll changes no data but still advances it
+                    val (data, dataAtMs) = liveReading(TrackingService.lastData) { TrackingService.lastDataAtMs }
                     val now = System.currentTimeMillis()
                     val before = tracker.state
                     val transition = tracker.onTick(clock.read(), anchor, data, now, dataAtMs)
@@ -110,13 +109,23 @@ object LiveTrip {
     }
 
     /**
-     * One (reading, its poll time) pair per second at most, the first at once. The pair is taken together so a polled
-     * reading keeps its own time (the tracker's freshness is that time changing); push patches change the reading only.
+     * When the tracker runs: a data change (at most once a second, the first at once), a session anchor change, or the
+     * 10-s ticker. The sample only limits the rate; the reading itself is taken live by [liveReading].
      */
     @OptIn(FlowPreview::class)
-    internal fun <T> sampledReadings(data: Flow<T>, atMs: () -> Long): Flow<Pair<T, Long>> {
-        val pairs = data.map { it to atMs() }
-        return merge(pairs.take(1), pairs.drop(1).sample(SAMPLE_MS))
+    internal fun <T, A> beats(data: Flow<T>, anchor: Flow<A>, ticks: Flow<Unit>): Flow<A> {
+        val changes = data.map { }.sample(SAMPLE_MS).onStart { emit(Unit) }
+        return combine(changes, anchor, ticks) { _, a, _ -> a }
+    }
+
+    /**
+     * The reading as the tracker needs it: its poll time FIRST, then the data. The writer sets the data before the
+     * time, so this order can only date a reading early, never lose one. A StateFlow drops a poll equal to the last
+     * one but its time still advances, which is what keeps an identical standstill poll fresh.
+     */
+    internal fun <T> liveReading(data: StateFlow<T>, atMs: () -> Long): Pair<T, Long> {
+        val at = atMs()
+        return data.value to at
     }
 
     /** Reads the head unit's clocks and how the previous process ended. */

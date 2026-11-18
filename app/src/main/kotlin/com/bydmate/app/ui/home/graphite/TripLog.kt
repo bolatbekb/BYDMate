@@ -77,8 +77,8 @@ object TripLogFormat {
 }
 
 /**
- * Rolling daily files `YYYY-MM-DD.log` in [dir], the last [keepDays] days kept (today included). Every line is appended
- * and the file closed, so a power-off loses nothing already written. Plain java.io, no Android.
+ * Rolling daily files `YYYY-MM-DD.log` in [dir], the last [keepDays] days kept (today included). The day's file is kept
+ * open, one write(2) per line (a process kill loses nothing written; neither version fsyncs). Plain java.io, no Android.
  */
 class TripLogStore(
     private val dir: File,

@@ -7,6 +7,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -14,6 +16,8 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import com.bydmate.app.ui.home.common.watchMusicVolume
+import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 
@@ -44,7 +48,7 @@ internal fun volumeIndex(percent: Int, max: Int): Int = (percent.coerceIn(0, 100
 @Stable
 class GrVolume(initial: Int) {
     var value by mutableIntStateOf(initial)
-    var dragging = false
+    var dragging by mutableStateOf(false)
 }
 
 /**
@@ -59,6 +63,8 @@ fun rememberVolume(): GrVolume {
     val owner = LocalLifecycleOwner.current
     LaunchedEffect(owner) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            // fork: after a drag ends, read once (the broadcasts of the drag itself were skipped)
+            launch { snapshotFlow { volume.dragging }.filter { !it }.collect { volume.value = GraphiteVolume.read(ctx) } }
             // fork: a volume broadcast plus a 10-s fallback poll instead of a read every second
             watchMusicVolume(ctx) { if (!volume.dragging) volume.value = GraphiteVolume.read(ctx) }
         }

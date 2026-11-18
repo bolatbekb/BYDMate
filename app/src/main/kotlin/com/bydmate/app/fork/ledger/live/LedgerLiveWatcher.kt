@@ -8,6 +8,7 @@ import com.bydmate.app.fork.ledger.domain.DetectorAction
 import com.bydmate.app.fork.ledger.domain.DetectorState
 import com.bydmate.app.fork.ledger.domain.RefuelDetector
 import com.bydmate.app.fork.ledger.domain.TankReading
+import android.os.SystemClock
 import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -28,6 +29,7 @@ class LedgerLiveWatcher(
     private val kind: StateFlow<VehicleKind>,
     private val scope: CoroutineScope,
     private val clock: () -> Long = System::currentTimeMillis,
+    private val elapsed: () -> Long = SystemClock::elapsedRealtime,
 ) {
     private val started = AtomicBoolean(false)
     private var state: DetectorState? = null
@@ -66,7 +68,7 @@ class LedgerLiveWatcher(
     private suspend fun process(d: DiParsData) {
         val ts = clock()
         val (next, action) = RefuelDetector.step(
-            state, TankReading(d.fuelPercent, d.fuelTotalL, d.mileage, ts), threshold(ts),
+            state, TankReading(d.fuelPercent, d.fuelTotalL, d.mileage, ts), threshold(),
         )
         if (action is DetectorAction.None) state = next
         when (action) {
@@ -81,11 +83,12 @@ class LedgerLiveWatcher(
         }
     }
 
-    /** The detection threshold is a setting: read it at most every 10 min (a failed read is not cached). */
-    private suspend fun threshold(ts: Long): Int {
-        if (thresholdAt == Long.MIN_VALUE || ts - thresholdAt >= THRESHOLD_TTL_MS) {
+    /** The detection threshold is a setting: read it at most every minute (a failed read is not cached). */
+    private suspend fun threshold(): Int {
+        val now = elapsed()
+        if (thresholdAt == Long.MIN_VALUE || abs(now - thresholdAt) >= THRESHOLD_TTL_MS) {
             thresholdPp = repo.detectThresholdPp()
-            thresholdAt = ts
+            thresholdAt = now
         }
         return thresholdPp
     }
@@ -155,6 +158,6 @@ class LedgerLiveWatcher(
     private companion object {
         const val TAG = "LedgerLiveWatcher"
         const val ADOPT_KM = 2.0
-        const val THRESHOLD_TTL_MS = 600_000L
+        const val THRESHOLD_TTL_MS = 60_000L
     }
 }

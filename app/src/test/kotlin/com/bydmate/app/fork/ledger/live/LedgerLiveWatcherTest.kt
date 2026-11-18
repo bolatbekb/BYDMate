@@ -38,6 +38,7 @@ class LedgerLiveWatcherTest {
     private val kind = MutableStateFlow(VehicleKind.HYBRID)
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val time = AtomicLong(1000L)
+    private val elapsed = AtomicLong(1000L)
 
     /** Counting / failure-injecting repository: plain subclass, no mocking of Room. */
     private inner class TestRepo : LedgerRepository(db) {
@@ -79,7 +80,7 @@ class LedgerLiveWatcherTest {
         db.close()
     }
 
-    private fun watcher(r: LedgerRepository = repo) = LedgerLiveWatcher(r, data, kind, scope) { time.addAndGet(1000L) }.also { it.start() }
+    private fun watcher(r: LedgerRepository = repo) = LedgerLiveWatcher(r, data, kind, scope, clock = { time.addAndGet(1000L) }, elapsed = { elapsed.get() }).also { it.start() }
 
     private fun until(what: String, cond: suspend () -> Boolean) = runBlocking {
         repeat(100) {
@@ -189,14 +190,15 @@ class LedgerLiveWatcherTest {
         emit(30)
         until("first write") { spy.setStateCalls.get() == 1 }
         val thresholds = spy.thresholdCalls.get()
-        repeat(20) { data.value = car(mileage = 100.0, fuelPercent = 30, fuelTotalL = 10.0); runBlocking { delay(10) } }
+        // fields outside the key (soc) change every time: only distinctUntilChangedBy keeps the watcher idle
+        repeat(20) { data.value = car(mileage = 100.0, fuelPercent = 30, fuelTotalL = 10.0).copy(soc = it); runBlocking { delay(10) } }
         runBlocking { delay(200) }
         assertEquals(thresholds, spy.thresholdCalls.get())
         assertEquals(1, spy.setStateCalls.get())
         assertEquals(1, spy.getStateCalls.get())
     }
 
-    @Test fun thresholdIsCachedForTenMinutesThenRefreshed() {
+    @Test fun thresholdIsCachedForAMinuteThenRefreshed() {
         val spy = TestRepo()
         watcher(spy)
         emit(30, odo = 100.0)
@@ -204,7 +206,7 @@ class LedgerLiveWatcherTest {
         emit(30, odo = 100.1); emit(30, odo = 100.2)
         runBlocking { delay(300) }
         assertEquals(1, spy.thresholdCalls.get())
-        time.addAndGet(601_000L)
+        elapsed.addAndGet(61_000L)
         emit(30, odo = 100.3)
         until("refreshed") { spy.thresholdCalls.get() == 2 }
     }
