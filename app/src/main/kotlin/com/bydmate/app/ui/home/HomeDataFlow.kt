@@ -11,7 +11,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.take
 
 internal const val HOME_SAMPLE_MS = 1_000L
 
@@ -29,7 +31,10 @@ internal fun <T, R> Flow<T>.sampleBuild(
     periodMs: Long,
     context: CoroutineContext,
     build: (T) -> R,
-): Flow<R> = sample(periodMs).map(build).distinctUntilChanged().flowOn(context)
+): Flow<R> =
+    // The first value of every collection at once (a return to the app is fresh in the first frame),
+    // then at most one a period; the tick that repeats the first value is dropped as equal.
+    merge(take(1), sample(periodMs)).map(build).distinctUntilChanged().flowOn(context)
 
 /** HomeData from the four sources, at most once a second, off Main, emitted only when it changed. */
 internal fun homeDataFlow(

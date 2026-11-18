@@ -106,12 +106,19 @@ object NowPlayingSource : MusicControls {
     private var appContext: Context? = null
     private var controller: MediaController? = null
     // F3: the metadata (and the cover in it) is fetched once per controller; the callback pushes changes.
-    private val metaGate = MetadataGate<MediaMetadata>()
+    private val metaGate = MetadataGate<TrackMeta>()
     private var callbackOn: MediaController? = null
+    private val handler = Handler(Looper.getMainLooper())
+    private var refreshPending = false
+    private val refreshRun = Runnable { refreshPending = false; refresh() }
     private val callback = object : MediaController.Callback() {
-        override fun onMetadataChanged(metadata: MediaMetadata?) { metaGate.set(metadata); refresh() }
-        override fun onPlaybackStateChanged(state: PlaybackState?) { refresh() }
-        override fun onSessionDestroyed() { refresh() }
+        override fun onMetadataChanged(metadata: MediaMetadata?) {
+            metaGate.set(metadata?.let { readMeta(it) })
+            scheduleRefresh(COALESCE_MS)
+        }
+        override fun onPlaybackStateChanged(state: PlaybackState?) { scheduleRefresh(COALESCE_MS) }
+        // A player may swap its session: wait before deciding there is no music.
+        override fun onSessionDestroyed() { scheduleRefresh(DESTROY_MS) }
     }
     private var windingUntil = 0L
 
@@ -161,9 +168,18 @@ object NowPlayingSource : MusicControls {
         // The last cover (one bounded bitmap) stays, so the home shows a full first frame on return.
     }
 
+    /** One refresh for a burst of callbacks; the first scheduled one wins. */
+    private fun scheduleRefresh(delayMs: Long) {
+        if (refreshPending) return
+        refreshPending = true
+        handler.postDelayed(refreshRun, delayMs)
+    }
+
     private fun dropCallback() {
         callbackOn?.let { runCatching { it.unregisterCallback(callback) } }
         callbackOn = null
+        handler.removeCallbacks(refreshRun)
+        refreshPending = false
         metaGate.reset()
     }
 
@@ -172,7 +188,7 @@ object NowPlayingSource : MusicControls {
         val on = callbackOn
         if (on != null && on.sessionToken == c.sessionToken) return on
         dropCallback()
-        c.registerCallback(callback, Handler(Looper.getMainLooper()))
+        c.registerCallback(callback, handler)
         callbackOn = c
         return c
     }
@@ -190,37 +206,35 @@ object NowPlayingSource : MusicControls {
             _state.value = NowPlaying()
             return
         }
-        val picked = controllers.firstOrNull { it.playbackState?.state == PlaybackState.STATE_PLAYING }
-            ?: controllers.firstOrNull()
-        if (picked == null) { controller = null; dropCallback(); _state.value = NowPlaying(); return }
+        // playbackState is a binder call: read once per controller
+        val states = controllers.map { it to it.playbackState }
+        val (picked, pb) = states.firstOrNull { it.second?.state == PlaybackState.STATE_PLAYING }
+            ?: states.firstOrNull()
+            ?: run { controller = null; dropCallback(); _state.value = NowPlaying(); return }
         val c = sticky(picked)
         controller = c
-        val md = metaGate.get(c.sessionToken) { c.metadata }
-        val pb = c.playbackState
+        val meta = metaGate.get(c.sessionToken) { c.metadata?.let { readMeta(it) } }
         val playing = pb?.state == PlaybackState.STATE_PLAYING
         // The player's own anchor, not extrapolated: it stays equal between changes, so nothing is republished.
         val pos = pb?.position?.takeIf { it >= 0 }
-        val title = md?.getString(MediaMetadata.METADATA_KEY_TITLE)
-        val artist = md?.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md?.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
-        val album = md?.getString(MediaMetadata.METADATA_KEY_ALBUM)
         val actions = pb?.customActions.orEmpty().map { it.toMediaAction() }
         val like = pickLike(actions)
         val (liked, shuffleOn, repeatMode) = stateOf(actions)
         _state.value = NowPlaying(
-            artist = artist,
-            title = title,
+            artist = meta?.artist,
+            title = meta?.title,
             isPlaying = playing,
             positionMs = pos,
-            durationMs = md?.getLong(MediaMetadata.METADATA_KEY_DURATION)?.takeIf { it > 0 },
+            durationMs = meta?.durationMs,
             winding = winding,
             source = c.packageName,
-            album = album,
-            year = md?.getLong(MediaMetadata.METADATA_KEY_YEAR)?.takeIf { it > 0 }?.toInt(),
-            art = artFor(md, "$title|$artist|$album", c.packageName),
+            album = meta?.album,
+            year = meta?.year,
+            art = artResolve(meta, c.packageName),
             sourceLabel = labelFor(ctx, c.packageName),
             shuffleAction = pickShuffle(actions)?.action,
             repeatAction = pickRepeat(actions)?.action,
-            playbackSpeed = pb?.playbackSpeed?.takeIf { it > 0f } ?: 1f,
+            playbackSpeed = pb?.playbackSpeed?.takeIf { it >= 0f } ?: 1f, // 0 = stalled: the position stays
             likeAction = like?.action,
             dislikeAction = pickDislike(actions)?.action,
             liked = liked,
@@ -266,20 +280,59 @@ object NowPlayingSource : MusicControls {
     )
 
     /**
-     * Scaled once per «title|artist|album»; the first non-null cover for a key wins (each poll
-     * unparcels a new Bitmap). Bitmaps first (ALBUM_ART → ART → DISPLAY_ICON), then a URI
-     * (ALBUM_ART_URI → ART_URI → DISPLAY_ICON_URI), loaded once per track in the background.
+     * What the home needs from a [MediaMetadata], read once when it arrives; the metadata itself (and
+     * the player's full-size cover in it) is dropped. [bitmap] is the cover scaled once; a cover the
+     * track already has is not scaled again.
      */
+    @Suppress("LongParameterList") // a plain holder of the fields the home reads
+    internal class TrackMeta(
+        val title: String?,
+        val artist: String?,
+        val album: String?,
+        val durationMs: Long?,
+        val year: Int?,
+        val pick: ArtPick,
+        val bitmap: Bitmap?,
+    ) {
+        val key: String get() = "$title|$artist|$album"
+    }
+
+    internal fun readMeta(md: MediaMetadata): TrackMeta {
+        val title = md.getString(MediaMetadata.METADATA_KEY_TITLE)
+        val artist = md.getString(MediaMetadata.METADATA_KEY_ARTIST) ?: md.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST)
+        val album = md.getString(MediaMetadata.METADATA_KEY_ALBUM)
+        val pick = pickArt(md)
+        val have = "$title|$artist|$album" == artKey && artBitmap != null
+        return TrackMeta(
+            title, artist, album,
+            durationMs = md.getLong(MediaMetadata.METADATA_KEY_DURATION).takeIf { it > 0 },
+            year = md.getLong(MediaMetadata.METADATA_KEY_YEAR).takeIf { it > 0 }?.toInt(),
+            pick = pick,
+            bitmap = if (have) null else pick.bitmapKey?.let { md.getBitmap(it) }?.let { scaleArt(it) },
+        )
+    }
+
+    /** [readMeta] + [artResolve] for a metadata in hand and an explicit key. */
     internal fun artFor(md: MediaMetadata?, key: String, pkg: String = ""): Bitmap? {
         if (md == null) { artKey = null; artBitmap = null; return null }
+        return artResolve(readMeta(md), pkg, key)
+    }
+
+    /**
+     * Scaled once per «title|artist|album»; the first non-null cover for a key wins. Bitmaps first
+     * (ALBUM_ART → ART → DISPLAY_ICON), then a URI (ALBUM_ART_URI → ART_URI → DISPLAY_ICON_URI),
+     * loaded once per track in the background.
+     */
+    internal fun artResolve(meta: TrackMeta?, pkg: String = "", keyOverride: String? = null): Bitmap? {
+        if (meta == null) { artKey = null; artBitmap = null; return null }
+        val key = keyOverride ?: meta.key
         if (key != artKey) { artKey = key; artBitmap = null }
         if (artBitmap == null) {
-            val pick = pickArt(md)
-            val bitmapKey = pick.bitmapKey
+            val pick = meta.pick
             val uri = pick.uri
             when {
-                bitmapKey != null -> {
-                    artBitmap = md.getBitmap(bitmapKey)?.let { scaleArt(it) }
+                pick.bitmapKey != null -> {
+                    artBitmap = meta.bitmap
                     logArt(key, pkg, pick, "bitmap")
                 }
                 uri != null -> when (uriArt.request(key)) {
@@ -322,6 +375,8 @@ object NowPlayingSource : MusicControls {
     }
 
     private const val TAG = "NowPlaying"
+    private const val COALESCE_MS = 100L
+    private const val DESTROY_MS = 500L
     private const val DEMO_LIKE = "like"
     private const val DEMO_DISLIKE = "dislike"
     private const val DEMO_SHUFFLE = "shuffle"

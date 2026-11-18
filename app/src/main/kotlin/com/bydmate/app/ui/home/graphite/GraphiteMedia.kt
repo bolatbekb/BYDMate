@@ -260,7 +260,7 @@ private const val EQ_EASE_MS = 300
 
 /**
  * The position to show, run from the anchor the source published ([livePosition]): once on every
- * new anchor, then once a second while playing with a known duration. The anchor does not move
+ * new anchor, then once a second while playing. The anchor does not move
  * between polls, so there is nothing to smooth.
  */
 @Composable
@@ -269,7 +269,7 @@ private fun rememberShownPosition(music: NowPlaying): State<Long?> {
     val owner = LocalLifecycleOwner.current
     LaunchedEffect(music.positionMs, music.positionAtMs, music.isPlaying, music.durationMs, music.playbackSpeed, owner) {
         shown.value = music.livePosition(SystemClock.elapsedRealtime())
-        if (!music.isPlaying || music.positionMs == null || music.durationMs == null) return@LaunchedEffect
+        if (!music.isPlaying || music.positionMs == null) return@LaunchedEffect
         // Runs only while the screen is started; it picks up the real time again on return.
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {

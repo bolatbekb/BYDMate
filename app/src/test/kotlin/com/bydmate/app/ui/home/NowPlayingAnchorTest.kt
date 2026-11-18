@@ -25,6 +25,10 @@ class NowPlayingAnchorTest {
         assertEquals(12_000L, anchoredPosition(10_000, 0, 2_000, true, 1f, null))
     }
 
+    @Test fun stalledPlayerAtSpeedZeroStaysFrozen() {
+        assertEquals(30_000L, anchoredPosition(30_000, 1_000, 9_000, true, 0f, 200_000))
+    }
+
     @Test fun unknownPositionStaysUnknown() {
         assertNull(anchoredPosition(null, 0, 5_000, true, 1f, 100_000))
     }

@@ -83,7 +83,8 @@ data class HomeData(
     val insulationKohm: Int? = null,
 ) {
     companion object {
-        private val timeFmt = SimpleDateFormat("HH:mm", Locale.getDefault())
+        // SimpleDateFormat is not thread-safe and HomeData is now built on Default as well as Main: one per call.
+        private fun fmt(pattern: String) = SimpleDateFormat(pattern, Locale.getDefault())
 
         @Suppress("CyclomaticComplexMethod", "LongMethod") // a flat chain of null fallbacks, one per field
         fun from(
@@ -120,8 +121,8 @@ data class HomeData(
                 }
                 val sameDay = t.startTs >= dayStart
                 HomeEvent(
-                    time = if (sameDay) timeFmt.format(Date(t.startTs)) else "вчера".takeIf { t.startTs >= dayStart - 86_400_000L }
-                        ?: SimpleDateFormat("dd.MM", Locale.getDefault()).format(Date(t.startTs)),
+                    time = if (sameDay) fmt("HH:mm").format(Date(t.startTs)) else "вчера".takeIf { t.startTs >= dayStart - 86_400_000L }
+                        ?: fmt("dd.MM").format(Date(t.startTs)),
                     title = title,
                     cost = t.cost?.let { String.format(Locale.getDefault(), "%.0f", it) } ?: "—",
                     fuel = (liters ?: 0.0) > 0,
