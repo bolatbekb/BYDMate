@@ -98,10 +98,7 @@ class GraphiteViewModel @Inject constructor(
         .flatMapLatest { (p, l) ->
             val now = ZonedDateTime.now(ZoneId.systemDefault())
             combine(window(p, now), LiveTrip.state) { trips, live ->
-                val rows = trips.map { it.toRow() }
-                val nowMs = System.currentTimeMillis()
-                TripLog.hides(nowMs, TripLogEvents.hideDecisions(rows, live, nowMs)) // fork log
-                EnergyBuckets.build(TripMatch.chartRows(rows, live, nowMs), p, now, l).also { GraphiteWarm.energy[EnergyKey(p, l)] = it }
+                EnergyBuckets.build(trips.map { it.toRow() }, p, now, l).also { GraphiteWarm.energy[EnergyKey(p, l)] = it }
             }
         }
         .flowOn(Dispatchers.Default)

@@ -109,25 +109,12 @@ class EnergyBucketsTest {
         assertEquals(false, s.empty)
     }
 
-    @Test fun confirmedEstimateIsNotCountedTwice() {
-        val db = trip(ts(17, 0), 10.0, 2.0).copy(endTs = ts(17, 40))
-        val rows = listOf(db.toRow())
-        val live = LiveTripState(finished = listOf(TripEstimate(ts(17, 5), ts(17, 39), 9.5, 1.9, null, null)))
-        val pending = TripMatch.pending(live, rows, ts(18, 0)).map { it.toRow() }
-        val s = EnergyBuckets.build(rows + pending, ChartPeriod.WEEK, now)
-        assertEquals(2.0, s.totalKwh, 1e-9)
-    }
-
-    @Test fun liveTripReplacesItsRecordInTheChart() {
-        val r = TripRow(ts(8), ts(8, 40), 20.0, 3.0, null, null)
-        val live = LiveTripState(
-            LiveSession(
-                anchorMs = ts(8), startMs = ts(8), lastSeenMs = ts(8, 39),
-                base = TripCounters(100.0, null, null, null), latest = TripCounters(110.0, 1.0, 0.8, null),
-            ),
-            emptyList(),
-        )
-        val s = EnergyBuckets.build(TripMatch.chartRows(listOf(r), live, ts(8, 40)), ChartPeriod.DAY, now)
-        assertEquals(10.0, s.totalKm, 1e-9)
+    @Test fun backfilledRowShowsItsLitresAndIceKm() {
+        val before = trip(ts(8), 20.0, 3.0).copy(endTs = ts(8, 40))
+        assertNull(EnergyBuckets.build(listOf(before), ChartPeriod.DAY, now).litres)
+        val after = before.copy(fuelLiters = 0.8, hevKm = 8.0)
+        val s = EnergyBuckets.build(listOf(after), ChartPeriod.DAY, now)
+        assertEquals(0.8, s.totalLitres!!, 1e-9)
+        assertEquals(60, s.electricShare)
     }
 }

@@ -283,7 +283,6 @@ class LiveTripTrackerTest {
         var now = drive(tr, anchorA, 17000.0, 1.5, t0)
         now = drive(tr, anchorB, 17005.0, 1.5, now)
         assertEquals(2, tr.state.finished.size)
-        assertEquals(2, TripMatch.pending(tr.state, emptyList(), now).size)
     }
 
     @Test

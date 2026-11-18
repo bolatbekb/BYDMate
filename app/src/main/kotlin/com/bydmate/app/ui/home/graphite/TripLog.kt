@@ -123,6 +123,24 @@ class TripLogStore(
 }
 
 /**
+ * Decides which ticks are written. With an open session (anchor set) every tick; without one, a tick only when a
+ * logged value changed or [QUIET_MS] passed since the last written one, so a parked car does not write every 10 s.
+ */
+class TickThrottle(private val quietMs: Long = QUIET_MS) {
+    private var last: TripTick? = null
+    private var lastMs = Long.MIN_VALUE
+
+    @Synchronized
+    fun allow(tick: TripTick, nowMs: Long): Boolean {
+        val write = tick.anchorMs != null || tick != last || nowMs - lastMs >= quietMs || nowMs < lastMs
+        if (write) { last = tick; lastMs = nowMs }
+        return write
+    }
+
+    companion object { const val QUIET_MS = 5 * 60_000L }
+}
+
+/**
  * The always-on trip log (fork): lines are queued and written on a background thread, so the tracker's collector never
  * waits for the disk; an IO failure is reported once and then ignored.
  */
@@ -131,26 +149,25 @@ object TripLog {
     private const val DIR = "fork_trip_log"
     private const val DIR_DEMO = "fork_trip_log_demo"
     private const val QUEUE = 2_000
-    private const val MAX_HIDES = 50
 
     private class Item(val tsMs: Long, val line: String)
 
     @Volatile private var store: TripLogStore? = null
-    private var queue: Channel<Item>? = null
-    private var reported = false
+    @Volatile private var queue: Channel<Item>? = null
+    @Volatile private var reported = false
+    private val throttle = TickThrottle()
     private val zone: ZoneId get() = ZoneId.systemDefault()
-    private val hides = LinkedHashMap<Pair<Long, Long>, String>()
 
     @Synchronized
     fun init(context: Context, demo: Boolean) {
-        if (store != null) return
-        val s = runCatching {
-            TripLogStore(File(context.applicationContext.filesDir, if (demo) DIR_DEMO else DIR), System::currentTimeMillis)
-        }.getOrElse { fail(it); return }
+        if (queue != null) return
         val q = Channel<Item>(QUEUE, BufferOverflow.DROP_OLDEST)
-        store = s
         queue = q
+        val dir = File(context.applicationContext.filesDir, if (demo) DIR_DEMO else DIR)
+        // The store prunes old files on creation: do that off the main thread too.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            val s = runCatching { TripLogStore(dir, System::currentTimeMillis) }.getOrElse { fail(it); queue = null; return@launch }
+            store = s
             for (item in q) runCatching { s.append(item.tsMs, item.line) }.onFailure { fail(it) }
         }
     }
@@ -158,45 +175,18 @@ object TripLog {
     private fun fail(t: Throwable) {
         if (reported) return
         reported = true
-        runCatching { Log.w(TAG, "trip log disabled by an IO error: ${t.message}") }
+        runCatching { Log.w(TAG, "trip log write failed (reported once, later failures are silent): ${t.message}") }
     }
 
     fun tick(nowMs: Long, tick: TripTick) {
         val q = queue ?: return
+        if (!throttle.allow(tick, nowMs)) return
         q.trySend(Item(nowMs, TripLogFormat.tick(nowMs, tick, zone)))
     }
 
     fun event(nowMs: Long, name: String, fields: List<Pair<String, Any?>> = emptyList()) {
         val q = queue ?: return
         q.trySend(Item(nowMs, TripLogFormat.event(nowMs, name, zone, fields)))
-    }
-
-    /** Logs «live hides record» once per (row start, estimate start) pair, however often the chart republishes. */
-    fun hides(nowMs: Long, decisions: List<HideDecision>) {
-        newHides(decisions).forEach { event(nowMs, "live_hides_record", it.fields()) }
-    }
-
-    /** The decisions not seen before; remembers them (bounded). */
-    internal fun newHides(decisions: List<HideDecision>): List<HideDecision> = decisions.filter { d ->
-        val key = d.rowStartMs to d.estimateStartMs
-        synchronized(hides) {
-            if (key in hides) false else {
-                hides[key] = d.fields().joinToString(" ") { "${it.first}=${it.second}" }
-                while (hides.size > MAX_HIDES) hides.remove(hides.keys.first())
-                true
-            }
-        }
-    }
-
-    internal fun resetHidesForTest() = synchronized(hides) { hides.clear() }
-
-    /** The hide decisions logged for rows that started on the day of [nowMs]. */
-    fun mergeLines(nowMs: Long): List<String> {
-        val z = zone
-        val today = Instant.ofEpochMilli(nowMs).atZone(z).toLocalDate()
-        return synchronized(hides) {
-            hides.filterKeys { Instant.ofEpochMilli(it.first).atZone(z).toLocalDate() == today }.values.toList()
-        }
     }
 
     fun readLines(): List<String> = store?.readLines().orEmpty()

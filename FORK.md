@@ -108,7 +108,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса | +16/−6 | `23c2e82c` (2026-11-15) → `353c5775` (2026-11-15) |
 | `di/NativeModule.kt` | привязка `DemoAwareParsReader` | +1/−1 | `23c2e82c` (2026-11-15) |
 | `service/UpdateChecker.kt` | адрес релизов берётся из `ForkConfig.UPDATE_REPO` | +2/−1 | `c70943c1` (2026-11-15) |
-| `ui/settings/DiagnosticDumpWriter.kt` | две строки `// fork`: вывод `DisplayInfo.lines()` и (перед разделом `--- trace ---`) раздел живой поездки и журнал поездок `LiveTripDiagnostics.lines()` | +3/−0 | `baceba15` (2026-11-15) → trip log (2026-11-18) |
+| `ui/settings/DiagnosticDumpWriter.kt` | две строки `// fork`: вывод `DisplayInfo.lines()` и (перед разделом `--- trace ---`) раздел живой поездки и журнал поездок `LiveTripDiagnostics.lines()` | +3/−0 (две строки `// fork` и пустая) | `baceba15` (2026-11-15) → trip log (2026-11-18) |
 | `data/autoservice/AdbOnDeviceClient.kt` | метод `screencap()` в интерфейсе и реализации | +27/−0 | `879f279c` (2026-11-15) |
 | `data/charging/AutoserviceChargingDetector.kt` | ограничение записи якоря (`anchorFresh`) | +18/−0 | `353c5775` (2026-11-15) → `53cc6c70` (2026-11-15) |
 | `data/automation/AutomationEngine.kt` | кеш разобранных условий | +9/−1 | `353c5775` (2026-11-15) |

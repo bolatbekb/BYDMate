@@ -86,7 +86,7 @@ class TripLogTest {
 
     @Test
     fun diagnosticsEmptyState() {
-        val out = LiveTripDiagnostics.lines(LiveTripState(), emptyList(), emptyList(), zone)
+        val out = LiveTripDiagnostics.lines(LiveTripState(), emptyList(), zone)
         assertEquals("--- live trip (fork) ---", out.first())
         assertTrue(out.contains("open: none"))
         assertTrue(out.contains("--- trip log (fork, last 3 days) ---"))
@@ -98,11 +98,10 @@ class TripLogTest {
         val c = TripCounters(17000.0, 2650.0, 10.0, null)
         val open = LiveSession(anchor, anchor, anchor + 60_000, c, TripCounters(17005.0, 2651.0, 10.5, null), iceKm = 3.0, evKm = 2.0, rpmSeen = true)
         val fin = (1..12).map { TripEstimate(anchor - it * 3_600_000L, anchor - it * 3_600_000L + 600_000, it.toDouble(), 1.0, null, null) }
-        val out = LiveTripDiagnostics.lines(LiveTripState(open, fin), listOf("row=1 took=l"), listOf("a", "b"), zone)
+        val out = LiveTripDiagnostics.lines(LiveTripState(open, fin), listOf("a", "b"), zone)
         assertTrue(out.any { it.startsWith("open: anchor=08:00:00 start=08:00:00 lastSeen=08:01:00 km=5 kwh=1 l=0.5") })
         assertTrue(out.contains("finished: 12 kept, last 10"))
         assertEquals(10, out.count { it.startsWith("  ") && it.contains("km=") })
-        assertTrue(out.contains("  row=1 took=l"))
         assertEquals(listOf("a", "b"), out.takeLast(2))
     }
 
@@ -145,5 +144,18 @@ class TripLogTest {
         events(tr2, anchor, reading(17001.0), t0 + 10_000)
         val change = events(tr2, anchor + 1, reading(17001.1), t0 + 20_000)
         assertTrue(change.toString(), change[0].startsWith("finish:reason=anchor_change") && change[0].contains("kept=true"))
+    }
+
+    @Test
+    fun idleTicksAreThrottledAndChangesPassThrough() {
+        val th = TickThrottle(300_000)
+        val idle = TripTick.of(null, null, null)
+        assertTrue(th.allow(idle, 0))
+        assertFalse(th.allow(idle, 10_000))
+        assertFalse(th.allow(idle, 299_000))
+        assertTrue(th.allow(idle, 300_000))
+        assertTrue(th.allow(idle.copy(speed = 5), 310_000))
+        assertTrue(th.allow(idle.copy(anchorMs = 1L), 320_000))
+        assertTrue(th.allow(idle.copy(anchorMs = 1L), 330_000))
     }
 }
