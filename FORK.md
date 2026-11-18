@@ -108,13 +108,13 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса | +16/−6 | `23c2e82c` (2026-11-15) → `353c5775` (2026-11-15) |
 | `di/NativeModule.kt` | привязка `DemoAwareParsReader` | +1/−1 | `23c2e82c` (2026-11-15) |
 | `service/UpdateChecker.kt` | адрес релизов берётся из `ForkConfig.UPDATE_REPO` | +2/−1 | `c70943c1` (2026-11-15) |
-| `ui/settings/DiagnosticDumpWriter.kt` | одна строка: вывод `DisplayInfo.lines()` | +1/−0 | `baceba15` (2026-11-15) → `606b78ae` (2026-11-15) |
+| `ui/settings/DiagnosticDumpWriter.kt` | две строки `// fork`: вывод `DisplayInfo.lines()` и (перед разделом `--- trace ---`) раздел живой поездки и журнал поездок `LiveTripDiagnostics.lines()` | +3/−0 | `baceba15` (2026-11-15) → trip log (2026-11-18) |
 | `data/autoservice/AdbOnDeviceClient.kt` | метод `screencap()` в интерфейсе и реализации | +27/−0 | `879f279c` (2026-11-15) |
 | `data/charging/AutoserviceChargingDetector.kt` | ограничение записи якоря (`anchorFresh`) | +18/−0 | `353c5775` (2026-11-15) → `53cc6c70` (2026-11-15) |
 | `data/automation/AutomationEngine.kt` | кеш разобранных условий | +9/−1 | `353c5775` (2026-11-15) |
 | `data/local/EnergyDataReader.kt` | кеш `isAvailable()` | +11/−0 | `353c5775` (2026-11-15) |
 | `data/loop/SharedAdaptiveLoop.kt` | параметр `screenOn` и `nextInterval()` | +10/−2 | `353c5775` (2026-11-15) → `92007d9b` (2026-11-15) |
-| `test/.../SettingsViewModelTest.kt` | эталонная шапка лога: из сравнения убраны строки `display…` форка | +2/−0 | `879f279c` (2026-11-15) → `606b78ae` (2026-11-15) |
+| `test/.../SettingsViewModelTest.kt` | эталонная шапка лога: из сравнения убраны строки `display…` форка и раздел `--- live trip (fork) ---` с журналом поездок | +4/−0 | `879f279c` (2026-11-15) → trip log (2026-11-18) |
 | `res/values/themes.xml` | тёмный фон окна при запуске вместо белого светлой темы (`fork_window_background` в `colors_fork.xml`), владелец 2026-11-17 | +4/−1 | `f3113624` (2026-11-17) |
 
 ### Что форк добавил своими файлами
@@ -143,7 +143,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | Одинаковые боковые карточки, «Плеер слева», шкала шрифтов (ничего меньше 19) | `GraphiteHome.kt` (`SIDE_COLUMN`, `bottomCardHeight`, `topCards`), `GraphiteMedia.kt` (`compact`), `GraphiteTrip.kt` (`tall`), `GraphiteRules.kt` (`visibleTicks`), `GraphiteLook.kt` (`mediaLeft`, prefs `graphite_media_left`), `strings_graphite.xml` | `145e6cd6` → `48b29fa1` → `8687f283` (2026-11-17) |
 | Плеер Graphite: открыть приложение нажатием, «Мне нравится» (сердце в ряду кнопок вместо «Повтора» с 4.4.1.12), состояние «Перемешать» по контракту с Я.Музыкой (`like`, `shuffle`; `dislike` и `repeat` читаются в модели, но кнопок нет) | `ui/home/MediaActions.kt`, `ui/home/NowPlaying.kt`, `ui/home/graphite/GraphiteMediaActions.kt`, `GraphiteMedia.kt`, `GraphiteMediaControls.kt`, `res/drawable/gr_ic_heart_filled.xml` | `321f95c1` → `64f470ea` (4.4.1.11) → `2d41c69c` (4.4.1.12) |
 | Утечки памяти в плеере: анимация смены трека по «лицу» трека (F1), опрос плеера только на видимом экране (F2), освобождение контроллера (F5) | `GraphiteMedia.kt` (`TrackFace`), `ui/home/ForkHome.kt`, `ui/home/NowPlaying.kt` | `f85f83f5`, `cde01919`, `64f470ea` (2026-11-17) |
-| «Текущая поездка», одна на сессию зажигания; «в пути» / «стоянка» | `ui/home/graphite/LiveTrip.kt`, `LiveTripModel.kt` (`DrivePark`, `modeOf`), `TripRows.kt`, `GraphiteTrip.kt`, `GraphiteWarm.kt`, `demo/DemoCar.kt` (стоянка в демо) | появилась в `50a47ff0` (4.4.1.10); сессия зажигания — `d793a761` → `5e0d62c4` (2026-11-17); в пути / стоянка — `347942c4` → `02026612` (2026-11-18) |
+| «Текущая поездка», одна на сессию зажигания; «в пути» / «стоянка» | `ui/home/graphite/LiveTrip.kt`, `LiveTripModel.kt` (`DrivePark`, `modeOf`), `TripRows.kt`, `GraphiteTrip.kt`, `GraphiteWarm.kt`, `demo/DemoCar.kt` (стоянка в демо); журнал поездок для анализа (всегда включён, `files/fork_trip_log/ГГГГ-ММ-ДД.log`, 3 дня, без GPS; попадает в дамп «Записать лог») — `TripLog.kt`, `TripLogEvents.kt`, `LiveTripDiagnostics.kt` | появилась в `50a47ff0` (4.4.1.10); сессия зажигания — `d793a761` → `5e0d62c4` (2026-11-17); в пути / стоянка — `347942c4` → `02026612` (2026-11-18) |
 | Учёт заправок и расходов | `fork/ledger/*` (28), `ui/settings/LedgerSection.kt`, `res/values*/strings_ledger.xml`, `app/schemas/…LedgerDatabase/1.json` | `25d33f0b` (2026-11-16) → `ee9c1ca5` |
 | Инструменты картинок | `tools/webp.sh`, `tools/SamePixels.java` | `68e7caae` (2026-11-16) |
 | Описания релизов | `release-notes/*` | `6c1f07b5` (2026-11-16) → `50a47ff0` |

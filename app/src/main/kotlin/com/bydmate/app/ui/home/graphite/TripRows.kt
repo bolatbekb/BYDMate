@@ -38,7 +38,7 @@ object TripMatch {
             .filter { movedKm(it.km) && !confirmed(it, recorded) }
 
     /** Overlap in ms when it counts as a match (as in [confirmed]), else 0. */
-    private fun overlapMs(r: TripRow, e: TripEstimate): Long {
+    internal fun overlapMs(r: TripRow, e: TripEstimate): Long {
         val end = r.endMs
         if (end == null) return if (r.startMs in e.startMs..e.endMs) (e.endMs - r.startMs).coerceAtLeast(1L) else 0L
         val o = minOf(end, e.endMs) - maxOf(r.startMs, e.startMs)

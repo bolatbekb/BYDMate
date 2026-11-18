@@ -1527,6 +1527,8 @@ class SettingsViewModelTest {
                 .replace(Regex("(?m)^(app: \\S+) v\\S+ \\(code=\\d+\\)$"), "$1 v<version> (code=<code>)")
                 // fork: the screen lines (fork.DisplayInfo) are not in the author's reference.
                 .replace(Regex("(?m)^display(#\\d+: |: density |: window ).*\\n"), "")
+                // fork: the live-trip section and the trip log (LiveTripDiagnostics) sit before the trace.
+                .replace(Regex("(?s)--- live trip \\(fork\\) ---\\n.*?(?=--- trace ---)"), "")
             val reference = javaClass.getResourceAsStream("/diagnostic-dump/reference-header.txt")!!
                 .bufferedReader().use { it.readText() }
             assertEquals(reference, normalized)

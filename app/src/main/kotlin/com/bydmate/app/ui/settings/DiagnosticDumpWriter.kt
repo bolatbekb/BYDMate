@@ -959,6 +959,8 @@ class DiagnosticDumpWriter @Inject @Suppress("LongParameterList") constructor( /
                 }
             } catch (e: Exception) { appendLine("(failed to gather crash log: ${e.message})") }
 
+            com.bydmate.app.ui.home.graphite.LiveTripDiagnostics.lines().forEach { appendLine(it) } // fork
+
             // What the app did before this recording: logcat was cleared when it started.
             appendLine("--- trace ---")
             try {

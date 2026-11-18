@@ -39,9 +39,18 @@ object LiveTrip {
     fun init(context: Context) {
         if (started) return
         started = true
-        val store = PrefsStore(context.applicationContext, DemoMode.isOn(context))
+        val demo = DemoMode.isOn(context)
+        TripLog.init(context, demo)
+        val store = PrefsStore(context.applicationContext, demo)
         val restored = store.restore()
         val tracker = LiveTripTracker(restored.state, System.currentTimeMillis())
+        TripLog.event(System.currentTimeMillis(), "process_start", listOf("demo" to demo))
+        restored.state.open?.let {
+            TripLog.event(
+                System.currentTimeMillis(), "restore",
+                listOf("start" to it.startMs, "lastSeen" to it.lastSeenMs, "finished" to restored.state.finished.size),
+            )
+        }
         _state.value = tracker.state
         if (tracker.state != restored.state || restored.migrated) store.save(tracker.state)
         var lastPublishMs = System.currentTimeMillis()
@@ -51,7 +60,10 @@ object LiveTrip {
             combine(TrackingService.lastData, TrackingService.sessionStartedAt, ticks) { data, anchor, _ -> anchor to data }
                 .collect { (anchor, data) ->
                     val now = System.currentTimeMillis()
+                    val before = tracker.state
                     val transition = tracker.onTick(anchor, data, now)
+                    TripLog.tick(now, TripTick.of(anchor, data, tracker.state.open))
+                    TripLogEvents.diff(before, tracker.state, anchor, now).forEach { TripLog.event(now, it.name, it.fields) }
                     if (shouldPublish(transition, now, lastPublishMs)) {
                         lastPublishMs = now
                         _state.value = tracker.state
