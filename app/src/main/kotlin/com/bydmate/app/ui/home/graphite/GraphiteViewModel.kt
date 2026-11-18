@@ -100,7 +100,8 @@ class GraphiteViewModel @Inject constructor(
             combine(window(p, now), LiveTrip.state) { trips, live ->
                 val rows = trips.map { it.toRow() }
                 val pending = TripMatch.pending(live, rows, System.currentTimeMillis()).map { it.toRow() }
-                EnergyBuckets.build(rows + pending, p, now, l).also { GraphiteWarm.energy[EnergyKey(p, l)] = it }
+                val merged = TripMatch.merge(rows, live.finished + listOfNotNull(live.open?.estimate()?.copy(endMs = System.currentTimeMillis())))
+                EnergyBuckets.build(merged + pending, p, now, l).also { GraphiteWarm.energy[EnergyKey(p, l)] = it }
             }
         }
         .flowOn(Dispatchers.Default)
