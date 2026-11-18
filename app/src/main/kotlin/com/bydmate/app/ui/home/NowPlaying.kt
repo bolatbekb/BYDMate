@@ -109,16 +109,19 @@ object NowPlayingSource : MusicControls {
     private val metaGate = MetadataGate<TrackMeta>()
     private var callbackOn: MediaController? = null
     private val handler = Handler(Looper.getMainLooper())
-    private var refreshPending = false
-    private val refreshRun = Runnable { refreshPending = false; refresh() }
+    private val refreshRun: Runnable = Runnable { refreshes.fired(); refresh() }
+    private val refreshes: RefreshScheduler = RefreshScheduler(
+        post = { handler.postDelayed(refreshRun, it) },
+        cancel = { handler.removeCallbacks(refreshRun) },
+    )
     private val callback = object : MediaController.Callback() {
         override fun onMetadataChanged(metadata: MediaMetadata?) {
             metaGate.set(metadata?.let { readMeta(it) })
-            scheduleRefresh(COALESCE_MS)
+            refreshes.schedule(COALESCE_MS)
         }
-        override fun onPlaybackStateChanged(state: PlaybackState?) { scheduleRefresh(COALESCE_MS) }
+        override fun onPlaybackStateChanged(state: PlaybackState?) { refreshes.schedule(COALESCE_MS) }
         // A player may swap its session: wait before deciding there is no music.
-        override fun onSessionDestroyed() { scheduleRefresh(DESTROY_MS) }
+        override fun onSessionDestroyed() { refreshes.pushBack(DESTROY_MS) }
     }
     private var windingUntil = 0L
 
@@ -168,18 +171,10 @@ object NowPlayingSource : MusicControls {
         // The last cover (one bounded bitmap) stays, so the home shows a full first frame on return.
     }
 
-    /** One refresh for a burst of callbacks; the first scheduled one wins. */
-    private fun scheduleRefresh(delayMs: Long) {
-        if (refreshPending) return
-        refreshPending = true
-        handler.postDelayed(refreshRun, delayMs)
-    }
-
     private fun dropCallback() {
         callbackOn?.let { runCatching { it.unregisterCallback(callback) } }
         callbackOn = null
-        handler.removeCallbacks(refreshRun)
-        refreshPending = false
+        refreshes.clear()
         metaGate.reset()
     }
 

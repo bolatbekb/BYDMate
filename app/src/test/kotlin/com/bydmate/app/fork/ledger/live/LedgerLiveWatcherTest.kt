@@ -190,9 +190,14 @@ class LedgerLiveWatcherTest {
         emit(30)
         until("first write") { spy.setStateCalls.get() == 1 }
         val thresholds = spy.thresholdCalls.get()
+        // past the 60-s threshold TTL, so a step that reached process() would read the threshold again;
+        // and process() calls the injected clock once per step
+        elapsed.addAndGet(61_000L)
+        val clockBefore = time.get()
         // fields outside the key (soc) change every time: only distinctUntilChangedBy keeps the watcher idle
         repeat(20) { data.value = car(mileage = 100.0, fuelPercent = 30, fuelTotalL = 10.0).copy(soc = it); runBlocking { delay(10) } }
         runBlocking { delay(200) }
+        assertEquals("no step reached process()", clockBefore, time.get())
         assertEquals(thresholds, spy.thresholdCalls.get())
         assertEquals(1, spy.setStateCalls.get())
         assertEquals(1, spy.getStateCalls.get())

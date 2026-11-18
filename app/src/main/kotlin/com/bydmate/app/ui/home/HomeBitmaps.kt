@@ -12,12 +12,8 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.merge
-import kotlinx.coroutines.flow.sample
-import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -53,10 +49,12 @@ object HomeBitmaps {
 
     internal suspend fun load(context: Context, @DrawableRes id: Int) {
         if (id in cache) return
-        val bmp = withContext(Dispatchers.IO) { decode(context, id) } ?: return
+        val bmp = decodeWithRetry(RETRY_MS) { withContext(Dispatchers.IO) { decode(context, id) } } ?: return
         // A style change while decoding must not resurrect an evicted image.
         if (id in idsFor(HomeStyleState.current)) cache[id] = bmp
     }
+
+    private const val RETRY_MS = 1_000L
 
     private fun decode(context: Context, id: Int): ImageBitmap? = runCatching {
         val o = BitmapFactory.Options().apply { inScaled = false; inPreferredConfig = Bitmap.Config.HARDWARE }
@@ -75,6 +73,9 @@ internal fun rememberHomeBitmap(@DrawableRes id: Int): ImageBitmap? {
     return hit
 }
 
-/** The first value at once, then at most one per [periodMs] (fork perf: the widget does not need every poll). */
-@OptIn(FlowPreview::class)
-fun <T> Flow<T>.firstThenSampled(periodMs: Long): Flow<T> = merge(take(1), sample(periodMs))
+/** A failed decode (native allocation under memory pressure) is tried once more after [retryDelayMs]. */
+internal suspend fun <T : Any> decodeWithRetry(retryDelayMs: Long, decode: suspend () -> T?): T? =
+    decode() ?: run {
+        delay(retryDelayMs)
+        decode()
+    }

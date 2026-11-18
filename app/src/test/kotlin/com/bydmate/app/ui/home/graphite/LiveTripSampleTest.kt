@@ -2,6 +2,7 @@ package com.bydmate.app.ui.home.graphite
 
 import com.bydmate.app.data.remote.DiParsData
 import com.bydmate.app.data.remote.diParsData
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flow
@@ -15,6 +16,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class LiveTripSampleTest {
     private val t0 = 10_000_000L
     private val boot = BootInfo(bootCount = 41, elapsedMs = 1_000L, sleepMs = 0L)

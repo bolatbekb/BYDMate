@@ -65,6 +65,7 @@ import com.bydmate.app.R
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.livePosition
+import com.bydmate.app.ui.home.nextWholeSecondDelayMs
 import com.bydmate.app.ui.home.common.px
 import java.util.Locale
 import kotlinx.coroutines.delay
@@ -273,15 +274,16 @@ private fun rememberShownPosition(music: NowPlaying): State<Long?> {
         // Runs only while the screen is started; it picks up the real time again on return.
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             while (true) {
-                shown.value = music.livePosition(SystemClock.elapsedRealtime())
-                delay(POSITION_TICK_MS)
+                val pos = music.livePosition(SystemClock.elapsedRealtime())
+                shown.value = pos
+                // The label floors to whole seconds: wake on the next whole second of the SHOWN position.
+                delay(nextWholeSecondDelayMs(pos, music.playbackSpeed))
             }
         }
     }
     return shown
 }
 
-private const val POSITION_TICK_MS = 1_000L // fork: the bar moves about 1 px/s, so a 250-ms tick only woke the frame clock
 
 @Composable
 private fun Progress(music: NowPlaying) {

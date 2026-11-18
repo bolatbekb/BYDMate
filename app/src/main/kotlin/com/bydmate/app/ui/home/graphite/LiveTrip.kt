@@ -8,6 +8,7 @@ import android.os.SystemClock
 import android.provider.Settings
 import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.service.TrackingService
+import com.bydmate.app.ui.home.common.throttleLatest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -15,12 +16,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
-import kotlinx.coroutines.flow.sample
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -112,9 +110,8 @@ object LiveTrip {
      * When the tracker runs: a data change (at most once a second, the first at once), a session anchor change, or the
      * 10-s ticker. The sample only limits the rate; the reading itself is taken live by [liveReading].
      */
-    @OptIn(FlowPreview::class)
     internal fun <T, A> beats(data: Flow<T>, anchor: Flow<A>, ticks: Flow<Unit>): Flow<A> {
-        val changes = data.map { }.sample(SAMPLE_MS).onStart { emit(Unit) }
+        val changes = data.map { }.throttleLatest(SAMPLE_MS) // the first value goes out at once (the data is a StateFlow)
         return combine(changes, anchor, ticks) { _, a, _ -> a }
     }
 

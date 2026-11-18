@@ -80,8 +80,9 @@ fun CdHome(
 ) {
     val base = rememberHomeBitmap(R.drawable.cd_base)
     if (base == null) {
-        // Decoding off the main thread: a plain frame, never a half-drawn layout.
-        Box(Modifier.fillMaxSize().background(MockupInk.Letterbox))
+        // Decoding off the main thread: a plain frame, never a half-drawn layout. The tab keys stay, so a
+        // failed decode is never a dead end (the retro home hides the author's bottom bar).
+        MockupFrame { CdTabKeys(tabs, onTab) }
         return
     }
     MockupFrame {

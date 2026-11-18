@@ -60,3 +60,43 @@ internal class MetadataGate<T : Any> {
         has = false
     }
 }
+
+/**
+ * One pending refresh for a burst of callbacks: the first scheduled one wins ([schedule]); a session
+ * destroy moves it back ([pushBack]) so a refresh queued by the player's STOPPED does not land in the
+ * gap before the new session exists.
+ */
+internal class RefreshScheduler(private val post: (Long) -> Unit, private val cancel: () -> Unit) {
+    private var pending = false
+
+    fun schedule(delayMs: Long) {
+        if (pending) return
+        pending = true
+        post(delayMs)
+    }
+
+    fun pushBack(delayMs: Long) {
+        clear()
+        schedule(delayMs)
+    }
+
+    /** The queued refresh has started. */
+    fun fired() { pending = false }
+
+    fun clear() {
+        cancel()
+        pending = false
+    }
+}
+
+/** Wall-clock wait until [positionMs] reaches its next whole second at [speed]; a plain second when unknown or stopped. */
+internal fun nextWholeSecondDelayMs(positionMs: Long?, speed: Float): Long {
+    if (positionMs == null || speed <= 0f) return SECOND_MS
+    val toBoundary = SECOND_MS - positionMs % SECOND_MS
+    // +1 ms: waking a hair early would floor to the same second again.
+    return (toBoundary / speed).toLong().plus(1).coerceIn(MIN_TICK_MS, MAX_TICK_MS)
+}
+
+private const val SECOND_MS = 1_000L
+private const val MIN_TICK_MS = 50L
+private const val MAX_TICK_MS = 4_000L

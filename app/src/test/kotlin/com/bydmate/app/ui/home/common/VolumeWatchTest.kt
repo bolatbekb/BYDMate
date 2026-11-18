@@ -2,6 +2,7 @@ package com.bydmate.app.ui.home.common
 
 import android.content.Intent
 import android.media.AudioManager
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
@@ -17,6 +18,7 @@ import org.robolectric.annotation.Config
 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [29])
+@OptIn(ExperimentalCoroutinesApi::class)
 class VolumeWatchTest {
     @Test fun onlyTheMusicStreamCounts() {
         val music = Intent(VOLUME_CHANGED_ACTION).putExtra("android.media.EXTRA_VOLUME_STREAM_TYPE", AudioManager.STREAM_MUSIC)
