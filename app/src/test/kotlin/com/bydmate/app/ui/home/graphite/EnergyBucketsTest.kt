@@ -118,11 +118,16 @@ class EnergyBucketsTest {
         assertEquals(2.0, s.totalKwh, 1e-9)
     }
 
-    @Test fun mergedRowGivesLitresAndElectricShare() {
+    @Test fun liveTripReplacesItsRecordInTheChart() {
         val r = TripRow(ts(8), ts(8, 40), 20.0, 3.0, null, null)
-        val e = TripEstimate(ts(8, 1), ts(8, 39), 10.0, 1.0, 0.8, hevKm = 4.0, iceKm = 4.0)
-        val s = EnergyBuckets.build(TripMatch.merge(listOf(r), listOf(e)), ChartPeriod.DAY, now)
-        assertEquals(0.8, s.totalLitres!!, 1e-9)
-        assertEquals(80, s.electricShare)
+        val live = LiveTripState(
+            LiveSession(
+                anchorMs = ts(8), startMs = ts(8), lastSeenMs = ts(8, 39),
+                base = TripCounters(100.0, null, null, null), latest = TripCounters(110.0, 1.0, 0.8, null),
+            ),
+            emptyList(),
+        )
+        val s = EnergyBuckets.build(TripMatch.chartRows(listOf(r), live, ts(8, 40)), ChartPeriod.DAY, now)
+        assertEquals(10.0, s.totalKm, 1e-9)
     }
 }

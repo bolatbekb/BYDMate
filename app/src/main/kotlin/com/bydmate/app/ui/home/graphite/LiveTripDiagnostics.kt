@@ -22,7 +22,7 @@ object LiveTripDiagnostics {
             val last = state.finished.takeLast(LAST_FINISHED)
             add("finished: ${state.finished.size} kept, last ${last.size}")
             last.forEach { add("  ${TripLogFormat.clock(it.startMs, zone)}-${TripLogFormat.clock(it.endMs, zone)} " + estimate(it)) }
-            add("merge decisions today: ${merges.size}")
+            add("live-hides-record today: ${merges.size}")
             merges.forEach { add("  $it") }
             add("--- trip log (fork, last 3 days) ---")
             if (log.isEmpty()) add("(no data)") else addAll(log)

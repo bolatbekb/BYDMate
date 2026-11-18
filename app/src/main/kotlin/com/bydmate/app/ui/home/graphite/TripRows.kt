@@ -45,28 +45,25 @@ object TripMatch {
         return if (o > MIN_OVERLAP_MS) o else 0L
     }
 
-    /**
-     * Fills a recorded trip's gaps from the live estimate it overlaps (the one with the largest overlap
-     * above [MIN_OVERLAP_MS]; one estimate may serve several fragments). The recorded km stays; kWh and
-     * litres are taken from the estimate only when the record has none, and the engine km is the
-     * estimate's ICE km, all times the row's share min(1, R.km / E.km). Rows with no estimate are unchanged.
-     */
-    fun merge(recorded: List<TripRow>, estimates: List<TripEstimate>): List<TripRow> =
-        recorded.map { r ->
-            if (r.km?.takeIf { it.isFinite() && it > 0.0 } == null) return@map r
-            val e = estimates.maxByOrNull { overlapMs(r, it) }?.takeIf { overlapMs(r, it) > 0L } ?: return@map r
-            fill(r, e)
-        }
+    /** The open session's estimate up to [nowMs], when it has moved. */
+    private fun openEstimate(live: LiveTripState, nowMs: Long): TripEstimate? =
+        live.open?.estimate()?.copy(endMs = nowMs)?.takeIf { movedKm(it.km) }
 
-    /** The row's share of the estimate by distance; 0 when either km is unusable. */
-    private fun fill(r: TripRow, e: TripEstimate): TripRow {
-        val rk = r.km ?: 0.0
-        val share = if (e.km > 0.0 && rk > 0.0) minOf(1.0, rk / e.km) else 0.0
-        val ice = e.iceKm
-        return r.copy(
-            kwh = r.kwh ?: e.kwh?.times(share),
-            litres = r.litres ?: e.litres?.times(share),
-            hevKm = if (ice != null && share > 0.0) ice * share else r.hevKm,
-        )
+    /** Recorded trips the open estimate hides while the session is live (the author keeps recording them). */
+    fun hiddenByLive(recorded: List<TripRow>, live: LiveTripState, nowMs: Long): List<Pair<TripRow, TripEstimate>> {
+        val e = openEstimate(live, nowMs) ?: return emptyList()
+        return recorded.filter { r -> r.km?.takeIf { it.isFinite() && it > 0.0 } != null && overlapMs(r, e) > 0L }.map { it to e }
+    }
+
+    /**
+     * What the energy chart draws: our open estimate instead of the records it overlaps, the other
+     * records as stored, and finished estimates no record confirms.
+     */
+    fun chartRows(recorded: List<TripRow>, live: LiveTripState, nowMs: Long): List<TripRow> {
+        val hidden = hiddenByLive(recorded, live, nowMs).map { it.first }.toSet()
+        val open = openEstimate(live, nowMs)
+        val visible = recorded.filter { it !in hidden }
+        val finished = live.finished.filter { movedKm(it.km) && !confirmed(it, recorded) }
+        return visible + listOfNotNull(open).map { it.toRow() } + finished.map { it.toRow() }
     }
 }

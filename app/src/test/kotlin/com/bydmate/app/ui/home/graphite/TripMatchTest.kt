@@ -51,77 +51,56 @@ class TripMatchTest {
         assertEquals(3.2, p[0].km, 1e-9)
     }
 
-    // ---- merge ----
-    private fun full(start: Long, end: Long, km: Double, litres: Double?, ice: Double?) =
-        TripEstimate(start, end, km, kwh = 2.0, litres = litres, hevKm = ice, iceKm = ice)
+    // ---- chart rows: live trip ours, finished as recorded ----
+    private fun open(startMs: Long, lastMs: Long, odo0: Double, odo1: Double) = LiveSession(
+        anchorMs = startMs, startMs = startMs, lastSeenMs = lastMs,
+        base = TripCounters(odo0, null, null, null), latest = TripCounters(odo1, null, null, null),
+    )
 
-    @Test fun mergeFillsOwnersCase() {
-        val r = TripRow(t(8, 0), t(8, 40), 20.0, 3.0, null, null)
-        val m = TripMatch.merge(listOf(r), listOf(full(t(8, 1), t(8, 39), 10.0, 0.8, 4.0)))
-        assertEquals(1, m.size)
-        assertEquals(20.0, m[0].km!!, 1e-9)
-        assertEquals(3.0, m[0].kwh!!, 1e-9)
-        assertEquals(0.8, m[0].litres!!, 1e-9)
-        assertEquals(4.0, m[0].hevKm!!, 1e-9)
+    @Test fun liveEstimateHidesOverlappingRecord() {
+        val r = TripRow(t(8, 0), t(8, 40), 12.0, 3.0, null, null)
+        val live = LiveTripState(open(t(8, 0), t(8, 38), 100.0, 110.0), emptyList())
+        val rows = TripMatch.chartRows(listOf(r), live, t(8, 40))
+        assertEquals(1, rows.size)
+        assertEquals(10.0, rows[0].km!!, 1e-9)
     }
 
-    @Test fun mergeKeepsRecordedLitres() {
-        val r = TripRow(t(8, 0), t(8, 40), 10.0, 3.0, 1.5, null)
-        val m = TripMatch.merge(listOf(r), listOf(full(t(8, 0), t(8, 40), 10.0, 0.8, 4.0)))
-        assertEquals(1.5, m[0].litres!!, 1e-9)
-        assertEquals(4.0, m[0].hevKm!!, 1e-9)
+    @Test fun afterFinishRecordCountsAndEstimateDoesNot() {
+        val r = TripRow(t(8, 0), t(8, 40), 12.0, 3.0, 0.5, 2.0)
+        val fin = est(t(8, 0), t(8, 38), 10.0)
+        val rows = TripMatch.chartRows(listOf(r), LiveTripState(null, listOf(fin)), t(9, 0))
+        assertEquals(listOf(r), rows)
     }
 
-    @Test fun mergeNoOverlapUnchanged() {
-        val r = rec(t(8, 0), t(8, 30))
-        assertEquals(listOf(r), TripMatch.merge(listOf(r), listOf(full(t(9, 0), t(9, 30), 10.0, 0.8, 4.0))))
+    @Test fun finishedEstimateWithoutRecordIsCounted() {
+        val fin = est(t(8, 0), t(8, 38), 10.0)
+        val rows = TripMatch.chartRows(emptyList(), LiveTripState(null, listOf(fin)), t(9, 0))
+        assertEquals(1, rows.size)
+        assertEquals(10.0, rows[0].km!!, 1e-9)
     }
 
-    @Test fun mergeSplitsEstimateAcrossFragmentsByKm() {
-        val a = TripRow(t(8, 0), t(8, 20), 3.0, null, null, null)
-        val b = TripRow(t(8, 30), t(8, 50), 7.0, null, null, null)
-        val m = TripMatch.merge(listOf(a, b), listOf(full(t(8, 0), t(8, 55), 10.0, 1.0, 9.0)))
-        assertEquals(0.3, m[0].litres!!, 1e-9)
-        assertEquals(2.7, m[0].hevKm!!, 1e-9)
-        assertEquals(0.7, m[1].litres!!, 1e-9)
-        assertEquals(6.3, m[1].hevKm!!, 1e-9)
-        assertEquals(0.6, m[0].kwh!!, 1e-9)
+    @Test fun recordNotOverlappingOpenEstimateIsCounted() {
+        val r = TripRow(t(7, 0), t(7, 30), 8.0, 2.0, null, null)
+        val live = LiveTripState(open(t(8, 0), t(8, 38), 100.0, 110.0), emptyList())
+        val rows = TripMatch.chartRows(listOf(r), live, t(8, 40))
+        assertEquals(2, rows.size)
+        assertEquals(18.0, rows.sumOf { it.km!! }, 1e-9)
     }
 
-    @Test fun mergeShareCappedWhenRecordLongerThanEstimate() {
-        val r = TripRow(t(8, 0), t(9, 0), 30.0, null, null, null)
-        val m = TripMatch.merge(listOf(r), listOf(full(t(8, 10), t(8, 40), 10.0, 1.0, 9.0)))
-        assertEquals(1.0, m[0].litres!!, 1e-9)
-        assertEquals(9.0, m[0].hevKm!!, 1e-9)
+    @Test fun openEndedRecordInsideOpenEstimateIsHidden() {
+        val r = TripRow(t(8, 10), null, 5.0, null, null, null)
+        val live = LiveTripState(open(t(8, 0), t(8, 38), 100.0, 110.0), emptyList())
+        assertEquals(1, TripMatch.chartRows(listOf(r), live, t(8, 40)).size)
+        assertEquals(1, TripMatch.hiddenByLive(listOf(r), live, t(8, 40)).size)
     }
 
-    @Test fun mergeMergedRowsAreNotPending() {
-        val a = TripRow(t(8, 0), t(8, 20), 3.0, null, null, null)
-        val b = TripRow(t(8, 30), t(8, 50), 7.0, null, null, null)
-        val e = full(t(8, 0), t(8, 55), 10.0, 1.0, 9.0)
-        assertTrue(TripMatch.pending(LiveTripState(null, listOf(e)), listOf(a, b), t(10, 0)).isEmpty())
-    }
-
-    @Test fun mergeRowTakesLargerOverlapEstimate() {
-        val r = TripRow(t(8, 0), t(9, 0), 10.0, null, null, null)
-        val a = full(t(7, 50), t(8, 10), 5.0, 0.1, 1.0)
-        val b = full(t(8, 15), t(8, 55), 5.0, 0.9, 2.0)
-        val m = TripMatch.merge(listOf(r), listOf(a, b))
-        assertEquals(0.9, m[0].litres!!, 1e-9)
-        assertEquals(2.0, m[0].hevKm!!, 1e-9)
-    }
-
-    @Test fun mergeWithoutIceKmKeepsRowHevKm() {
-        val r = TripRow(t(8, 0), t(8, 40), 10.0, 3.0, null, 7.0)
-        val e = TripEstimate(t(8, 0), t(8, 40), 10.0, 1.0, 0.8, hevKm = 2.0, iceKm = null)
-        val m = TripMatch.merge(listOf(r), listOf(e))
-        assertEquals(7.0, m[0].hevKm!!, 1e-9)
-        assertEquals(0.8, m[0].litres!!, 1e-9)
-    }
-
-    @Test fun mergeOpenEndedRowMatchesByStart() {
-        val r = TripRow(t(8, 10), null, 10.0, null, null, null)
-        val m = TripMatch.merge(listOf(r), listOf(full(t(8, 0), t(9, 0), 10.0, 0.8, 4.0)))
-        assertEquals(0.8, m[0].litres!!, 1e-9)
+    @Test fun hideEventIsLoggedOncePerPairAcrossPublishes() {
+        TripLog.resetHidesForTest()
+        val live = LiveTripState(open(t(8, 0), t(8, 38), 100.0, 110.0), emptyList())
+        val first = TripLogEvents.hideDecisions(listOf(TripRow(t(8, 0), null, 3.0, null, null, null)), live, t(8, 40))
+        assertEquals(1, TripLog.newHides(first).size)
+        val later = LiveTripState(open(t(8, 0), t(8, 50), 100.0, 125.0), emptyList())
+        val again = TripLogEvents.hideDecisions(listOf(TripRow(t(8, 0), null, 9.0, null, null, null)), later, t(8, 52))
+        assertEquals(0, TripLog.newHides(again).size)
     }
 }

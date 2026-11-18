@@ -99,11 +99,9 @@ class GraphiteViewModel @Inject constructor(
             val now = ZonedDateTime.now(ZoneId.systemDefault())
             combine(window(p, now), LiveTrip.state) { trips, live ->
                 val rows = trips.map { it.toRow() }
-                val pending = TripMatch.pending(live, rows, System.currentTimeMillis()).map { it.toRow() }
-                val estimates = live.finished + listOfNotNull(live.open?.estimate()?.copy(endMs = System.currentTimeMillis()))
-                val merged = TripMatch.merge(rows, estimates)
-                TripLog.merge(System.currentTimeMillis(), TripLogEvents.mergeDecisions(rows, estimates, merged)) // fork log
-                EnergyBuckets.build(merged + pending, p, now, l).also { GraphiteWarm.energy[EnergyKey(p, l)] = it }
+                val nowMs = System.currentTimeMillis()
+                TripLog.hides(nowMs, TripLogEvents.hideDecisions(rows, live, nowMs)) // fork log
+                EnergyBuckets.build(TripMatch.chartRows(rows, live, nowMs), p, now, l).also { GraphiteWarm.energy[EnergyKey(p, l)] = it }
             }
         }
         .flowOn(Dispatchers.Default)

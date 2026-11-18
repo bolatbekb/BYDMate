@@ -131,7 +131,7 @@ object TripLog {
     private const val DIR = "fork_trip_log"
     private const val DIR_DEMO = "fork_trip_log_demo"
     private const val QUEUE = 2_000
-    private const val MAX_MERGES = 50
+    private const val MAX_HIDES = 50
 
     private class Item(val tsMs: Long, val line: String)
 
@@ -139,7 +139,7 @@ object TripLog {
     private var queue: Channel<Item>? = null
     private var reported = false
     private val zone: ZoneId get() = ZoneId.systemDefault()
-    private val merges = LinkedHashMap<Long, String>()
+    private val hides = LinkedHashMap<Pair<Long, Long>, String>()
 
     @Synchronized
     fun init(context: Context, demo: Boolean) {
@@ -171,29 +171,31 @@ object TripLog {
         q.trySend(Item(nowMs, TripLogFormat.event(nowMs, name, zone, fields)))
     }
 
-    /** Logs the chart merge decisions that changed since the last call (one event per changed row). */
-    fun merge(nowMs: Long, decisions: List<MergeDecision>) {
-        decisions.forEach { d ->
-            val line = d.fields()
-            val sig = line.joinToString(" ") { "${it.first}=${it.second}" }
-            val changed = synchronized(merges) {
-                if (merges[d.rowStartMs] == sig) false else {
-                    merges.remove(d.rowStartMs)
-                    merges[d.rowStartMs] = sig
-                    while (merges.size > MAX_MERGES) merges.remove(merges.keys.first())
-                    true
-                }
+    /** Logs «live hides record» once per (row start, estimate start) pair, however often the chart republishes. */
+    fun hides(nowMs: Long, decisions: List<HideDecision>) {
+        newHides(decisions).forEach { event(nowMs, "live_hides_record", it.fields()) }
+    }
+
+    /** The decisions not seen before; remembers them (bounded). */
+    internal fun newHides(decisions: List<HideDecision>): List<HideDecision> = decisions.filter { d ->
+        val key = d.rowStartMs to d.estimateStartMs
+        synchronized(hides) {
+            if (key in hides) false else {
+                hides[key] = d.fields().joinToString(" ") { "${it.first}=${it.second}" }
+                while (hides.size > MAX_HIDES) hides.remove(hides.keys.first())
+                true
             }
-            if (changed) event(nowMs, "merge", line)
         }
     }
 
-    /** The latest merge decision of each recorded row that started on the day of [nowMs]. */
+    internal fun resetHidesForTest() = synchronized(hides) { hides.clear() }
+
+    /** The hide decisions logged for rows that started on the day of [nowMs]. */
     fun mergeLines(nowMs: Long): List<String> {
         val z = zone
         val today = Instant.ofEpochMilli(nowMs).atZone(z).toLocalDate()
-        return synchronized(merges) {
-            merges.filterKeys { Instant.ofEpochMilli(it).atZone(z).toLocalDate() == today }.values.toList()
+        return synchronized(hides) {
+            hides.filterKeys { Instant.ofEpochMilli(it.first).atZone(z).toLocalDate() == today }.values.toList()
         }
     }
 

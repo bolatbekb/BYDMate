@@ -146,15 +146,4 @@ class TripLogTest {
         val change = events(tr2, anchor + 1, reading(17001.1), t0 + 20_000)
         assertTrue(change.toString(), change[0].startsWith("finish:reason=anchor_change") && change[0].contains("kept=true"))
     }
-
-    @Test
-    fun mergeDecisionsNameTheFieldsTaken() {
-        val r = TripRow(1_000_000, 1_600_000, 5.0, null, null, null)
-        val e = TripEstimate(900_000, 2_000_000, 10.0, 2.0, 1.0, 8.0, iceKm = 8.0, evKm = 2.0)
-        val merged = TripMatch.merge(listOf(r), listOf(e))
-        val d = TripLogEvents.mergeDecisions(listOf(r), listOf(e), merged).single()
-        assertEquals(0.5, d.share, 1e-9)
-        assertEquals(listOf("kwh", "l", "ice"), d.taken)
-        assertTrue(TripLogEvents.mergeDecisions(listOf(r), emptyList(), listOf(r)).isEmpty())
-    }
 }

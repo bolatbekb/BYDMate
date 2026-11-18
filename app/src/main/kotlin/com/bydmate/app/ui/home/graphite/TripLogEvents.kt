@@ -5,14 +5,9 @@ import kotlin.math.abs
 /** An event of the trip log: a name and `key=value` fields. */
 class TripEvent(val name: String, val fields: List<Pair<String, Any?>>)
 
-/** How the chart merged one recorded row with a live estimate. */
-class MergeDecision(
-    val rowStartMs: Long, val estimateStartMs: Long, val share: Double, val taken: List<String>, val rowKm: Double?, val estimateKm: Double,
-) {
-    fun fields(): List<Pair<String, Any?>> = listOf(
-        "row" to rowStartMs, "est" to estimateStartMs, "rowKm" to rowKm, "estKm" to estimateKm, "share" to share,
-        "took" to (taken.joinToString("+").ifEmpty { "-" }),
-    )
+/** A recorded row the chart hides while our live estimate is drawn instead. */
+class HideDecision(val rowStartMs: Long, val estimateStartMs: Long) {
+    fun fields(): List<Pair<String, Any?>> = listOf("row" to rowStartMs, "est" to estimateStartMs)
 }
 
 /** Pure event detection from the tracker's state before and after one call: the tracker itself is not touched. */
@@ -75,20 +70,7 @@ object TripLogEvents {
         return TripEvent("energy_dropped", listOf("what" to what, "step" to step, "counterWas" to c0, "counterNow" to c1))
     }
 
-    /** The rows [TripMatch.merge] changed, with the estimate each took from and what it took. */
-    fun mergeDecisions(recorded: List<TripRow>, estimates: List<TripEstimate>, merged: List<TripRow>): List<MergeDecision> =
-        recorded.indices.mapNotNull { i ->
-            val r = recorded[i]
-            val m = merged.getOrNull(i) ?: return@mapNotNull null
-            if (m == r) return@mapNotNull null
-            val e = estimates.maxByOrNull { TripMatch.overlapMs(r, it) }?.takeIf { TripMatch.overlapMs(r, it) > 0L }
-                ?: return@mapNotNull null
-            val share = if (e.km > 0.0 && (r.km ?: 0.0) > 0.0) minOf(1.0, (r.km ?: 0.0) / e.km) else 0.0
-            val taken = buildList {
-                if (m.kwh != r.kwh) add("kwh")
-                if (m.litres != r.litres) add("l")
-                if (m.hevKm != r.hevKm) add("ice")
-            }
-            MergeDecision(r.startMs, e.startMs, share, taken, r.km, e.km)
-        }
+    /** The recorded rows the open estimate hides right now. */
+    fun hideDecisions(recorded: List<TripRow>, live: LiveTripState, nowMs: Long): List<HideDecision> =
+        TripMatch.hiddenByLive(recorded, live, nowMs).map { (r, e) -> HideDecision(r.startMs, e.startMs) }
 }
