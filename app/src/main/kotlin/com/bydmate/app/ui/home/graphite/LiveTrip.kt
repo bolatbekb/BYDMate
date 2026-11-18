@@ -15,7 +15,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
+import kotlinx.coroutines.flow.sample
+import kotlinx.coroutines.flow.take
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import java.time.ZoneId
@@ -35,6 +42,7 @@ object LiveTrip {
     private const val TICK_MS = 10_000L
     private const val PUBLISH_EVERY_MS = 10_000L
     private const val SAVE_EVERY_MS = 10_000L
+    private const val SAMPLE_MS = 1_000L
     private const val MS_PER_S = 1000L
 
     private val _state = MutableStateFlow(LiveTripState())
@@ -77,11 +85,12 @@ object LiveTrip {
         var lastSaveMs = lastPublishMs
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
             val ticks = flow { while (true) { emit(Unit); delay(TICK_MS) } }
-            combine(TrackingService.lastData, TrackingService.sessionStartedAt, ticks) { data, anchor, _ -> anchor to data }
-                .collect { (anchor, data) ->
+            val readings = sampledReadings(TrackingService.lastData) { TrackingService.lastDataAtMs }
+            combine(readings, TrackingService.sessionStartedAt, ticks) { r, anchor, _ -> Triple(anchor, r.first, r.second) }
+                .collect { (anchor, data, dataAtMs) ->
                     val now = System.currentTimeMillis()
                     val before = tracker.state
-                    val transition = tracker.onTick(clock.read(), anchor, data, now, TrackingService.lastDataAtMs)
+                    val transition = tracker.onTick(clock.read(), anchor, data, now, dataAtMs)
                     val cycleEvents = tracker.drainEvents()
                     // Logging must never cost the trip.
                     runCatching {
@@ -98,6 +107,16 @@ object LiveTrip {
                     }
             }
         }
+    }
+
+    /**
+     * One (reading, its poll time) pair per second at most, the first at once. The pair is taken together so a polled
+     * reading keeps its own time (the tracker's freshness is that time changing); push patches change the reading only.
+     */
+    @OptIn(FlowPreview::class)
+    internal fun <T> sampledReadings(data: Flow<T>, atMs: () -> Long): Flow<Pair<T, Long>> {
+        val pairs = data.map { it to atMs() }
+        return merge(pairs.take(1), pairs.drop(1).sample(SAMPLE_MS))
     }
 
     /** Reads the head unit's clocks and how the previous process ended. */

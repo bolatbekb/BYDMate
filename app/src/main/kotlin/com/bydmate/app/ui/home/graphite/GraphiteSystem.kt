@@ -13,10 +13,9 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
-import kotlinx.coroutines.delay
+import com.bydmate.app.ui.home.common.watchMusicVolume
 import kotlin.math.roundToInt
 
-private const val VOLUME_POLL_MS = 1_000L
 
 /** Media volume (STREAM_MUSIC) as 0..100. */
 object GraphiteVolume {
@@ -49,7 +48,7 @@ class GrVolume(initial: Int) {
 }
 
 /**
- * [GraphiteVolume.read], re-read every second while the screen is started. The slider writes
+ * [GraphiteVolume.read], re-read on the volume broadcast (and every 10 s) while the screen is started. The slider writes
  * the state at once; the next read is the source of truth, except during a drag, which the
  * poll would otherwise yank back to the last read value.
  */
@@ -60,10 +59,8 @@ fun rememberVolume(): GrVolume {
     val owner = LocalLifecycleOwner.current
     LaunchedEffect(owner) {
         owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-            while (true) {
-                if (!volume.dragging) volume.value = GraphiteVolume.read(ctx)
-                delay(VOLUME_POLL_MS)
-            }
+            // fork: a volume broadcast plus a 10-s fallback poll instead of a read every second
+            watchMusicVolume(ctx) { if (!volume.dragging) volume.value = GraphiteVolume.read(ctx) }
         }
     }
     return volume

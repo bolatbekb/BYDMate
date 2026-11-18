@@ -32,6 +32,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -46,7 +49,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import kotlinx.coroutines.delay
 import java.util.Locale
 import kotlin.math.min
 
@@ -241,19 +243,22 @@ internal fun Int?.celsius(): String = when {
 /** "73 482" with a thin space between thousands. */
 internal fun groupThousands(n: Int): String = String.format(Locale.US, "%,d", n).replace(',', ' ')
 
-/** Music volume 0..1, read from the system once a second; null when unavailable. */
+/** Music volume 0..1, read from the system while the screen is started; null when unavailable. */
 @Composable
 internal fun rememberMusicVolume(): Float? {
     val context = LocalContext.current
     val v = remember { mutableStateOf<Float?>(null) }
-    LaunchedEffect(Unit) {
+    val owner = LocalLifecycleOwner.current
+    LaunchedEffect(owner) {
         val am = context.getSystemService(Context.AUDIO_SERVICE) as? AudioManager ?: return@LaunchedEffect
-        while (true) {
-            v.value = runCatching {
-                val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-                if (max > 0) am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / max else null
-            }.getOrNull()
-            delay(1000)
+        // only while the screen is started: a volume broadcast plus a 10-s fallback poll
+        owner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            watchMusicVolume(context) {
+                v.value = runCatching {
+                    val max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+                    if (max > 0) am.getStreamVolume(AudioManager.STREAM_MUSIC).toFloat() / max else null
+                }.getOrNull()
+            }
         }
     }
     return v.value

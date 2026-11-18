@@ -89,6 +89,8 @@ class TripLogStore(
 ) {
     private var lastDay: LocalDate? = null
     private var cappedDay: LocalDate? = null
+    private var out: FileOutputStream? = null
+    private var outDay: LocalDate? = null
 
     init { prune() }
 
@@ -111,7 +113,30 @@ class TripLogStore(
             capLine = TripLogFormat.event(tsMs, "tick_cap", zone, listOf("bytes" to f.length()))
         }
         val text = if (capLine != null) capLine + "\n" else if (f.length() == 0L) TripLogFormat.header(day) + "\n" + line + "\n" else line + "\n"
-        FileOutputStream(f, true).use { it.write(text.toByteArray(Charsets.UTF_8)); it.flush() }
+        write(day, f, text.toByteArray(Charsets.UTF_8))
+    }
+
+    /** The day's stream stays open (a flush per line); it is closed on a day change and reopened after an IO error. */
+    private fun write(day: LocalDate, f: File, bytes: ByteArray) {
+        if (outDay != day) closeStream()
+        try {
+            val s = out ?: FileOutputStream(f, true).also { out = it; outDay = day }
+            s.write(bytes)
+            s.flush()
+        } catch (e: java.io.IOException) {
+            closeStream()
+            throw e
+        }
+    }
+
+    /** Closes the open day stream (the next line reopens it). */
+    @Synchronized
+    fun close() = closeStream()
+
+    private fun closeStream() {
+        runCatching { out?.close() }
+        out = null
+        outDay = null
     }
 
     /** Deletes the day files older than [keepDays] days before today. */

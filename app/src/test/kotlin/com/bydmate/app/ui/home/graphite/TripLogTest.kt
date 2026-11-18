@@ -235,4 +235,22 @@ class TripLogTest {
         events(tr, anchor, reading(17057.4004), t0)
         assertTrue(events(tr, anchor, reading(17057.4), t0 + 10_000).isEmpty())
     }
+
+    @Test
+    fun streamStaysOpenAcrossLinesAndMovesWithTheDay() {
+        var now = at("2026-11-18", "23:59:00")
+        val dir = tmp.newFolder("open")
+        val store = TripLogStore(dir, { now }, zone)
+        store.append(now, "a")
+        store.append(now + 1000, "b")
+        val d1 = java.io.File(dir, "2026-11-18.log")
+        assertEquals(listOf("a", "b"), d1.readLines().drop(1))
+        now = at("2026-11-19", "00:00:30")
+        store.append(now, "c")
+        assertEquals(listOf("a", "b"), d1.readLines().drop(1))
+        assertEquals(listOf("c"), java.io.File(dir, "2026-11-19.log").readLines().drop(1))
+        store.close()
+        store.append(now + 1000, "d")
+        assertEquals(listOf("c", "d"), java.io.File(dir, "2026-11-19.log").readLines().drop(1))
+    }
 }

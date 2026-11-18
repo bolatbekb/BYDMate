@@ -12,6 +12,7 @@ import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.launch
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.abs
@@ -31,18 +32,25 @@ class LedgerLiveWatcher(
     private val started = AtomicBoolean(false)
     private var state: DetectorState? = null
     private var loaded = false
-    private var lastPersistTs = 0L
+    private var lastPersisted: String? = null
+    private var thresholdPp = 0
+    private var thresholdAt = Long.MIN_VALUE
 
     @Suppress("TooGenericExceptionCaught") // why: a background step on every live sample; a failure is logged and the next sample retries, never fatal
     fun start() {
         if (!started.compareAndSet(false, true)) return
         scope.launch {
-            data.collect { d ->
+            // the detector reads only these four values: an identical sample needs no Room read or write
+            data.distinctUntilChangedBy { d ->
+                if (d == null) null else listOf(kind.value, d.fuelPercent, d.fuelTotalL, d.mileage)
+            }.collect { d ->
                 if (d == null || kind.value != VehicleKind.HYBRID) return@collect
                 try {
                     if (!loaded) {
                         // a failed read must not start a fresh baseline over the good persisted one
-                        state = DetectorState.fromJson(repo.detectorState())
+                        val stored = repo.detectorState()
+                        state = DetectorState.fromJson(stored)
+                        lastPersisted = state?.toJson()
                         loaded = true
                     }
                     process(d)
@@ -57,23 +65,29 @@ class LedgerLiveWatcher(
 
     private suspend fun process(d: DiParsData) {
         val ts = clock()
-        val old = state
         val (next, action) = RefuelDetector.step(
-            old, TankReading(d.fuelPercent, d.fuelTotalL, d.mileage, ts), repo.detectThresholdPp(),
+            state, TankReading(d.fuelPercent, d.fuelTotalL, d.mileage, ts), threshold(ts),
         )
         if (action is DetectorAction.None) state = next
-        val acted = when (action) {
-            is DetectorAction.None -> false
-            is DetectorAction.CreateDraft -> {
-                createDraft(action)
-                true
-            }
+        when (action) {
+            is DetectorAction.None -> Unit
+            is DetectorAction.CreateDraft -> createDraft(action)
             is DetectorAction.UpdateDraft -> refreshDraft(action, next)
         }
-        if (acted || baselineMoved(old) || ts - lastPersistTs >= PERSIST_EVERY_MS) {
-            state?.let { repo.setDetectorState(it.toJson()) }
-            lastPersistTs = ts
+        val json = state?.toJson()
+        if (json != null && json != lastPersisted) {
+            repo.setDetectorState(json)
+            lastPersisted = json
         }
+    }
+
+    /** The detection threshold is a setting: read it at most every 10 min (a failed read is not cached). */
+    private suspend fun threshold(ts: Long): Int {
+        if (thresholdAt == Long.MIN_VALUE || ts - thresholdAt >= THRESHOLD_TTL_MS) {
+            thresholdPp = repo.detectThresholdPp()
+            thresholdAt = ts
+        }
+        return thresholdPp
     }
 
     private suspend fun createDraft(action: DetectorAction.CreateDraft) {
@@ -107,16 +121,11 @@ class LedgerLiveWatcher(
         return detected && open.tankPercentBefore == before.baselinePercent && abs(od - before.baselineOdo) < ADOPT_KM
     }
 
-    /** Whether the draft was written to, or found gone (then the baseline is dismissed). */
-    private suspend fun refreshDraft(action: DetectorAction.UpdateDraft, next: DetectorState?): Boolean {
+    /** Writes the draft, or finds it gone (then the baseline is dismissed). */
+    private suspend fun refreshDraft(action: DetectorAction.UpdateDraft, next: DetectorState?) {
         val changed = updateDraft(action.draftId, action.afterPercent, next?.baselinePercent)
         if (changed == null) state = next?.copy(draftId = null, dismissed = true)
-        return changed != false
     }
-
-    private fun baselineMoved(old: DetectorState?): Boolean = old?.let {
-        it.baselinePercent != state?.baselinePercent || it.baselineOdo != state?.baselineOdo
-    } ?: (state != null)
 
     /**
      * Touches only tank_percent_after (and liters while it is 0 or still our own estimate).
@@ -146,6 +155,6 @@ class LedgerLiveWatcher(
     private companion object {
         const val TAG = "LedgerLiveWatcher"
         const val ADOPT_KM = 2.0
-        const val PERSIST_EVERY_MS = 30_000L
+        const val THRESHOLD_TTL_MS = 600_000L
     }
 }

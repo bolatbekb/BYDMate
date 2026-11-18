@@ -43,11 +43,13 @@ class LedgerLiveWatcherTest {
     private inner class TestRepo : LedgerRepository(db) {
         val setStateCalls = java.util.concurrent.atomic.AtomicInteger()
         val getStateCalls = java.util.concurrent.atomic.AtomicInteger()
+        val thresholdCalls = java.util.concurrent.atomic.AtomicInteger()
         @Volatile var failThreshold = false
         @Volatile var failInsertOnce = false
         override suspend fun setDetectorState(json: String?) { setStateCalls.incrementAndGet(); super.setDetectorState(json) }
         override suspend fun detectorState(): String? { getStateCalls.incrementAndGet(); return super.detectorState() }
         override suspend fun detectThresholdPp(): Int {
+            thresholdCalls.incrementAndGet()
             check(!failThreshold) { "db down" }
             return super.detectThresholdPp()
         }
@@ -174,9 +176,37 @@ class LedgerLiveWatcherTest {
         for (i in 1..9) { data.value = car(mileage = 100.0, fuelPercent = 30, fuelTotalL = 10.0 + i / 100.0); runBlocking { delay(30) } }
         runBlocking { delay(200) }
         assertEquals(1, spy.setStateCalls.get())
+        // the baseline did not move: even much later nothing is written again
         time.addAndGet(40_000L)
         emit(30, total = 11.0)
-        until("write after 30 s") { spy.setStateCalls.get() == 2 }
+        runBlocking { delay(200) }
+        assertEquals(1, spy.setStateCalls.get())
+    }
+
+    @Test fun unchangedStreamDoesNoReadsAndNoWrites() {
+        val spy = TestRepo()
+        watcher(spy)
+        emit(30)
+        until("first write") { spy.setStateCalls.get() == 1 }
+        val thresholds = spy.thresholdCalls.get()
+        repeat(20) { data.value = car(mileage = 100.0, fuelPercent = 30, fuelTotalL = 10.0); runBlocking { delay(10) } }
+        runBlocking { delay(200) }
+        assertEquals(thresholds, spy.thresholdCalls.get())
+        assertEquals(1, spy.setStateCalls.get())
+        assertEquals(1, spy.getStateCalls.get())
+    }
+
+    @Test fun thresholdIsCachedForTenMinutesThenRefreshed() {
+        val spy = TestRepo()
+        watcher(spy)
+        emit(30, odo = 100.0)
+        until("first") { spy.thresholdCalls.get() == 1 }
+        emit(30, odo = 100.1); emit(30, odo = 100.2)
+        runBlocking { delay(300) }
+        assertEquals(1, spy.thresholdCalls.get())
+        time.addAndGet(601_000L)
+        emit(30, odo = 100.3)
+        until("refreshed") { spy.thresholdCalls.get() == 2 }
     }
 
     @Test fun loweredBaselineReachesDiskImmediately() {
