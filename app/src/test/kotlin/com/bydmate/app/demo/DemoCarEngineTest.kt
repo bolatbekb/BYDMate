@@ -49,4 +49,22 @@ class DemoCarEngineTest {
         assertTrue(snaps.last().mileageEvKm!! > snaps.first().mileageEvKm!!)
         assertTrue(snaps.last().mileageHevKm!! > snaps.first().mileageHevKm!!)
     }
+
+    @Test fun parkingPhaseStandsStillAndDrawsClimate() {
+        val t0 = 1_800_000_000_000L // a multiple of the 12 min cycle
+        DemoCar.snapshot(t0 + 9 * 60_000L)
+        val driving = DemoCar.snapshot(t0 + 10 * 60_000L - 1_000L)
+        assertEquals(4, driving.gear)
+        val start = DemoCar.snapshot(t0 + 10 * 60_000L + 1_000L)
+        val end = DemoCar.snapshot(t0 + 12 * 60_000L - 1_000L)
+        for (s in listOf(start, end)) {
+            assertEquals(1, s.gear)
+            assertEquals(0, s.speed)
+            assertEquals(0, s.engineRpm)
+        }
+        assertEquals(start.mileage!!, end.mileage!!, 0.0)
+        assertEquals(start.fuelTotalL!!, end.fuelTotalL!!, 0.0)
+        assertTrue(end.totalElecConsumption!! > start.totalElecConsumption!!)
+        assertEquals(4, DemoCar.snapshot(t0 + 12 * 60_000L + 1_000L).gear)
+    }
 }

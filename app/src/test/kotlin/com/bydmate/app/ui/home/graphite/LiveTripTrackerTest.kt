@@ -220,8 +220,8 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun codecWritesL3AndReadsL2() {
-        assertTrue(LiveTripCodec.encode(sample).startsWith("L3|"))
+    fun codecWritesL4AndReadsL2() {
+        assertTrue(LiveTripCodec.encode(sample).startsWith("L4|"))
         val open = LiveTripCodec.decode("L2|5,6,7,17000.0,,,,17001.0,,,|-|E").open!!
         assertEquals(5L, open.anchorMs)
         assertEquals(5L, open.startMs)
@@ -338,5 +338,90 @@ class LiveTripTrackerTest {
             ),
         )
         assertEquals(s, LiveTripCodec.decode(LiveTripCodec.encode(s)))
+    }
+
+    private fun gearTick(tr: LiveTripTracker, gear: Int?, elec: Double?, now: Long, fuel: Double? = null) =
+        tr.onTick(anchorA, reading(17000.0, elec, fuel).copy(gear = gear, speed = if (gear == 4) 40 else 0), now)
+
+    @Test
+    fun modeOfCodes() {
+        assertEquals(Mode.PARK, modeOf(1, 0))
+        assertEquals(Mode.DRIVE, modeOf(2, 0))
+        assertEquals(Mode.PARK, modeOf(3, 50))
+        assertEquals(Mode.DRIVE, modeOf(4, 0))
+        assertEquals(Mode.PARK, modeOf(null, 0))
+        assertEquals(Mode.PARK, modeOf(null, null))
+        assertEquals(Mode.DRIVE, modeOf(null, 30))
+    }
+
+    @Test
+    fun parkStopCountsToPark() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        gearTick(tr, 1, 2650.0, t0)
+        for (i in 1..60) gearTick(tr, 1, 2650.0 + 0.25 * i / 60, t0 + i * 10_000L)
+        val sp = tr.state.open!!.estimate().split!!
+        assertEquals(600_000L, sp.parkMs)
+        assertEquals(0.25, sp.parkKwh, 1e-9)
+        assertEquals(0L, sp.driveMs)
+        assertEquals(0.0, sp.driveKwh, 0.0)
+    }
+
+    @Test
+    fun intervalGoesToTheEarlierMode() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        gearTick(tr, 4, 2650.0, t0, 300.0)
+        gearTick(tr, 1, 2650.3, t0 + 10_000, 300.1)
+        gearTick(tr, 1, 2650.4, t0 + 20_000, 300.1)
+        val sp = tr.state.open!!.estimate().split!!
+        assertEquals(10_000L, sp.driveMs)
+        assertEquals(10_000L, sp.parkMs)
+        assertEquals(0.3, sp.driveKwh, 1e-9)
+        assertEquals(0.1, sp.driveL, 1e-9)
+        assertEquals(0.1, sp.parkKwh, 1e-9)
+    }
+
+    @Test
+    fun regenIntervalSumsNegative() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        gearTick(tr, 4, 2650.0, t0)
+        gearTick(tr, 4, 2650.5, t0 + 10_000)
+        gearTick(tr, 4, 2650.3, t0 + 20_000)
+        assertEquals(0.3, tr.state.open!!.split.driveKwh, 1e-9)
+    }
+
+    @Test
+    fun tickerBeatGoesToLastMode() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        gearTick(tr, 1, 2650.0, t0)
+        tr.onTick(anchorA, null, t0 + 10_000)
+        assertEquals(10_000L, tr.state.open!!.split.parkMs)
+        assertEquals(Mode.PARK, tr.state.open!!.lastMode)
+    }
+
+    @Test
+    fun gapIsNotAttributed() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        gearTick(tr, 4, 2650.0, t0)
+        gearTick(tr, 4, 2650.1, t0 + 10_000)
+        gearTick(tr, 4, 2650.2, t0 + 10_000 + LiveTripTracker.GAP_MS + 1)
+        assertEquals(0L, tr.state.open!!.split.driveMs)
+    }
+
+    @Test
+    fun codecRoundTripWithSplit() {
+        val s = LiveTripState(
+            open = sample.open!!.copy(split = DrivePark(1, 2, 0.5, -0.25, 0.1, 0.0), lastMode = Mode.PARK),
+            finished = listOf(TripEstimate(5L, 6L, 12.4, 1.0, 0.6, null, DrivePark(10, 20, 0.5, 0.5, 0.0, 0.0))),
+        )
+        assertEquals(s, LiveTripCodec.decode(LiveTripCodec.encode(s)))
+    }
+
+    @Test
+    fun oldVersionsDecodeWithoutSplit() {
+        val l3 = LiveTripCodec.decode("L3|5,6,7,17000.0,,,,17001.0,,,|5,6,12.4,,0.6,|E")
+        assertEquals(DrivePark(), l3.open!!.split)
+        assertNull(l3.open!!.lastMode)
+        assertNull(l3.finished.single().split)
+        assertNull(LiveTripCodec.decode("L1|-|5,6,12.4,,0.6,|E").finished.single().split)
     }
 }

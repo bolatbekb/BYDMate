@@ -22,6 +22,9 @@ object DemoCar {
     private const val EV_KM_START = 11_857.0
     private const val FUEL_L_PER_KM = 0.06
     private const val ENGINE_PERIOD_MS = 10_000L
+    private const val CYCLE_MS = 12 * 60_000L
+    private const val DRIVE_MS = 10 * 60_000L
+    private const val PARK_CLIMATE_KW = 1.5
 
     private val startMs = System.currentTimeMillis()
     private var lastMs = startMs
@@ -34,9 +37,11 @@ object DemoCar {
     @Synchronized
     private fun step(nowMs: Long): Triple<Double, Double, Double> {
         val t = (nowMs - startMs) / 1000.0
-        val speed = max(0.0, 58 + 32 * sin(t / 23) + 9 * sin(t / 7))
-        // Cruise draw ~16 kWh/100 km, plus auxiliaries, with regen dips when the speed drops.
-        val powerKw = speed * 0.16 + 2.5 + 9 * sin(t / 5.3)
+        val parked = isParked(nowMs)
+        val speed = if (parked) 0.0 else max(0.0, 58 + 32 * sin(t / 23) + 9 * sin(t / 7))
+        // Cruise draw ~16 kWh/100 km, plus auxiliaries, with regen dips when the speed drops;
+        // parked: only the climate draw.
+        val powerKw = if (parked) PARK_CLIMATE_KW else speed * 0.16 + 2.5 + 9 * sin(t / 5.3)
         val dtH = ((nowMs - lastMs).coerceIn(0, 10_000)) / 3_600_000.0
         odometerKm += speed * dtH
         if (engineRpm(nowMs) > 0) {
@@ -73,7 +78,7 @@ object DemoCar {
             maxCellVoltage = 3.342,
             minCellVoltage = 3.331,
             exteriorTemp = 7,
-            gear = 4,
+            gear = if (isParked(nowMs)) 1 else 4,
             powerState = 2,
             insideTemp = 21,
             acStatus = 1,
@@ -115,7 +120,7 @@ object DemoCar {
             motorCurrentRear = (powerKw * 0.65 * 1000 / hvVoltage).toFloat(),
             compressorW = 900 + (300 * sin(t / 11)).roundToInt(),
             tyreTempFL = 24, tyreTempFR = 25, tyreTempRL = 23, tyreTempRR = 24,
-            pedalAccel = (20 + 15 * sin(t / 4)).roundToInt().coerceIn(0, 100),
+            pedalAccel = if (speed > 0) (20 + 15 * sin(t / 4)).roundToInt().coerceIn(0, 100) else 0,
             pedalBrake = 0,
             frontTrunk = 0,
             batteryRemainKwh = soc / 100 * CAPACITY_KWH,
@@ -130,12 +135,15 @@ object DemoCar {
         )
     }
 
+    /** A 12-minute cycle by wall clock: 10 minutes of driving, then 2 minutes parked (gear P, climate on). */
+    internal fun isParked(nowMs: Long): Boolean = nowMs % CYCLE_MS >= DRIVE_MS
+
     /**
      * The engine runs every other 10 s (by wall clock), idling around 1 150–1 450 rpm, so the
      * HEV chip and the fuel dial's rpm ring can be seen switching on an emulator.
      */
     internal fun engineRpm(nowMs: Long): Int =
-        if ((nowMs / ENGINE_PERIOD_MS) % 2 == 0L) 0 else (1_300 + 150 * sin(nowMs / 3_000.0)).roundToInt()
+        if (isParked(nowMs)) 0 else if ((nowMs / ENGINE_PERIOD_MS) % 2 == 0L) 0 else (1_300 + 150 * sin(nowMs / 3_000.0)).roundToInt()
 
     fun battery(nowMs: Long = System.currentTimeMillis()): BatteryReading {
         step(nowMs)
