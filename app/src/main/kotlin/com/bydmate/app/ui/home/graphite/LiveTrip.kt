@@ -52,6 +52,7 @@ object LiveTrip {
             )
         }
         _state.value = tracker.state
+        TripBackfill.start(context)
         if (tracker.state != restored.state || restored.migrated) store.save(tracker.state)
         var lastPublishMs = System.currentTimeMillis()
         var lastSaveMs = lastPublishMs
