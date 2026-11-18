@@ -23,7 +23,7 @@ class LiveTripReplayTest {
     private fun clock(s: String): Long = base + LocalTime.parse(s).toSecondOfDay() * 1000L
 
     private fun lines(): List<Line> {
-        val text = javaClass.classLoader!!.getResourceAsStream("trip/replay_cycle.log")!!.bufferedReader().readText()
+        val text = javaClass.classLoader!!.getResourceAsStream("trip/replay_cycle.txt")!!.bufferedReader().readText()
         var phase = 0
         val out = ArrayList<Line>()
         for (raw in text.lines()) {
@@ -62,6 +62,26 @@ class LiveTripReplayTest {
         }
     }
 
+    /**
+     * Phase C': the realistic switch-off. The quickboot kills the process right after phase A, with no off seen; the
+     * same BOOT_COUNT, the elapsed clock moves forward, the sleep time grows by 600 s.
+     */
+    private fun quickbootKillAfterA(a: List<Line>, c: List<Line>, killedAfterA: LiveTripState) {
+        val sleptMs = a.last().boot.sleepMs + 600_000L
+        val woken = c.map { Line(it.phase, it.atMs, BootInfo(a.last().boot.bootCount, it.atMs - clock("19:42:40") + sleptMs, sleptMs), it.data) }
+        assertTrue(woken.first().boot.elapsedMs > a.last().boot.elapsedMs)
+        val killExit = ExitInfo(reasonCode = 10, description = "stop com.bydmate.app due to quickboot", atMs = a.last().atMs + 1_000)
+        val tracker3 = LiveTripTracker(killedAfterA, woken.first().atMs - 2_000, killExit)
+        var firstCp: TripCardModel? = null
+        feed(tracker3, woken) { _, m -> if (firstCp == null) firstCp = m }
+        println("REPLAY C' first=$firstCp end=${card(tracker3)}")
+        assertEquals(0.5, tracker3.state.finished.single().km, 0.1)
+        assertEquals(TripCardMode.CURRENT, firstCp!!.mode)
+        assertEquals(0.0, firstCp!!.km!!, 1e-9)
+        assertTrue(tracker3.state.open!!.startMs != killedAfterA.open!!.startMs)
+        assertEquals(0.5, card(tracker3).km!!, 0.1)
+    }
+
     @Test
     fun parkedThenDriveThenOffThenNewBootFollowsTheCar() {
         val all = lines()
@@ -93,6 +113,10 @@ class LiveTripReplayTest {
         println("REPLAY A end: $afterDrive")
         assertEquals(0.5, afterDrive.km!!, 0.1)
         assertTrue(tracker.state.finished.isEmpty())
+
+        val killedAfterA = LiveTripCodec.decode(LiveTripCodec.encode(tracker.state))
+
+        quickbootKillAfterA(a, c, killedAfterA)
 
         // Phase B: two ps 0 readings 10 s apart confirm the off
         feed(tracker, b)

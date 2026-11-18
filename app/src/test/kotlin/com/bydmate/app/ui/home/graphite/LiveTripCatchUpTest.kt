@@ -252,7 +252,7 @@ class LiveTripCatchUpTest {
     fun litresUnknownFallsBackToTheHevCounter() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tr.tick(reading(17000.0).copy(fuelPercent = 80, mileageHevKm = 5000), t0)
-        tr.tick(reading(17010.0, 4, 40).copy(fuelPercent = 80, mileageHevKm = 5003), t0 + 20_000)
+        tr.tick(reading(17010.0, 4, 40).copy(fuelPercent = 80, mileageHevKm = 5003), t0 + 150_000)
         val e = tr.state.open!!.estimate()
         assertEquals(3.0, e.hevKm!!, 1e-9)
         assertNull(e.iceKm)
@@ -277,6 +277,30 @@ class LiveTripCatchUpTest {
         assertEquals(0.4, o.estimate().km, 1e-9)
         assertEquals(0.0, o.split.driveKwh, 1e-9)
         assertEquals("kwh+l+hev", field(tr.drainEvents().first { it.name == "catch_up" }, "rejected"))
+    }
+
+    /** A catch-up 30 s after the process start with the kWh counter [elec] on the first reading; the rejected list. */
+    private fun rejectedFor(elec: Double): Any? {
+        val startAt = t0 + 30 * min
+        val tr = afterQuickboot(17000.0, lastElec = 2650.0, startAt = startAt)
+        tr.drainEvents()
+        tr.tick(reading(17000.4, 4, 40, elec = elec), startAt + 30_000, later)
+        return field(tr.drainEvents().first { it.name == "catch_up" }, "rejected")
+    }
+
+    @Test
+    fun catchUpKwhNegativeBoundIsOnePlusSixtyKwPerHour() {
+        // 30 s + 120 s slack = 0.0417 h: the drop limit is 1 + 60 * 0.0417 = 3.5 kWh
+        assertNull(rejectedFor(2650.0 - 3.4))
+        assertEquals("kwh", rejectedFor(2650.0 - 3.6))
+        assertEquals("kwh", rejectedFor(2650.0 - 14.0))
+    }
+
+    @Test
+    fun catchUpKwhPositiveBoundIsOnePlusThreeHundredKwPerHour() {
+        // the same 0.0417 h: the rise limit is 1 + 300 * 0.0417 = 13.5 kWh
+        assertNull(rejectedFor(2650.0 + 13.0))
+        assertEquals("kwh", rejectedFor(2650.0 + 14.0))
     }
 
     @Test

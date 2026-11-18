@@ -17,6 +17,15 @@ object LiveTripDiagnostics {
             val o = state.open
             if (o == null) add("open: none") else {
                 add("open: anchor=${t(o.anchorMs)} start=${t(o.startMs)} lastSeen=${t(o.lastSeenMs)} " + estimate(o.estimate()))
+                add(
+                    "  boot=${o.boot?.bootCount ?: "-"} elapsedAtLast=${o.elapsedAtLastMs / 1000}s sleepAtLast=${o.sleepAtLastMs / 1000}s " +
+                        "offSince=${o.offSinceMs?.let { t(it) } ?: "-"} iceSeen=${o.iceSeen} rpmTrusted=${o.rpmTrusted()} hevCounterKm=${TripLogFormat.num(o.hevCounterKm())}",
+                )
+            }
+            state.closed?.let { add("closed: boot=${it.bootCount ?: "-"} elapsedAtLast=${it.elapsedAtLastMs / 1000}s sleepAtLast=${it.sleepAtLastMs / 1000}s at=${t(it.atMs)}") }
+            state.last?.let { l ->
+                val c = l.counters
+                add("last: at=${t(l.atMs)} odo=${TripLogFormat.num(c.odometerKm)} kwh=${TripLogFormat.num(c.elecKwh)} fuel=${TripLogFormat.num(c.fuelL)} hev=${TripLogFormat.num(c.hevKm)}")
             }
             val last = state.finished.takeLast(LAST_FINISHED)
             add("finished: ${state.finished.size} kept, last ${last.size}")

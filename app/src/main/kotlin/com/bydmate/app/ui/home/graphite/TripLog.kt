@@ -22,14 +22,16 @@ data class TripTick(
     val anchorMs: Long?, val gear: Int?, val speed: Int?, val rpm: Int?, val powerState: Int?,
     val odoKm: Double?, val kwhCounter: Double?, val fuelL: Double?, val hevKm: Int?,
     val mode: Mode?, val km: Double?, val iceKm: Double?, val evKm: Double?, val driveMs: Long?, val parkMs: Long?,
+    /** True = a new reading this tick, false = the ticker re-fed the old one, null = not told. */
+    val fresh: Boolean? = null,
 ) {
     companion object {
-        fun of(anchorMs: Long?, d: DiParsData?, open: LiveSession?): TripTick {
+        fun of(anchorMs: Long?, d: DiParsData?, open: LiveSession?, fresh: Boolean? = null): TripTick {
             val est = open?.estimate()
             return TripTick(
                 anchorMs, d?.gear, d?.speed, d?.engineRpm, d?.powerState, d?.mileage, d?.totalElecConsumption,
                 d?.fuelTotalL, d?.mileageHevKm, open?.lastMode, est?.km, open?.iceKm, open?.evKm,
-                open?.split?.driveMs, open?.split?.parkMs,
+                open?.split?.driveMs, open?.split?.parkMs, fresh,
             )
         }
     }
@@ -38,7 +40,7 @@ data class TripTick(
 /** Pure text forms of the trip log. A tick line starts with the local time; an event line is `# EVENT name key=value…`. */
 object TripLogFormat {
     private val CLOCK = DateTimeFormatter.ofPattern("HH:mm:ss")
-    const val HEADER_COLUMNS = "time a=anchor g=gear v=speed rpm ps=powerState odo kwh fuel hev m=mode km ice ev dr=driveMs pk=parkMs"
+    const val HEADER_COLUMNS = "time a=anchor g=gear v=speed rpm ps=powerState f=fresh(1/0) odo kwh fuel hev m=mode km ice ev dr=driveMs pk=parkMs"
 
     fun clock(ms: Long, zone: ZoneId): String = CLOCK.format(Instant.ofEpochMilli(ms).atZone(zone))
 
@@ -60,7 +62,7 @@ object TripLogFormat {
         append(clock(tsMs, zone))
         append(" a=").append(t.anchorMs?.let { clock(it, zone) } ?: "-")
         append(" g=").append(any(t.gear)).append(" v=").append(any(t.speed)).append(" rpm=").append(any(t.rpm))
-        append(" ps=").append(any(t.powerState)).append(" odo=").append(num(t.odoKm)).append(" kwh=").append(num(t.kwhCounter))
+        append(" ps=").append(any(t.powerState)).append(" f=").append(t.fresh?.let { if (it) "1" else "0" } ?: "-").append(" odo=").append(num(t.odoKm)).append(" kwh=").append(num(t.kwhCounter))
         append(" fuel=").append(num(t.fuelL)).append(" hev=").append(any(t.hevKm))
         append(" m=").append(t.mode?.name?.first() ?: '-')
         append(" km=").append(num(t.km)).append(" ice=").append(num(t.iceKm)).append(" ev=").append(num(t.evKm))

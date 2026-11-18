@@ -85,7 +85,7 @@ object LiveTrip {
                     val cycleEvents = tracker.drainEvents()
                     // Logging must never cost the trip.
                     runCatching {
-                        TripLog.tick(now, TripTick.of(anchor, data, tracker.state.open), tracker.state.open != null)
+                        TripLog.tick(now, TripTick.of(anchor, data, tracker.state.open, tracker.lastTickFresh), tracker.state.open != null)
                         (cycleEvents + TripLogEvents.diff(before, tracker.state)).forEach { TripLog.event(now, it.name, it.fields) }
                     }
                     if (shouldPublish(transition, now, lastPublishMs)) {

@@ -24,12 +24,18 @@ internal data class WarmPrefs(
 /** The trip card as last seen, with the local date it belongs to (ISO yyyy-MM-dd). */
 internal data class StoredTrip(val day: String, val model: TripCardModel)
 
+/** A trip card with km of a real move (not the 0,0 of a car that stands). */
+internal fun hasMoved(m: TripCardModel): Boolean = m.km?.let { movedKm(it) } == true
+
 /**
  * The stored trip card when it is from [today], else null. A CURRENT card is returned as LAST: after a restart the
  * live session decides again within a tick, and a LAST header is right in the common case (ignition was turned off).
+ * A CURRENT card without a move (0,0 km) is neither stored ([GraphiteWarm.trip]) nor returned: it would show
+ * «Последняя поездка 0,0 км» over the real last trip.
  */
 internal fun tripForToday(stored: StoredTrip?, today: String): TripCardModel? {
     val s = stored?.takeIf { it.day == today } ?: return null
+    if (s.model.mode == TripCardMode.CURRENT && !hasMoved(s.model)) return null
     return if (s.model.mode == TripCardMode.CURRENT) s.model.copy(mode = TripCardMode.LAST) else s.model
 }
 
@@ -165,7 +171,9 @@ object GraphiteWarm {
         get() = synchronized(lock) { tripForToday(storedTrip, today()) }
         set(value) = change {
             val n = value?.takeIf { it.mode != TripCardMode.EMPTY }?.let { StoredTrip(today(), it) }
-            if (n != storedTrip) { storedTrip = n; true } else false
+            // A CURRENT card that has not moved is not kept: it must not wipe the last real trip (see tripForToday).
+            if (value != null && value.mode == TripCardMode.CURRENT && !hasMoved(value)) false
+            else if (n != storedTrip) { storedTrip = n; true } else false
         }
 
     private fun today(): String = java.time.LocalDate.now().toString()

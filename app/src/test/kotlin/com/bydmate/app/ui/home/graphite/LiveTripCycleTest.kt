@@ -140,7 +140,7 @@ class LiveTripCycleTest {
     fun offForFiveSecondsFinishesAtTheLastOnReading() {
         val tr = started()
         tr.tick(reading(17002.0, 4, 40), t0 + 10_000)
-        assertFalse(tr.tick(reading(17002.0, ps = 0), t0 + 20_000))
+        assertTrue(tr.tick(reading(17002.0, ps = 0), t0 + 20_000)) // the first off reading is saved at once
         assertFalse(tr.tick(reading(17002.0, ps = 0), t0 + 23_000))
         assertTrue(tr.tick(reading(17002.0, ps = 0), t0 + 26_000))
         assertNull(tr.state.open)
@@ -392,5 +392,117 @@ class LiveTripCycleTest {
         assertTrue(tr.onTick(boot, null, reading(17000.0, ps = 2), t0 + 30_000, readingAtMs = 30_000L))
         assertNotNull(tr.state.open)
         assertNull(tr.state.closed)
+    }
+
+    // ---- the final fix wave ----
+
+    @Test
+    fun aPowerStateZeroInMotionIsNoOffReading() {
+        val tr = started()
+        tr.tick(reading(17000.0, 4, 58, ps = 0), t0 + 10_000)
+        tr.tick(reading(17000.5, 4, 58, ps = 0), t0 + 40_000)
+        assertNotNull(tr.state.open)
+        assertNull(tr.state.open!!.offSinceMs)
+        assertTrue(tr.state.finished.isEmpty())
+        assertNull(tr.state.closed)
+        // standing in D (the brake held) is not a switch-off either, and neither is a moved odometer in P
+        tr.tick(reading(17000.5, 4, 0, ps = 0), t0 + 70_000)
+        assertNull(tr.state.open!!.offSinceMs)
+        tr.tick(reading(17000.7, 1, 0, ps = 0), t0 + 100_000)
+        assertNull(tr.state.open!!.offSinceMs)
+        // a standing car in P with the speed unknown is
+        tr.tick(reading(17000.7, 1, 0, ps = 0).copy(speed = null), t0 + 130_000)
+        assertEquals(t0 + 130_000, tr.state.open!!.offSinceMs)
+    }
+
+    @Test
+    fun aMotionDuringAPendingOffClearsIt() {
+        val tr = started()
+        tr.tick(reading(17000.0, ps = 0), t0 + 10_000)
+        assertNotNull(tr.state.open!!.offSinceMs)
+        tr.tick(reading(17000.4, 4, 30, ps = 0), t0 + 40_000)
+        assertNull(tr.state.open!!.offSinceMs)
+        assertTrue(tr.state.finished.isEmpty())
+    }
+
+    @Test
+    fun theTrackerReportsAModeShiftAndTheFirstOffForAnImmediateSave() {
+        val tr = started()
+        assertTrue(tr.tick(reading(17000.1, 4, 20), t0 + 10_000)) // P -> D
+        assertFalse(tr.tick(reading(17000.3, 4, 20), t0 + 20_000))
+        assertTrue(tr.tick(reading(17000.4, 1, 0), t0 + 30_000)) // D -> P: the trip's tail is saved
+        assertFalse(tr.tick(reading(17000.4, 1, 0), t0 + 40_000))
+        assertTrue(tr.tick(reading(17000.4, ps = 0), t0 + 50_000)) // the first off
+    }
+
+    @Test
+    fun noDataHoldsKeepStampingElapsedSoALongOutageIsNoGapFallback() {
+        val tr = started()
+        tr.drainEvents()
+        for (i in 1..11) tr.tick(null, t0 + i * min, boot.copy(elapsedMs = boot.elapsedMs + i * min))
+        tr.tick(reading(17000.0), t0 + 12 * min, boot.copy(elapsedMs = boot.elapsedMs + 12 * min))
+        assertTrue(tr.state.finished.isEmpty())
+        assertEquals(t0, tr.state.open!!.startMs)
+        assertTrue(tr.drainEvents().none { it.name == "cycle_end" })
+        // a sleeping head unit is still told by the sleep time, which the holds do not stamp
+        assertTrue(tr.tick(reading(17000.0), t0 + 13 * min, boot.copy(elapsedMs = boot.elapsedMs + 13 * min, sleepMs = 60_000L)))
+        assertEquals("sleep", tr.drainEvents().first { it.name == "cycle_end" }.fields.first { it.first == "reason" }.second)
+    }
+
+    @Test
+    fun afterACycleEndAtTheProcessStartAPowerStateNullStandingReadingOpensNothing() {
+        val restart = t0 + 3 * 3_600_000L
+        val later = day.copy(elapsedMs = day.elapsedMs + 3 * 3_600_000L, sleepMs = day.sleepMs + 3 * 3_600_000L)
+        val tr = LiveTripTracker(saved(t0, Mode.PARK), restart, quickbootExit)
+        assertTrue(tr.onTick(later, null, null, restart))
+        tr.onTick(later, null, reading(17005.0, ps = null), restart + 20_000)
+        assertNull(tr.state.open)
+        assertTrue(tr.onTick(later, null, reading(17005.0, ps = 2), restart + 40_000, readingAtMs = restart + 40_000))
+        assertNotNull(tr.state.open)
+    }
+
+    @Test
+    fun afterACycleEndAtTheProcessStartAMovingPowerStateNullReadingOpens() {
+        val restart = t0 + 3 * 3_600_000L
+        val later = day.copy(elapsedMs = day.elapsedMs + 3 * 3_600_000L, sleepMs = day.sleepMs + 3 * 3_600_000L)
+        val tr = LiveTripTracker(saved(t0, Mode.PARK), restart, quickbootExit)
+        tr.onTick(later, null, null, restart)
+        tr.onTick(later, null, reading(17005.0, 4, 30, ps = null), restart + 20_000)
+        assertNotNull(tr.state.open)
+        // a moved odometer alone is motion too
+        val tr2 = LiveTripTracker(saved(t0, Mode.PARK), restart, quickbootExit)
+        tr2.onTick(later, null, null, restart)
+        tr2.onTick(later, null, reading(17005.3, ps = null), restart + 20_000)
+        assertNotNull(tr2.state.open)
+    }
+
+    @Test
+    fun aCycleEndInsideTheProcessOpensOnAnyNonOffReading() {
+        val tr = started()
+        tr.tick(reading(17000.0), t0 + 10_000)
+        tr.tick(reading(17000.0, ps = null), t0 + 20_000, boot.copy(sleepMs = 60_000L))
+        assertEquals(t0 + 20_000, tr.state.open!!.startMs)
+        assertEquals("sleep", tr.drainEvents().first { it.name == "cycle_end" }.fields.first { it.first == "reason" }.second)
+    }
+
+    private fun withLast(atMs: Long) = LiveTripState(last = LastCounters(TripCounters(17000.0, 2650.0, null, null), atMs))
+
+    @Test
+    fun aQuickbootKillAfterTheLastCountersMeansACycleWithoutASessionPassedAndDropsThem() {
+        val restart = t0 + 3_600_000L
+        val tr = LiveTripTracker(withLast(t0), restart, quickbootExit.copy(atMs = t0 + 1_800_000L))
+        assertTrue(tr.onTick(day, null, null, restart))
+        assertNull(tr.state.last)
+        assertEquals("last_dropped", tr.drainEvents().single().name)
+    }
+
+    @Test
+    fun theLastCountersStayWhenTheKillIsACrashOrOlderThanThem() {
+        val crash = LiveTripTracker(withLast(t0), t0 + 60_000, crashExit.copy(atMs = t0 + 30_000L))
+        assertFalse(crash.onTick(day, null, null, t0 + 60_000))
+        assertNotNull(crash.state.last)
+        val old = LiveTripTracker(withLast(t0), t0 + 60_000, quickbootExit.copy(atMs = t0 - 60_000L))
+        assertFalse(old.onTick(day, null, null, t0 + 60_000))
+        assertNotNull(old.state.last)
     }
 }

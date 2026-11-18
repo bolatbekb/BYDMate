@@ -77,6 +77,26 @@ class GraphiteWarmTest {
         assertNull(tripForToday(null, day))
     }
 
+    @Test fun aCurrentTripWithoutAMoveIsNotReturnedAsLast() {
+        assertNull(tripForToday(StoredTrip(day, card.copy(mode = TripCardMode.CURRENT, km = 0.0)), day))
+        assertNull(tripForToday(StoredTrip(day, card.copy(mode = TripCardMode.CURRENT, km = null)), day))
+        assertEquals(card.copy(km = 0.1), tripForToday(StoredTrip(day, card.copy(mode = TripCardMode.CURRENT, km = 0.1)), day))
+    }
+
+    @Test fun aCurrentCardWithZeroKmDoesNotOverwriteAStoredLastTrip() {
+        try {
+            GraphiteWarm.trip = card.copy(km = 12.0)
+            assertEquals(12.0, GraphiteWarm.trip!!.km!!, 1e-9)
+            GraphiteWarm.trip = card.copy(mode = TripCardMode.CURRENT, km = 0.0, driveMinutes = 0, parkMinutes = 3)
+            assertEquals(TripCardMode.LAST, GraphiteWarm.trip!!.mode)
+            assertEquals(12.0, GraphiteWarm.trip!!.km!!, 1e-9)
+            GraphiteWarm.trip = card.copy(mode = TripCardMode.CURRENT, km = 0.4)
+            assertEquals(0.4, GraphiteWarm.trip!!.km!!, 1e-9)
+        } finally {
+            GraphiteWarm.trip = null
+        }
+    }
+
     @Test fun currentTripIsReadAsLast() {
         val cur = StoredTrip(day, card.copy(mode = TripCardMode.CURRENT))
         assertEquals(card, tripForToday(cur, day))

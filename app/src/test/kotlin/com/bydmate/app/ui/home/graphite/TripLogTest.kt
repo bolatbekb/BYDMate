@@ -24,23 +24,23 @@ class TripLogTest {
         val d = diParsData(mileage = 17000.25, totalElecConsumption = 2650.1).copy(engineRpm = 1500, gear = 4, speed = 45, powerState = 2)
         val open = LiveSession(anchor, anchor, anchor, TripCounters(17000.0, 2650.0, null, null), TripCounters(17000.25, 2650.1, null, null),
             lastMode = Mode.DRIVE, iceKm = 0.25, evKm = 0.0)
-        val line = TripLogFormat.tick(at("2026-11-18", "08:00:10"), TripTick.of(anchor, d, open), zone)
+        val line = TripLogFormat.tick(at("2026-11-18", "08:00:10"), TripTick.of(anchor, d, open, fresh = true), zone)
         println(line)
-        assertTrue(line, line.startsWith("08:00:10 a=08:00:00 g=4 v=45 rpm=1500 ps=2 odo=17000.25 kwh=2650.1 fuel=- hev=- m=D km=0.25 ice=0.25 ev=0 "))
+        assertTrue(line, line.startsWith("08:00:10 a=08:00:00 g=4 v=45 rpm=1500 ps=2 f=1 odo=17000.25 kwh=2650.1 fuel=- hev=- m=D km=0.25 ice=0.25 ev=0 "))
     }
 
     @Test
     fun tickLineWithoutSessionOrReadingUsesDashes() {
         val line = TripLogFormat.tick(at("2026-11-18", "09:01:02"), TripTick.of(null, null, null), zone)
         println(line)
-        assertEquals("09:01:02 a=- g=- v=- rpm=- ps=- odo=- kwh=- fuel=- hev=- m=- km=- ice=- ev=- dr=- pk=-", line)
+        assertEquals("09:01:02 a=- g=- v=- rpm=- ps=- f=- odo=- kwh=- fuel=- hev=- m=- km=- ice=- ev=- dr=- pk=-", line)
     }
 
     @Test
     fun tickLineSecondSample() {
-        val line = TripLogFormat.tick(at("2026-11-18", "08:05:00"), TripTick(anchor, 1, 0, 0, 1, 17010.0, 2651.5, 12.3, 5, Mode.PARK, 10.0, 8.0, 2.0, 300000, 120000), zone)
+        val line = TripLogFormat.tick(at("2026-11-18", "08:05:00"), TripTick(anchor, 1, 0, 0, 1, 17010.0, 2651.5, 12.3, 5, Mode.PARK, 10.0, 8.0, 2.0, 300000, 120000, false), zone)
         println(line)
-        assertEquals("08:05:00 a=08:00:00 g=1 v=0 rpm=0 ps=1 odo=17010 kwh=2651.5 fuel=12.3 hev=5 m=P km=10 ice=8 ev=2 dr=300000 pk=120000", line)
+        assertEquals("08:05:00 a=08:00:00 g=1 v=0 rpm=0 ps=1 f=0 odo=17010 kwh=2651.5 fuel=12.3 hev=5 m=P km=10 ice=8 ev=2 dr=300000 pk=120000", line)
     }
 
     @Test
@@ -142,7 +142,7 @@ class TripLogTest {
         val boot = events(tr, anchor, reading(17001.0), t0 + 110_000 + 10_000, TEST_BOOT.copy(bootCount = 8))
         assertTrue(boot.toString(), boot[0].startsWith("cycle_end:reason=boot,sleepDeltaS=0") && boot[1].startsWith("cycle_new:reason=boot,boot=8") && boot[2].startsWith("catch_up:") && boot[3].startsWith("finish:") && boot[4].startsWith("open:"))
         val on = reading(17001.0).copy(powerState = 2)
-        val off = on.copy(powerState = 0)
+        val off = on.copy(powerState = 0, gear = 1, speed = 0) // a real switch-off stands in P
         events(tr, anchor, off, t0 + 130_000, TEST_BOOT.copy(bootCount = 8))
         val end = events(tr, anchor, off, t0 + 140_000, TEST_BOOT.copy(bootCount = 8))
         assertTrue(end.toString(), end[0].startsWith("off:since=") && end[1].startsWith("finish:"))

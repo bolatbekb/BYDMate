@@ -53,6 +53,8 @@ internal fun modeOf(gear: Int?, speed: Int?, odoDeltaKm: Double? = null): Mode =
 }
 
 private const val ODO_MOVED_KM = 0.05
+private const val GEAR_R = 2
+private const val GEAR_D = 4
 
 /** On a car with a tank (a hybrid) the engine rpm reads null while the engine is off: that is rpm 0, not unknown. */
 internal fun effectiveRpm(d: DiParsData): Int? = d.engineRpm ?: if (d.fuelTotalL != null || d.fuelPercent != null) 0 else null
@@ -208,9 +210,11 @@ data class LiveTripState(
 /**
  * Builds the trip in progress from the car's cumulative counters. A session is one ignition cycle: it lives from the
  * car switched on to switched off, however long it stands or however long the app was away, and is fed by a steady
- * ticker. A new cycle is told by (in this order): the previous process dying "due to quickboot" time growing, a changed BOOT_COUNT, elapsedRealtime going backwards, a confirmed off (`powerState == 0` on fresh
- * readings spanning [OFF_CONFIRM_MS]), and as a last resort a process gap over [GAP_FALLBACK_MS]. Anything else (a
- * crash, an update, a swipe) continues the trip. An odometer glitch rebases the odometer instead.
+ * ticker. A new cycle is told by (in this order): the previous process dying "due to quickboot", the head unit's sleep time
+ * growing, a changed BOOT_COUNT, elapsedRealtime going backwards, a confirmed off (`powerState == 0` on fresh readings
+ * spanning [OFF_CONFIRM_MS], while the car stands in P/N), and as a last resort a gap over [GAP_FALLBACK_MS] in
+ * elapsedRealtime. Anything else (a crash, an update, a swipe) continues the trip. An odometer glitch rebases the
+ * odometer instead.
  *
  * [nowMs] is the process start; [exit] how the previous process ended (read once at the start).
  */
@@ -257,36 +261,67 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
     fun onTick(boot: BootInfo, anchorMs: Long?, data: DiParsData?, nowMs: Long, readingAtMs: Long = nowMs): Boolean {
         val fresh = data != null && readingAtMs != lastReadingAtMs
         if (fresh) lastReadingAtMs = readingAtMs
+        val before = state.open
         var changed = endOnCycleChange(boot, anchorMs, nowMs)
         val ps = data?.powerState
         tickFresh = fresh
         tickReadingAtMs = readingAtMs
         state.open?.let { changed = feed(it, boot, data, nowMs) || changed }
-        if (state.open == null && data != null && mayOpen(ps)) {
+        if (state.open == null && data != null && mayOpen(data, ps)) {
             state = state.copy(open = openSession(boot, anchorMs, data, if (startAtProcess && nowMs - processStartMs <= START_WINDOW_MS) processStartMs else nowMs, nowMs), closed = null, last = null)
             changed = true
         }
+        changed = changed || shifted(before, state.open)
         firstTick = false
         expireFinished(nowMs)
         return changed
     }
+
+    /** True when the session's mode changed or its first off reading came: the caller saves at once, so a quickboot kill loses no tail of the trip. */
+    private fun shifted(was: LiveSession?, now: LiveSession?): Boolean =
+        was != null && now != null && ((was.lastMode != null && was.lastMode != now.lastMode) || (was.offSinceMs == null && now.offSinceMs != null))
+
+    /** True when the last [onTick]'s reading was fresh (a new one, not the ticker's re-feed); for the trip log. */
+    val lastTickFresh: Boolean get() = tickFresh
 
     /** One tick into the open session: a fresh off reading, a fresh reading, or a stale / missing one that holds. Returns true on a finish. */
     private fun feed(s: LiveSession, boot: BootInfo, data: DiParsData?, nowMs: Long): Boolean {
         val fresh = tickFresh
         val ps = data?.powerState
         when {
-            fresh && ps == 0 -> return offStep(s, boot, tickReadingAtMs)
+            fresh && ps == 0 && standingStill(s, data) -> return offStep(s, boot, tickReadingAtMs)
             fresh && (ps != null || s.offSinceMs == null) -> state = state.copy(open = follow(s, boot, data, nowMs))
-            // A stale or missing reading holds a process gap and a pending off for the first fresh reading.
-            s.offSinceMs != null || nowMs - s.lastSeenMs > GAP_NOTE_MS -> Unit
+            // A stale or missing reading holds a process gap and a pending off for the first fresh reading. The process
+            // is alive, so the elapsed clock is stamped: a long outage here is no reason for the gap fallback.
+            s.offSinceMs != null || nowMs - s.lastSeenMs > GAP_NOTE_MS -> state = state.copy(open = s.copy(elapsedAtLastMs = boot.elapsedMs))
             else -> state = state.copy(open = s.ticked(nowMs).stamped(boot))
         }
         return false
     }
 
-    /** A session opens unless the car reads off, or was seen off and shows no `powerState` yet. */
-    private fun mayOpen(ps: Int?): Boolean = ps != 0 && !(state.closed != null && ps == null)
+    /**
+     * `powerState == 0` is an off reading only when the car stands: speed 0 or unknown, not in R/D, and the odometer
+     * has not moved since the session's latest reading (a hybrid's powerState dips in motion, cf. OffReport).
+     */
+    private fun standingStill(s: LiveSession, data: DiParsData?): Boolean {
+        if (data == null) return true
+        val moved = (odoDelta(s.latest, TripCounters.of(data)) ?: 0.0) > 0.0
+        return (data.speed ?: 0) == 0 && data.gear != GEAR_R && data.gear != GEAR_D && !moved
+    }
+
+    /**
+     * A session opens unless the car reads off, or was seen off and shows no `powerState` yet. Right after a cycle
+     * end detected at the process start it opens on `powerState >= 1`, or, with no `powerState`, when the car shows
+     * motion: a head unit that is awake with the car off must not open a phantom trip.
+     */
+    private fun mayOpen(data: DiParsData, ps: Int?): Boolean {
+        if (ps == 0 || (state.closed != null && ps == null)) return false
+        if (!startAtProcess || openReason == REASON_FIRST || ps != null) return true
+        val was = state.last?.counters?.odometerKm
+        val now = TripCounters.of(data).odometerKm
+        val odoMoved = was != null && now != null && now - was >= ODO_MOVED_KM
+        return (data.speed ?: 0) > 0 || data.gear == GEAR_R || data.gear == GEAR_D || odoMoved
+    }
 
     private fun LiveSession.stamped(b: BootInfo) = copy(sleepAtLastMs = b.sleepMs, elapsedAtLastMs = b.elapsedMs)
 
@@ -307,7 +342,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
     private fun endOnCycleChange(boot: BootInfo, anchorMs: Long?, nowMs: Long): Boolean {
         val s = state.open
         if (s == null) {
-            val c = state.closed ?: return false
+            val c = state.closed ?: return droppedStaleLast()
             val why = cycleSignal(boot, c, open = false) ?: return false
             state = state.copy(closed = null)
             openReason = why
@@ -335,7 +370,23 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         return true
     }
 
-    /** An L6 session without a boot: adopt it into the current boot when the author's session is its own or it is fresh; null = adopted. */
+    /**
+     * No session and no closed marker, yet a `last` from an earlier cycle: when the previous process was killed "due to
+     * quickboot" after it, a whole cycle passed without a session opening, and its counters are too old for a catch-up.
+     */
+    private fun droppedStaleLast(): Boolean {
+        val l = state.last ?: return false
+        if (!firstTick || exit?.quickboot != true || exit.atMs <= l.atMs + EXIT_SLACK_MS) return false
+        state = state.copy(last = null)
+        events += TripEvent("last_dropped", listOf("lastAt" to l.atMs, "exitAt" to exit.atMs))
+        return true
+    }
+
+    /**
+     * An L6 session without a boot (saved by an earlier build). The author's session anchor is null at the first tick in
+     * production, so the main rule is the age: a session whose last tick is at most [MIGRATE_FRESH_MS] old is adopted
+     * (the update restart takes seconds), else it is finished. The anchor branch is a fallback.
+     */
     private fun migrate(s: LiveSession, boot: BootInfo, anchorMs: Long?, nowMs: Long): String? {
         val adopt = anchorMs == s.anchorMs || nowMs - s.lastSeenMs <= MIGRATE_FRESH_MS
         events += TripEvent("migrate", listOf("result" to if (adopt) "adopt" else "finish", "anchor" to anchorMs, "ageS" to (nowMs - s.lastSeenMs) / MS_PER_SECOND))
@@ -413,7 +464,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         val litres = counterDelta(last.fuelL, c.fuelL)
         val hevStep = counterDelta(last.hevKm, c.hevKm)
         val ok = booleanArrayOf(
-            kwh in -(1.0 + MAX_KW * h)..(1.0 + MAX_KW * h),
+            kwh in -(1.0 + MAX_REGEN_KW * h)..(1.0 + MAX_KW * h),
             litres in -0.5..(0.5 + MAX_LITRES_PER_H * h),
             hevStep in 0.0..(km + 1.0),
         )
@@ -573,6 +624,9 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         val LITRES_RANGE = -1.0..100.0
         private const val MS_PER_HOUR = 3_600_000.0
         private const val MAX_KW = 300.0
+
+        /** The most the BMS kWh counter can fall in an hour (regen); a bigger drop at a catch-up is a counter reset or a plug-in charge. */
+        private const val MAX_REGEN_KW = 60.0
         private const val MAX_LITRES_PER_H = 60.0
     }
 }

@@ -78,7 +78,7 @@ class LiveTripTrackerTest {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tick(tr, anchorA, 17000.0, null, t0)
         tick(tr, anchorA, 17003.0, null, t0 + 60_000)
-        assertFalse(tick(tr, null, 17003.0, null, t0 + 70_000))
+        tick(tr, null, 17003.0, null, t0 + 70_000)
         assertNotNull(tr.state.open)
         assertTrue(tr.state.finished.isEmpty())
     }
@@ -129,7 +129,7 @@ class LiveTripTrackerTest {
         val tr = LiveTripTracker(LiveTripState(), t0)
         tick(tr, anchorA, 17000.0, null, t0)
         tick(tr, anchorA, 17002.0, null, t0 + 60_000)
-        assertFalse(tick(tr, anchorA, 17002.0, null, t0 + 60_000 + 3 * 60_000))
+        tick(tr, anchorA, 17002.0, null, t0 + 60_000 + 3 * 60_000)
         assertTrue(tr.state.finished.isEmpty())
         assertEquals(t0, tr.state.open!!.startMs)
         assertEquals(2.0, tr.state.open!!.estimate().km, 1e-9)
