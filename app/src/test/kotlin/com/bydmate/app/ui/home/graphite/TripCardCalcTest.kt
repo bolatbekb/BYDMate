@@ -40,8 +40,26 @@ class TripCardCalcTest {
         assertEquals(0.0, m.parkL!!, 1e-9)
     }
 
-    @Test fun justSwitchedOnShowsLastTripWithRecordedDashes() {
-        val live = LiveTripState(open(t0800 + 60 * min, t0800 + 60 * min, 0.05))
+    @Test fun justSwitchedOnShowsCurrentZeroWithParkMinutes() {
+        val s = split(open(t0800 + 60 * min, t0800 + 70 * min, 0.0), DrivePark(driveMs = 0, parkMs = 10 * min + 5_000))
+        val today = listOf(TripRow(t0800, t0800 + 30 * min, 30.0, 5.0, 1.0, null))
+        val m = TripCardCalc.from(LiveTripState(s), today, day)
+        assertEquals(TripCardMode.CURRENT, m.mode)
+        assertEquals(0.0, m.km!!, 1e-9)
+        assertEquals(0, m.driveMinutes)
+        assertEquals(10, m.parkMinutes)
+    }
+
+    @Test fun logFieldsChangeOnlyWithTheShownCard() {
+        val a = TripCardModel(TripCardMode.CURRENT, 0.52, 3, 4, 0.12, 0.0, 0.0, 0.0)
+        val same = a.copy(km = 0.54, driveKwh = 0.14)
+        assertEquals(TripCardCalc.logFields(a), TripCardCalc.logFields(same))
+        assertTrue(TripCardCalc.logFields(a) != TripCardCalc.logFields(a.copy(km = 0.6)))
+        assertTrue(TripCardCalc.logFields(a) != TripCardCalc.logFields(a.copy(mode = TripCardMode.LAST)))
+    }
+
+    @Test fun noOpenShowsLastRecordedTripWithDashes() {
+        val live = LiveTripState(null)
         val today = listOf(TripRow(t0800, t0800 + 30 * min, 30.0, 5.0, 1.0, null))
         val m = TripCardCalc.from(live, today, day)
         assertEquals(TripCardMode.LAST, m.mode)

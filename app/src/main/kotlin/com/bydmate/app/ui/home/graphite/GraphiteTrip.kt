@@ -44,9 +44,8 @@ object TripCardCalc {
     /** [today] — recorded trips of today (rows); [dayStartMs] — local midnight. */
     fun from(live: LiveTripState, today: List<TripRow>, dayStartMs: Long): TripCardModel {
         val open = live.open?.estimate()
-        if (open != null && movedKm(open.km)) {
-            return fromEstimate(TripCardMode.CURRENT, open)
-        }
+        // the trip of this power-on shows from the first reading: 0,0 km while standing, «стоянка» counting
+        if (open != null) return fromEstimate(TripCardMode.CURRENT, open)
         // a finished estimate with a split wins over the recorded rows it overlaps: the driver keeps
         // seeing «в пути» / «стоянка» after power-on; a recorded trip alone shows its totals as «в пути»
         val withSplit = live.finished.filter { it.startMs >= dayStartMs && it.km > 0.0 && it.split != null }
@@ -58,6 +57,15 @@ object TripCardCalc {
         }.map { it.startMs to fromEstimate(TripCardMode.LAST, it) }
         return (recorded + finished).maxByOrNull { it.first }?.second ?: TripCardModel.EMPTY
     }
+
+    /** The card as the trip log records it: the mode, km to 0.1, minutes and the energy cells; equal fields = same card. */
+    fun logFields(m: TripCardModel): List<Pair<String, Any?>> = listOf(
+        "mode" to m.mode.name,
+        "km" to m.km?.let { Math.round(it * 10) / 10.0 },
+        "drive_min" to m.driveMinutes, "park_min" to m.parkMinutes,
+        "drive_kwh" to m.driveKwh?.let { Math.round(it * 10) / 10.0 }, "drive_l" to m.driveL?.let { Math.round(it * 10) / 10.0 },
+        "park_kwh" to m.parkKwh?.let { Math.round(it * 10) / 10.0 }, "park_l" to m.parkL?.let { Math.round(it * 10) / 10.0 },
+    )
 
     private fun minutes(ms: Long): Int = (ms / 60_000L).toInt()
 

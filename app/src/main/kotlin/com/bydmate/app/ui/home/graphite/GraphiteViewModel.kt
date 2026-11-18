@@ -104,6 +104,16 @@ class GraphiteViewModel @Inject constructor(
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.energy[EnergyKey(_period.value, lang.value)])
 
+    private var cardLogged: List<Pair<String, Any?>>? = null
+
+    /** The shown card goes into the trip log once per change of its fields, not per publish. */
+    private fun logCard(m: TripCardModel) {
+        val f = TripCardCalc.logFields(m)
+        if (f == cardLogged) return
+        cardLogged = f
+        TripLog.event(System.currentTimeMillis(), "card", f)
+    }
+
     /** The trip card: today's recorded trips + the live session; the day rolls over with [date]. */
     @OptIn(ExperimentalCoroutinesApi::class)
     val trip: StateFlow<TripCardModel> = date
@@ -115,7 +125,7 @@ class GraphiteViewModel @Inject constructor(
                 TripCardCalc.from(live, trips.map { it.toRow() }, dayStart)
             }
         }
-        .onEach { GraphiteWarm.trip = it }
+        .onEach { GraphiteWarm.trip = it; logCard(it) }
         .flowOn(Dispatchers.Default)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), GraphiteWarm.trip ?: TripCardModel.EMPTY)
 
