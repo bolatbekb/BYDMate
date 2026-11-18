@@ -21,7 +21,9 @@ import kotlinx.coroutines.launch
 object LiveTrip {
     private const val PREFS = "bydmate_live_trip"
     private const val PREFS_DEMO = "bydmate_live_trip_demo"
-    private const val KEY_STATE = "state"
+    private const val KEY_LEGACY = "state"
+    private const val KEY_OPEN = "open"
+    private const val KEY_FINISHED = "finished"
     private const val TICK_MS = 10_000L
     private const val PUBLISH_EVERY_MS = 10_000L
     private const val SAVE_EVERY_MS = 10_000L
@@ -36,14 +38,24 @@ object LiveTrip {
         started = true
         val name = if (DemoMode.isOn(context)) PREFS_DEMO else PREFS
         val prefs = runCatching { context.applicationContext.getSharedPreferences(name, Context.MODE_PRIVATE) }.getOrNull()
-        val raw = runCatching { prefs?.getString(KEY_STATE, null) }.getOrNull()
-        val restored = LiveTripCodec.decode(raw)
-        val tracker = LiveTripTracker(restored, System.currentTimeMillis())
+        fun read(key: String) = runCatching { prefs?.getString(key, null) }.getOrNull()
+        val restored = LiveTripPersistence.restore(read(KEY_OPEN), read(KEY_FINISHED), read(KEY_LEGACY))
+        val tracker = LiveTripTracker(restored.state, System.currentTimeMillis())
         _state.value = tracker.state
+        var savedFinished: List<TripEstimate>? = if (restored.migrated) null else restored.state.finished
         fun save() {
-            runCatching { prefs?.edit()?.putString(KEY_STATE, LiveTripCodec.encode(tracker.state))?.apply() }
+            runCatching {
+                val edit = prefs?.edit() ?: return@runCatching
+                edit.putString(KEY_OPEN, LiveTripPersistence.encodeOpen(tracker.state))
+                val saved = savedFinished
+                if (saved == null || LiveTripPersistence.shouldSaveFinished(saved, tracker.state.finished)) {
+                    edit.putString(KEY_FINISHED, LiveTripPersistence.encodeFinished(tracker.state))
+                    savedFinished = tracker.state.finished
+                }
+                edit.remove(KEY_LEGACY).apply()
+            }
         }
-        if (tracker.state != restored) save()
+        if (tracker.state != restored.state || restored.migrated) save()
         var lastPublishMs = System.currentTimeMillis()
         var lastSaveMs = lastPublishMs
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {

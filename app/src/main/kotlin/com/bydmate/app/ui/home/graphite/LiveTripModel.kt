@@ -74,11 +74,14 @@ data class DrivePark(
 
 /**
  * An estimated drive: [endMs] = last tick of the session; deltas of the counters, null when a side is missing.
- * [split] = drive/park split, null for data of an old format.
+ * [split] = drive/park split, null for data of an old format. [iceKm]/[evKm] = odometer km driven with the engine
+ * running / not running (by engine rpm), null for data of an old format.
  */
 data class TripEstimate(
     val startMs: Long, val endMs: Long, val km: Double, val kwh: Double?, val litres: Double?, val hevKm: Double?,
     val split: DrivePark? = null,
+    val iceKm: Double? = null,
+    val evKm: Double? = null,
 )
 
 /**
@@ -94,6 +97,11 @@ data class LiveSession(
     val split: DrivePark = DrivePark(),
     /** Mode of the previous tick; the next interval and counter deltas go to it. */
     val lastMode: Mode? = null,
+    /** Km with the engine running / not running; null = the session began before this was tracked. */
+    val iceKm: Double? = 0.0,
+    val evKm: Double? = 0.0,
+    /** Engine rpm of the previous tick. */
+    val lastRpm: Int? = null,
 ) {
     fun estimate() = TripEstimate(
         startMs = startMs,
@@ -101,8 +109,10 @@ data class LiveSession(
         km = delta(base.odometerKm, latest.odometerKm)?.coerceAtLeast(0.0) ?: 0.0,
         kwh = delta(base.elecKwh, latest.elecKwh)?.takeIf { it in LiveTripTracker.KWH_RANGE },
         litres = delta(base.fuelL, latest.fuelL)?.takeIf { it in LiveTripTracker.LITRES_RANGE },
-        hevKm = delta(base.hevKm, latest.hevKm),
+        hevKm = iceKm ?: delta(base.hevKm, latest.hevKm),
         split = split,
+        iceKm = iceKm,
+        evKm = evKm,
     )
 
     private fun delta(from: Double?, to: Double?): Double? =
@@ -175,7 +185,9 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
             }
         }
         if (session == null) {
-            session = LiveSession(anchorMs, nowMs, nowMs, c, c, lastMode = data?.let { modeOf(it.gear, it.speed) })
+            session = LiveSession(
+                anchorMs, nowMs, nowMs, c, c, lastMode = data?.let { modeOf(it.gear, it.speed) }, lastRpm = data?.engineRpm,
+            )
             lastOdoMs = nowMs
             changed = true
         }
@@ -197,13 +209,19 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
         copy(lastSeenMs = nowMs, split = attributed(0.0, 0.0, nowMs))
 
     private fun LiveSession.advance(c: TripCounters, data: DiParsData, nowMs: Long): LiveSession {
+        val glitch = c.isBelow(latest) || isJump(this, c, nowMs)
         val rebased = rebaseOdometer(this, c, nowMs)
         if (c.odometerKm != null && c.odometerKm != latest.odometerKm) lastOdoMs = nowMs
         val kwh = counterDelta(latest.elecKwh, c.elecKwh)
         val litres = counterDelta(latest.fuelL, c.fuelL)
+        val km = if (glitch) null else odoDelta(latest, c)
+        val ice = km != null && ((lastRpm ?: 0) > 0 || (data.engineRpm ?: 0) > 0)
         return copy(
             lastSeenMs = nowMs, base = rebased.fillFrom(c), latest = latest.advanceBy(c),
             split = attributed(kwh, litres, nowMs), lastMode = modeOf(data.gear, data.speed, odoDelta(latest, c)),
+            iceKm = if (ice) iceKm?.plus(km!!) else iceKm,
+            evKm = if (km != null && !ice) evKm?.plus(km) else evKm,
+            lastRpm = data.engineRpm,
         )
     }
 
@@ -241,8 +259,8 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
     companion object {
         const val GAP_MS = 2 * 60_000L
         const val MOVED_KM = 0.1
-        const val FINISHED_TTL_MS = 48 * 3_600_000L
-        const val MAX_FINISHED = 8
+        const val FINISHED_TTL_MS = 31 * 24 * 3_600_000L
+        const val MAX_FINISHED = 400
 
         /** Faster than any car: a bigger odometer step is a counter scale change (cf. TripRecorder). */
         const val MAX_SPEED_KMH = 300.0
@@ -257,12 +275,14 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long) {
 }
 
 /**
- * Pure-Kotlin text form of [LiveTripState] for the prefs: `L4|open|finished|E`, fields joined by
- * commas, null = empty field, finished drives joined by `;`. `L3`, `L2` and `L1` still read (no split). The closing `E` makes a truncated string fail; any failure decodes
+ * Pure-Kotlin text form of [LiveTripState] for the prefs: `L5|open|finished|E`, fields joined by
+ * commas, null = empty field, finished drives joined by `;`. `L4`, `L3`, `L2` and `L1` still read (older ones
+ * without split, all without ice/ev km). The closing `E` makes a truncated string fail; any failure decodes
  * to an empty state.
  */
 object LiveTripCodec {
-    private const val HEAD = "L4"
+    private const val HEAD = "L5"
+    private const val HEAD_V4 = "L4"
     private const val HEAD_V3 = "L3"
     private const val HEAD_V2 = "L2"
     private const val HEAD_V1 = "L1"
@@ -271,23 +291,28 @@ object LiveTripCodec {
     private const val SESSION_FIELDS = 11
     private const val SPLIT_FIELDS = 6
     private const val ESTIMATE_FIELDS = 6
+    private const val ICE_FIELDS = 2
+    private const val SESSION_ICE_FIELDS = 3
 
     fun encode(s: LiveTripState): String {
         val open = s.open?.let { o ->
             listOf(o.anchorMs, o.startMs, o.lastSeenMs).joinToString(",") +
-                "," + counters(o.base) + "," + counters(o.latest) + "," + split(o.split) + "," + (o.lastMode?.name ?: "")
+                "," + counters(o.base) + "," + counters(o.latest) + "," + split(o.split) + "," + (o.lastMode?.name ?: "") +
+                "," + listOf(o.iceKm, o.evKm, o.lastRpm).joinToString(",") { it?.toString() ?: "" }
         } ?: NONE
         val fin = s.finished.takeIf { it.isNotEmpty() }?.joinToString(";") {
             listOf(it.startMs, it.endMs, it.km, it.kwh ?: "", it.litres ?: "", it.hevKm ?: "").joinToString(",") +
-                "," + (it.split?.let { sp -> split(sp) } ?: ",".repeat(SPLIT_FIELDS - 1))
+                "," + (it.split?.let { sp -> split(sp) } ?: ",".repeat(SPLIT_FIELDS - 1)) +
+                "," + listOf(it.iceKm, it.evKm).joinToString(",") { v -> v?.toString() ?: "" }
         } ?: NONE
         return listOf(HEAD, open, fin, TAIL).joinToString("|")
     }
 
     fun decode(raw: String?): LiveTripState = try {
         val parts = raw.orEmpty().split("|")
-        require(parts.size == 4 && parts[0] in listOf(HEAD, HEAD_V3, HEAD_V2, HEAD_V1) && parts[3] == TAIL)
-        LiveTripState(open = session(parts[1], parts[0]), finished = estimates(parts[2], parts[0] == HEAD))
+        require(parts.size == 4 && parts[0] in listOf(HEAD, HEAD_V4, HEAD_V3, HEAD_V2, HEAD_V1) && parts[3] == TAIL)
+        val v = parts[0].substring(1).toInt()
+        LiveTripState(open = session(parts[1], parts[0], v), finished = estimates(parts[2], v))
     } catch (@Suppress("SwallowedException") e: IllegalArgumentException) {
         LiveTripState()
     }
@@ -298,22 +323,30 @@ object LiveTripCodec {
     private fun counters(c: TripCounters) =
         listOf(c.odometerKm, c.elecKwh, c.fuelL, c.hevKm).joinToString(",") { it?.toString() ?: "" }
 
-    /** L3+: anchor,start,lastSeen,...; L2/L1: start,lastOn,lastReading,... (anchor = start, lastSeen = lastReading). L4 adds split and mode. */
-    private fun session(s: String, head: String): LiveSession? {
+    /**
+     * L3+: anchor,start,lastSeen,...; L2/L1: start,lastOn,lastReading,... (anchor = start, lastSeen = lastReading).
+     * L4 adds split and mode, L5 ice km, ev km and rpm.
+     */
+    private fun session(s: String, head: String, v: Int): LiveSession? {
         if (s == NONE) return null
         val f = s.split(",")
-        val v4 = head == HEAD
-        require(f.size == SESSION_FIELDS + if (v4) SPLIT_FIELDS + 1 else 0)
+        require(f.size == SESSION_FIELDS + (if (v >= 4) SPLIT_FIELDS + 1 else 0) + (if (v >= 5) SESSION_ICE_FIELDS else 0))
         val first = f[0].toLong()
         val base = counters(f, 3)
         val latest = counters(f, 7)
         return when {
-            v4 -> LiveSession(
-                first, f[1].toLong(), f[2].toLong(), base, latest,
-                split(f, SESSION_FIELDS) ?: DrivePark(), f[SESSION_FIELDS + SPLIT_FIELDS].takeIf { it.isNotEmpty() }?.let { Mode.valueOf(it) },
-            )
-            head == HEAD_V3 -> LiveSession(first, f[1].toLong(), f[2].toLong(), base, latest)
-            else -> LiveSession(first, first, f[2].toLong(), base, latest)
+            v >= 4 -> {
+                val at = SESSION_FIELDS + SPLIT_FIELDS + 1
+                LiveSession(
+                    first, f[1].toLong(), f[2].toLong(), base, latest,
+                    split(f, SESSION_FIELDS) ?: DrivePark(), f[at - 1].takeIf { it.isNotEmpty() }?.let { Mode.valueOf(it) },
+                    iceKm = if (v >= 5) num(f[at]) else null,
+                    evKm = if (v >= 5) num(f[at + 1]) else null,
+                    lastRpm = if (v >= 5) f[at + 2].takeIf { it.isNotEmpty() }?.toInt() else null,
+                )
+            }
+            head == HEAD_V3 -> LiveSession(first, f[1].toLong(), f[2].toLong(), base, latest, iceKm = null, evKm = null)
+            else -> LiveSession(first, first, f[2].toLong(), base, latest, iceKm = null, evKm = null)
         }
     }
 
@@ -328,17 +361,45 @@ object LiveTripCodec {
     private fun counters(f: List<String>, at: Int) =
         TripCounters(num(f[at]), num(f[at + 1]), num(f[at + 2]), num(f[at + 3]))
 
-    private fun estimates(s: String, v4: Boolean): List<TripEstimate> =
-        if (s == NONE) emptyList() else s.split(";").map { estimate(it, v4) }.takeLast(LiveTripTracker.MAX_FINISHED)
+    private fun estimates(s: String, v: Int): List<TripEstimate> =
+        if (s == NONE) emptyList() else s.split(";").map { estimate(it, v) }.takeLast(LiveTripTracker.MAX_FINISHED)
 
-    private fun estimate(s: String, v4: Boolean): TripEstimate {
+    private fun estimate(s: String, v: Int): TripEstimate {
         val f = s.split(",")
-        require(f.size == ESTIMATE_FIELDS + if (v4) SPLIT_FIELDS else 0)
+        require(f.size == ESTIMATE_FIELDS + (if (v >= 4) SPLIT_FIELDS else 0) + (if (v >= 5) ICE_FIELDS else 0))
         return TripEstimate(
             f[0].toLong(), f[1].toLong(), f[2].toDouble(), num(f[3]), num(f[4]), num(f[5]),
-            if (v4) split(f, ESTIMATE_FIELDS) else null,
+            if (v >= 4) split(f, ESTIMATE_FIELDS) else null,
+            if (v >= 5) num(f[ESTIMATE_FIELDS + SPLIT_FIELDS]) else null,
+            if (v >= 5) num(f[ESTIMATE_FIELDS + SPLIT_FIELDS + 1]) else null,
         )
     }
 
     private fun num(s: String): Double? = if (s.isEmpty()) null else s.toDouble()
+}
+
+/**
+ * Prefs layout without Android: the open session under one key (rewritten often), the finished list under its own
+ * (rewritten only when it changes), and the 4.4.1.14 single string migrated once.
+ */
+object LiveTripPersistence {
+    class Restored(val state: LiveTripState, val migrated: Boolean)
+
+    fun encodeOpen(s: LiveTripState): String = LiveTripCodec.encode(LiveTripState(open = s.open))
+
+    fun encodeFinished(s: LiveTripState): String = LiveTripCodec.encode(LiveTripState(finished = s.finished))
+
+    fun shouldSaveFinished(saved: List<TripEstimate>, now: List<TripEstimate>): Boolean = saved != now
+
+    /** [legacyRaw] is read only while neither new key exists; [Restored.migrated] then asks the caller to write both and drop it. */
+    fun restore(openRaw: String?, finishedRaw: String?, legacyRaw: String?): Restored {
+        if (openRaw == null && finishedRaw == null) {
+            return if (legacyRaw != null) Restored(LiveTripCodec.decode(legacyRaw), true) else Restored(LiveTripState(), false)
+        }
+        val state = LiveTripState(
+            open = LiveTripCodec.decode(openRaw).open,
+            finished = LiveTripCodec.decode(finishedRaw).finished,
+        )
+        return Restored(state, false)
+    }
 }

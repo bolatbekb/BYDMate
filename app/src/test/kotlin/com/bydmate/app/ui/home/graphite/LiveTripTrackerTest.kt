@@ -41,7 +41,7 @@ class LiveTripTrackerTest {
         assertEquals(12.4, e.km, 1e-9)
         assertEquals(2.1, e.kwh!!, 1e-9)
         assertEquals(0.6, e.litres!!, 1e-9)
-        assertEquals(4.0, e.hevKm!!, 1e-9)
+        assertEquals(0.0, e.hevKm!!, 1e-9) // no engine rpm in the readings: all km are EV, so no ICE km
     }
 
     @Test
@@ -197,7 +197,7 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun finishedExpiresAfter48h() {
+    fun finishedExpiresAfterTtl() {
         val prev = TripEstimate(1L, t0, 12.4, null, null, null)
         val tr = LiveTripTracker(LiveTripState(finished = listOf(prev)), t0 + 1)
         assertEquals(listOf(prev), tr.state.finished)
@@ -220,8 +220,8 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun codecWritesL4AndReadsL2() {
-        assertTrue(LiveTripCodec.encode(sample).startsWith("L4|"))
+    fun codecWritesL5AndReadsL2() {
+        assertTrue(LiveTripCodec.encode(sample).startsWith("L5|"))
         val open = LiveTripCodec.decode("L2|5,6,7,17000.0,,,,17001.0,,,|-|E").open!!
         assertEquals(5L, open.anchorMs)
         assertEquals(5L, open.startMs)
@@ -287,13 +287,12 @@ class LiveTripTrackerTest {
     }
 
     @Test
-    fun finishedListCapsAt8() {
+    fun finishedListCapsAtMax() {
         val tr = LiveTripTracker(LiveTripState(), t0)
         var now = t0
-        repeat(9) { i -> now = drive(tr, anchorA + i, 17000.0 + i * 5, 1.1 + i / 10.0, now) }
-        assertEquals(8, tr.state.finished.size)
-        val kms = tr.state.finished.map { Math.round(it.km * 10) / 10.0 }
-        assertEquals(listOf(1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9), kms)
+        val n = LiveTripTracker.MAX_FINISHED + 1
+        repeat(n) { i -> now = drive(tr, anchorA + i, 17000.0 + i * 5, 1.1 + (i % 10) / 10.0, now) }
+        assertEquals(LiveTripTracker.MAX_FINISHED, tr.state.finished.size)
     }
 
     @Test
