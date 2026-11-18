@@ -7,6 +7,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -44,6 +45,8 @@ import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.common.AutoBadge
 import com.bydmate.app.ui.home.common.K
 import com.bydmate.app.ui.home.common.MockupFrame
+import com.bydmate.app.ui.home.common.MockupInk
+import com.bydmate.app.ui.home.rememberHomeBitmap
 import com.bydmate.app.ui.home.common.SegmentBar
 import com.bydmate.app.ui.home.common.Txt
 import com.bydmate.app.ui.home.common.ValueUnit
@@ -75,9 +78,15 @@ fun CdHome(
     tabs: List<RetroTab> = emptyList(),
     onTab: (RetroTab) -> Unit = {},
 ) {
+    val base = rememberHomeBitmap(R.drawable.cd_base)
+    if (base == null) {
+        // Decoding off the main thread: a plain frame, never a half-drawn layout.
+        Box(Modifier.fillMaxSize().background(MockupInk.Letterbox))
+        return
+    }
     MockupFrame {
         Image(
-            painterResource(R.drawable.cd_base), contentDescription = null,
+            base, contentDescription = null,
             modifier = Modifier.fillMaxSize(), contentScale = ContentScale.FillBounds,
         )
         CdSpectrum(music.isPlaying)

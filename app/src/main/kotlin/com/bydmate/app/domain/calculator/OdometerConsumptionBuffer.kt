@@ -31,6 +31,11 @@ class OdometerConsumptionBuffer(
 ) : ConsumptionAvgSource {
     private val mutex = Mutex()
 
+    // fork (perf): the rows behind the last read, per window; dropped on any insert/delete/clear
+    // so a tick that stores nothing does not re-read up to 500 + 60 rows.
+    private class Window(val newestMileage: Double?, val samples: List<OdometerSampleEntity>)
+    private val memo = HashMap<Double, Window>() // fork (perf)
+
     suspend fun onSample(
         mileage: Double?,
         totalElec: Double?,
@@ -57,12 +62,14 @@ class OdometerConsumptionBuffer(
                 // legacy startup-race or a DiPars hiccup). Wipe and re-anchor
                 // on the new reading instead of silently rejecting forever.
                 dao.clear()
+                memo.clear() // fork (perf)
             } else {
                 val sameSession = prev.sessionId == sessionId
                 val tinyMove = mileage - prev.mileageKm < MIN_MILEAGE_DELTA
                 if (sameSession && tinyMove) return@withLock // spam suppression
             }
         }
+        memo.clear() // fork (perf)
         dao.insert(
             OdometerSampleEntity(
                 mileageKm = mileage,
@@ -97,6 +104,7 @@ class OdometerConsumptionBuffer(
         if (oldest.mileageKm < MIN_VALID_ODOMETER_KM) {
             val n = all.size
             dao.clear()
+            memo.clear() // fork (perf)
             n
         } else {
             0
@@ -118,9 +126,13 @@ class OdometerConsumptionBuffer(
     }
 
     private suspend fun computeAvg(windowKm: Double, fallbackOnShort: Boolean): Double {
-        val newest = dao.last() ?: return if (fallbackOnShort) fallbackEmaProvider() else Double.NaN
-        val samples = dao.windowFrom(newest.mileageKm - windowKm)
-        return computeAvgUnlocked(samples, windowKm, fallbackOnShort)
+        // fork (perf): reuse the rows until the next insert/delete (the fallback is still asked live)
+        val w = memo.getOrPut(windowKm) {
+            val newest = dao.last()
+            Window(newest?.mileageKm, if (newest == null) emptyList() else dao.windowFrom(newest.mileageKm - windowKm))
+        }
+        if (w.newestMileage == null) return if (fallbackOnShort) fallbackEmaProvider() else Double.NaN
+        return computeAvgUnlocked(w.samples, windowKm, fallbackOnShort)
     }
 
     private suspend fun computeAvgUnlocked(

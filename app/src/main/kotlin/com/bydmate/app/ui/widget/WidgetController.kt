@@ -43,6 +43,7 @@ import com.bydmate.app.domain.calculator.ConsumptionState
 import com.bydmate.app.domain.calculator.Trend
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.combine
+import com.bydmate.app.ui.home.firstThenSampled // fork (perf)
 import kotlinx.coroutines.launch
 
 /**
@@ -410,7 +411,8 @@ object WidgetController {
         var lastHideReason: String? = null
         dataJob = scope.launch {
             combine(
-                TrackingService.lastData,
+                // fork (perf): the first value at once, then at most one per second
+                TrackingService.lastData.firstThenSampled(1_000),
                 TrackingService.lastRangeKm,
                 TrackingService.sessionStartedAt,
                 TrackingService.tripDistanceKm,

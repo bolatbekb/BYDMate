@@ -40,6 +40,7 @@ object HomeStyleState {
         current = HomeStyle.fromId(id)
         if (id == HomeStyle.REMOVED_RS) select(context, current)
         CassetteRotation.init(context)
+        HomeBitmaps.preload(context, current)
         DayMileage.init(context)
         LiveTrip.init(context)
         GraphiteWarm.init(context)
@@ -48,6 +49,7 @@ object HomeStyleState {
 
     fun select(context: Context, style: HomeStyle) {
         current = style
+        HomeBitmaps.preload(context, style)
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, style.id).apply()
     }
 }

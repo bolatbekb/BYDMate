@@ -78,11 +78,14 @@ fun CassetteDoor(
     caption: String? = null,
 ) {
     val tm = rememberTextMeasurer(cacheSize = 8)
-    val face = ImageBitmap.imageResource(cassette.face)
-    val hubL = ImageBitmap.imageResource(cassette.hubLImage)
-    val hubR = ImageBitmap.imageResource(cassette.hubRImage)
+    val face = rememberHomeBitmap(cassette.face)
+    val hubL = rememberHomeBitmap(cassette.hubLImage)
+    val hubR = rememberHomeBitmap(cassette.hubRImage)
     val layers = cassette.layers
-    val back = layers?.let { ImageBitmap.imageResource(it.back) }
+    val back = layers?.let { rememberHomeBitmap(it.back) }
+    // Still decoding off the main thread: the empty deck door, no cassette yet.
+    if (face == null || hubL == null || hubR == null) { EmptyDoor(modifier, frame); return }
+    if (layers != null && back == null) { EmptyDoor(modifier, frame); return }
     Box(modifier.semantics { contentDescription = "Кассета: $label" }) {
         Canvas(Modifier.fillMaxSize()) {
             drawDoorBack()
@@ -123,6 +126,10 @@ fun CassetteDoor(
         Canvas(Modifier.fillMaxSize()) { drawDoorGlass(frame) }
     }
 }
+
+@Composable
+private fun EmptyDoor(modifier: Modifier, frame: Color) =
+    Canvas(modifier.fillMaxSize()) { drawDoorBack(); drawDoorGlass(frame) }
 
 /** A face-sized bitmap (stored at any width) drawn over the cassette's place in the door. */
 private fun DrawScope.drawFaceImage(image: ImageBitmap, k: Float, o: Offset) = drawImage(

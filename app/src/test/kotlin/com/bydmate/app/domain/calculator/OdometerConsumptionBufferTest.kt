@@ -330,4 +330,49 @@ class OdometerConsumptionBufferTest {
         val all = dao.snapshot()
         assertTrue("all samples within WINDOW_KM + hysteresis", all.all { it.mileageKm >= 10024.0 })
     }
+
+    /** fork (perf): counts the reads the buffer makes; everything else is the plain fake. */
+    private class CountingDao(private val d: FakeOdometerSampleDao = FakeOdometerSampleDao()) :
+        com.bydmate.app.data.local.dao.OdometerSampleDao by d {
+        var windowReads = 0
+        override suspend fun windowFrom(minMileage: Double): List<com.bydmate.app.data.local.entity.OdometerSampleEntity> {
+            windowReads++
+            return d.windowFrom(minMileage)
+        }
+    }
+
+    @Test fun `memo gives the same answers as fresh reads and reads once without inserts`() = runBlocking {
+        val counting = CountingDao()
+        val memoBuf = OdometerConsumptionBuffer(counting) { 18.0 }
+        var m = 10000.0
+        var e = 1500.0
+        memoBuf.onSample(m, e, 80, 1L)
+        repeat(40) { i ->
+            m += 0.7; e += 0.14 + (i % 3) * 0.02
+            memoBuf.onSample(m, e, 80, 1L)
+            // a fresh buffer over the same rows has no memo: the reference answer
+            val fresh = OdometerConsumptionBuffer(counting) { 18.0 }
+            assertEquals(fresh.recentAvgConsumption(), memoBuf.recentAvgConsumption(), 1e-9)
+            val fs = fresh.shortAvgConsumption()
+            val ms = memoBuf.shortAvgConsumption()
+            if (fs == null) assertNull(ms) else assertEquals(fs, ms!!, 1e-9)
+        }
+        // ticks that do not insert (tiny move, same session) hit the DAO not at all
+        val before = counting.windowReads
+        repeat(5) {
+            memoBuf.onSample(m + 0.001, e, 80, 1L)
+            memoBuf.recentAvgConsumption(); memoBuf.shortAvgConsumption()
+        }
+        assertEquals(before, counting.windowReads)
+    }
+
+    @Test fun `a clear on a mileage jump drops the memo`() = runBlocking {
+        val b = newBuffer(fallback = 18.0)
+        var m = 10000.0; var e = 1500.0
+        b.onSample(m, e, 80, 1L)
+        repeat(10) { m += 1.0; e += 0.2; b.onSample(m, e, 80, 1L) }
+        assertEquals(20.0, b.recentAvgConsumption(), 0.1)
+        b.onSample(m + 500.0, e, 80, 1L) // jump > 100 km: the buffer is wiped and re-anchored
+        assertEquals(18.0, b.recentAvgConsumption(), 0.001)
+    }
 }
