@@ -32,7 +32,8 @@ object TripLogEvents {
             "finish",
             listOf(
                 "start" to was.startMs, "lastSeen" to was.lastSeenMs, "km" to est.km, "kwh" to est.kwh,
-                "l" to est.litres, "ice" to est.iceKm, "ev" to est.evKm, "kept" to kept,
+                "l" to est.litres, "ice" to est.iceKm, "ev" to est.evKm, "hevCounter" to was.hevCounterKm(),
+                "rpmTrusted" to was.rpmTrusted(), "kept" to kept,
             ),
         )
     }

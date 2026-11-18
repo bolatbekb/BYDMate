@@ -136,6 +136,8 @@ data class LiveSession(
     val lastRpm: Int? = null,
     /** True once a non-null rpm was read in this session; the rpm rule covers only the intervals from then on. */
     val rpmSeen: Boolean = false,
+    /** True once an effective rpm > 0 was read: the rpm signal is known to show a running engine. */
+    val iceSeen: Boolean = false,
     val boot: BootInfo? = null,
     val sleepAtLastMs: Long = 0,
     val elapsedAtLastMs: Long = 0,
@@ -147,7 +149,7 @@ data class LiveSession(
      */
     fun estimate(): TripEstimate {
         val km = delta(base.odometerKm, latest.odometerKm)?.coerceAtLeast(0.0) ?: 0.0
-        val covered = rpmSeen && iceKm != null && evKm != null && iceKm + evKm >= LiveTripTracker.MIN_RPM_COVERAGE * km
+        val covered = rpmTrusted() && rpmSeen && iceKm != null && evKm != null && iceKm + evKm >= LiveTripTracker.MIN_RPM_COVERAGE * km
         return TripEstimate(
             startMs = startMs,
             endMs = lastSeenMs,
@@ -161,6 +163,21 @@ data class LiveSession(
         )
     }
 
+    /** The HEV counter's km over the session, null when unknown. */
+    fun hevCounterKm(): Double? = delta(base.hevKm, latest.hevKm)
+
+    /**
+     * One-sided guard of the hybrid rpm rule: an rpm that never showed a running engine is not trusted when the car
+     * burned fuel ([LiveTripTracker.FUEL_BURNED_L]) or, with the litres unknown, its HEV counter grew
+     * [LiveTripTracker.HEV_GREW_KM]. The rule «engine off = EV» otherwise stands.
+     */
+    fun rpmTrusted(): Boolean {
+        if (iceSeen) return true
+        val litres = delta(base.fuelL, latest.fuelL)
+        val contradicted = litres?.let { it >= LiveTripTracker.FUEL_BURNED_L } ?: ((hevCounterKm() ?: 0.0) >= LiveTripTracker.HEV_GREW_KM)
+        return !contradicted
+    }
+
     private fun delta(from: Double?, to: Double?): Double? =
         if (from == null || to == null) null else to - from
 
@@ -172,7 +189,7 @@ data class LiveSession(
         return copy(
             iceKm = if (k != null && ice) iceKm?.plus(k) else iceKm,
             evKm = if (k != null && !ice) evKm?.plus(k) else evKm,
-            lastRpm = rpm, rpmSeen = seen,
+            lastRpm = rpm, rpmSeen = seen, iceSeen = iceSeen || (rpm ?: 0) > 0,
         )
     }
 }
@@ -309,6 +326,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
                 "reason" to reason, "sleepDeltaS" to (boot.sleepMs - s.sleepAtLastMs) / MS_PER_SECOND,
                 "uptimeDeltaS" to (boot.uptimeMs - (s.elapsedAtLastMs - s.sleepAtLastMs)) / MS_PER_SECOND,
                 "exit" to exit?.description?.takeIf { firstTick },
+                "hevCounter" to s.hevCounterKm(), "rpmTrusted" to s.rpmTrusted(),
             ),
         )
         finishOpen()
@@ -367,7 +385,7 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         val rpm = effectiveRpm(data)
         val fresh = LiveSession(
             anchorMs ?: nowMs, startMs, startMs, c, c, lastMode = Mode.PARK, lastRpm = rpm,
-            rpmSeen = rpm != null, boot = boot, sleepAtLastMs = boot.sleepMs, elapsedAtLastMs = boot.elapsedMs,
+            rpmSeen = rpm != null, iceSeen = (rpm ?: 0) > 0, boot = boot, sleepAtLastMs = boot.sleepMs, elapsedAtLastMs = boot.elapsedMs,
         )
         val caught = catchUp(fresh, c, nowMs)
         return caught.copy(lastSeenMs = nowMs, lastMode = modeOf(data.gear, data.speed))
@@ -378,29 +396,50 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         val last = state.last?.counters
         val was = last?.odometerKm
         val now = c.odometerKm
-        val reason = when {
-            was == null || now == null -> REJECT_UNKNOWN
-            now < was -> REJECT_BACKWARDS
-            now - was > CATCH_UP_BASE_KM + MAX_CATCH_UP_KMH * (nowMs - s.startMs + CATCH_UP_SLACK_MS) / MS_PER_HOUR -> REJECT_TOO_FAR
-            else -> null
-        }
+        val reason = rejectReason(was, now, nowMs - s.startMs)
         if (last == null || reason != null) {
             events += TripEvent("catch_up_rejected", listOf("reason" to reason, "lastOdo" to was, "odo" to now))
             return s.copy(split = s.attributed(0.0, 0.0, nowMs, Mode.PARK))
         }
-        val mode = if (checkNotNull(now) - checkNotNull(was) >= ODO_MOVED_KM) Mode.DRIVE else Mode.PARK
+        return accepted(s, last, c, (now ?: 0.0) - (was ?: 0.0), nowMs)
+    }
+
+    /** The catch-up from [last] over [km]: every counter's step is checked on its own, a failing one is not taken. */
+    private fun accepted(s: LiveSession, last: TripCounters, c: TripCounters, km: Double, nowMs: Long): LiveSession {
+        val mode = if (km >= ODO_MOVED_KM) Mode.DRIVE else Mode.PARK
+        val ms = nowMs - s.startMs
+        val h = (ms + CATCH_UP_SLACK_MS) / MS_PER_HOUR
         val kwh = counterDelta(last.elecKwh, c.elecKwh)
         val litres = counterDelta(last.fuelL, c.fuelL)
-        val split = s.attributed(kwh, litres, nowMs, mode)
+        val hevStep = counterDelta(last.hevKm, c.hevKm)
+        val ok = booleanArrayOf(
+            kwh in -(1.0 + MAX_KW * h)..(1.0 + MAX_KW * h),
+            litres in -0.5..(0.5 + MAX_LITRES_PER_H * h),
+            hevStep in 0.0..(km + 1.0),
+        )
+        val split = s.split.add(mode, ms.coerceAtLeast(0), if (ok[0]) kwh else 0.0, if (ok[1]) litres else 0.0)
         events += TripEvent(
             "catch_up",
             listOf(
-                "km" to now - was, "kwh" to (split.driveKwh + split.parkKwh).takeIf { c.elecKwh != null && last.elecKwh != null },
-                "l" to (split.driveL + split.parkL).takeIf { c.fuelL != null && last.fuelL != null },
-                "mode" to mode.name, "ms" to nowMs - s.startMs,
+                "km" to km, "kwh" to kwh.takeIf { c.elecKwh != null && last.elecKwh != null },
+                "l" to litres.takeIf { c.fuelL != null && last.fuelL != null }, "hev" to hevStep.takeIf { c.hevKm != null && last.hevKm != null },
+                "mode" to mode.name, "ms" to ms,
+                "rejected" to listOf("kwh", "l", "hev").filterIndexed { i, _ -> !ok[i] }.joinToString("+").ifEmpty { null },
             ),
         )
-        return s.copy(base = last.fillFrom(c), split = split)
+        // A counter whose step is implausible takes the first reading's value as its base (only that counter).
+        val base = TripCounters(
+            last.odometerKm, if (ok[0]) last.elecKwh ?: c.elecKwh else c.elecKwh,
+            if (ok[1]) last.fuelL ?: c.fuelL else c.fuelL, if (ok[2]) last.hevKm ?: c.hevKm else c.hevKm,
+        )
+        return s.copy(base = base, split = split)
+    }
+
+    private fun rejectReason(was: Double?, now: Double?, sinceStartMs: Long): String? = when {
+        was == null || now == null -> REJECT_UNKNOWN
+        now < was -> REJECT_BACKWARDS
+        now - was > CATCH_UP_BASE_KM + MAX_CATCH_UP_KMH * (sinceStartMs + CATCH_UP_SLACK_MS) / MS_PER_HOUR -> REJECT_TOO_FAR
+        else -> null
     }
 
     /** Continues the session with a fresh reading; a gap in ticks inside the cycle is attributed by the odometer and noted. */
@@ -511,6 +550,10 @@ class LiveTripTracker(initial: LiveTripState, nowMs: Long, private val exit: Exi
         const val FINISHED_TTL_MS = 31 * 24 * 3_600_000L
         const val MAX_FINISHED = 400
 
+        /** Fuel burned over a trip that proves the engine ran, and HEV-counter km that do when the litres are unknown. */
+        const val FUEL_BURNED_L = 0.2
+        const val HEV_GREW_KM = 2.0
+
         /** Catch-up window: the odometer step may be this much plus [MAX_CATCH_UP_KMH] over the pre-app interval and its slack. */
         const val CATCH_UP_BASE_KM = 0.5
         const val MAX_CATCH_UP_KMH = 200.0
@@ -557,7 +600,7 @@ object LiveTripCodec {
     private const val ICE_FIELDS = 2
     private const val SESSION_ICE_FIELDS = 3
     private const val SESSION_SEEN_FIELD = 1
-    private const val SESSION_BOOT_FIELDS = 6
+    private const val SESSION_BOOT_FIELDS = 7
     private const val CLOSED_FIELDS = 4
     private const val LAST_FIELDS = 5
 
@@ -590,7 +633,7 @@ object LiveTripCodec {
             "," + listOf(o.iceKm, o.evKm, o.lastRpm).joinToString(",") { it?.toString() ?: "" } +
             "," + (if (o.rpmSeen) "1" else "0") +
             "," + listOf(o.boot?.bootCount, o.boot?.elapsedMs, o.boot?.sleepMs, o.sleepAtLastMs, o.elapsedAtLastMs, o.offSinceMs)
-                .joinToString(",") { it?.toString() ?: "" }
+                .joinToString(",") { it?.toString() ?: "" } + "," + (if (o.iceSeen) "1" else "0")
 
     private fun closed(s: String): ClosedCycle? {
         if (s == NONE) return null
@@ -713,6 +756,6 @@ private fun LiveSession.withBootFields(f: List<String>, at: Int, v: Int): LiveSe
     val boot = elapsed?.let { BootInfo(f[at].takeIf { c -> c.isNotEmpty() }?.toInt(), it, f[at + 2].toLong()) }
     return copy(
         boot = boot, sleepAtLastMs = f[at + 3].toLong(), elapsedAtLastMs = f[at + 4].toLong(),
-        offSinceMs = f[at + 5].takeIf { it.isNotEmpty() }?.toLong(),
+        offSinceMs = f[at + 5].takeIf { it.isNotEmpty() }?.toLong(), iceSeen = f[at + 6] == "1",
     )
 }

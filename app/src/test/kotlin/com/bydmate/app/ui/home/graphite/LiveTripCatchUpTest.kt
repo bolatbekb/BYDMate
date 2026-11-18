@@ -205,7 +205,91 @@ class LiveTripCatchUpTest {
         assertEquals(17002.0, last.counters.odometerKm!!, 1e-9)
         assertEquals(t0, last.atMs)
         assertEquals(tr.state.copy(finished = emptyList()), LiveTripCodec.decode(LiveTripPersistence.encodeOpen(tr.state)))
-        tr.tick(reading(17002.0), t0 + 60_000)
+        tr.tick(reading(17002.0), t0 + 120_000)
         assertNull(tr.state.last)
+    }
+
+    private fun tankCar(vararg steps: Triple<Double, Double?, Int?>, litres: (Int) -> Double?): LiveTripTracker {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        steps.forEachIndexed { i, (odo, fuel, hev) ->
+            tr.tick(reading(odo, 4, 40).copy(fuelTotalL = fuel ?: litres(i), fuelPercent = 80, mileageHevKm = hev, engineRpm = null), t0 + i * 120_000L)
+        }
+        return tr
+    }
+
+    @Test
+    fun rpmNeverRunningButFuelBurnedIsNotTrusted() {
+        val tr = tankCar(Triple(17000.0, 855.7, 6751), Triple(17005.0, 856.5, 6755), Triple(17010.3, 857.3, 6760)) { null }
+        val e = tr.state.open!!.estimate()
+        assertEquals(9.0, e.hevKm!!, 1e-9)
+        assertNull(e.iceKm)
+        assertNull(e.evKm)
+    }
+
+    @Test
+    fun rpmNeverRunningAndNoFuelBurnedIsEv() {
+        val tr = tankCar(Triple(17000.0, 855.7, 6751), Triple(17005.0, 855.7, 6755), Triple(17010.3, 855.7, 6760)) { null }
+        val e = tr.state.open!!.estimate()
+        assertEquals(0.0, e.hevKm!!, 1e-9)
+        assertEquals(10.3, e.evKm!!, 1e-9)
+    }
+
+    @Test
+    fun rpmSeenOnceKeepsTheRuleDespiteFuel() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.tick(hybrid(17000.0, hev = 5000).copy(fuelTotalL = 855.0), t0)
+        tr.tick(hybrid(17001.0, 4, 40, rpm = 1500, hev = 5001).copy(fuelTotalL = 855.5), t0 + 120_000)
+        tr.tick(hybrid(17005.0, 4, 40, rpm = null, hev = 5005).copy(fuelTotalL = 856.5), t0 + 240_000)
+        val s = tr.state.open!!
+        assertTrue(s.iceSeen)
+        assertTrue(s.rpmTrusted())
+        assertEquals(5.0, s.estimate().iceKm!!, 1e-9) // the interval after a running-engine reading still counts as ICE
+        assertEquals(0.0, s.estimate().evKm!!, 1e-9)
+        assertEquals(s, LiveTripCodec.decode(LiveTripCodec.encode(tr.state)).open)
+    }
+
+    @Test
+    fun litresUnknownFallsBackToTheHevCounter() {
+        val tr = LiveTripTracker(LiveTripState(), t0)
+        tr.tick(reading(17000.0).copy(fuelPercent = 80, mileageHevKm = 5000), t0)
+        tr.tick(reading(17010.0, 4, 40).copy(fuelPercent = 80, mileageHevKm = 5003), t0 + 20_000)
+        val e = tr.state.open!!.estimate()
+        assertEquals(3.0, e.hevKm!!, 1e-9)
+        assertNull(e.iceKm)
+    }
+
+    @Test
+    fun catchUpDropsACounterWhoseStepIsImplausibleButKeepsTheOdometer() {
+        val startAt = t0 + 30 * min
+        val first = LiveTripTracker(LiveTripState(), t0)
+        first.tick(reading(17000.0, elec = 2944.0).copy(fuelTotalL = 855.0, mileageHevKm = 5000), t0)
+        val exit = ExitInfo(10, "due to quickboot", t0 + 1_000)
+        val tr = LiveTripTracker(LiveTripCodec.decode(LiveTripCodec.encode(first.state)), startAt, exit)
+        tr.tick(null, startAt, boot.copy(elapsedMs = 2_000_000L, sleepMs = 600_000L))
+        tr.drainEvents()
+        // overnight-like kWh drop of 14, a refuel-like fuel jump of 40 L, HEV counter jumped far
+        tr.tick(reading(17000.4, elec = 2930.0).copy(fuelTotalL = 895.0, mileageHevKm = 5200), startAt + 30_000, later)
+        val o = tr.state.open!!
+        assertEquals(17000.0, o.base.odometerKm!!, 1e-9)
+        assertEquals(2930.0, o.base.elecKwh!!, 1e-9)
+        assertEquals(895.0, o.base.fuelL!!, 1e-9)
+        assertEquals(5200.0, o.base.hevKm!!, 1e-9)
+        assertEquals(0.4, o.estimate().km, 1e-9)
+        assertEquals(0.0, o.split.driveKwh, 1e-9)
+        assertEquals("kwh+l+hev", field(tr.drainEvents().first { it.name == "catch_up" }, "rejected"))
+    }
+
+    @Test
+    fun catchUpKeepsPlausibleCountersAsBase() {
+        val startAt = t0 + 30 * min
+        val first = LiveTripTracker(LiveTripState(), t0)
+        first.tick(reading(17000.0, elec = 2650.0).copy(fuelTotalL = 855.0, mileageHevKm = 5000), t0)
+        val tr = LiveTripTracker(LiveTripCodec.decode(LiveTripCodec.encode(first.state)), startAt, ExitInfo(10, "due to quickboot", t0 + 1_000))
+        tr.tick(null, startAt, boot.copy(elapsedMs = 2_000_000L, sleepMs = 600_000L))
+        tr.tick(reading(17000.8, 4, 40, elec = 2650.2).copy(fuelTotalL = 855.1, mileageHevKm = 5001), startAt + min, later)
+        val o = tr.state.open!!
+        assertEquals(2650.0, o.base.elecKwh!!, 1e-9)
+        assertEquals(855.0, o.base.fuelL!!, 1e-9)
+        assertEquals(5000.0, o.base.hevKm!!, 1e-9)
     }
 }
