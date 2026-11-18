@@ -62,7 +62,7 @@ class TripMatchTest {
         assertEquals(20.0, m[0].km!!, 1e-9)
         assertEquals(3.0, m[0].kwh!!, 1e-9)
         assertEquals(0.8, m[0].litres!!, 1e-9)
-        assertEquals(8.0, m[0].hevKm!!, 1e-9)
+        assertEquals(4.0, m[0].hevKm!!, 1e-9)
     }
 
     @Test fun mergeKeepsRecordedLitres() {
@@ -77,12 +77,29 @@ class TripMatchTest {
         assertEquals(listOf(r), TripMatch.merge(listOf(r), listOf(full(t(9, 0), t(9, 30), 10.0, 0.8, 4.0))))
     }
 
-    @Test fun mergeEstimateUsedOnceByLargerOverlap() {
-        val small = TripRow(t(8, 0), t(8, 10), 5.0, null, null, null)
-        val big = TripRow(t(8, 10), t(8, 40), 5.0, null, null, null)
-        val m = TripMatch.merge(listOf(small, big), listOf(full(t(8, 5), t(8, 40), 10.0, 0.8, 4.0)))
-        assertEquals(null, m[0].litres)
-        assertEquals(0.8, m[1].litres!!, 1e-9)
+    @Test fun mergeSplitsEstimateAcrossFragmentsByKm() {
+        val a = TripRow(t(8, 0), t(8, 20), 3.0, null, null, null)
+        val b = TripRow(t(8, 30), t(8, 50), 7.0, null, null, null)
+        val m = TripMatch.merge(listOf(a, b), listOf(full(t(8, 0), t(8, 55), 10.0, 1.0, 9.0)))
+        assertEquals(0.3, m[0].litres!!, 1e-9)
+        assertEquals(2.7, m[0].hevKm!!, 1e-9)
+        assertEquals(0.7, m[1].litres!!, 1e-9)
+        assertEquals(6.3, m[1].hevKm!!, 1e-9)
+        assertEquals(0.6, m[0].kwh!!, 1e-9)
+    }
+
+    @Test fun mergeShareCappedWhenRecordLongerThanEstimate() {
+        val r = TripRow(t(8, 0), t(9, 0), 30.0, null, null, null)
+        val m = TripMatch.merge(listOf(r), listOf(full(t(8, 10), t(8, 40), 10.0, 1.0, 9.0)))
+        assertEquals(1.0, m[0].litres!!, 1e-9)
+        assertEquals(9.0, m[0].hevKm!!, 1e-9)
+    }
+
+    @Test fun mergeMergedRowsAreNotPending() {
+        val a = TripRow(t(8, 0), t(8, 20), 3.0, null, null, null)
+        val b = TripRow(t(8, 30), t(8, 50), 7.0, null, null, null)
+        val e = full(t(8, 0), t(8, 55), 10.0, 1.0, 9.0)
+        assertTrue(TripMatch.pending(LiveTripState(null, listOf(e)), listOf(a, b), t(10, 0)).isEmpty())
     }
 
     @Test fun mergeRowTakesLargerOverlapEstimate() {
@@ -91,7 +108,7 @@ class TripMatchTest {
         val b = full(t(8, 15), t(8, 55), 5.0, 0.9, 2.0)
         val m = TripMatch.merge(listOf(r), listOf(a, b))
         assertEquals(0.9, m[0].litres!!, 1e-9)
-        assertEquals(4.0, m[0].hevKm!!, 1e-9)
+        assertEquals(2.0, m[0].hevKm!!, 1e-9)
     }
 
     @Test fun mergeWithoutIceKmKeepsRowHevKm() {

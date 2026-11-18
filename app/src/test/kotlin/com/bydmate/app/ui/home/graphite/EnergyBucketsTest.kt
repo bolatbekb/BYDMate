@@ -123,6 +123,6 @@ class EnergyBucketsTest {
         val e = TripEstimate(ts(8, 1), ts(8, 39), 10.0, 1.0, 0.8, hevKm = 4.0, iceKm = 4.0)
         val s = EnergyBuckets.build(TripMatch.merge(listOf(r), listOf(e)), ChartPeriod.DAY, now)
         assertEquals(0.8, s.totalLitres!!, 1e-9)
-        assertEquals(60, s.electricShare)
+        assertEquals(80, s.electricShare)
     }
 }

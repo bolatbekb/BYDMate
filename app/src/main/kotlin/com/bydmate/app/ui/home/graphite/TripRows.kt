@@ -47,31 +47,26 @@ object TripMatch {
 
     /**
      * Fills a recorded trip's gaps from the live estimate it overlaps (the one with the largest overlap
-     * above [MIN_OVERLAP_MS]; each estimate serves one row). The recorded km stays; kWh and litres are
-     * taken from the estimate only when the record has none; the engine km is the estimate's ICE km
-     * scaled to the recorded distance when known. Rows with no estimate are unchanged.
+     * above [MIN_OVERLAP_MS]; one estimate may serve several fragments). The recorded km stays; kWh and
+     * litres are taken from the estimate only when the record has none, and the engine km is the
+     * estimate's ICE km, all times the row's share min(1, R.km / E.km). Rows with no estimate are unchanged.
      */
-    fun merge(recorded: List<TripRow>, estimates: List<TripEstimate>): List<TripRow> {
-        val pairs = buildList {
-            recorded.forEachIndexed { i, r ->
-                if (r.km?.takeIf { it.isFinite() && it > 0.0 } == null) return@forEachIndexed
-                estimates.forEachIndexed { j, e -> overlapMs(r, e).takeIf { it > 0L }?.let { add(Triple(i, j, it)) } }
-            }
-        }.sortedByDescending { it.third }
-        val usedRows = HashSet<Int>()
-        val usedEst = HashSet<Int>()
-        val match = HashMap<Int, TripEstimate>()
-        for ((i, j, _) in pairs) {
-            if (i in usedRows || j in usedEst) continue
-            usedRows += i; usedEst += j; match[i] = estimates[j]
+    fun merge(recorded: List<TripRow>, estimates: List<TripEstimate>): List<TripRow> =
+        recorded.map { r ->
+            if (r.km?.takeIf { it.isFinite() && it > 0.0 } == null) return@map r
+            val e = estimates.maxByOrNull { overlapMs(r, it) }?.takeIf { overlapMs(r, it) > 0L } ?: return@map r
+            fill(r, e)
         }
-        return recorded.mapIndexed { i, r -> match[i]?.let { fill(r, it) } ?: r }
-    }
 
+    /** The row's share of the estimate by distance; 0 when either km is unusable. */
     private fun fill(r: TripRow, e: TripEstimate): TripRow {
-        val ice = e.iceKm
         val rk = r.km ?: 0.0
-        val scaled = if (ice != null && e.km > 0.0 && rk > 0.0) ice * rk / e.km else r.hevKm
-        return r.copy(kwh = r.kwh ?: e.kwh, litres = r.litres ?: e.litres, hevKm = scaled)
+        val share = if (e.km > 0.0 && rk > 0.0) minOf(1.0, rk / e.km) else 0.0
+        val ice = e.iceKm
+        return r.copy(
+            kwh = r.kwh ?: e.kwh?.times(share),
+            litres = r.litres ?: e.litres?.times(share),
+            hevKm = if (ice != null && share > 0.0) ice * share else r.hevKm,
+        )
     }
 }
