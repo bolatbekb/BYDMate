@@ -35,13 +35,14 @@ data class TimedSnapshot(val data: DiParsData, val measuredAtElapsedMs: Long)
  * fetch() returns null.
  */
 @Singleton
-class SharedAdaptiveLoop @Suppress("LongParameterList") constructor( // test seams for clock, dispatcher, screen
+class SharedAdaptiveLoop @Suppress("LongParameterList") constructor( // fork (perf): test seams for clock, dispatcher, screen
     private val parsReader: ParsReader,
     private val lastStateDao: LastStateDao,
     private val energyDataReader: EnergyDataReader,
     private val dispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val cadence: CadenceConfig = CadenceConfig.default(),
     private val elapsedNow: () -> Long = SystemClock::elapsedRealtime,
+    // fork (perf, 353c5775): screen state for the cadence.
     /** Head-unit screen on? Off while driving drops the cadence to the parked one. */
     private val screenOn: () -> Boolean = { true },
 ) {
@@ -98,10 +99,11 @@ class SharedAdaptiveLoop @Suppress("LongParameterList") constructor( // test sea
             _flow.emit(data)
             runCatching { persistSnapshot(data) }
                 .onFailure { Log.w(TAG, "persistSnapshot failed, loop continues", it) }
-            delay(nextInterval(LoopFsm.classify(data)))
+            delay(nextInterval(LoopFsm.classify(data))) // fork (perf): screen-aware cadence
         }
     }
 
+    // fork (perf, 353c5775): screen-off drive polled like a parked car.
     /** The cadence for [state]; with the screen off a drive is polled like a parked car (trip km and
      *  kWh come from the car's lifetime counters, discrete events still arrive by push). */
     internal fun nextInterval(state: LoopState): Long =

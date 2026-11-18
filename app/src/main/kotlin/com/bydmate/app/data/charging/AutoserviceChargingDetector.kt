@@ -118,6 +118,7 @@ class AutoserviceChargingDetector @Inject @Suppress("LongParameterList") constru
         // longer the true charge start, so we skip reconstruction. Applies ONLY
         // to socDelta below SOC_DELTA_TRUSTED_CHARGE (i.e. exactly 2%).
         const val ODOMETER_MOVED_EPSILON_KM = 1.0f
+        // fork (perf, 353c5775): the parked anchor is written only when it changed.
         /** Odometer step that forces a parked-anchor write; far below [ODOMETER_MOVED_EPSILON_KM]. */
         const val ANCHOR_MILEAGE_STEP_KM = 0.2f
         /** Longest the parked anchor goes unwritten while nothing changes. */
@@ -244,7 +245,7 @@ class AutoserviceChargingDetector @Inject @Suppress("LongParameterList") constru
                     // anchor's odometer go stale (a 7 km drive at constant SOC),
                     // and the Step-5 odometer gate then ate a real dacha charge
                     // (field report 2026-06-11, Song, 10 kWh lost).
-                    // Perf: the write ran on every 1 s tick; it is skipped while SOC is the same,
+                    // fork (perf): the write ran on every 1 s tick; it is skipped while SOC is the same,
                     // the odometer moved less than ANCHOR_MILEAGE_STEP_KM and the anchor is
                     // younger than ANCHOR_HEARTBEAT_MS, so the anchor never lags more than
                     // 0.2 km behind the car — well inside the 1 km odometer gate.

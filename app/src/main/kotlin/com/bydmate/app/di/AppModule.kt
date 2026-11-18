@@ -429,7 +429,7 @@ object AppModule {
             Room.databaseBuilder(
                 context,
                 AppDatabase::class.java,
-                com.bydmate.app.demo.DemoMode.dbFile(context, AppDatabase.FILE_NAME)
+                com.bydmate.app.demo.DemoMode.dbFile(context, AppDatabase.FILE_NAME) // fork: DEMO database
             )
         )
             .build()
@@ -536,22 +536,22 @@ object AppModule {
     fun provideAdbOnDeviceClient(
         @ApplicationContext context: Context,
         keyStore: com.bydmate.app.data.autoservice.AdbKeyStore
-    ): com.bydmate.app.data.autoservice.AdbOnDeviceClient = com.bydmate.app.demo.DemoBindings.adb(
+    ): com.bydmate.app.data.autoservice.AdbOnDeviceClient = com.bydmate.app.demo.DemoBindings.adb( // fork: DEMO binding
         context, com.bydmate.app.data.autoservice.AdbOnDeviceClientImpl(context, keyStore))
 
     @Provides
     @Singleton
     fun provideAutoserviceClient(
-        @ApplicationContext context: Context,
+        @ApplicationContext context: Context, // fork: DEMO binding
         adb: com.bydmate.app.data.autoservice.AdbOnDeviceClient
-    ): com.bydmate.app.data.autoservice.AutoserviceClient = com.bydmate.app.demo.DemoBindings.autoservice(context) {
+    ): com.bydmate.app.data.autoservice.AutoserviceClient = com.bydmate.app.demo.DemoBindings.autoservice(context) { // fork: DEMO binding
         com.bydmate.app.data.autoservice.AutoserviceClientImpl(adb)
-    }
+    } // fork: DEMO binding
 
     @Provides
     @Singleton
     fun provideSharedAdaptiveLoop(
-        @ApplicationContext context: Context,
+        @ApplicationContext context: Context, // fork (perf): screen state
         parsReader: ParsReader,
         lastStateDao: LastStateDao,
         energyDataReader: EnergyDataReader,
@@ -559,7 +559,7 @@ object AppModule {
         parsReader = parsReader,
         lastStateDao = lastStateDao,
         energyDataReader = energyDataReader,
-        screenOn = { context.getSystemService(android.os.PowerManager::class.java)?.isInteractive != false },
+        screenOn = { context.getSystemService(android.os.PowerManager::class.java)?.isInteractive != false }, // fork (perf)
         cadence = CadenceConfig.default(),
     )
 
@@ -604,7 +604,7 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideHelperClient(@ApplicationContext context: Context): com.bydmate.app.data.vehicle.HelperClient =
+    fun provideHelperClient(@ApplicationContext context: Context): com.bydmate.app.data.vehicle.HelperClient = // fork: DEMO binding
         com.bydmate.app.demo.DemoBindings.helper(context, com.bydmate.app.data.vehicle.HelperClientImpl())
 
     @Provides

@@ -300,6 +300,7 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
             .remove(KEY_SERVICE_START_SELF_RESTART_ELAPSED).commit()
     }
 
+    // fork (perf, 353c5775): parsed triggers cached by their JSON text.
     /** Parsed triggers by their JSON text: evaluate() runs every tick and on every push. */
     private val triggerCache = object : LinkedHashMap<String, List<TriggerDef>>(16, 0.75f, true) {
         override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<TriggerDef>>?) = size > 64
@@ -337,7 +338,7 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
 
         for (rule in rules) {
             try {
-                val triggers = parsedTriggers(rule.triggers)
+                val triggers = parsedTriggers(rule.triggers) // fork (perf): cached parse
                 if (triggers.isEmpty()) continue
                 val oneShot = triggers.firstOrNull { it.kind == OneShotTrigger.KIND }
                 if (oneShot != null && OneShotTrigger.state(oneShot.value, now) == OneShotTrigger.State.EXPIRED) {
