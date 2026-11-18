@@ -2,6 +2,7 @@ package com.bydmate.app.ui.home.graphite
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class TripCardCalcTest {
@@ -21,36 +22,54 @@ class TripCardCalcTest {
 
     private fun row(startMs: Long, endMs: Long?, km: Double?) = TripRow(startMs, endMs, km, null, null, null)
 
-    @Test fun drivingShowsCurrent() {
-        val live = LiveTripState(open(t0800, t0800 + 31 * min, 12.4))
-        val m = TripCardCalc.from(live, emptyList(), day)
+    private fun split(session: LiveSession, d: DrivePark) = session.copy(split = d)
+
+    @Test fun drivingShowsCurrentWithSplit() {
+        val s = split(
+            open(t0800, t0800 + 60 * min, 12.4),
+            DrivePark(driveMs = 42 * min + 30_000, parkMs = 15 * min + 59_000, driveKwh = 4.9, parkKwh = 0.6, driveL = 0.8),
+        )
+        val m = TripCardCalc.from(LiveTripState(s), emptyList(), day)
         assertEquals(TripCardMode.CURRENT, m.mode)
         assertEquals(12.4, m.km!!, 1e-9)
-        assertEquals(31, m.minutes)
-        assertEquals(24, m.avgKmh)
+        assertEquals(42, m.driveMinutes)
+        assertEquals(15, m.parkMinutes)
+        assertEquals(4.9, m.driveKwh!!, 1e-9)
+        assertEquals(0.8, m.driveL!!, 1e-9)
+        assertEquals(0.6, m.parkKwh!!, 1e-9)
+        assertEquals(0.0, m.parkL!!, 1e-9)
     }
 
-    @Test fun avgUsesExactDuration() {
-        val live = LiveTripState(open(t0800, t0800 + 90_000L, 2.0))
-        val m = TripCardCalc.from(live, emptyList(), day)
-        assertEquals(TripCardMode.CURRENT, m.mode)
-        assertEquals(1, m.minutes)
-        assertEquals(80, m.avgKmh)
-    }
-
-    @Test fun avgHiddenUnderOneMinute() {
-        val live = LiveTripState(open(t0800, t0800 + 59_000L, 0.9))
-        val m = TripCardCalc.from(live, emptyList(), day)
-        assertNull(m.avgKmh)
-    }
-
-    @Test fun justSwitchedOnShowsLastTrip() {
+    @Test fun justSwitchedOnShowsLastTripWithRecordedDashes() {
         val live = LiveTripState(open(t0800 + 60 * min, t0800 + 60 * min, 0.05))
-        val today = listOf(row(t0800, t0800 + 30 * min, 30.0))
+        val today = listOf(TripRow(t0800, t0800 + 30 * min, 30.0, 5.0, 1.0, null))
         val m = TripCardCalc.from(live, today, day)
         assertEquals(TripCardMode.LAST, m.mode)
         assertEquals(30.0, m.km!!, 1e-9)
-        assertEquals(30, m.minutes)
+        assertEquals(30, m.driveMinutes)
+        assertEquals(5.0, m.driveKwh!!, 1e-9)
+        assertEquals(1.0, m.driveL!!, 1e-9)
+        assertNull(m.parkMinutes)
+        assertNull(m.parkKwh)
+        assertNull(m.parkL)
+    }
+
+    @Test fun finishedEstimateWithSplitKeepsIt() {
+        val fin = TripEstimate(t0800, t0800 + 20 * min, 12.4, 3.0, 0.0, null, DrivePark(driveMs = 15 * min, parkMs = 5 * min, driveKwh = 2.5, parkKwh = 0.5))
+        val m = TripCardCalc.from(LiveTripState(null, listOf(fin)), emptyList(), day)
+        assertEquals(TripCardMode.LAST, m.mode)
+        assertEquals(15, m.driveMinutes)
+        assertEquals(5, m.parkMinutes)
+        assertEquals(0.5, m.parkKwh!!, 1e-9)
+    }
+
+    @Test fun finishedEstimateWithoutSplitReadsAsRecorded() {
+        val fin = TripEstimate(t0800, t0800 + 20 * min, 12.4, 3.0, null, null)
+        val m = TripCardCalc.from(LiveTripState(null, listOf(fin)), emptyList(), day)
+        assertEquals(20, m.driveMinutes)
+        assertEquals(3.0, m.driveKwh!!, 1e-9)
+        assertNull(m.parkMinutes)
+        assertNull(m.parkKwh)
     }
 
     @Test fun unconfirmedFinishedIsLast() {
@@ -77,25 +96,18 @@ class TripCardCalcTest {
 
     @Test fun nothingTodayIsEmpty() {
         val m = TripCardCalc.from(LiveTripState(), emptyList(), day)
-        assertEquals(TripCardModel(TripCardMode.EMPTY, null, null, null, null, null, null), m)
-    }
-
-    @Test fun evWithoutFuelHidesLitresAndShare() {
-        val live = LiveTripState(open(t0800, t0800 + 30 * min, 10.0, kwh = 2.0))
-        val m = TripCardCalc.from(live, emptyList(), day)
-        assertNull(m.electricShare)
-        assertNull(m.litres)
-        assertEquals(2.0, m.kwh!!, 1e-9)
+        assertEquals(TripCardModel.EMPTY, m)
     }
 
     @Test fun negativeEnergyShowsZero() {
-        val s = LiveSession(
-            t0800, t0800, t0800 + 10 * min,
-            counters(1000.0, 100.0, 50.0), counters(1005.0, 99.7, 49.9),
+        val s = split(
+            open(t0800, t0800 + 10 * min, 5.0),
+            DrivePark(driveMs = 10 * min, driveKwh = -0.3, driveL = -0.1),
         )
         val m = TripCardCalc.from(LiveTripState(s), emptyList(), day)
-        assertEquals(0.0, m.kwh!!, 1e-9)
-        assertEquals(0.0, m.litres!!, 1e-9)
+        assertEquals(0.0, m.driveKwh!!, 1e-9)
+        assertEquals(0.0, m.driveL!!, 1e-9)
+        assertTrue(m.parkKwh!! >= 0.0)
     }
 
     @Test fun sessionFromYesterdayStillCurrent() {

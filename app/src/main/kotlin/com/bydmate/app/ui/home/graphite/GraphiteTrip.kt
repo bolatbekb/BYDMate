@@ -22,21 +22,21 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.common.px
-import kotlin.math.roundToInt
 
 enum class TripCardMode { CURRENT, LAST, EMPTY }
 
 data class TripCardModel(
     val mode: TripCardMode,
     val km: Double?,
-    val minutes: Int?,
-    val avgKmh: Int?,
-    val electricShare: Int?,
-    val kwh: Double?,
-    val litres: Double?,
+    val driveMinutes: Int?,
+    val parkMinutes: Int?,
+    val driveKwh: Double?,
+    val driveL: Double?,
+    val parkKwh: Double?,
+    val parkL: Double?,
 ) {
     companion object {
-        val EMPTY = TripCardModel(TripCardMode.EMPTY, null, null, null, null, null, null)
+        val EMPTY = TripCardModel(TripCardMode.EMPTY, null, null, null, null, null, null, null)
     }
 }
 
@@ -45,27 +45,33 @@ object TripCardCalc {
     fun from(live: LiveTripState, today: List<TripRow>, dayStartMs: Long): TripCardModel {
         val open = live.open?.estimate()
         if (open != null && movedKm(open.km)) {
-            return model(TripCardMode.CURRENT, open.toRow())
+            return fromEstimate(TripCardMode.CURRENT, open)
         }
-        val recorded = today.filter { (it.km ?: 0.0) > 0.0 }
+        val recorded = today.filter { (it.km ?: 0.0) > 0.0 }.map { it.startMs to fromRow(TripCardMode.LAST, it) }
         val finished = live.finished.filter {
             it.startMs >= dayStartMs && it.km > 0.0 && !TripMatch.confirmed(it, today)
-        }.map { it.toRow() }
-        val last = (recorded + finished).maxByOrNull { it.startMs }
-        return if (last == null) TripCardModel.EMPTY else model(TripCardMode.LAST, last)
+        }.map { it.startMs to fromEstimate(TripCardMode.LAST, it) }
+        return (recorded + finished).maxByOrNull { it.first }?.second ?: TripCardModel.EMPTY
     }
 
-    private fun model(mode: TripCardMode, r: TripRow): TripCardModel {
-        val km = r.km
-        val minutes = r.endMs?.let { ((it - r.startMs) / 60_000L).toInt() }?.takeIf { it >= 0 }
-        val durationMs = r.endMs?.let { it - r.startMs }
-        val avg = if (km != null && km > 0.0) {
-            durationMs?.takeIf { it >= 60_000L }?.let { (km / (it / 3_600_000.0)).roundToInt() }
-        } else null
-        val share = if (r.hevKm != null && km != null && km > 0.0) {
-            (100.0 * (1.0 - r.hevKm / km)).roundToInt().coerceIn(0, 100)
-        } else null
-        return TripCardModel(mode, km, minutes, avg, share, r.kwh?.coerceAtLeast(0.0), r.litres?.coerceAtLeast(0.0))
+    private fun minutes(ms: Long): Int = (ms / 60_000L).toInt()
+
+    /** A live trip with its drive / park split; an estimate without one (old data) reads as a recorded trip. */
+    private fun fromEstimate(mode: TripCardMode, e: TripEstimate): TripCardModel {
+        val s = e.split ?: return fromRow(mode, e.toRow())
+        return TripCardModel(
+            mode, e.km, minutes(s.driveMs), minutes(s.parkMs),
+            s.driveKwh.coerceAtLeast(0.0), s.driveL.coerceAtLeast(0.0),
+            s.parkKwh.coerceAtLeast(0.0), s.parkL.coerceAtLeast(0.0),
+        )
+    }
+
+    /** A recorded trip has no split: its duration and energy are «в пути», «стоянка» stays unknown. */
+    private fun fromRow(mode: TripCardMode, r: TripRow): TripCardModel {
+        val minutes = r.endMs?.let { minutes(it - r.startMs) }?.takeIf { it >= 0 }
+        return TripCardModel(
+            mode, r.km, minutes, null, r.kwh?.coerceAtLeast(0.0), r.litres?.coerceAtLeast(0.0), null, null,
+        )
     }
 }
 
@@ -77,7 +83,7 @@ object TripCardCalc {
 fun TripCard(model: TripCardModel, hasFuelTank: Boolean, tall: Boolean, modifier: Modifier) {
     val p = LocalGr.current
     val lang = LocalGrLang.current
-    val cells = tripCells(model, hasFuelTank, p.electric, p.textPrimary, lang)
+    val cells = tripCells(model, hasFuelTank, p.textPrimary, lang)
     CardBody(modifier) {
         Row(Modifier.fillMaxWidth().weight(1f)) {
             Column(Modifier.weight(1f).fillMaxHeight()) {
@@ -112,24 +118,28 @@ fun TripCard(model: TripCardModel, hasFuelTank: Boolean, tall: Boolean, modifier
 internal data class TripCell(val value: String, val label: String, val color: Color)
 
 /**
- * The four trip cells, always all four so the card never looks empty before the first trip:
- * no data reads «0» for time and energy and «—» for share and speed; a missing value of a
- * real trip reads «—».
+ * The four trip cells, always all four so the card never looks empty before the first trip: time and
+ * energy «в пути» and «стоянка». No data reads «0»; a value a real trip does not have (the stop of a
+ * recorded trip) reads «—».
  */
 internal fun tripCells(
-    m: TripCardModel, hasFuelTank: Boolean, electric: Color, primary: Color, lang: GrLang = GrLang.RU,
+    m: TripCardModel, hasFuelTank: Boolean, primary: Color, lang: GrLang = GrLang.RU,
 ): List<TripCell> {
     val w = lang.words
     val empty = m.mode == TripCardMode.EMPTY
     val none = if (empty) "0" else "—"
-    val kwh = m.kwh?.let { grDec(it, lang = lang) } ?: none
-    val litres = m.litres?.let { grDec(it, lang = lang) } ?: none
-    val minutes = grDuration(m.minutes ?: 0, lang).takeIf { m.minutes != null || empty } ?: "—"
+    fun time(min: Int?) = if (min != null || empty) grDuration(min ?: 0, lang) else "—"
+    fun energy(kwh: Double?, litres: Double?, suffix: String): TripCell {
+        val k = kwh?.let { grDec(it.coerceAtLeast(0.0), lang = lang) } ?: none
+        val l = litres?.let { grDec(it.coerceAtLeast(0.0), lang = lang) } ?: none
+        return if (hasFuelTank) TripCell("$k · $l", "${w.kwh} · ${w.litre} $suffix", primary)
+        else TripCell(k, "${w.kwh} $suffix", primary)
+    }
     return listOf(
-        TripCell(minutes, w.onTheRoad, primary),
-        TripCell(m.electricShare?.let { "$it%" } ?: "—", w.electricDrive, electric),
-        TripCell(m.avgKmh?.let { "$it ${w.kmh}" } ?: "—", w.avgSpeed, primary),
-        if (hasFuelTank) TripCell("$kwh · $litres", "${w.kwh} · ${w.litre}", primary) else TripCell(kwh, w.kwh, primary),
+        TripCell(time(m.driveMinutes), w.onTheRoad, primary),
+        TripCell(time(m.parkMinutes), w.parked, primary),
+        energy(m.driveKwh, m.driveL, w.onDriveSuffix),
+        energy(m.parkKwh, m.parkL, w.onParkSuffix),
     )
 }
 

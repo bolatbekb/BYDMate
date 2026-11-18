@@ -48,9 +48,10 @@ internal fun nextPmMemo(current: Pm25Memo, read: Pm25?, nullsInARow: Int, linkUp
 /** Key of a warm energy series: its labels depend on the app language. */
 internal data class EnergyKey(val period: ChartPeriod, val lang: GrLang)
 
-/** Pure text codec of [WarmPrefs]: `W2|pm|soh|tank|capacity|trip|E` (W1 = the same without trip); any damage decodes to the empty value. */
+/** Pure text codec of [WarmPrefs]: `W3|pm|soh|tank|capacity|trip|E` (W2 = the same with the old trip card, W1 without trip: both decode with no trip); any damage decodes to the empty value. */
 internal object GraphiteWarmCodec {
-    private const val HEAD = "W2"
+    private const val HEAD = "W3"
+    private const val HEAD_V2 = "W2"
     private const val HEAD_V1 = "W1"
     private const val TAIL = "E"
     private const val UNKNOWN = "?"
@@ -58,7 +59,7 @@ internal object GraphiteWarmCodec {
     private const val PM_FIELDS = 4
     private const val PARTS = 7
     private const val PARTS_V1 = 6
-    private const val TRIP_FIELDS = 8
+    private const val TRIP_FIELDS = 9
 
     fun encode(w: WarmPrefs): String {
         val pm = when (val m = w.pm25) {
@@ -73,14 +74,16 @@ internal object GraphiteWarmCodec {
     fun decode(raw: String?): WarmPrefs = try {
         val p = raw.orEmpty().split("|")
         val v1 = p.size == PARTS_V1 && p[0] == HEAD_V1
-        require(v1 || (p.size == PARTS && p[0] == HEAD))
+        // the old trip card (avg speed, electric share) has another shape: dropped, the rest is kept
+        val v2 = p.size == PARTS && p[0] == HEAD_V2
+        require(v1 || v2 || (p.size == PARTS && p[0] == HEAD))
         require(p.last() == TAIL)
         WarmPrefs(
             pm25 = pm(p[1]),
             sohPercent = p[2].takeIf { it.isNotEmpty() }?.toFloat()?.takeIf { it.isFinite() },
             tankL = p[3].takeIf { it.isNotEmpty() }?.toDouble()?.takeIf { it.isFinite() },
             capacityKwh = p[4].takeIf { it.isNotEmpty() }?.toDouble()?.takeIf { it.isFinite() },
-            trip = if (v1) null else tripOrNull(p[5]),
+            trip = if (v1 || v2) null else tripOrNull(p[5]),
         )
     } catch (@Suppress("SwallowedException") e: IllegalArgumentException) {
         EMPTY
@@ -90,11 +93,11 @@ internal object GraphiteWarmCodec {
 
     private val EMPTY = WarmPrefs(Pm25Memo.Unknown, null, null, null)
 
-    /** `day;mode;km;minutes;avgKmh;share;kwh;litres`; empty = no trip. EMPTY cards are never stored. */
+    /** `day;mode;km;driveMin;parkMin;driveKwh;driveL;parkKwh;parkL`; empty = no trip. EMPTY cards are never stored. */
     private fun trip(t: StoredTrip?): String {
         val m = t?.model ?: return ""
         if (m.mode == TripCardMode.EMPTY) return ""
-        return listOf(t.day, m.mode.name, m.km, m.minutes, m.avgKmh, m.electricShare, m.kwh, m.litres)
+        return listOf(t.day, m.mode.name, m.km, m.driveMinutes, m.parkMinutes, m.driveKwh, m.driveL, m.parkKwh, m.parkL)
             .joinToString(";") { it?.toString() ?: "" }
     }
 
@@ -107,7 +110,7 @@ internal object GraphiteWarmCodec {
         require(mode != TripCardMode.EMPTY)
         fun d(i: Int) = f[i].takeIf { it.isNotEmpty() }?.toDouble()?.takeIf { it.isFinite() }
         fun n(i: Int) = f[i].takeIf { it.isNotEmpty() }?.toInt()
-        return StoredTrip(f[0], TripCardModel(mode, d(2), n(3), n(4), n(5), d(6), d(7)))
+        return StoredTrip(f[0], TripCardModel(mode, d(2), n(3), n(4), d(5), d(6), d(7), d(8)))
     }
 
     // NumberFormatException is an IllegalArgumentException, so a bad number is caught by decode.

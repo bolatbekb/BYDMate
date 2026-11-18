@@ -60,13 +60,13 @@ class GraphiteWarmTest {
         assertEquals(Pm25Memo.Reading(pm) to 0, nextPmMemo(Pm25Memo.None, pm, 3, linkUp = false))
     }
 
-    private val card = TripCardModel(TripCardMode.LAST, 12.4, 25, 30, 80, 2.15, 0.5)
+    private val card = TripCardModel(TripCardMode.LAST, 12.4, 25, 8, 2.15, 0.5, 0.3, 0.0)
     private val day = "2026-11-17"
 
     @Test fun tripCodecRoundTrip() {
         val x = WarmPrefs(Pm25Memo.None, 99.0f, null, 34.5, StoredTrip(day, card))
         assertEquals(x, GraphiteWarmCodec.decode(GraphiteWarmCodec.encode(x)))
-        val partial = StoredTrip(day, card.copy(km = null, litres = null, electricShare = null))
+        val partial = StoredTrip(day, card.copy(km = null, driveL = null, parkMinutes = null, parkKwh = null))
         val y = WarmPrefs(Pm25Memo.Unknown, null, null, null, partial)
         assertEquals(y, GraphiteWarmCodec.decode(GraphiteWarmCodec.encode(y)))
     }
@@ -94,9 +94,14 @@ class GraphiteWarmTest {
         assertEquals(WarmPrefs(Pm25Memo.Reading(pm), 99.0f, 52.0, 34.5), GraphiteWarmCodec.decode(v1))
     }
 
+    @Test fun oldTripCardFormatDecodesWithoutTrip() {
+        val v2 = "W2|12,35,1,2|99.0|52.0|34.5|2026-11-17;LAST;12.4;25;30;80;2.15;0.5|E"
+        assertEquals(WarmPrefs(Pm25Memo.Reading(pm), 99.0f, 52.0, 34.5), GraphiteWarmCodec.decode(v2))
+    }
+
     @Test fun garbageTripDecodesEmpty() {
-        assertEquals(empty, GraphiteWarmCodec.decode("W2|?|||||E".replace("|||||E", "|||||x;y|E")))
-        assertEquals(empty, GraphiteWarmCodec.decode("W2|?||||not-a-date;LAST;1;1;1;1;1;1|E"))
-        assertEquals(empty, GraphiteWarmCodec.decode("W2|?||||2026-11-17;LAST;1;1|E"))
+        assertEquals(empty, GraphiteWarmCodec.decode("W3|?|||||E".replace("|||||E", "|||||x;y|E")))
+        assertEquals(empty, GraphiteWarmCodec.decode("W3|?||||not-a-date;LAST;1;1;1;1;1;1;1|E"))
+        assertEquals(empty, GraphiteWarmCodec.decode("W3|?||||2026-11-17;LAST;1;1|E"))
     }
 }
