@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_hud_custom_icons_title">Usar ícones próprios para o navegador</string>
+    <string name="settings_hud_custom_icons_desc">Ícones de manobra da pasta Download/bydmate_hud_icons; se não houver arquivo, o ícone interno do BYDMate e depois a imagem do navegador</string>
+</resources>

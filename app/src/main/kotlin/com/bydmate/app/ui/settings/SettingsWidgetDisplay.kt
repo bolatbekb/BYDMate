@@ -677,6 +677,7 @@ internal fun DisplaySection() {
         // Outside the switch: the check is meant to run with HUD output turned off too.
         SettingDivider()
         HudCheckRow(onWayChosen = { hudMode = it })
+        HudCustomIconsSwitch() // fork: custom HUD icons switch
     }
 
     if (learning) {

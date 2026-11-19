@@ -23,6 +23,7 @@
 | Размер окна, панели машины и плотность (dpi) в шапке диагностического лога | Настройки → запись лога | `fork/DisplayInfo.kt` |
 | Обновления из релизов форка, а не автора | автопроверка и кнопка в настройках | `fork/ForkConfig.kt` |
 | Учёт заправок и расходов: журнал заправок по чеку, сверка расхода по полным бакам, черновики заправок по уровню бака, расходы, сводка за месяц, импорт из Fuelio (CSV). Своя база `fork_ledger.db`, входит в бэкап | Настройки → «Расходы» | `fork/ledger/*`, `ui/settings/LedgerSection.kt` |
+| Свои значки манёвров на HUD: PNG из папки `Download/bydmate_hud_icons` (`/storage/emulated/0/...`), имя `0x<hex>.png` — код манёвра, как в `assets/navi` (регистр не важен). Включается переключателем «Использовать свои иконки для навигатора» (Настройки → «Дисплей», блок HUD; по умолчанию выключен — тогда папка не читается совсем и порядок прежний). Приоритет: свой значок → значок BYDMate → картинка навигатора; камера по-прежнему перекрывает картинку. Пределы: 64 файла, 256 КБ, сторона 1–512 px, настоящий PNG; папка перечитывается не чаще раза в 30 с, меняются только изменённые файлы. «Проверка HUD» показывает свой значок «налево» (`0x2`). Дамп «Записать лог» перечисляет загруженное, отклонённое с причиной и сколько раз взят каждый источник | HUD | `fork/hud/HudCustomIcons.kt`, `ui/settings/HudCustomIconsSwitch.kt`, `res/values*/strings_fork_hud.xml`, `ui/home/graphite/LiveTripDiagnostics.kt` |
 | Оптимизации опроса машины (см. ниже) | — | правки в `data/*` |
 | Сборка подписанного APK и релиз в GitHub Actions | — | `.github/workflows/fork-release.yml` |
 
@@ -104,7 +105,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | Файл | Что изменено | Строк | Коммиты |
 |---|---|---|---|
 | `app/build.gradle.kts` | `versionCode` и `versionName` форка: **конфликт при каждом релизе автора**, см. «Версии» | +2/−2 | `baceba15` (2026-11-15) → `50a47ff0` (2026-11-17), меняется в каждом релизе |
-| `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) | +7/−0 | `23c2e82c` (2026-11-15) → `4e88c0e4` (2026-11-16) |
+| `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init`, `HudCustomIcons.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) | +7/−0 | `23c2e82c` (2026-11-15) → `4e88c0e4` (2026-11-16) |
 | `ui/theme/Color.kt` | цвета стали геттерами из `SkinState`, чтобы скин менялся на лету | +25/−22 | `23c2e82c` (2026-11-15) |
 | `ui/theme/Theme.kt` | `DarkColorScheme` стал геттером | +3/−1 | `23c2e82c` (2026-11-15) |
 | `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером; пункты `LEDGER` («Расходы») и `APPEARANCE` («Внешний вид») в `SettingsSection` и их ветки в `when` | +5/−1 | `23c2e82c` (2026-11-15) → `6724cdc0` (2026-11-18) |
@@ -122,6 +123,9 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | `domain/calculator/OdometerConsumptionBuffer.kt` | `// fork (perf)`: строки окна расхода запоминаются и сбрасываются при вставке, очистке и обрезке — раньше на каждом тике читалось до 500 + 60 строк | +15/−3 | `abd154a8` (2026-11-19) |
 | `ui/widget/WidgetController.kt` | `// fork (perf)`: `lastData` в виджет — первое значение сразу, потом не чаще раза в секунду (`throttleLatest`) | +3/−1 | `abd154a8` → `e27cfa42` (2026-11-19) |
 | `test/.../OdometerConsumptionBufferTest.kt` | тесты запоминания: тот же результат, без повторных чтений, сброс при очистке | +45/−0 | `abd154a8` (2026-11-19) |
+| `hud/HudPushLoop.kt` | `// fork`: картинка манёвра (f8) берётся через `HudCustomIcons.pickIcon` — свой значок, затем BYDMate, затем навигатор; камера как была | +2/−1 | `HEAD` (2026-11-19) |
+| `hud/HudCheck.kt` | `// fork`: тестовый кадр «Проверка HUD» берёт свой значок «налево» первым | +2/−1 | `HEAD` (2026-11-19) |
+| `ui/settings/SettingsWidgetDisplay.kt` | `// fork`: одна строка — переключатель `HudCustomIconsSwitch()` после «Проверки HUD» | +1/−0 | `HEAD` (2026-11-19) |
 | `data/loop/SharedAdaptiveLoop.kt` | параметр `screenOn` и `nextInterval()` | +10/−2 | `353c5775` (2026-11-15) → `92007d9b` (2026-11-15) |
 | `test/.../SettingsViewModelTest.kt` | эталонная шапка лога: из сравнения убраны строки `display…` форка и раздел `--- live trip (fork) ---` с журналом поездок | +4/−0 | `879f279c` (2026-11-15) → `992daee1` (2026-11-18) |
 | `res/values/themes.xml` | тёмный фон окна при запуске вместо белого светлой темы (`fork_window_background` в `colors_fork.xml`), владелец 2026-11-17 | +4/−1 | `f3113624` (2026-11-17) |

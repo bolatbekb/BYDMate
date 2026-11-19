@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="settings_hud_custom_icons_title">为导航使用自定义图标</string>
+    <string name="settings_hud_custom_icons_desc">来自 Download/bydmate_hud_icons 文件夹的转向图标；没有文件时使用 BYDMate 内置图标，然后使用导航的图片</string>
+</resources>

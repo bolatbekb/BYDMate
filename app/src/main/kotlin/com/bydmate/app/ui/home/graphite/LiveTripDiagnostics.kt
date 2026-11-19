@@ -7,7 +7,7 @@ object LiveTripDiagnostics {
     private const val LAST_FINISHED = 10
 
     fun lines(): List<String> = runCatching {
-        lines(LiveTrip.state.value, TripLog.readLines(), ZoneId.systemDefault())
+        lines(LiveTrip.state.value, TripLog.readLines(), ZoneId.systemDefault()) + com.bydmate.app.fork.hud.HudCustomIcons.lines()
     }.getOrElse { listOf("--- live trip (fork) ---", "(unavailable: ${it.javaClass.simpleName})") }
 
     fun lines(state: LiveTripState, log: List<String>, zone: ZoneId): List<String> = runCatching {

@@ -1,5 +1,6 @@
 package com.bydmate.app.hud
 
+import com.bydmate.app.fork.hud.HudCustomIcons // fork
 import android.content.Context
 import android.content.SharedPreferences
 import android.os.Build
@@ -317,7 +318,7 @@ class HudCheck @Inject constructor(
         val rcs = sortedMapOf<Int, Int>()
         val frame = HudProtobufBuilder.buildFrameSafe(
             maneuverGaode = GAODE_TURN, distanceMeters = marker, road = road, etaString = null,
-            totalDistMeters = 0, speedLimit = 0, maneuverIconPng = HudIconLoader.iconFor(GAODE_TURN),
+            totalDistMeters = 0, speedLimit = 0, maneuverIconPng = HudCustomIcons.customOr(GAODE_TURN, HudIconLoader::iconFor), // fork: custom HUD icon first
             speedSignPng = null,
         )
         var elapsedMs = 0L

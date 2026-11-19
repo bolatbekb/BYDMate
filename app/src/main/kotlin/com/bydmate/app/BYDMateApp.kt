@@ -73,6 +73,7 @@ class BYDMateApp : Application(), Configuration.Provider {
         com.bydmate.app.ui.theme.SkinState.init(this)
         com.bydmate.app.ui.home.HomeStyleState.init(this)
         com.bydmate.app.fork.DisplayInfo.init(this) // fork: window size for the diagnostic dump
+        com.bydmate.app.fork.hud.HudCustomIcons.init(this) // fork: custom HUD icons switch
         if (!com.bydmate.app.demo.DemoMode.isOn(this)) com.bydmate.app.fork.ledger.backup.LedgerBackup.provider = { ledgerDatabase } // fork: ledger in backups, never the demo one
         if (!com.bydmate.app.demo.DemoMode.isOn(this)) ledgerLiveWatcher.start() // fork: refuel drafts from the tank level
         Trace.install(traceJournal)
