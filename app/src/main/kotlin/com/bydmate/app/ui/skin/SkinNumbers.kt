@@ -24,8 +24,9 @@ import androidx.compose.material3.Text as M3Text
 // caller's. Under Classic (numeric == null) the wrapper changes nothing: one SkinState read,
 // no remember, no allocation, one M3 call with the caller's own arguments.
 //
-// Rajdhani has no Cyrillic, so under it only a text of digits and punctuation takes Rajdhani; a
-// text with letters (e.g. «12,5 км») takes the system font, as the rest of the DiLink text does.
+// Only a text without letters (digits, signs, punctuation) takes the skin's numeric font. A
+// Monospace text with letters (an address, a URL, a code, «12,5 км») keeps the author's Monospace
+// exactly: it is not a number, and Rajdhani has no Cyrillic anyway.
 
 /** True when [text] holds no letters: digits, spaces and punctuation only (what Rajdhani can draw). */
 fun isNumericOnly(text: CharSequence): Boolean {
@@ -36,21 +37,29 @@ fun isNumericOnly(text: CharSequence): Boolean {
 /**
  * The font that takes the place of a Monospace text, or null when the text stays as the caller
  * wrote it. [family] is the fontFamily argument, [styleFamily] the one in the style (the
- * argument wins, as in M3). SYSTEM means the system font (no skin family).
+ * argument wins, as in M3). A text with letters is never replaced.
  */
 fun numberFont(numeric: SkinFont?, family: FontFamily?, styleFamily: FontFamily?, text: CharSequence): SkinFont? {
     if (numeric == null) return null
     if ((family ?: styleFamily) != FontFamily.Monospace) return null
-    if (numeric == SkinFont.RAJDHANI && !isNumericOnly(text)) return SkinFont.SYSTEM
+    if (!isNumericOnly(text)) return null
     return numeric
 }
 
-/** Fonts whose digits are made tabular here (Inter's are proportional by default). */
-internal fun SkinFont.needsTnum(): Boolean = this == SkinFont.INTER || this == SkinFont.SYSTEM
+/** Fonts whose digits are made tabular here (Inter's are proportional by default; the others' are tabular). */
+internal fun SkinFont.needsTnum(): Boolean = this == SkinFont.INTER
+
+/** [have] (a style's feature settings) with "tnum" in it exactly once. */
+internal fun tnumSettings(have: String?): String = when {
+    have.isNullOrEmpty() -> "tnum"
+    have.split(',').any { it.trim().startsWith("tnum") } -> have
+    else -> "$have, tnum"
+}
 
 private fun TextStyle.withTnum(): TextStyle {
     val have = fontFeatureSettings
-    return merge(TextStyle(fontFeatureSettings = if (have.isNullOrEmpty()) "tnum" else "$have, tnum"))
+    val want = tnumSettings(have)
+    return if (want == have) this else merge(TextStyle(fontFeatureSettings = want))
 }
 
 @Composable
@@ -76,7 +85,7 @@ fun Text(
     val font = numberFont(SkinState.current.kit.fonts.numeric, fontFamily, style.fontFamily, text)
     M3Text(
         text, modifier, color, fontSize, fontStyle, fontWeight,
-        if (font == null) fontFamily else font.family() ?: FontFamily.Default,
+        if (font == null) fontFamily else font.family(),
         letterSpacing, textDecoration, textAlign, lineHeight, overflow, softWrap, maxLines, minLines,
         onTextLayout,
         if (font != null && font.needsTnum()) style.withTnum() else style,
@@ -107,7 +116,7 @@ fun Text(
     val font = numberFont(SkinState.current.kit.fonts.numeric, fontFamily, style.fontFamily, text.text)
     M3Text(
         text, modifier, color, fontSize, fontStyle, fontWeight,
-        if (font == null) fontFamily else font.family() ?: FontFamily.Default,
+        if (font == null) fontFamily else font.family(),
         letterSpacing, textDecoration, textAlign, lineHeight, overflow, softWrap, maxLines, minLines,
         inlineContent, onTextLayout,
         if (font != null && font.needsTnum()) style.withTnum() else style,

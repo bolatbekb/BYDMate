@@ -35,10 +35,12 @@ class SkinNumbersTest {
         assertEquals(SkinFont.EXO2, numberFont(SkinFont.EXO2, mono, FontFamily.Serif, "12"))
     }
 
-    @Test fun rajdhaniOnlyForDigitsAndPunctuation() {
-        assertEquals(SkinFont.RAJDHANI, numberFont(SkinFont.RAJDHANI, mono, null, "12,5 %"))
-        assertEquals(SkinFont.SYSTEM, numberFont(SkinFont.RAJDHANI, mono, null, "12,5 км"))
-        assertEquals(SkinFont.INTER, numberFont(SkinFont.INTER, mono, null, "12,5 км"))
+    @Test fun aTextWithLettersIsNeverReplaced() {
+        for (f in listOf(SkinFont.RAJDHANI, SkinFont.INTER, SkinFont.EXO2, SkinFont.ROBOTO_CONDENSED)) {
+            assertNull(numberFont(f, mono, null, "12,5 км"))
+            assertNull(numberFont(f, null, mono, "0xAbC123"))
+            assertEquals(f, numberFont(f, mono, null, "12,5 %"))
+        }
     }
 
     @Test fun isNumericOnly() {
@@ -50,8 +52,16 @@ class SkinNumbersTest {
 
     @Test fun tabularOnlyWhereTheFontNeedsIt() {
         assertTrue(SkinFont.INTER.needsTnum())
-        assertTrue(SkinFont.SYSTEM.needsTnum())
+        assertFalse(SkinFont.SYSTEM.needsTnum())
         assertFalse(SkinFont.EXO2.needsTnum())
         assertFalse(SkinFont.RAJDHANI.needsTnum())
+    }
+
+    @Test fun tnumIsInTheSettingsExactlyOnce() {
+        assertEquals("tnum", tnumSettings(null))
+        assertEquals("tnum", tnumSettings(""))
+        assertEquals("cv11, tnum", tnumSettings("cv11"))
+        assertEquals("tnum, cv11", tnumSettings("tnum, cv11"))
+        assertEquals("cv11, tnum", tnumSettings(tnumSettings("cv11")))
     }
 }
