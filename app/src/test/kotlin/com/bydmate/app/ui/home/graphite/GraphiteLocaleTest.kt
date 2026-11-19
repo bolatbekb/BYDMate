@@ -1,7 +1,6 @@
 package com.bydmate.app.ui.home.graphite
 
 import androidx.compose.ui.graphics.Color
-import com.bydmate.app.R
 import com.bydmate.app.data.autoservice.Pm25
 import com.bydmate.app.ui.home.cdrive.ChartPeriod
 import java.time.LocalDate
@@ -142,13 +141,6 @@ class GraphiteLocaleTest {
         assertEquals(listOf("行驶时长", "停车时长", "千瓦时 行驶", "千瓦时 停车"), zh.map { it.label })
     }
 
-    @Test fun menuLabels() {
-        assertEquals(R.drawable.gr_ic_car to "Car", menuItem("tech_panel", "x", GrLang.EN))
-        assertEquals(R.drawable.gr_ic_flow to "Аўтаматызацыі", menuItem("automation", "x", GrLang.BE))
-        assertEquals(R.drawable.gr_ic_sliders to "Ustawienia", menuItem("settings", "x", GrLang.PL))
-        assertEquals(R.drawable.gr_ic_sliders to "Ledger", menuItem("ledger", "Ledger", GrLang.EN))
-    }
-
     @Test fun lookTitles() {
         assertEquals(listOf("None", "Glass", "Metal", "Fine sand", "Concrete"), GrMaterial.entries.map { it.title(GrLang.EN) })
         assertEquals(listOf("Flat", "Convex", "Concave"), GrRelief.entries.map { it.title(GrLang.EN) })
@@ -170,7 +162,6 @@ class GraphiteLocaleTest {
                 insulationText(3_500, lang), insulationText(12_000, lang),
             ) + (1..4).mapNotNull { pm25Quality(it, lang)?.first } +
                 GrMaterial.entries.map { it.title(lang) } + GrRelief.entries.map { it.title(lang) } +
-                listOf("dashboard", "tech_panel", "trips", "charges", "automation", "settings").map { menuItem(it, "x", lang).second } +
                 tripCells(TripCardModel.EMPTY, true, Color.White, lang).flatMap { listOf(it.value, it.label) } +
                 lang.words.let { listOf(it.km, it.kwh, it.litre, it.kmh, it.rpm, it.cabin, it.outside) }
             for (t in texts) assertEquals("$lang: $t", false, t.cyrillic())

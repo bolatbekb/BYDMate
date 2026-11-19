@@ -69,12 +69,6 @@ internal data class GrWords(
     val parked: String,
     val onDriveSuffix: String,
     val onParkSuffix: String,
-    val menuHome: String,
-    val menuCar: String,
-    val menuTrips: String,
-    val menuCharges: String,
-    val menuAutomation: String,
-    val menuSettings: String,
     /** In GrMaterial order. */
     val materials: List<String>,
     /** In GrRelief order. */
@@ -100,8 +94,6 @@ private val WORDS_RU = GrWords(
     pm25 = listOf("отлично", "хорошо", "средне", "плохо"),
     cabin = "Салон", outside = "Снаружи",
     onTheRoad = "в пути", parked = "стоянка", onDriveSuffix = "в пути", onParkSuffix = "на стоянке",
-    menuHome = "Главная", menuCar = "Машина", menuTrips = "Поездки", menuCharges = "Зарядки", menuAutomation = "Автоматизации",
-    menuSettings = "Настройки",
     materials = listOf("Без материала", "Стекло", "Металл", "Песок мелкий", "Бетон"),
     reliefs = listOf("Плоский", "Выпуклый", "Вогнутый"),
 )
@@ -122,8 +114,6 @@ private val WORDS_EN = GrWords(
     pm25 = listOf("excellent", "good", "moderate", "poor"),
     cabin = "Cabin", outside = "Outside",
     onTheRoad = "on the road", parked = "parked", onDriveSuffix = "on the road", onParkSuffix = "parked",
-    menuHome = "Home", menuCar = "Car", menuTrips = "Trips", menuCharges = "Charging", menuAutomation = "Automations",
-    menuSettings = "Settings",
     materials = listOf("None", "Glass", "Metal", "Fine sand", "Concrete"),
     reliefs = listOf("Flat", "Convex", "Concave"),
 )
@@ -141,8 +131,6 @@ private val WORDS_ZH = GrWords(
     pm25 = listOf("优", "良", "中", "差"),
     cabin = "车内", outside = "车外",
     onTheRoad = "行驶时长", parked = "停车时长", onDriveSuffix = "行驶", onParkSuffix = "停车",
-    menuHome = "首页", menuCar = "车辆", menuTrips = "行程", menuCharges = "充电", menuAutomation = "自动化",
-    menuSettings = "设置",
     materials = listOf("无材质", "玻璃", "金属", "细砂", "混凝土"),
     reliefs = listOf("平面", "凸面", "凹面"),
 )
@@ -163,8 +151,6 @@ private val WORDS_PT = GrWords(
     pm25 = listOf("ótimo", "bom", "médio", "ruim"),
     cabin = "Interior", outside = "Exterior",
     onTheRoad = "em viagem", parked = "parado", onDriveSuffix = "em viagem", onParkSuffix = "parado",
-    menuHome = "Início", menuCar = "Carro", menuTrips = "Viagens", menuCharges = "Carregamentos", menuAutomation = "Automações",
-    menuSettings = "Configurações",
     materials = listOf("Sem material", "Vidro", "Metal", "Areia fina", "Concreto"),
     reliefs = listOf("Plano", "Convexo", "Côncavo"),
 )
@@ -185,8 +171,6 @@ private val WORDS_PL = GrWords(
     pm25 = listOf("świetnie", "dobrze", "średnio", "źle"),
     cabin = "Wnętrze", outside = "Na zewnątrz",
     onTheRoad = "w drodze", parked = "postój", onDriveSuffix = "w drodze", onParkSuffix = "na postoju",
-    menuHome = "Główna", menuCar = "Samochód", menuTrips = "Przejazdy", menuCharges = "Ładowania", menuAutomation = "Automatyzacje",
-    menuSettings = "Ustawienia",
     materials = listOf("Bez materiału", "Szkło", "Metal", "Drobny piasek", "Beton"),
     reliefs = listOf("Płaski", "Wypukły", "Wklęsły"),
 )
@@ -207,8 +191,6 @@ private val WORDS_BE = GrWords(
     pm25 = listOf("выдатна", "добра", "сярэдне", "дрэнна"),
     cabin = "Салон", outside = "Звонку",
     onTheRoad = "у дарозе", parked = "стаянка", onDriveSuffix = "у дарозе", onParkSuffix = "на стаянцы",
-    menuHome = "Галоўная", menuCar = "Машына", menuTrips = "Паездкі", menuCharges = "Зарадкі", menuAutomation = "Аўтаматызацыі",
-    menuSettings = "Налады",
     materials = listOf("Без матэрыялу", "Шкло", "Метал", "Дробны пясок", "Бетон"),
     reliefs = listOf("Плоскі", "Выпуклы", "Увагнуты"),
 )

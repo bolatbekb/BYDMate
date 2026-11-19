@@ -1,18 +1,14 @@
 package com.bydmate.app.ui.home
 
-import com.bydmate.app.ui.navigation.Screen
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class RetroTabsTest {
-    @Test fun graphiteHomeMenuStartsWithItsOwnHomeKey() {
-        assertEquals(Screen.entries.toList(), retroTabScreens(HomeStyle.GRAPHITE))
-        assertEquals(Screen.Dashboard, retroTabScreens(HomeStyle.GRAPHITE).first())
-    }
-
-    @Test fun retroStandsKeepEveryTabButTheirOwn() {
-        HomeStyle.entries.filter { it != HomeStyle.STANDARD && it != HomeStyle.GRAPHITE }.forEach {
-            assertEquals(it.name, Screen.entries.filter { s -> s != Screen.Dashboard }, retroTabScreens(it))
-        }
+    /** The app's bottom bar stays under the standard and the Graphite home; the retro stands draw their own tabs. */
+    @Test fun onlyTheRetroStandsDrawTheirOwnTabs() {
+        assertEquals(
+            setOf(HomeStyle.KENWOOD, HomeStyle.ONKYO, HomeStyle.CDRIVE),
+            HomeStyle.entries.filter { drawsOwnTabs(it) }.toSet(),
+        )
     }
 }

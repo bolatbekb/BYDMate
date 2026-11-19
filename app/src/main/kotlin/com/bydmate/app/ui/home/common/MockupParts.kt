@@ -69,21 +69,26 @@ internal fun fs(v: Float): TextUnit = (v * K).sp
 internal fun Modifier.at(x: Int, y: Int, w: Int, h: Int): Modifier = offset(px(x), px(y)).size(px(w), px(h))
 
 private val DesignW = px(2560)
-private val DesignH = px(1208)
 
 /**
- * The frame of a 2560 x 1208 mockup home: [content] is laid out on the mockup's grid (1280 x 604
- * dp) and scaled uniformly to fit, letterboxed in black.
+ * The frame of a 2560 x [designH] mockup home (1208, the car's whole content area, by default):
+ * [content] is laid out on the mockup's grid (1280 dp wide) and scaled uniformly to fit,
+ * letterboxed in [letterbox].
  */
 @Composable
-internal fun MockupFrame(content: @Composable BoxScope.() -> Unit) {
-    BoxWithConstraints(Modifier.fillMaxSize().background(MockupInk.Letterbox), contentAlignment = Alignment.Center) {
+internal fun MockupFrame(
+    designH: Int = 1208,
+    letterbox: Color = MockupInk.Letterbox,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    val designHDp = px(designH)
+    BoxWithConstraints(Modifier.fillMaxSize().background(letterbox), contentAlignment = Alignment.Center) {
         val sw = if (constraints.hasBoundedWidth) maxWidth / DesignW else 1f
-        val sh = if (constraints.hasBoundedHeight) maxHeight / DesignH else sw
+        val sh = if (constraints.hasBoundedHeight) maxHeight / designHDp else sw
         val scale = min(sw, sh)
         val base = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(base.density * scale, 1f)) {
-            Box(Modifier.size(DesignW, DesignH), content = content)
+            Box(Modifier.size(DesignW, designHDp), content = content)
         }
     }
 }

@@ -240,7 +240,7 @@ val NavEdgeWidth: Dp = CardBorderWidth
 /**
  * The key of [style], [selected] or not, in [palette]:
  * - GRAPHITE: the Graphite home's menu key; lit, it is the raised key with the glowing bar and
- *   textPrimary, else textSecondary (the home's MenuKey);
+ *   textPrimary, else textSecondary (as the Graphite home's own menu had it);
  * - CUT (Cockpit): a plate with cut corners in navIndicator with an accent edge;
  * - UNDERLINE (Telemetry): an accent bar along the bottom of the indicator;
  * - OUTLINE (OLED): the M3 pill as an accent ring, no fill.

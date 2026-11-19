@@ -35,10 +35,8 @@ import com.bydmate.app.service.TrackingService
 import com.bydmate.app.ui.home.HomeData
 import com.bydmate.app.ui.home.MusicControls
 import com.bydmate.app.ui.home.NowPlaying
-import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.common.MockupFrame
 import com.bydmate.app.ui.home.common.px
-import com.bydmate.app.ui.navigation.Screen
 import kotlinx.coroutines.delay
 
 private const val ONLINE_TICK_MS = 5_000L
@@ -57,17 +55,22 @@ internal fun topCards(mediaLeft: Boolean): Pair<SideCard, SideCard> =
     if (mediaLeft) SideCard.MEDIA to SideCard.RANGE else SideCard.RANGE to SideCard.MEDIA
 
 /**
- * The Graphite home (tools/graphite/design): top bar, six cards on the SPEC §2 grid, the menu.
- * The palette and the card look follow GraphiteLookState (Settings); live values redraw at most
- * once a second (RetroHome samples).
+ * The Graphite home's mockup height: the car's 1208 px content area less the app's 64 dp (128 px)
+ * bottom bar, which stays under this home as on every tab (the home's own menu is gone, owner
+ * 2026-11-20). The cards' row takes the room.
+ */
+internal const val GRAPHITE_DESIGN_H = 1080
+
+/**
+ * The Graphite home (tools/graphite/design): top bar and six cards on the SPEC §2 grid; the app's
+ * bottom bar sits below it. The palette and the card look follow GraphiteLookState (Settings);
+ * live values redraw at most once a second (RetroHome samples).
  */
 @Composable
 fun GraphiteHome(
     data: HomeData,
     music: State<NowPlaying>, // read only inside the media card, so a track change recomposes just that card
     controls: MusicControls,
-    tabs: List<RetroTab>,
-    onTab: (RetroTab) -> Unit,
     vm: GraphiteViewModel = hiltViewModel(),
 ) {
     val period by vm.period.collectAsStateWithLifecycle()
@@ -88,7 +91,9 @@ fun GraphiteHome(
         LocalGrLook provides GraphiteLookState.look,
         LocalGrLang provides lang,
     ) {
-        MockupFrame {
+        // The bands (only where the window is taller than the car's) take the scheme's background,
+        // the same as the «Graphite» skin's bar below.
+        MockupFrame(designH = GRAPHITE_DESIGN_H, letterbox = LocalGr.current.bg) {
             val p = LocalGr.current
             Column(
                 Modifier.fillMaxSize().grBackground(p).padding(start = px(32), top = px(22), end = px(32), bottom = px(22)),
@@ -120,7 +125,6 @@ fun GraphiteHome(
                         TripCard(trip, hasFuelTank, tall = pmSides != null, Modifier.fillMaxWidth().height(bottomH))
                     }
                 }
-                BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)), current = Screen.Dashboard.route)
             }
         }
     }

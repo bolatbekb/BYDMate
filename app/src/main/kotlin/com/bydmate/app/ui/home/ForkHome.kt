@@ -28,9 +28,15 @@ import com.bydmate.app.ui.home.cdrive.CdHome
 import com.bydmate.app.ui.home.graphite.GraphiteHome
 import com.bydmate.app.ui.skin.SkinNeutralTheme
 
-/** True on the Dashboard tab while a retro home is on: it draws the tabs itself (AppNavigation hook). */
+/** True on the Dashboard tab while a home that draws the tabs itself is on (AppNavigation hook). */
 fun hidesBottomBar(route: String?): Boolean =
-    route == Screen.Dashboard.route && HomeStyleState.current != HomeStyle.STANDARD
+    route == Screen.Dashboard.route && drawsOwnTabs(HomeStyleState.current)
+
+/**
+ * The retro stands draw the tabs into their own deck. The standard home and the Graphite home keep
+ * the app's bottom bar, so the bar stays put on every tab (owner, 2026-11-20).
+ */
+internal fun drawsOwnTabs(style: HomeStyle): Boolean = style != HomeStyle.STANDARD && style != HomeStyle.GRAPHITE
 
 /**
  * The Dashboard tab: the author's screen, or one of the fork's retro home screens.
@@ -42,18 +48,12 @@ fun ForkHome(onOpenTab: (String) -> Unit, standard: @Composable () -> Unit) {
     when (val style = HomeStyleState.current) {
         HomeStyle.STANDARD -> standard()
         else -> {
-            val tabs = retroTabScreens(style).map { RetroTab(it.route, stringResource(it.labelRes), it.icon) }
+            val tabs = Screen.entries.filter { it != Screen.Dashboard }
+                .map { RetroTab(it.route, stringResource(it.labelRes), it.icon) }
             RetroHome(style, tabs, onTab = { onOpenTab(it.route) })
         }
     }
 }
-
-/**
- * The tabs a retro home draws itself: every tab but its own, except the Graphite home, whose menu
- * starts with its own «Главная», lit (owner, 2026-11-20).
- */
-internal fun retroTabScreens(style: HomeStyle): List<Screen> =
-    Screen.entries.filter { it != Screen.Dashboard || style == HomeStyle.GRAPHITE }
 
 /** Retro counters (tape time, progress) run on this local tick; the source publishes only on change. */
 private const val COUNTER_TICK_MS = 1_000L
@@ -110,7 +110,7 @@ private fun RetroHome(
         HomeStyle.KENWOOD -> SkinNeutralTheme { LiveMusic(music) { KenwoodHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) } }
         HomeStyle.ONKYO -> SkinNeutralTheme { LiveMusic(music) { OnkyoHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) } }
         HomeStyle.CDRIVE -> SkinNeutralTheme { LiveMusic(music) { CdHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) } }
-        HomeStyle.GRAPHITE -> SkinNeutralTheme { GraphiteHome(data, music, NowPlayingSource, tabs, onTab) }
+        HomeStyle.GRAPHITE -> SkinNeutralTheme { GraphiteHome(data, music, NowPlayingSource) }
         HomeStyle.STANDARD -> Unit
     }
 }
