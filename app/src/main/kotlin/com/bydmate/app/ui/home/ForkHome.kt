@@ -26,6 +26,7 @@ import com.bydmate.app.ui.home.kenwood.KenwoodHome
 import com.bydmate.app.ui.home.onkyo.OnkyoHome
 import com.bydmate.app.ui.home.cdrive.CdHome
 import com.bydmate.app.ui.home.graphite.GraphiteHome
+import com.bydmate.app.ui.skin.SkinNeutralTheme
 
 /** True on the Dashboard tab while a retro home is on: it draws the tabs itself (AppNavigation hook). */
 fun hidesBottomBar(route: String?): Boolean =
@@ -100,10 +101,10 @@ private fun RetroHome(
     val music = NowPlayingSource.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { com.bydmate.app.fork.DriveModeSupport.ensureProbed(context) }
     when (style) {
-        HomeStyle.KENWOOD -> LiveMusic(music) { KenwoodHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) }
-        HomeStyle.ONKYO -> LiveMusic(music) { OnkyoHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) }
-        HomeStyle.CDRIVE -> LiveMusic(music) { CdHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) }
-        HomeStyle.GRAPHITE -> GraphiteHome(data, music, NowPlayingSource, tabs, onTab)
+        HomeStyle.KENWOOD -> SkinNeutralTheme { LiveMusic(music) { KenwoodHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) } }
+        HomeStyle.ONKYO -> SkinNeutralTheme { LiveMusic(music) { OnkyoHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) } }
+        HomeStyle.CDRIVE -> SkinNeutralTheme { LiveMusic(music) { CdHome(data = data, music = it, controls = NowPlayingSource, tabs = tabs, onTab = onTab) } }
+        HomeStyle.GRAPHITE -> SkinNeutralTheme { GraphiteHome(data, music, NowPlayingSource, tabs, onTab) }
         HomeStyle.STANDARD -> Unit
     }
 }

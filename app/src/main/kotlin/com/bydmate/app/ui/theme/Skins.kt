@@ -6,6 +6,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import com.bydmate.app.ui.skin.BackgroundStyle
+import com.bydmate.app.ui.skin.CardStyle
+import com.bydmate.app.ui.skin.CornerStyle
+import com.bydmate.app.ui.skin.SkinControls
+import com.bydmate.app.ui.skin.SkinCorners
+import com.bydmate.app.ui.skin.SkinFont
+import com.bydmate.app.ui.skin.SkinFonts
+import com.bydmate.app.ui.skin.SkinKit
+import com.bydmate.app.ui.skin.SliderStyle
+import com.bydmate.app.ui.skin.SwitchStyle
 
 /**
  * Every color token the app reads through Color.kt. A skin swaps the whole set at once;
@@ -42,7 +52,7 @@ data class SkinPalette(
 )
 
 /** A selectable skin: stable [id] for storage, [title] shown as is (proper names, not translated). */
-data class Skin(val id: String, val title: String, val palette: SkinPalette)
+data class Skin(val id: String, val title: String, val palette: SkinPalette, val kit: SkinKit = SkinKit())
 
 object Skins {
     /** The author's original look. */
@@ -87,7 +97,8 @@ object Skins {
             textMuted = Color(0xFF5F6C78),
             chartGrid = Color(0xFF1A222C),
             navBarBackground = Color(0xFF090C10),
-        )
+        ),
+        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f), SkinCorners(CornerStyle.CUT, 0.75f), SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN), BackgroundStyle.GRID),
     )
 
     /** 2 · Graphite Pro: neutral graphite, periwinkle accent. */
@@ -110,7 +121,8 @@ object Skins {
             chartGrid = Color(0xFF1E2025),
             navBarBackground = Color(0xFF0E0F12),
             navIndicator = Color(0xFF2A2C33),
-        )
+        ),
+        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.25f), SkinControls(SwitchStyle.MATERIAL, CardStyle.FLAT, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
     )
 
     /** 3 · Volt: deep navy, electric green with fuel amber. */
@@ -132,7 +144,8 @@ object Skins {
             textMuted = Color(0xFF6F7A94),
             chartGrid = Color(0xFF141C33),
             navBarBackground = Color(0xFF0A0F1E),
-        )
+        ),
+        SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f), SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL), BackgroundStyle.GLOW),
     )
 
     /** 4 · Telemetry: race-telemetry black, signal orange. */
@@ -154,7 +167,8 @@ object Skins {
             textMuted = Color(0xFF6E6E6E),
             chartGrid = Color(0xFF1C1C1C),
             navBarBackground = Color(0xFF0A0A0A),
-        )
+        ),
+        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f), SkinCorners(CornerStyle.ROUNDED, 0.3f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED), BackgroundStyle.SCANLINES),
     )
 
     /** 5 · OLED: pure black, lime accent. */
@@ -176,7 +190,8 @@ object Skins {
             textMuted = Color(0xFF5C5C5C),
             chartGrid = Color(0xFF1A1A1A),
             navBarBackground = Color(0xFF000000),
-        )
+        ),
+        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
     )
 
     /** «Цвета приложения»: the app-wide skins. The Graphite home has its own schemes (GraphiteLookState). */
