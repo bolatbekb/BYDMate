@@ -13,14 +13,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Apps
 import com.bydmate.app.ui.components.AppAlertDialog
-import androidx.compose.material3.FilterChip
+import com.bydmate.app.ui.skin.FilterChip // fork: skin
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.bydmate.app.ui.skin.Text // fork: skin
+import com.bydmate.app.ui.skin.TextButton // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

@@ -5,7 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -16,6 +16,10 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bydmate.app.ui.theme.*
+import com.bydmate.app.ui.skin.Button // fork: skin
+import com.bydmate.app.ui.skin.TextButton // fork: skin
+import com.bydmate.app.ui.skin.OutlinedTextField // fork: skin
+import com.bydmate.app.ui.skin.Text // fork: skin
 
 /** Debug-only screen (RU hardcoded). */
 @Composable

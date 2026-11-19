@@ -15,12 +15,12 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
+import com.bydmate.app.ui.skin.Card // fork: skin
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.HorizontalDivider // fork: skin
+import com.bydmate.app.ui.skin.Text // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment

@@ -3,8 +3,10 @@
 
 [imports]
 # import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog,NavigationBar,NavigationBarItem,
-#   Button,OutlinedButton,TextButton,FilterChip,Checkbox,RadioButton,OutlinedTextField} and
+#   Button,OutlinedButton,TextButton,FilterChip,Checkbox,RadioButton,OutlinedTextField,Text} and
 # import androidx.compose.foundation.shape.RoundedCornerShape -> import com.bydmate.app.ui.skin.<Name> // fork: skin
+# (a star import gets the explicit fork import of each swapped name it uses). The settings and the dialogs
+# (stage 1-2) also have Text since stage 3; the notes below name the imports, not every use.
 app/src/main/kotlin/com/bydmate/app/ui/components/AppAlertDialog.kt            # AlertDialog: the dialogs built on AppAlertDialog (not the Dialog + Card ones)
 app/src/main/kotlin/com/bydmate/app/ui/navigation/AppNavigation.kt             # NavigationBar, NavigationBarItem (the bottom menu); Button, Card, RoundedCornerShape (the post-install dialog)
 app/src/main/kotlin/com/bydmate/app/ui/settings/DonateDialog.kt                # Button, Card, OutlinedButton, TextButton, RoundedCornerShape
@@ -19,6 +21,60 @@ app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsWidgetDisplay.kt       #
 app/src/main/kotlin/com/bydmate/app/ui/settings/TariffPeriodsScreen.kt         # Button, OutlinedTextField, TextButton, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/settings/UpdateDialog.kt                # Button, Card, OutlinedButton, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/settings/VoiceUserPhrasesScreen.kt      # Card, OutlinedTextField, TextButton, RoundedCornerShape
+
+# stage 3: every other author screen under the app theme (MainActivity's BYDMateTheme)
+# automation
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationActionControls.kt   # Checkbox, OutlinedTextField, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationActionRow.kt        # Button, Slider, Switch, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationCallNavControls.kt  # Checkbox, OutlinedTextField, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationEditorDialog.kt     # Button, HorizontalDivider, Switch, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationJournalDialog.kt    # HorizontalDivider, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationPickers.kt          # HorizontalDivider, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationRuleList.kt         # Button, Card, HorizontalDivider, Switch, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationScreen.kt           # Button, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationShareDialogs.kt     # Checkbox, OutlinedButton, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationShared.kt           # FilterChip, OutlinedTextField, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationSplitControls.kt    # FilterChip, Text, TextButton, RoundedCornerShape
+# charges
+app/src/main/kotlin/com/bydmate/app/ui/charges/ChargeEditDialog.kt              # Button, Card, OutlinedTextField, RadioButton, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/charges/ChargesScreen.kt                 # Button, FilterChip, HorizontalDivider, Text, TextButton, RoundedCornerShape
+# components
+app/src/main/kotlin/com/bydmate/app/ui/components/AdbVerdictDialog.kt           # Button, OutlinedButton, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/components/AppLaunchPicker.kt            # Checkbox, OutlinedTextField, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/components/CardDetailDialog.kt           # Card, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/components/Components.kt                 # Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/components/HelpHint.kt                   # Text, RoundedCornerShape
+# dashboard
+app/src/main/kotlin/com/bydmate/app/ui/dashboard/DashboardCards.kt              # Card, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/dashboard/DashboardDialogs.kt            # FilterChip, HorizontalDivider, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/dashboard/DashboardScreen.kt             # Card, FilterChip, Text, RoundedCornerShape
+# debug
+app/src/main/kotlin/com/bydmate/app/ui/debug/AgentChatScreen.kt                 # material3.* -> Button, OutlinedTextField, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/debug/VoiceJournalScreen.kt              # Text, TextButton
+# places
+app/src/main/kotlin/com/bydmate/app/ui/places/PlaceEditDialog.kt                # Card, OutlinedTextField, Text, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/places/PlacesInline.kt                   # Button, Card, Text, RoundedCornerShape
+# restore
+app/src/main/kotlin/com/bydmate/app/ui/restore/PostRestoreDialog.kt             # Text, TextButton
+# tech
+app/src/main/kotlin/com/bydmate/app/ui/tech/DtcEraseDialog.kt                   # Text
+app/src/main/kotlin/com/bydmate/app/ui/tech/DtcScanDialog.kt                    # Card, OutlinedButton, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/tech/DtcSupportLine.kt                   # OutlinedButton, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/tech/TechDtcCard.kt                      # Text
+app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelCards.kt                   # Text
+app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelScreen.kt                  # Card, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/tech/TechTyres.kt                        # Text, RoundedCornerShape
+# trips
+app/src/main/kotlin/com/bydmate/app/ui/trips/TripDetailDialog.kt                # Card, HorizontalDivider, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/trips/TripScrubUi.kt                     # Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/trips/TripTemperatureScreen.kt           # Text
+app/src/main/kotlin/com/bydmate/app/ui/trips/TripsScreen.kt                     # FilterChip, HorizontalDivider, Text, TextButton, RoundedCornerShape
+# welcome
+app/src/main/kotlin/com/bydmate/app/ui/welcome/WelcomeScreen.kt                 # Button, Card, FilterChip, OutlinedButton, OutlinedTextField, Text, TextButton, RoundedCornerShape
+# NOT listed: Compose windows outside BYDMateTheme (their own ComposeView/setContent, no app theme):
+#   data/automation/ConfirmOverlayManager.kt, split/SplitPillView.kt, split/SplitStageActivity.kt,
+#   ui/overlay/ListeningOverlay.kt, ui/overlay/OverlayNotificationManager.kt,
+#   ui/widget/FloatingWidgetView.kt, ui/widget/TrashZoneView.kt, ui/widget/WidgetButtonPanel.kt
 
 [background]
 # .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep))) -> .skinBackground() // fork: skin background

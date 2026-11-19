@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -33,13 +33,13 @@ import androidx.compose.material.icons.outlined.Chat
 import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.ui.platform.LocalContext
 import com.bydmate.app.ui.components.AppAlertDialog
-import androidx.compose.material3.Checkbox
+import com.bydmate.app.ui.skin.Checkbox // fork: skin
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
+import com.bydmate.app.ui.skin.OutlinedTextField // fork: skin
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.bydmate.app.ui.skin.Text // fork: skin
+import com.bydmate.app.ui.skin.TextButton // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key

@@ -33,7 +33,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Close
@@ -42,11 +42,11 @@ import androidx.compose.ui.platform.LocalContext
 import com.bydmate.app.ui.components.AppAlertDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
+import com.bydmate.app.ui.skin.HorizontalDivider // fork: skin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.bydmate.app.ui.skin.Text // fork: skin
+import com.bydmate.app.ui.skin.TextButton // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf

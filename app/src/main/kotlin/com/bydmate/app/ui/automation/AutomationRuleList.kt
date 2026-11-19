@@ -75,17 +75,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material3.Button
+import com.bydmate.app.ui.skin.Button // fork: skin
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
+import com.bydmate.app.ui.skin.Card // fork: skin
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.HorizontalDivider
+import com.bydmate.app.ui.skin.HorizontalDivider // fork: skin
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.Switch // fork: skin
+import com.bydmate.app.ui.skin.Text // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key

@@ -48,7 +48,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
+import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -63,16 +63,16 @@ import androidx.compose.material.icons.outlined.RecordVoiceOver
 import androidx.compose.material.icons.outlined.TouchApp
 import androidx.compose.material.icons.outlined.Wifi
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material3.Button
+import com.bydmate.app.ui.skin.Button // fork: skin
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.HorizontalDivider
+import com.bydmate.app.ui.skin.HorizontalDivider // fork: skin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.bydmate.app.ui.skin.Switch // fork: skin
+import com.bydmate.app.ui.skin.Text // fork: skin
+import com.bydmate.app.ui.skin.TextButton // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
