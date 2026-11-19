@@ -104,9 +104,9 @@ class GraphiteSkinTest {
         assertEquals(graphiteKit(GrFont.INTER).copy(fonts = k.fonts), k)
     }
 
-    @Test fun graphiteSkinIsListedSecond() {
+    @Test fun graphiteSkinIsListedLast() {
         assertSame(Skins.CLASSIC, Skins.ALL[0])
-        val g = Skins.ALL[1]
+        val g = Skins.ALL.last()
         assertSame(Skins.GRAPHITE_HOME, g)
         assertEquals("graphite_home", g.id)
         assertEquals("Graphite", g.title)

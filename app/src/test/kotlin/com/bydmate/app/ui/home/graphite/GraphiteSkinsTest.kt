@@ -16,10 +16,10 @@ class GraphiteSkinsTest {
 
     /**
      * The Graphite schemes are not app skins: «Оформление» lists the app skins, one of them
-     * («Graphite», second) follows the Graphite home's scheme instead of listing each one.
+     * («Graphite», last) follows the Graphite home's scheme instead of listing each one.
      */
     @Test fun appSkinsWithoutGraphiteSchemes() {
-        assertEquals(listOf("classic", "graphite_home", "cockpit", "graphite", "volt", "telemetry", "oled"), Skins.ALL.map { it.id })
+        assertEquals(listOf("classic", "cockpit", "graphite", "volt", "telemetry", "oled", "graphite_home"), Skins.ALL.map { it.id })
         assertEquals("Graphite Pro", Skins.byId("graphite").title)
         assertEquals("Graphite", Skins.byId("graphite_home").title)
     }

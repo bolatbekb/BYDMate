@@ -26,9 +26,8 @@ import com.bydmate.app.ui.theme.Skin
 import com.bydmate.app.ui.theme.SkinState
 
 /**
- * Settings › App: which home screen the first tab shows, and the Graphite home's look. The look
- * shows with the Graphite home and with the «Graphite» app skin, which follows it; «Плеер слева»
- * only with the Graphite home, the one screen it moves. fork-local.
+ * Settings › Appearance: which home screen the first tab shows; «Плеер слева» only with the Graphite
+ * home, the one screen it moves. The Graphite look has its own block, [GraphiteLookBlock]. fork-local.
  */
 @Composable
 internal fun HomeStylePickerBlock() {
@@ -48,8 +47,35 @@ internal fun HomeStylePickerBlock() {
                 selectedIndex = styles.indexOf(HomeStyleState.current),
                 onSelect = { idx -> HomeStyleState.select(context, styles[idx]) },
             )
-            val home = HomeStyleState.current
-            if (graphiteLookShown(home, SkinState.selected)) GraphiteLookRows(mediaLeft = mediaLeftShown(home))
+            if (mediaLeftShown(HomeStyleState.current)) {
+                SettingDivider()
+                SettingToggleRow(
+                    title = stringResource(R.string.home_gr_set_media_left),
+                    description = stringResource(R.string.home_gr_set_media_left_desc),
+                    checked = GraphiteLookState.mediaLeft,
+                    onCheckedChange = { GraphiteLookState.selectMediaLeft(context, it) },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Settings › Appearance, below «Цвета приложения»: the Graphite look as a block of its own. It shows
+ * with the Graphite home or the «Graphite» app skin, which follows it (owner, 2026-11-19).
+ */
+@Composable
+internal fun GraphiteLookBlock() {
+    if (!graphiteLookShown(HomeStyleState.current, SkinState.selected)) return
+    // A name: the same in every language.
+    SectionHeader(text = "Graphite")
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = CardSurfaceElevated),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            GraphiteLookRows()
         }
     }
 }
@@ -69,18 +95,15 @@ internal fun mediaLeftShown(home: HomeStyle): Boolean = home == HomeStyle.GRAPHI
 
 /**
  * The Graphite home's own look. The rest of the app keeps the skin from «Цвета приложения»,
- * unless that skin is «Graphite»: then the app follows this look too. [mediaLeft] adds the home's
- * «Плеер слева» row.
+ * unless that skin is «Graphite»: then the app follows this look too.
  */
 @Composable
-private fun GraphiteLookRows(mediaLeft: Boolean) {
+private fun GraphiteLookRows() {
     val context = LocalContext.current
     val lang = rememberGrLang()
     val schemes = GrScheme.entries
     val materials = GrMaterial.entries
     val reliefs = GrRelief.entries
-    SettingDivider()
-    SettingSubhead("Graphite")
     SettingChipRow(
         title = stringResource(R.string.home_gr_set_scheme),
         description = stringResource(schemeHint(SkinState.selected)),
@@ -115,12 +138,4 @@ private fun GraphiteLookRows(mediaLeft: Boolean) {
         checked = GraphiteLookState.edges25d,
         onCheckedChange = { GraphiteLookState.selectEdges25d(context, it) },
     )
-    if (mediaLeft) {
-        SettingToggleRow(
-            title = stringResource(R.string.home_gr_set_media_left),
-            description = stringResource(R.string.home_gr_set_media_left_desc),
-            checked = GraphiteLookState.mediaLeft,
-            onCheckedChange = { GraphiteLookState.selectMediaLeft(context, it) },
-        )
-    }
 }

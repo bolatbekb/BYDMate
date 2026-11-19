@@ -217,9 +217,9 @@ object Skins {
 
     /**
      * «Цвета приложения»: the app-wide skins. The Graphite home has its own schemes
-     * (GraphiteLookState); the «Graphite» skin, second, takes whichever is set there.
+     * (GraphiteLookState); the «Graphite» skin, last (owner, 2026-11-19), takes whichever is set there.
      */
-    val ALL = listOf(CLASSIC, GRAPHITE_HOME, COCKPIT, GRAPHITE, VOLT, TELEMETRY, OLED)
+    val ALL = listOf(CLASSIC, COCKPIT, GRAPHITE, VOLT, TELEMETRY, OLED, GRAPHITE_HOME)
 
     fun byId(id: String?): Skin = ALL.firstOrNull { it.id == id } ?: CLASSIC
 }
