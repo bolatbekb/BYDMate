@@ -10,7 +10,7 @@ import androidx.compose.ui.res.stringResource
 import com.bydmate.app.R
 import com.bydmate.app.fork.hud.HudCustomIcons
 
-/** Settings › Display › HUD: switch for the custom HUD icons (assets/navi_fork). Fork-local. */
+/** Settings › Display › HUD: switch for the custom HUD icons (assets/navi_fork). fork-local. */
 @Composable
 internal fun HudCustomIconsSwitch() {
     val context = LocalContext.current

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_screenshot_title">Сделать скриншот всего экрана</string>
     <string name="settings_screenshot_desc">Весь экран вместе со статусом машины и панелью климата. Снимок через %1$d с — успейте открыть нужный экран. Файл ляжет в «Загрузки». Нужен доступ по ADB.</string>

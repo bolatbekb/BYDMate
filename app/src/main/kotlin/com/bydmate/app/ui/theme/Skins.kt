@@ -11,7 +11,7 @@ import androidx.compose.ui.graphics.lerp
  * Every color token the app reads through Color.kt. A skin swaps the whole set at once;
  * screens keep using the old names (AccentGreen, CardSurface, ...) and recompose on change.
  *
- * Fork-local: the author's screens are untouched, only Color.kt delegates here.
+ * fork-local: the author's screens are untouched, only Color.kt delegates here.
  */
 data class SkinPalette(
     // Background gradient anchors

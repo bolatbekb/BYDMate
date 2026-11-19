@@ -23,7 +23,7 @@ import com.bydmate.app.ui.home.graphite.GrScheme
 import com.bydmate.app.ui.home.graphite.rememberGrLang
 import com.bydmate.app.ui.theme.CardSurfaceElevated
 
-/** Settings › App: which home screen the first tab shows, and the Graphite home's look. Fork-local. */
+/** Settings › App: which home screen the first tab shows, and the Graphite home's look. fork-local. */
 @Composable
 internal fun HomeStylePickerBlock() {
     val context = LocalContext.current

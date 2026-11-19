@@ -35,7 +35,7 @@ import com.bydmate.app.ui.theme.SkinState
 import com.bydmate.app.ui.theme.Skins
 import com.bydmate.app.ui.theme.TextSecondary
 
-/** Settings › App: a row of skin previews; a tap switches the whole app live. Fork-local. */
+/** Settings › App: a row of skin previews; a tap switches the whole app live. fork-local. */
 @Composable
 internal fun SkinPickerBlock() {
     val context = LocalContext.current

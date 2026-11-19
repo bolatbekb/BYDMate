@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_hud_custom_icons_title">Usar ícones próprios para o navegador</string>
     <string name="settings_hud_custom_icons_desc">Novos ícones de manobra desenhados para a projeção no vidro. Onde não houver ícone novo: o ícone anterior do BYDMate, depois a imagem do navegador</string>

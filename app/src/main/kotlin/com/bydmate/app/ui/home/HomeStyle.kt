@@ -8,7 +8,7 @@ import com.bydmate.app.ui.home.graphite.GraphiteLookState
 import com.bydmate.app.ui.home.graphite.GraphiteWarm
 import com.bydmate.app.ui.home.graphite.LiveTrip
 
-/** Which home screen the Dashboard tab shows. Fork-local; stored in its own prefs file. */
+/** Which home screen the Dashboard tab shows. fork-local; stored in its own prefs file. */
 enum class HomeStyle(val id: String, val title: String) {
     STANDARD("standard", "Стандартная"),
     KENWOOD("kenwood", "Стойка KX"),

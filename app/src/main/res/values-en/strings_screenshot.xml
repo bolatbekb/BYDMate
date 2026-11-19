@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_screenshot_title">Take a screenshot of the whole screen</string>
     <string name="settings_screenshot_desc">The whole screen, the car\'s status strip and climate bar included. Taken after %1$d s so you can open the screen you want. Saved to Downloads. Needs ADB access.</string>

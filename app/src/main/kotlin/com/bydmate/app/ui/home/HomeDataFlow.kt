@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.map
 
 internal const val HOME_SAMPLE_MS = 1_000L
 
-/** Fork (P3): the inputs of [HomeData.from], so one combine feeds one sampled build. */
+/** fork (P3): the inputs of [HomeData.from], so one combine feeds one sampled build. */
 internal data class HomeInputs(
     val state: DashboardUiState,
     val live: DiParsData?,

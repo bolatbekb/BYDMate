@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_demo_header">Demo</string>
     <string name="settings_demo_title">Tryb demo</string>

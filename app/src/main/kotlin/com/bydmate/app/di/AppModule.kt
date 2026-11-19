@@ -434,7 +434,7 @@ object AppModule {
         )
             .build()
             .also { db ->
-                // Fork: DEMO mode seeds its own database once (the real one is never opened).
+                // fork: DEMO mode seeds its own database once (the real one is never opened).
                 if (com.bydmate.app.demo.DemoMode.isOn(context)) kotlinx.coroutines.runBlocking(kotlinx.coroutines.Dispatchers.IO) {
                     com.bydmate.app.demo.DemoSeeder.seedIfEmpty(db)
                 }

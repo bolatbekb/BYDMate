@@ -69,7 +69,7 @@ interface AdbOnDeviceClient {
     suspend fun spawnHelper(token: String): Boolean
 
     /**
-     * Fork: saves a PNG of the whole screen (the car's bars included) to [path] via shell
+     * fork: saves a PNG of the whole screen (the car's bars included) to [path] via shell
      * `screencap`. Only paths matching [com.bydmate.app.fork.ScreenshotTaker.PATH_REGEX] pass.
      * Default false, so fakes and other implementations need not know about it.
      */

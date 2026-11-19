@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="ledger_backup_error_corrupt">O arquivo do registro de abastecimentos e despesas no backup está danificado. Restauração cancelada, nada foi alterado.</string>
     <string name="ledger_backup_error_newer">O registro de abastecimentos e despesas no backup foi criado por uma versão mais nova do aplicativo (esquema %1$d, atual %2$d). Atualize o aplicativo antes de restaurar.</string>

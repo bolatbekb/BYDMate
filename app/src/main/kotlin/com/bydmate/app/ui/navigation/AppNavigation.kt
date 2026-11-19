@@ -309,7 +309,7 @@ fun AppNavigation(
                         restoreState = true
                     }
                 }) {
-                    // Fork: the home-style switch (standard or a retro stack) wraps the author's screen.
+                    // fork: the home-style switch (standard or a retro stack) wraps the author's screen.
                     DashboardScreen(
                         onOpenTechPanel = openTechTab,
                         onOpenSettings = openSettingsTab,

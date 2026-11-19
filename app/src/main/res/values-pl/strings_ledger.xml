@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="ledger_backup_error_corrupt">Plik ewidencji tankowań i wydatków w kopii zapasowej jest uszkodzony. Przywracanie anulowane, dane nie zostały zmienione.</string>
     <string name="ledger_backup_error_newer">Ewidencja tankowań i wydatków w kopii zapasowej pochodzi z nowszej wersji aplikacji (schemat %1$d, bieżący %2$d). Zaktualizuj aplikację przed przywróceniem.</string>

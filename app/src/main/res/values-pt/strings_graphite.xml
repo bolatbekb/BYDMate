@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings of the Graphite home and its Settings block (short words, units,
+<!-- fork-local strings of the Graphite home and its Settings block (short words, units,
      numbers and dates are in ui/home/graphite/GraphiteLocale.kt). -->
 <resources>
     <string name="home_gr_offline">Sem conexão</string>

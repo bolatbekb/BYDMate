@@ -15,7 +15,7 @@ import com.bydmate.app.R
 import com.bydmate.app.fork.ScreenshotTaker
 import com.bydmate.app.ui.theme.CardSurfaceElevated
 
-/** Settings › App: whole-screen screenshot through ADB. Fork-local. */
+/** Settings › App: whole-screen screenshot through ADB. fork-local. */
 @Composable
 internal fun ScreenshotBlock() {
     val context = LocalContext.current

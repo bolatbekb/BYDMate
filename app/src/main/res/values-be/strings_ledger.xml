@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="ledger_backup_error_corrupt">Файл уліку запраўак і выдаткаў у бэкапе пашкоджаны. Аднаўленне адменена, даныя не змененыя.</string>
     <string name="ledger_backup_error_newer">Улік запраўак і выдаткаў у бэкапе створаны больш новай версіяй праграмы (схема %1$d, бягучая %2$d). Абнавіце праграму перад аднаўленнем.</string>

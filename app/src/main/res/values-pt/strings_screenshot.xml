@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_screenshot_title">Capturar o ecrã inteiro</string>
     <string name="settings_screenshot_desc">O ecrã inteiro, com a barra de estado do carro e o painel de climatização. Capturado após %1$d s para abrir o ecrã pretendido. Guardado em Transferências. Requer acesso ADB.</string>

@@ -1,4 +1,4 @@
-# Fork-only: builds the signed release APK.
+# fork-only: builds the signed release APK.
 #  - every push to main: APK as a build artifact (Actions › run › Artifacts);
 #  - a tag v* (e.g. v4.4.0.2): also a GitHub Release with the APK attached and the notes from
 #    release-notes/<tag>.md (required, written by a human), which the

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_hud_custom_icons_title">Выкарыстоўваць свае значкі для навігатара</string>
     <string name="settings_hud_custom_icons_desc">Новыя значкі манёўраў, намаляваныя пад праекцыю на шкло. Дзе новага значка няма — ранейшы значок BYDMate, потым малюнак навігатара</string>

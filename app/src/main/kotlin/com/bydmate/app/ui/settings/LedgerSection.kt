@@ -13,7 +13,7 @@ import com.bydmate.app.fork.ledger.ui.LedgerViewModel
 /** Rail icon; lives here so SettingsScreen.kt needs no extra import. */
 internal val LedgerSectionIcon: ImageVector get() = Icons.AutoMirrored.Outlined.ReceiptLong
 
-/** Settings › Expenses: refuels, other expenses and the monthly summary. Fork-local. */
+/** Settings › Expenses: refuels, other expenses and the monthly summary. fork-local. */
 @Composable
 internal fun LedgerSection(vm: LedgerViewModel = hiltViewModel()) {
     SectionHeader(text = stringResource(R.string.ledger_section_title))

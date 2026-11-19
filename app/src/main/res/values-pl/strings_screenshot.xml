@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_screenshot_title">Zrób zrzut całego ekranu</string>
     <string name="settings_screenshot_desc">Cały ekran razem z paskiem stanu auta i panelem klimatyzacji. Zrzut po %1$d s — zdążysz otworzyć właściwy ekran. Plik trafi do Pobranych. Wymaga dostępu ADB.</string>

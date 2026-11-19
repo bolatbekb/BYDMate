@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="ledger_backup_error_corrupt">备份中的加油与费用账本文件已损坏。恢复已取消，数据未作任何更改。</string>
     <string name="ledger_backup_error_newer">备份中的加油与费用账本由更新版本的应用创建（架构 %1$d，当前 %2$d）。请先更新应用再恢复。</string>

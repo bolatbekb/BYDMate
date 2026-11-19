@@ -15,7 +15,7 @@ import com.bydmate.app.R
 import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.ui.theme.CardSurfaceElevated
 
-/** Settings › App: DEMO mode switch. Switching restarts the app into the other database. Fork-local. */
+/** Settings › App: DEMO mode switch. Switching restarts the app into the other database. fork-local. */
 @Composable
 internal fun DemoModeBlock() {
     val context = LocalContext.current

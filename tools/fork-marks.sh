@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Fork marks check: every change the fork made inside an AUTHOR file (a file that exists in the
+# fork marks check: every change the fork made inside an AUTHOR file (a file that exists in the
 # upstream base) must carry the word "fork" (any case) in the same diff hunk — a `// fork: …` line,
 # a `<!-- fork … -->` comment or a `# fork` comment. A pure deletion gets a `// fork: removed …`
 # comment in its place, so it shows up as a hunk with a marked added line.

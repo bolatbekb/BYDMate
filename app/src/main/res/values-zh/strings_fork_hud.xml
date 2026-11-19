@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_hud_custom_icons_title">为导航使用自定义图标</string>
     <string name="settings_hud_custom_icons_desc">为挡风玻璃投影重新绘制的转向图标。没有新图标的地方：沿用 BYDMate 原图标，然后使用导航的图片</string>

@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-/** Fork-only database for refuels and expenses; separate from the author's AppDatabase. */
+/** fork-only database for refuels and expenses; separate from the author's AppDatabase. */
 @Database(
     entities = [
         RefuelEntity::class,

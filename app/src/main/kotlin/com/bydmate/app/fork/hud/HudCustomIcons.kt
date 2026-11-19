@@ -5,7 +5,7 @@ import android.content.res.AssetManager
 import android.util.Log
 import java.util.concurrent.atomic.AtomicInteger
 
-/** Fork: our own HUD maneuver icons, shipped in assets/navi_fork/0x<hex>.png (38x41, same format as the
+/** fork: our own HUD maneuver icons, shipped in assets/navi_fork/0x<hex>.png (38x41, same format as the
  *  author's assets/navi). Switchable; priority when on: navi_fork -> built-in BYDMate -> the navigator's own. */
 object HudCustomIcons {
     private const val TAG = "HudCustomIcons"

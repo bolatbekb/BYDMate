@@ -9,7 +9,7 @@ import kotlin.system.exitProcess
  * screen can be looked at on an emulator. The real database and settings are never touched.
  *
  * The flag is read once per process: data sources and the database are singletons, so a
- * switch saves the flag and restarts the process. Fork-local.
+ * switch saves the flag and restarts the process. fork-local.
  */
 object DemoMode {
     private const val PREFS = "bydmate_demo"
