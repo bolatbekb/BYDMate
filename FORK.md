@@ -174,54 +174,66 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 
 ### Где возможен конфликт: правки в файлах автора
 
-**Сверено с git 2026-11-19.** База автора — `ff2f6f30` (2026-11-15), последний влитый коммит `upstream/main`. Форк — релиз 4.4.1.18 (тег `v4.4.1.18`), новый набор значков HUD в `main` и ветка `feat/skins-kit` (набор скина, ещё не в `main`). С базы в форке 205 коммитов, считая коммит с этой сверкой: изменено 43 файла автора (около 430 строк), добавлено 485 своих файлов (с 43 значками HUD), удалённых нет. Числа сняты на этом коммите: `git rev-list --count ff2f6f30..HEAD` и `git diff --name-status ff2f6f30 HEAD` (A — свои, M — автора, D — удалённые; строки — `git diff --numstat --diff-filter=M`). При конфликте ищи в этих файлах метку `fork`. Каждое изменение в файле автора помечено словом `fork` (комментарий `// fork: …` на строке или в начале блока; удаление — комментарием на его месте). Проверка: `tools/fork-marks.sh` сравнивает рабочее дерево с базой автора и выводит изменения без метки; запускать перед каждым релизом и после каждого слияния с автором.
+**Сверено с git 2026-11-19.** База автора — `ff2f6f30` (2026-11-15), последний влитый коммит `upstream/main`. Форк — `main` на релизе 4.4.1.19 (тег `v4.4.1.19`) плюс ветка `feat/skins-kit` (скины, этапы 1–3, ещё не в `main`). С базы в форке 220 коммитов, считая коммит с этой сверкой: изменено 73 файла автора (+514/−300, всего 814 строк), добавлено 500 своих файлов (с 43 значками HUD), удалённых нет. Числа сняты на этом коммите: `git rev-list --count ff2f6f30..HEAD` и `git diff --name-status ff2f6f30 HEAD` (A — свои, M — автора, D — удалённые; строки — `git diff --numstat --diff-filter=M`). При конфликте ищи в этих файлах метку `fork`. Каждое изменение в файле автора помечено словом `fork` (комментарий `// fork: …` на строке или в начале блока; удаление — комментарием на его месте). Проверка: `tools/fork-marks.sh` сравнивает рабочее дерево с базой автора и выводит изменения без метки; запускать перед каждым релизом и после каждого слияния с автором.
 
 Столбец «Коммиты»: первый коммит форка, тронувший файл, → последний. Текущее состояние правки — по последнему. Пути `.kt` даны от `app/src/main/kotlin/com/bydmate/app/`.
 
 | Файл | Что изменено | Строк | Коммиты |
 |---|---|---|---|
-| `app/build.gradle.kts` | `versionCode` и `versionName` форка: **конфликт при каждом релизе автора**, см. «Версии» | +2/−2 | `baceba15` (2026-11-15) → `50a47ff0` (2026-11-17), меняется в каждом релизе |
-| `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init`, `HudCustomIcons.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) | +8/−0 | `23c2e82c` (2026-11-15) → `4e88c0e4` (2026-11-16) |
-| `ui/theme/Color.kt` | цвета стали геттерами из `SkinState`, чтобы скин менялся на лету | +25/−22 | `23c2e82c` (2026-11-15) |
+| `app/build.gradle.kts` | `versionCode` и `versionName` форка: **конфликт при каждом релизе автора**, см. «Версии» | +2/−2 | `baceba15` (2026-11-15) → `ea67d6ce` (2026-11-19), меняется в каждом релизе |
+| `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init`, `HudCustomIcons.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) | +8/−0 | `23c2e82c` (2026-11-15) → `c1d3ccc2` (2026-11-19) |
+| `ui/theme/Color.kt` | цвета стали геттерами из `SkinState`, чтобы скин менялся на лету; вручную: `SocGreen` (шкала заряда) берёт акцент скина (`// fork: skin`) | +25/−22 | `23c2e82c` (2026-11-15) → `aca3dd77` (2026-11-19) |
 | `ui/theme/Theme.kt` | `DarkColorScheme` стал геттером; шрифт, размер шрифта и углы берутся из набора активного скина (`skinTypography`, `skinShapes`, `LocalUserFontScale`) | +20/−4 | `23c2e82c` (2026-11-15) → `913cf9c7` (2026-11-19) |
-| `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером; пункты `LEDGER` («Расходы») и `APPEARANCE` («Внешний вид») в `SettingsSection` и их ветки в `when`; скины: импорты `Card`, `HorizontalDivider`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +10/−6 | `23c2e82c` (2026-11-15) → `57389ce2` (2026-11-19) |
+| `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером; пункты `LEDGER` («Расходы») и `APPEARANCE` («Внешний вид») в `SettingsSection` и их ветки в `when`; скины: импорты `Card`, `HorizontalDivider`, `OutlinedTextField`, `Text`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +12/−8 | `23c2e82c` (2026-11-15) → `3d12fefc` (2026-11-19) |
 | `data/backup/BackupManager.kt` | 7 строк `fork`: учёт в бэкапе (снимок, запись в zip, проверка и подмена при восстановлении) | +7/−0 | `bce82d0a` (2026-11-16) → `7c79b8fb` (2026-11-17) |
-| `ui/settings/SettingsAppVoice.kt` | в разделе «Приложение» вызовы блоков демо и скриншота; блоки скина и главной вынесены в «Внешний вид» (убраны два вызова, одна строка-комментарий); скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +5/−2 | `23c2e82c` (2026-11-15) → `57389ce2` (2026-11-19) |
-| `ui/navigation/AppNavigation.kt` | `DashboardScreen` обёрнут в `ForkHome(onOpenTab) { … }`; нижняя панель скрыта, пока на главной ретро-стойка (`hidesBottomBar`); всплывающая просьба о донате выключена (`ForkConfig.DONATION_PROMPT`) | +24/−12 | `6e1f49ef` (2026-11-15) → `031bc50c` (2026-11-16) |
-| `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса | +16/−6 | `23c2e82c` (2026-11-15) → `353c5775` (2026-11-15) |
-| `di/NativeModule.kt` | привязка `DemoAwareParsReader` | +1/−1 | `23c2e82c` (2026-11-15) |
+| `ui/settings/SettingsAppVoice.kt` | в разделе «Приложение» вызовы блоков демо и скриншота; блоки скина и главной вынесены в «Внешний вид» (убраны два вызова, одна строка-комментарий); скины: импорты `Button`, `Card`, `OutlinedButton`, `OutlinedTextField`, `RadioButton`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin` | +11/−8 | `23c2e82c` (2026-11-15) → `3d12fefc` (2026-11-19) |
+| `ui/navigation/AppNavigation.kt` | `DashboardScreen` обёрнут в `ForkHome(onOpenTab) { … }`; нижняя панель скрыта, пока на главной ретро-стойка (`hidesBottomBar`); всплывающая просьба о донате выключена (`ForkConfig.DONATION_PROMPT`); скины: нижнее меню `NavigationBar` и `NavigationBarItem` из `ui/skin`, плюс импорты `Button`, `Card`, `Text`, `RoundedCornerShape` из `ui/skin` | +30/−18 | `6e1f49ef` (2026-11-15) → `3d12fefc` (2026-11-19) |
+| `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса | +16/−6 | `23c2e82c` (2026-11-15) → `4305d454` (2026-11-19) |
+| `di/NativeModule.kt` | привязка `DemoAwareParsReader` | +1/−1 | `23c2e82c` (2026-11-15) → `55a0f74d` (2026-11-18) |
 | `service/UpdateChecker.kt` | адрес релизов берётся из `ForkConfig.UPDATE_REPO` | +2/−1 | `c70943c1` (2026-11-15) |
 | `ui/settings/DiagnosticDumpWriter.kt` | две строки `// fork`: вывод `DisplayInfo.lines()` и (перед разделом `--- trace ---`) раздел живой поездки и журнал поездок `LiveTripDiagnostics.lines()` | +3/−0 (две строки `// fork` и пустая) | `baceba15` (2026-11-15) → `992daee1` (2026-11-18) |
-| `data/autoservice/AdbOnDeviceClient.kt` | метод `screencap()` в интерфейсе и реализации | +27/−0 | `879f279c` (2026-11-15) |
-| `data/charging/AutoserviceChargingDetector.kt` | ограничение записи якоря (`anchorFresh`) | +18/−0 | `353c5775` (2026-11-15) → `53cc6c70` (2026-11-15) |
-| `data/automation/AutomationEngine.kt` | кеш разобранных условий | +9/−1 | `353c5775` (2026-11-15) |
-| `data/local/EnergyDataReader.kt` | кеш `isAvailable()` | +11/−0 | `353c5775` (2026-11-15) |
+| `data/autoservice/AdbOnDeviceClient.kt` | метод `screencap()` в интерфейсе и реализации | +27/−0 | `879f279c` (2026-11-15) → `4305d454` (2026-11-19) |
+| `data/charging/AutoserviceChargingDetector.kt` | ограничение записи якоря (`anchorFresh`) | +19/−0 | `353c5775` (2026-11-15) → `55a0f74d` (2026-11-18) |
+| `data/automation/AutomationEngine.kt` | кеш разобранных условий | +10/−1 | `353c5775` (2026-11-15) → `55a0f74d` (2026-11-18) |
+| `data/local/EnergyDataReader.kt` | кеш `isAvailable()` | +11/−0 | `353c5775` (2026-11-15) → `55a0f74d` (2026-11-18) |
 | `domain/calculator/OdometerConsumptionBuffer.kt` | `// fork (perf)`: строки окна расхода запоминаются и сбрасываются при вставке, очистке и обрезке — раньше на каждом тике читалось до 500 + 60 строк | +15/−3 | `abd154a8` (2026-11-19) |
 | `ui/widget/WidgetController.kt` | `// fork (perf)`: `lastData` в виджет — первое значение сразу, потом не чаще раза в секунду (`throttleLatest`) | +3/−1 | `abd154a8` → `e27cfa42` (2026-11-19) |
 | `test/.../OdometerConsumptionBufferTest.kt` | тесты запоминания: тот же результат, без повторных чтений, сброс при очистке | +45/−0 | `abd154a8` (2026-11-19) |
-| `hud/HudPushLoop.kt` | `// fork`: картинка манёвра (f8) берётся через `HudCustomIcons.pickIcon` — свой значок, затем BYDMate, затем навигатор; камера как была | +1/−1 | `HEAD` (2026-11-19) |
-| `hud/HudCheck.kt` | `// fork`: тестовый кадр «Проверка HUD» берёт свой значок «налево» первым | +1/−1 | `HEAD` (2026-11-19) |
-| `ui/settings/SettingsWidgetDisplay.kt` | `// fork`: одна строка — переключатель `HudCustomIconsSwitch()` после «Проверки HUD»; скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +3/−2 | `c1d3ccc2` → `57389ce2` (2026-11-19) |
-| `data/loop/SharedAdaptiveLoop.kt` | параметр `screenOn` и `nextInterval()` | +10/−2 | `353c5775` (2026-11-15) → `92007d9b` (2026-11-15) |
+| `hud/HudPushLoop.kt` | `// fork`: картинка манёвра (f8) берётся через `HudCustomIcons.pickIcon` — свой значок, затем BYDMate, затем навигатор; камера как была | +1/−1 | `c1d3ccc2` → `b332751a` (2026-11-19) |
+| `hud/HudCheck.kt` | `// fork`: тестовый кадр «Проверка HUD» берёт свой значок «налево» первым | +1/−1 | `c1d3ccc2` → `b332751a` (2026-11-19) |
+| `ui/settings/SettingsWidgetDisplay.kt` | `// fork`: одна строка — переключатель `HudCustomIconsSwitch()` после «Проверки HUD»; скины: импорты `Card`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin` | +5/−4 | `c1d3ccc2` → `3d12fefc` (2026-11-19) |
+| `data/loop/SharedAdaptiveLoop.kt` | параметр `screenOn` и `nextInterval()` | +12/−2 | `353c5775` (2026-11-15) → `55a0f74d` (2026-11-18) |
 | `test/.../SettingsViewModelTest.kt` | эталонная шапка лога: из сравнения убраны строки `display…` форка и раздел `--- live trip (fork) ---` с журналом поездок | +4/−0 | `879f279c` (2026-11-15) → `992daee1` (2026-11-18) |
-| `ui/automation/AutomationScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
-| `ui/charges/ChargesScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
-| `ui/dashboard/DashboardScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
-| `ui/debug/AgentChatScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
-| `ui/tech/TechPanelScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
-| `ui/trips/TripTemperatureScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
-| `ui/trips/TripsScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
-| `ui/welcome/WelcomeScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
-| `ui/components/AppAlertDialog.kt` | скины: импорт `AlertDialog` из `ui/skin` (через него идут диалоги на `AppAlertDialog`; диалоги на `Dialog` с карточкой M3 — поездки, зарядки, места, автоматизации, DTC, подробностей карточки — остаются авторскими до третьего этапа) | +1/−1 | `57389ce2` (2026-11-19) |
-| `ui/settings/DonateDialog.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
-| `ui/settings/ManualRangeTableDialog.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
-| `ui/settings/SettingRows.kt` | скины: импорты `Card`, `HorizontalDivider`, `Slider`, `Switch`, `RoundedCornerShape` из `ui/skin` | +5/−5 | `57389ce2` (2026-11-19) |
-| `ui/settings/SettingsBatteryIntegrations.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
-| `ui/settings/SettingsService.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
-| `ui/settings/SettingsSplit.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
-| `ui/settings/UpdateDialog.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
-| `ui/settings/TariffPeriodsScreen.kt` | скины: импорт `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +3/−3 | `913cf9c7` → `57389ce2` (2026-11-19) |
-| `ui/settings/VoiceUserPhrasesScreen.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +4/−4 | `913cf9c7` → `57389ce2` (2026-11-19) |
+| `ui/automation/AutomationScreen.kt` | скины: импорты `Button`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +6/−6 | `913cf9c7` → `00699a24` (2026-11-19) |
+| `ui/charges/ChargesScreen.kt` | скины: импорты `Button`, `FilterChip`, `HorizontalDivider`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +8/−8 | `913cf9c7` → `00699a24` (2026-11-19) |
+| `ui/dashboard/DashboardScreen.kt` | скины: импорты `Card`, `FilterChip`, `Text`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()`; вручную: вызов `androidx.compose.material3.FilterChip(` заменён на `com.bydmate.app.ui.skin.FilterChip(` (с полным именем) | +7/−7 | `913cf9c7` → `053dca0e` (2026-11-19) |
+| `ui/debug/AgentChatScreen.kt` | скины: импорты `Button`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +7/−3 | `913cf9c7` → `00699a24` (2026-11-19) |
+| `ui/tech/TechPanelScreen.kt` | скины: импорты `Card`, `Text`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +5/−5 | `913cf9c7` → `00699a24` (2026-11-19) |
+| `ui/trips/TripTemperatureScreen.kt` | скины: импорты `Text` из `ui/skin`, фон через `skinBackground()` | +3/−3 | `913cf9c7` → `00699a24` (2026-11-19) |
+| `ui/trips/TripsScreen.kt` | скины: импорты `FilterChip`, `HorizontalDivider`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +7/−7 | `913cf9c7` → `00699a24` (2026-11-19) |
+| `ui/welcome/WelcomeScreen.kt` | скины: импорты `Button`, `Card`, `FilterChip`, `OutlinedButton`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +10/−10 | `913cf9c7` → `00699a24` (2026-11-19) |
+| `ui/components/AppAlertDialog.kt` | скины: импорты `AlertDialog` из `ui/skin` | +1/−1 | `57389ce2` (2026-11-19) |
+| `ui/settings/DonateDialog.kt` | скины: импорты `Button`, `Card`, `OutlinedButton`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin` | +6/−6 | `57389ce2` → `3d12fefc` (2026-11-19) |
+| `ui/settings/ManualRangeTableDialog.kt` | скины: импорты `Button`, `Card`, `OutlinedButton`, `OutlinedTextField`, `Text`, `RoundedCornerShape` из `ui/skin` | +6/−6 | `57389ce2` → `3d12fefc` (2026-11-19) |
+| `ui/settings/SettingRows.kt` | скины: импорты `Button`, `Card`, `FilterChip`, `HorizontalDivider`, `OutlinedButton`, `Slider`, `Switch`, `Text`, `RoundedCornerShape` из `ui/skin` | +9/−9 | `57389ce2` → `3d12fefc` (2026-11-19) |
+| `ui/settings/SettingsBatteryIntegrations.kt` | скины: импорты `Card`, `Text`, `RoundedCornerShape` из `ui/skin` | +3/−3 | `57389ce2` → `3d12fefc` (2026-11-19) |
+| `ui/settings/SettingsService.kt` | скины: импорты `Button`, `Card`, `Checkbox`, `OutlinedButton`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin` | +7/−7 | `57389ce2` → `3d12fefc` (2026-11-19) |
+| `ui/settings/SettingsSplit.kt` | скины: импорты `Card`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin` | +4/−4 | `57389ce2` → `3d12fefc` (2026-11-19) |
+| `ui/settings/UpdateDialog.kt` | скины: импорты `Button`, `Card`, `OutlinedButton`, `Text`, `RoundedCornerShape` из `ui/skin` | +5/−5 | `57389ce2` → `3d12fefc` (2026-11-19) |
+| `ui/settings/TariffPeriodsScreen.kt` | скины: импорты `Button`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +7/−7 | `913cf9c7` → `3d12fefc` (2026-11-19) |
+| `ui/settings/VoiceUserPhrasesScreen.kt` | скины: импорты `Card`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +7/−7 | `913cf9c7` → `3d12fefc` (2026-11-19) |
+| `ui/automation/*` | скины: замена импортов на `ui/skin` в файлах: `AutomationActionControls.kt` (`Checkbox`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape`), `AutomationActionRow.kt` (`Button`, `Slider`, `Switch`, `Text`, `RoundedCornerShape`), `AutomationCallNavControls.kt` (`Checkbox`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape`), `AutomationJournalDialog.kt` (`HorizontalDivider`, `Text`, `RoundedCornerShape`), `AutomationPickers.kt` (`HorizontalDivider`, `Text`, `TextButton`, `RoundedCornerShape`), `AutomationShareDialogs.kt` (`Checkbox`, `OutlinedButton`, `Text`, `TextButton`, `RoundedCornerShape`), `AutomationShared.kt` (`FilterChip`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape`), `AutomationSplitControls.kt` (`FilterChip`, `Text`, `TextButton`, `RoundedCornerShape`) | +36/−36 | `00699a24` (2026-11-19) |
+| `ui/automation/AutomationEditorDialog.kt` | скины: импорты `Button`, `HorizontalDivider`, `Switch`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin`; вручную: `FIELD_SHAPE` — геттер `RoundedCornerShape(8.dp)` вместо `val`, чтобы углы менялись вместе со скином | +7/−7 | `00699a24` → `053dca0e` (2026-11-19) |
+| `ui/automation/AutomationRuleList.kt` | скины: импорты `Button`, `Card`, `HorizontalDivider`, `Switch`, `Text`, `RoundedCornerShape` из `ui/skin`; вручную: `RULE_CARD_SHAPE` — геттер `RoundedCornerShape(12.dp)` вместо `val`, чтобы углы менялись вместе со скином | +7/−7 | `00699a24` → `053dca0e` (2026-11-19) |
+| `ui/charges/ChargeEditDialog.kt` | скины: импорты `Button`, `Card`, `OutlinedTextField`, `RadioButton`, `Text`, `TextButton`, `RoundedCornerShape` из `ui/skin` | +7/−7 | `00699a24` (2026-11-19) |
+| `ui/components/*` | скины: замена импортов на `ui/skin` в файлах: `AdbVerdictDialog.kt` (`Button`, `OutlinedButton`, `Text`, `RoundedCornerShape`), `AppLaunchPicker.kt` (`Checkbox`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape`), `CardDetailDialog.kt` (`Card`, `Text`, `RoundedCornerShape`), `Components.kt` (`Text`, `RoundedCornerShape`), `HelpHint.kt` (`Text`, `RoundedCornerShape`) | +16/−16 | `00699a24` (2026-11-19) |
+| `ui/dashboard/DashboardCards.kt` | скины: импорты `Card`, `Text`, `RoundedCornerShape` из `ui/skin` | +3/−3 | `00699a24` (2026-11-19) |
+| `ui/dashboard/DashboardDialogs.kt` | скины: импорты `FilterChip`, `HorizontalDivider`, `Text`, `RoundedCornerShape` из `ui/skin`; вручную: вызов `androidx.compose.material3.FilterChip(` заменён на `com.bydmate.app.ui.skin.FilterChip(` (с полным именем) | +5/−5 | `00699a24` → `053dca0e` (2026-11-19) |
+| `ui/debug/VoiceJournalScreen.kt` | скины: импорты `Text`, `TextButton` из `ui/skin` | +2/−2 | `00699a24` (2026-11-19) |
+| `ui/places/*` | скины: замена импортов на `ui/skin` в файлах: `PlaceEditDialog.kt` (`Card`, `OutlinedTextField`, `Text`, `TextButton`, `RoundedCornerShape`), `PlacesInline.kt` (`Button`, `Card`, `Text`, `RoundedCornerShape`) | +9/−9 | `00699a24` (2026-11-19) |
+| `ui/restore/PostRestoreDialog.kt` | скины: импорты `Text`, `TextButton` из `ui/skin` | +2/−2 | `00699a24` (2026-11-19) |
+| `ui/tech/*` | скины: замена импортов на `ui/skin` в файлах: `DtcEraseDialog.kt` (`Text`), `DtcScanDialog.kt` (`Card`, `OutlinedButton`, `Text`, `RoundedCornerShape`), `DtcSupportLine.kt` (`OutlinedButton`, `Text`, `RoundedCornerShape`), `TechDtcCard.kt` (`Text`), `TechPanelCards.kt` (`Text`), `TechTyres.kt` (`Text`, `RoundedCornerShape`) | +12/−12 | `53cc6c70` (2026-11-15) → `00699a24` (2026-11-19) |
+| `ui/trips/*` | скины: замена импортов на `ui/skin` в файлах: `TripDetailDialog.kt` (`Card`, `HorizontalDivider`, `Text`, `RoundedCornerShape`), `TripScrubUi.kt` (`Text`, `RoundedCornerShape`) | +6/−6 | `00699a24` (2026-11-19) |
 | `res/values/themes.xml` | тёмный фон окна при запуске вместо белого светлой темы (`fork_window_background` в `colors_fork.xml`), владелец 2026-11-17 | +4/−1 | `f3113624` (2026-11-17) |
 
 ### Что форк добавил своими файлами
@@ -231,8 +243,9 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | Область | Где | Коммиты |
 |---|---|---|
 | Демо-режим | `demo/*` (4), `ui/settings/DemoModeBlock.kt`, `res/values*/strings_demo.xml` | `23c2e82c` (2026-11-15) → `569934e0` (2026-11-16) |
-| Скины приложения | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt`, `res/values*/strings_skins.xml` | `23c2e82c` (2026-11-15) → `0b3d5649` (2026-11-19) |
-| Набор скина: шрифт, углы, переключатель, карточка, ползунок, разделитель, диалог, фон | `ui/skin/*` (13 файлов), `res/font/skin_*.ttf`, `assets/licenses/*-OFL.txt`, `tools/skin-imports.sh`, `tools/skin-imports.list`, тесты `ui/skin/*` | `9e867ff8` → `0b3d5649` (2026-11-19) |
+| Скины приложения | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt`, `res/values*/strings_skins.xml` | `23c2e82c` (2026-11-15) → `3d12fefc` (2026-11-19) |
+| Набор скина: шрифт, углы, переключатель, карточка, ползунок, разделитель, диалог, фон, нижнее меню | `ui/skin/*` (20 файлов), шрифты `res/font/skin_exo2.ttf`, `skin_manrope.ttf`, `skin_roboto_condensed.ttf`, лицензии `assets/licenses/{exo2,manrope,robotocondensed}-OFL.txt`, `tools/skin-imports.sh`, `tools/skin-imports.list`, `tools/skin-author-files.txt`, тесты `ui/skin/*` (9 файлов) | `9e867ff8` → `55571c8c` (2026-11-19); инструменты — `053dca0e` → `57389ce2` |
+| Нижнее меню Graphite, общее с набором скина | `ui/home/graphite/GraphiteMenu.kt` | `eccbafde` (2026-11-19) |
 | Общие настройки форка, обновления из релизов форка, донат | `fork/ForkConfig.kt` | `c70943c1` (2026-11-15) |
 | Шапка диагностического лога | `fork/DisplayInfo.kt` | `baceba15` (2026-11-15) |
 | Какие режимы движения (ECO / NORMAL / SPORT) есть у машины, для ретро-главных | `fork/DriveModeSupport.kt` | `b94c2b6f` (2026-11-15) |
@@ -245,7 +258,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | Стойка C-Drive | `ui/home/cdrive/*`, `res/drawable-nodpi/cd_*.webp`, `tools/cdrive/*` | `d932b91f` (2026-11-16) → `8c1e923b` |
 | Общие детали главных (рамка макета, `px`/`fs`, шкалы) | `ui/home/common/*`, `tools/common/*` | `acccf158` (2026-11-17) |
 | Пробег за сегодня по одометру | `ui/home/DayMileage.kt` | `031bc50c` (2026-11-16) |
-| Главная Graphite | `ui/home/graphite/*` (36 файлов), `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_*.webp`, `res/font/gr_inter.ttf`, `res/values*/strings_graphite.xml`, `tools/graphite/*` | `f2be6756` (2026-11-16) → `453d255f` (2026-11-17) |
+| Главная Graphite | `ui/home/graphite/*` (38 файлов), `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_*.webp`, `res/font/gr_inter.ttf`, `res/values*/strings_graphite.xml`, `tools/graphite/*` | `f2be6756` (2026-11-16) → `453d255f` (2026-11-17) |
 | Быстрое открытие главной: тёплые значения с прошлого запуска (`GraphiteWarm.kt`), правила движения (`GraphiteAnim.kt`: без анимации «в никуда» и с «неизвестного», рост графика только при смене периода), тёмное окно при запуске (`res/values/colors_fork.xml`) | `ui/home/graphite/GraphiteWarm.kt`, `GraphiteAnim.kt`, `res/values/colors_fork.xml` | `283e63ac` → `e2e0a360` → `453d255f` (2026-11-17) |
 | Схема и шрифт DiLink | `GraphiteSchemes.kt` (`GrDiLink`), `GraphiteLook.kt` (`GrFont`), `res/font/gr_rajdhani.ttf` | `b90c3dd5` (2026-11-17) |
 | Одинаковые боковые карточки, «Плеер слева», шкала шрифтов (ничего меньше 19) | `GraphiteHome.kt` (`SIDE_COLUMN`, `bottomCardHeight`, `topCards`), `GraphiteMedia.kt` (`compact`), `GraphiteTrip.kt` (`tall`), `GraphiteRules.kt` (`visibleTicks`), `GraphiteLook.kt` (`mediaLeft`, prefs `graphite_media_left`), `strings_graphite.xml` | `145e6cd6` → `48b29fa1` → `8687f283` (2026-11-17) |
@@ -284,6 +297,10 @@ git merge upstream/main
    tools/skin-imports.sh --apply && tools/skin-imports.sh --check
    ```
    Первая команда находит правки автора без метки `fork`. Вторая возвращает импорты скина и фон там, где автор их переписал, и проверяет, что все на месте.
+
+   - Конфликт в блоке импортов файла из `tools/skin-imports.list`: возьми сторону автора, потом выполни `tools/skin-imports.sh --apply && tools/skin-imports.sh --check`. Скрипт вернёт импорты скина.
+   - `--apply` заодно обновляет `tools/skin-author-files.txt`, а `--check` падает, если этот файл устарел.
+   - Пять строк `// fork: skin`, написанных руками, скрипт не восстанавливает, их переноси вручную (см. таблицу): `RULE_CARD_SHAPE` в `ui/automation/AutomationRuleList.kt`, `FIELD_SHAPE` в `ui/automation/AutomationEditorDialog.kt`, вызовы `com.bydmate.app.ui.skin.FilterChip(` в `ui/dashboard/DashboardScreen.kt` и `ui/dashboard/DashboardDialogs.kt`, `SocGreen` в `ui/theme/Color.kt`.
 1. **Конфликт в `app/build.gradle.kts`** будет при каждом релизе автора. Оставь номер автора и добавь номер сборки форка, см. «Версии».
 2. **Другие конфликты** разбирай по таблице выше: правка форка обычно одна строка с меткой `fork`. Её нужно перенести в новую версию кода автора.
 3. **Проверка:**
