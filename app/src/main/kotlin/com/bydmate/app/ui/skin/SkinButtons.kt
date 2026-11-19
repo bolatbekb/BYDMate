@@ -151,7 +151,7 @@ fun TextButton(
 /** The active skin's look for a [kind] of button whose container is [fill]; a snapshot read of the skin. */
 private fun activeButtonLook(kind: ButtonKind, fill: Color): ButtonLook {
     val style = SkinState.current.kit.controls.card
-    if (style == CardStyle.MATERIAL) return ButtonLook()
+    if (style == CardStyle.MATERIAL) return ButtonLook.MATERIAL
     return buttonLook(style, kind, SkinState.palette, fill)
 }
 

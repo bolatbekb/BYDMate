@@ -36,7 +36,7 @@ import androidx.compose.material3.Card as M3Card
 //
 // Each overload makes one M3Card call inside one provider, whatever the style: the style picks
 // the arguments, never the call. A skin switch then keeps the card's content and everything it
-// remembers (the settings page's scroll, the skin picker's row). For CardLook() (MATERIAL, and a
+// remembers (the settings page's scroll, the skin picker's row). For CardLook.MATERIAL (and a
 // nested STRIPE card) every argument below comes out as the caller's own: lookModifier adds
 // Modifier, alpha 1 keeps the colours, the elevation stays and the border is the caller's.
 //
@@ -133,7 +133,7 @@ private fun ProvideSkinCard(look: CardLook, window: View, depth: Int, content: @
  */
 private fun activeCardLook(depth: Int, window: View): CardLook {
     val style = SkinState.current.kit.controls.card
-    if (style == CardStyle.MATERIAL) return CardLook()
+    if (style == CardStyle.MATERIAL) return CardLook.MATERIAL
     val look = cardLook(style, SkinState.palette, nested = depth > 0)
     return if (depth == 0 && window.parent is DialogWindowProvider) look.inDialog() else look
 }

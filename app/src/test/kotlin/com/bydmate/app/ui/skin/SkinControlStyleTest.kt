@@ -8,6 +8,7 @@ import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -17,6 +18,8 @@ class SkinControlStyleTest {
     @Test fun classicCardLookIsPassThrough() {
         val look = cardLook(CardStyle.MATERIAL, p)
         assertEquals(CardLook(), look)
+        assertSame("one shared value, no allocation per card", CardLook.MATERIAL, look)
+        assertSame(CardLook.MATERIAL, cardLook(CardStyle.STRIPE, p, nested = true))
         assertTrue(look.passThrough)
         assertEquals(1f, look.containerAlpha)
         assertEquals(CardBorderKind.NONE, look.border)

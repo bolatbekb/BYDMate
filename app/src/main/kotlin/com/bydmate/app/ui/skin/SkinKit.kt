@@ -27,7 +27,12 @@ enum class CheckStyle { MATERIAL, SQUARE }
  */
 data class SkinFonts(val text: SkinFont = SkinFont.SYSTEM, val sizeFactor: Float = 1f, val numeric: SkinFont? = null)
 
-data class SkinCorners(val style: CornerStyle = CornerStyle.ROUNDED, val scale: Float = 1f)
+data class SkinCorners(val style: CornerStyle = CornerStyle.ROUNDED, val scale: Float = 1f) {
+    companion object {
+        /** The classic corners (rounded, unscaled), one shared value to compare with. */
+        val CLASSIC = SkinCorners()
+    }
+}
 
 data class SkinControls(
     val switch: SwitchStyle = SwitchStyle.MATERIAL,

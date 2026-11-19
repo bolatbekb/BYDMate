@@ -45,7 +45,12 @@ data class ButtonLook(
     val contentColor: Color = Color.Unspecified,
 ) {
     /** The M3 button with the caller's arguments, untouched. */
-    val passThrough: Boolean get() = this == ButtonLook()
+    val passThrough: Boolean get() = this == MATERIAL
+
+    companion object {
+        /** The MATERIAL look, one shared value: a Classic button allocates none. */
+        val MATERIAL = ButtonLook()
+    }
 }
 
 /**
@@ -62,7 +67,7 @@ data class ButtonLook(
  * - STRIPE (Telemetry): M3's own, with the skin's corners.
  */
 fun buttonLook(style: CardStyle, kind: ButtonKind, palette: SkinPalette, fill: Color): ButtonLook = when (style) {
-    CardStyle.MATERIAL, CardStyle.STRIPE -> ButtonLook()
+    CardStyle.MATERIAL, CardStyle.STRIPE -> ButtonLook.MATERIAL
     CardStyle.FLAT -> ButtonLook(flat = true)
     CardStyle.GRAPHITE -> when (kind) {
         ButtonKind.FILLED -> ButtonLook(pill = fill.alpha > 0f, flat = true)
@@ -74,7 +79,7 @@ fun buttonLook(style: CardStyle, kind: ButtonKind, palette: SkinPalette, fill: C
         flat = style == CardStyle.BORDER_ONLY,
     )
     CardStyle.GLASS -> if (kind == ButtonKind.TEXT) {
-        ButtonLook()
+        ButtonLook.MATERIAL
     } else {
         val glass = cardLook(CardStyle.GLASS, palette)
         ButtonLook(
@@ -126,7 +131,12 @@ data class ChipLook(
     val pill: Boolean get() = pillFill.isSpecified
 
     /** The M3 chip with the caller's arguments, untouched. */
-    val passThrough: Boolean get() = this == ChipLook()
+    val passThrough: Boolean get() = this == MATERIAL
+
+    companion object {
+        /** The MATERIAL look, one shared value: a Classic chip allocates none. */
+        val MATERIAL = ChipLook()
+    }
 }
 
 /**
@@ -142,7 +152,7 @@ data class ChipLook(
  */
 fun chipLook(style: CardStyle, selected: Boolean, enabled: Boolean, palette: SkinPalette, gr: GrPalette): ChipLook =
     when (style) {
-        CardStyle.MATERIAL, CardStyle.STRIPE -> ChipLook()
+        CardStyle.MATERIAL, CardStyle.STRIPE -> ChipLook.MATERIAL
         CardStyle.FLAT -> ChipLook(flat = true)
         CardStyle.GRAPHITE -> {
             val fill = if (selected) gr.tabActive else gr.chip
@@ -201,7 +211,7 @@ private const val PILL_PERCENT = 50
  * it), as RoundedCornerShape(50) does. The classic corners give the caller's shape itself.
  */
 fun skinButtonShape(shape: Shape, default: Shape, corners: SkinCorners): Shape =
-    if (corners == SkinCorners() || shape != default || default != CircleShape) shape else percentShapeFor(corners, PILL_PERCENT)
+    if (corners == SkinCorners.CLASSIC || shape != default || default != CircleShape) shape else percentShapeFor(corners, PILL_PERCENT)
 
 /**
  * An outlined text field in one style: [fill] fills a see-through container (the Graphite home's
@@ -209,7 +219,12 @@ fun skinButtonShape(shape: Shape, default: Shape, corners: SkinCorners): Shape =
  */
 data class FieldLook(val fill: Color = Color.Unspecified, val containerAlpha: Float = 1f) {
     /** The M3 field with the caller's arguments, untouched. */
-    val passThrough: Boolean get() = this == FieldLook()
+    val passThrough: Boolean get() = this == MATERIAL
+
+    companion object {
+        /** The MATERIAL look, one shared value: a Classic field allocates none. */
+        val MATERIAL = FieldLook()
+    }
 }
 
 /**
@@ -219,7 +234,7 @@ data class FieldLook(val fill: Color = Color.Unspecified, val containerAlpha: Fl
  * - GLASS: a caller's container see-through as the glass card's; BORDER_ONLY: none at all.
  */
 fun fieldLook(style: CardStyle, palette: SkinPalette): FieldLook = when (style) {
-    CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE -> FieldLook()
+    CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE -> FieldLook.MATERIAL
     CardStyle.GRAPHITE -> FieldLook(fill = palette.navyMid)
     CardStyle.GLASS -> FieldLook(containerAlpha = GLASS_ALPHA)
     CardStyle.BORDER_ONLY -> FieldLook(containerAlpha = 0f)

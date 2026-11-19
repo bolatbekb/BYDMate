@@ -44,7 +44,7 @@ fun FilterChip(
 ) {
     val style = SkinState.current.kit.controls.card
     val look = if (style == CardStyle.MATERIAL) {
-        ChipLook()
+        ChipLook.MATERIAL
     } else {
         chipLook(style, selected, enabled, SkinState.palette, graphitePaletteFor(style == CardStyle.GRAPHITE))
     }

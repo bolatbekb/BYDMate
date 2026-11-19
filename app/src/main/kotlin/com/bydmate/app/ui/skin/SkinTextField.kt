@@ -51,7 +51,7 @@ fun OutlinedTextField(
     colors: TextFieldColors = OutlinedTextFieldDefaults.colors(),
 ) {
     val style = SkinState.current.kit.controls.card
-    val look = if (style == CardStyle.MATERIAL) FieldLook() else fieldLook(style, SkinState.palette)
+    val look = if (style == CardStyle.MATERIAL) FieldLook.MATERIAL else fieldLook(style, SkinState.palette)
     // a field recomposes on every key: the styled colours are built once per (colours, look)
     val fieldColors = if (look.passThrough) colors else remember(colors, look) { colors.withLook(look) }
     M3OutlinedTextField(

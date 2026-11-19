@@ -35,16 +35,20 @@ class SkinInputLookTest {
         ButtonKind.entries.forEach { kind ->
             val look = buttonLook(CardStyle.MATERIAL, kind, p, fill)
             assertEquals(kind.name, ButtonLook(), look)
+            assertSame("one shared value, no allocation per button", ButtonLook.MATERIAL, look)
             assertTrue(look.passThrough)
             assertSame("the caller's colours, the same instance", colors, colors.withLook(look, isDefault = true))
         }
         for (selected in both) for (enabled in both) {
             val look = chipLook(CardStyle.MATERIAL, selected, enabled, p, gr)
             assertEquals(ChipLook(), look)
+            assertSame(ChipLook.MATERIAL, look)
             assertTrue(look.passThrough)
             assertFalse(look.pill)
         }
         assertTrue(fieldLook(CardStyle.MATERIAL, p).passThrough)
+        assertSame(FieldLook.MATERIAL, fieldLook(CardStyle.MATERIAL, p))
+        assertEquals(SkinCorners(), SkinCorners.CLASSIC)
         for (enabled in both) assertNull("M3 draws the check", checkLook(CheckStyle.MATERIAL, enabled, p))
     }
 

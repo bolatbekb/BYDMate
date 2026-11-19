@@ -7,6 +7,7 @@ import com.bydmate.app.ui.home.graphite.GrScheme
 import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -19,6 +20,7 @@ class SkinNavLookTest {
         for (selected in both) {
             val look = navLook(NavStyle.MATERIAL, selected, p)
             assertEquals("selected=$selected", NavLook(), look)
+            assertSame(NavLook.MATERIAL, look)
             assertTrue(look.passThrough)
             assertFalse("M3 draws its own indicator", look.lit)
         }

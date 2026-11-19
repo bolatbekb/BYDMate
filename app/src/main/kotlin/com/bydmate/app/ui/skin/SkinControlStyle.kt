@@ -40,7 +40,12 @@ data class CardLook(
     val graphite: Boolean = false,
 ) {
     /** The M3 card with the caller's arguments, untouched. */
-    val passThrough: Boolean get() = this == CardLook()
+    val passThrough: Boolean get() = this == MATERIAL
+
+    companion object {
+        /** The MATERIAL look, one shared value: a Classic card allocates none. */
+        val MATERIAL = CardLook()
+    }
 }
 
 val CardBorderWidth: Dp = 1.dp
@@ -57,7 +62,7 @@ const val GLASS_ALPHA = 0.7f
  * - the other styles nest as they are (a border inside a border, a flat card in a flat one).
  */
 fun cardLook(style: CardStyle, palette: SkinPalette, nested: Boolean = false): CardLook = when (style) {
-    CardStyle.MATERIAL -> CardLook()
+    CardStyle.MATERIAL -> CardLook.MATERIAL
     CardStyle.OUTLINED -> CardLook(border = CardBorderKind.SOLID, borderColor = palette.cardBorder)
     CardStyle.FLAT -> CardLook(flat = true)
     CardStyle.GLASS -> CardLook(
@@ -67,7 +72,7 @@ fun cardLook(style: CardStyle, palette: SkinPalette, nested: Boolean = false): C
         borderFadeColor = palette.cardBorder.copy(alpha = 0.3f),
     )
     CardStyle.STRIPE -> if (nested) {
-        CardLook()
+        CardLook.MATERIAL
     } else {
         CardLook(stripe = true, stripeColor = palette.accentGreen, stripeWidth = CardStripeWidth)
     }
@@ -217,7 +222,12 @@ data class NavLook(
     val content: Color = Color.Unspecified,
 ) {
     /** The M3 item with the caller's arguments, untouched. */
-    val passThrough: Boolean get() = this == NavLook()
+    val passThrough: Boolean get() = this == MATERIAL
+
+    companion object {
+        /** The MATERIAL look, one shared value: a Classic key allocates none. */
+        val MATERIAL = NavLook()
+    }
 }
 
 /** M3's indicator around a 24 dp icon is 64 x 32 dp: 20 dp on each side, 4 dp above and below. */
@@ -236,7 +246,7 @@ val NavEdgeWidth: Dp = CardBorderWidth
  * - OUTLINE (OLED): the M3 pill as an accent ring, no fill.
  */
 fun navLook(style: NavStyle, selected: Boolean, palette: SkinPalette): NavLook = when (style) {
-    NavStyle.MATERIAL -> NavLook()
+    NavStyle.MATERIAL -> NavLook.MATERIAL
     NavStyle.GRAPHITE -> NavLook(style, selected, content = if (selected) palette.textPrimary else palette.textSecondary)
     NavStyle.CUT -> NavLook(style, selected, fill = palette.navIndicator, edge = palette.accentGreen)
     NavStyle.UNDERLINE -> NavLook(style, selected, fill = palette.accentGreen)
