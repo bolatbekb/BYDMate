@@ -27,7 +27,7 @@ val TextSecondary: Color get() = SkinState.palette.textSecondary // fork: skin
 val TextMuted: Color get() = SkinState.palette.textMuted // fork: skin
 
 // SOC traffic light
-val SocGreen: Color get() = SkinState.palette.socGreen // fork: skin
+val SocGreen: Color get() = SkinState.palette.accentGreen // fork: skin — the SOC gauge follows the skin accent (owner)
 val SocYellow: Color get() = SkinState.palette.socYellow // fork: skin
 val SocRed: Color get() = SkinState.palette.socRed // fork: skin
 
