@@ -23,7 +23,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import com.bydmate.app.ui.skin.OutlinedTextField // fork: skin
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.Text // fork: skin
 import com.bydmate.app.ui.skin.TextButton // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue

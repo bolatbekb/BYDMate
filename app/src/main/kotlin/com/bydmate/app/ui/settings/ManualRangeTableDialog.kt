@@ -18,7 +18,7 @@ import androidx.compose.material3.CardDefaults
 import com.bydmate.app.ui.skin.OutlinedButton // fork: skin
 import com.bydmate.app.ui.skin.OutlinedTextField // fork: skin
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.Text // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember

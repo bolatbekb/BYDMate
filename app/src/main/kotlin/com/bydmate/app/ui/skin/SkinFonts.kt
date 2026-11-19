@@ -7,6 +7,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import com.bydmate.app.R
+import com.bydmate.app.ui.home.graphite.GrRajdhani
 
 private val Weights = intArrayOf(300, 400, 500, 600, 700)
 
@@ -30,6 +31,7 @@ fun SkinFont.family(): FontFamily? = when (this) {
     SkinFont.EXO2 -> Exo2
     SkinFont.MANROPE -> Manrope
     SkinFont.ROBOTO_CONDENSED -> RobotoCondensed
+    SkinFont.RAJDHANI -> GrRajdhani
 }
 
 /** [base] with [family] on all 15 styles, sizes untouched; a null family returns [base] itself. */

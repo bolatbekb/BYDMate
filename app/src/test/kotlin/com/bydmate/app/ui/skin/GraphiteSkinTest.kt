@@ -90,7 +90,7 @@ class GraphiteSkinTest {
 
     @Test fun interFontKit() {
         val k = graphiteKit(GrFont.INTER)
-        assertEquals(SkinFonts(SkinFont.INTER, 0.97f), k.fonts)
+        assertEquals(SkinFonts(SkinFont.INTER, 0.97f, SkinFont.INTER), k.fonts)
         assertEquals(CornerStyle.ROUNDED, k.corners.style)
         assertEquals(SkinControls(SwitchStyle.GRAPHITE, CardStyle.GRAPHITE, SliderStyle.THIN, NavStyle.GRAPHITE), k.controls)
         assertEquals(BackgroundStyle.GRAPHITE, k.background)
@@ -100,7 +100,7 @@ class GraphiteSkinTest {
 
     @Test fun dilinkFontKeepsSystemFont() {
         val k = graphiteKit(GrFont.DILINK)
-        assertEquals(SkinFonts(SkinFont.SYSTEM, 1f), k.fonts)
+        assertEquals(SkinFonts(SkinFont.SYSTEM, 1f, SkinFont.RAJDHANI), k.fonts)
         assertEquals(graphiteKit(GrFont.INTER).copy(fonts = k.fonts), k)
     }
 

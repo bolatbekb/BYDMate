@@ -37,7 +37,7 @@ import com.bydmate.app.ui.skin.NavigationBarItem // fork: skin
 import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.Text // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue

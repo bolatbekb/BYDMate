@@ -21,7 +21,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
 import com.bydmate.app.ui.skin.OutlinedButton // fork: skin
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.Text // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment

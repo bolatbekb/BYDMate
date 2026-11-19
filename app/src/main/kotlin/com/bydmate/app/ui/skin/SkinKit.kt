@@ -1,7 +1,7 @@
 package com.bydmate.app.ui.skin
 
 /** Which font family a skin sets for the app's text. SYSTEM is the author's own (no fontFamily). */
-enum class SkinFont { SYSTEM, INTER, EXO2, MANROPE, ROBOTO_CONDENSED }
+enum class SkinFont { SYSTEM, INTER, EXO2, MANROPE, ROBOTO_CONDENSED, RAJDHANI }
 
 enum class CornerStyle { ROUNDED, CUT }
 
@@ -21,8 +21,11 @@ enum class NavStyle { MATERIAL, GRAPHITE, CUT, UNDERLINE, OUTLINE }
 /** The checkbox and the radio button (SkinChecks.kt): MATERIAL is M3's; SQUARE draws a square box and a square dot. */
 enum class CheckStyle { MATERIAL, SQUARE }
 
-/** [sizeFactor] evens out fonts that run wider or narrower than Roboto; it multiplies the user's text scale. */
-data class SkinFonts(val text: SkinFont = SkinFont.SYSTEM, val sizeFactor: Float = 1f)
+/**
+ * [sizeFactor] evens out fonts that run wider or narrower than Roboto; it multiplies the user's text scale.
+ * [numeric] is the font of the author's monospace numbers (SkinNumbers.kt); null keeps the monospace.
+ */
+data class SkinFonts(val text: SkinFont = SkinFont.SYSTEM, val sizeFactor: Float = 1f, val numeric: SkinFont? = null)
 
 data class SkinCorners(val style: CornerStyle = CornerStyle.ROUNDED, val scale: Float = 1f)
 

@@ -27,7 +27,7 @@ import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import com.bydmate.app.ui.skin.OutlinedTextField // fork: skin
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.Text // fork: skin
 import com.bydmate.app.ui.skin.TextButton // fork: skin
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable

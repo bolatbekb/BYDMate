@@ -91,8 +91,8 @@ fun grToSkinPalette(p: GrPalette): SkinPalette = SkinPalette(
  */
 fun graphiteKit(font: GrFont): SkinKit = SkinKit(
     fonts = when (font) {
-        GrFont.INTER -> SkinFonts(SkinFont.INTER, INTER_SIZE_FACTOR)
-        GrFont.DILINK -> SkinFonts(SkinFont.SYSTEM, 1f)
+        GrFont.INTER -> SkinFonts(SkinFont.INTER, INTER_SIZE_FACTOR, numeric = SkinFont.INTER)
+        GrFont.DILINK -> SkinFonts(SkinFont.SYSTEM, 1f, numeric = SkinFont.RAJDHANI)
     },
     corners = SkinCorners(CornerStyle.ROUNDED, GRAPHITE_CORNER_SCALE),
     controls = SkinControls(

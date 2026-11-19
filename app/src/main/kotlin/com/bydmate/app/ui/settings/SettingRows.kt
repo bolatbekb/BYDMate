@@ -33,7 +33,7 @@ import com.bydmate.app.ui.skin.OutlinedButton // fork: skin
 import com.bydmate.app.ui.skin.Slider // fork: skin
 import androidx.compose.material3.SliderDefaults
 import com.bydmate.app.ui.skin.Switch // fork: skin
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.Text // fork: skin
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf

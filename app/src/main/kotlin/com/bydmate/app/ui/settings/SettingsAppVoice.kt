@@ -36,7 +36,7 @@ import androidx.compose.material3.RadioButtonDefaults
 import com.bydmate.app.ui.skin.TextButton // fork: skin
 import com.bydmate.app.ui.skin.OutlinedTextField // fork: skin
 import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
+import com.bydmate.app.ui.skin.Text // fork: skin
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable

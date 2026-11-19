@@ -119,7 +119,7 @@ object Skins {
             chartGrid = Color(0xFF1A222C),
             navBarBackground = Color(0xFF090C10),
         ),
-        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f), SkinCorners(CornerStyle.CUT, 0.75f), SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
+        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.CUT, 0.75f), SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
     )
 
     /** 2 · Graphite Pro: neutral graphite, periwinkle accent. */
@@ -189,7 +189,7 @@ object Skins {
             chartGrid = Color(0xFF1C1C1C),
             navBarBackground = Color(0xFF0A0A0A),
         ),
-        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f), SkinCorners(CornerStyle.ROUNDED, 0.3f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.SCANLINES),
+        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f, SkinFont.ROBOTO_CONDENSED), SkinCorners(CornerStyle.ROUNDED, 0.3f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.SCANLINES),
     )
 
     /** 5 · OLED: pure black, lime accent. */
