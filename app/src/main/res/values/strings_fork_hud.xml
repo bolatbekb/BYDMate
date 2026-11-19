@@ -2,5 +2,5 @@
 <!-- Fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
     <string name="settings_hud_custom_icons_title">Использовать свои иконки для навигатора</string>
-    <string name="settings_hud_custom_icons_desc">Новые значки манёвров, нарисованные под проекцию на стекло. Где нового значка нет — прежний значок BYDMATE, потом картинка навигатора</string>
+    <string name="settings_hud_custom_icons_desc">Новые значки манёвров, нарисованные под проекцию на стекло. Где нового значка нет — прежний значок BYDMate, потом картинка навигатора</string>
 </resources>
