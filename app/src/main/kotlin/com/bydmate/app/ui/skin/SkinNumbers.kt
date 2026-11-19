@@ -15,6 +15,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.isSpecified
+import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.theme.SkinState
 import androidx.compose.material3.Text as M3Text
 
@@ -27,6 +29,13 @@ import androidx.compose.material3.Text as M3Text
 // Only a text without letters (digits, signs, punctuation) takes the skin's numeric font. A
 // Monospace text with letters (an address, a URL, a code, «12,5 км») keeps the author's Monospace
 // exactly: it is not a number, and Rajdhani has no Cyrillic anyway.
+//
+// The author uses Monospace so that values stay still and columns line up, so the digits of the
+// replacement are tabular: Inter and Exo 2 have proportional digits and a tnum feature, which is
+// turned on; Roboto Condensed's digits are tabular already. Rajdhani's digits are proportional with
+// no tnum, and its only file is Medium: as on the Graphite home (grStyle), it draws big light
+// numerals only (RAJDHANI_MIN_SIZE and up, weight Medium or lighter), and every other number takes
+// the system font with tnum, which also never synthesises a bold.
 
 /** True when [text] holds no letters: digits, spaces and punctuation only (what Rajdhani can draw). */
 fun isNumericOnly(text: CharSequence): Boolean {
@@ -34,10 +43,24 @@ fun isNumericOnly(text: CharSequence): Boolean {
     return true
 }
 
+/** Rajdhani draws numerals this big or bigger: 46 mockup px on the Graphite home (NUMERAL_MIN_SIZE). */
+val RAJDHANI_MIN_SIZE: TextUnit = 23.sp
+
+/** The heaviest weight Rajdhani draws without a synthetic bold: its only file is Medium. */
+val RAJDHANI_MAX_WEIGHT: FontWeight = FontWeight.Medium
+
+/**
+ * True when Rajdhani may draw a number of [size] and [weight] (the effective ones: the argument,
+ * else the style's): big (sp, [RAJDHANI_MIN_SIZE] and up) and Medium or lighter, null being Normal.
+ */
+fun rajdhaniFits(size: TextUnit, weight: FontWeight?): Boolean =
+    size.isSp && size.value >= RAJDHANI_MIN_SIZE.value && (weight ?: FontWeight.Normal) <= RAJDHANI_MAX_WEIGHT
+
 /**
  * The font that takes the place of a Monospace text, or null when the text stays as the caller
  * wrote it. [family] is the fontFamily argument, [styleFamily] the one in the style (the
- * argument wins, as in M3). A text with letters is never replaced.
+ * argument wins, as in M3). A text with letters is never replaced. The size and weight then
+ * pick the font for this text: [forNumber].
  */
 fun numberFont(numeric: SkinFont?, family: FontFamily?, styleFamily: FontFamily?, text: CharSequence): SkinFont? {
     if (numeric == null) return null
@@ -46,8 +69,23 @@ fun numberFont(numeric: SkinFont?, family: FontFamily?, styleFamily: FontFamily?
     return numeric
 }
 
-/** Fonts whose digits are made tabular here (Inter's are proportional by default; the others' are tabular). */
-internal fun SkinFont.needsTnum(): Boolean = this == SkinFont.INTER
+/**
+ * This numeric font for a number of [size] and [weight], the effective ones (the argument, else
+ * the style's): RAJDHANI keeps only big light numerals (rajdhaniFits) and gives the others to
+ * SYSTEM; every other font takes any size and weight.
+ */
+fun SkinFont.forNumber(size: TextUnit, weight: FontWeight?): SkinFont =
+    if (this == SkinFont.RAJDHANI && !rajdhaniFits(size, weight)) SkinFont.SYSTEM else this
+
+/**
+ * Fonts whose digits are made tabular here: Inter's and Exo 2's are proportional by default and
+ * have a tnum feature; the system font (Roboto) is tabular, and tnum keeps any other system font
+ * still. Roboto Condensed's digits are tabular already; Rajdhani has no tnum (see numberFont).
+ */
+internal fun SkinFont.needsTnum(): Boolean = this == SkinFont.INTER || this == SkinFont.EXO2 || this == SkinFont.SYSTEM
+
+/** The family a numeric [SkinFont] draws in: SYSTEM is the platform default (Roboto), never the caller's Monospace. */
+private fun SkinFont.numberFamily(): FontFamily = family() ?: FontFamily.Default
 
 /** [have] (a style's feature settings) with "tnum" in it exactly once. */
 internal fun tnumSettings(have: String?): String = when {
@@ -83,9 +121,10 @@ fun Text(
     style: TextStyle = LocalTextStyle.current,
 ) {
     val font = numberFont(SkinState.current.kit.fonts.numeric, fontFamily, style.fontFamily, text)
+        ?.forNumber(if (fontSize.isSpecified) fontSize else style.fontSize, fontWeight ?: style.fontWeight)
     M3Text(
         text, modifier, color, fontSize, fontStyle, fontWeight,
-        if (font == null) fontFamily else font.family(),
+        if (font == null) fontFamily else font.numberFamily(),
         letterSpacing, textDecoration, textAlign, lineHeight, overflow, softWrap, maxLines, minLines,
         onTextLayout,
         if (font != null && font.needsTnum()) style.withTnum() else style,
@@ -114,9 +153,10 @@ fun Text(
     style: TextStyle = LocalTextStyle.current,
 ) {
     val font = numberFont(SkinState.current.kit.fonts.numeric, fontFamily, style.fontFamily, text.text)
+        ?.forNumber(if (fontSize.isSpecified) fontSize else style.fontSize, fontWeight ?: style.fontWeight)
     M3Text(
         text, modifier, color, fontSize, fontStyle, fontWeight,
-        if (font == null) fontFamily else font.family(),
+        if (font == null) fontFamily else font.numberFamily(),
         letterSpacing, textDecoration, textAlign, lineHeight, overflow, softWrap, maxLines, minLines,
         inlineContent, onTextLayout,
         if (font != null && font.needsTnum()) style.withTnum() else style,

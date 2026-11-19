@@ -1,6 +1,10 @@
 package com.bydmate.app.ui.skin
 
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.home.graphite.GrFont
 import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
@@ -43,6 +47,38 @@ class SkinNumbersTest {
         }
     }
 
+    /** The Graphite home's rule: Rajdhani for big light numerals only, the system font otherwise. */
+    @Test fun rajdhaniOnlyForBigLightNumerals() {
+        val r = SkinFont.RAJDHANI
+        assertEquals(r, r.forNumber(23.sp, null))
+        assertEquals(r, r.forNumber(46.sp, FontWeight.Medium))
+        assertEquals(r, r.forNumber(30.sp, FontWeight.Light))
+        // small: the trips table, the dashboard tiles
+        assertEquals(SkinFont.SYSTEM, r.forNumber(14.sp, null))
+        assertEquals(SkinFont.SYSTEM, r.forNumber(22.9.sp, FontWeight.Normal))
+        // bold: Rajdhani has only Medium, a bold would be synthetic
+        assertEquals(SkinFont.SYSTEM, r.forNumber(30.sp, FontWeight.SemiBold))
+        assertEquals(SkinFont.SYSTEM, r.forNumber(30.sp, FontWeight.Bold))
+        // no size, or not in sp: not known to be big
+        assertEquals(SkinFont.SYSTEM, r.forNumber(TextUnit.Unspecified, null))
+        assertEquals(SkinFont.SYSTEM, r.forNumber(2.em, null))
+        // the rule is Rajdhani's alone: the other fonts take every size and weight
+        for (f in listOf(SkinFont.INTER, SkinFont.EXO2, SkinFont.ROBOTO_CONDENSED)) {
+            assertEquals(f, f.forNumber(11.sp, FontWeight.Bold))
+            assertEquals(f, f.forNumber(TextUnit.Unspecified, null))
+        }
+        // and only a numeric-only Monospace text gets that far
+        assertNull(numberFont(r, mono, null, "12 км")?.forNumber(30.sp, null))
+    }
+
+    @Test fun rajdhaniFits() {
+        assertTrue(rajdhaniFits(RAJDHANI_MIN_SIZE, null))
+        assertTrue(rajdhaniFits(23.sp, FontWeight.Medium))
+        assertFalse(rajdhaniFits(23.sp, FontWeight.W600))
+        assertFalse(rajdhaniFits(22.sp, FontWeight.Normal))
+        assertFalse(rajdhaniFits(TextUnit.Unspecified, null))
+    }
+
     @Test fun isNumericOnly() {
         assertTrue(isNumericOnly(""))
         assertTrue(isNumericOnly("-12,5 / 3.0 %"))
@@ -50,11 +86,13 @@ class SkinNumbersTest {
         assertFalse(isNumericOnly("kWh"))
     }
 
+    /** Inter and Exo 2 have proportional digits with a tnum feature; the system font takes tnum too. */
     @Test fun tabularOnlyWhereTheFontNeedsIt() {
         assertTrue(SkinFont.INTER.needsTnum())
-        assertFalse(SkinFont.SYSTEM.needsTnum())
-        assertFalse(SkinFont.EXO2.needsTnum())
-        assertFalse(SkinFont.RAJDHANI.needsTnum())
+        assertTrue(SkinFont.EXO2.needsTnum())
+        assertTrue(SkinFont.SYSTEM.needsTnum())
+        assertFalse(SkinFont.ROBOTO_CONDENSED.needsTnum()) // tabular already
+        assertFalse(SkinFont.RAJDHANI.needsTnum()) // no tnum feature: big numerals only
     }
 
     @Test fun tnumIsInTheSettingsExactlyOnce() {
