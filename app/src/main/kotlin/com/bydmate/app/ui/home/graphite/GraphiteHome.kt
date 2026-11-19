@@ -38,6 +38,7 @@ import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.common.MockupFrame
 import com.bydmate.app.ui.home.common.px
+import com.bydmate.app.ui.navigation.Screen
 import kotlinx.coroutines.delay
 
 private const val ONLINE_TICK_MS = 5_000L
@@ -119,7 +120,7 @@ fun GraphiteHome(
                         TripCard(trip, hasFuelTank, tall = pmSides != null, Modifier.fillMaxWidth().height(bottomH))
                     }
                 }
-                BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)))
+                BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)), current = Screen.Dashboard.route)
             }
         }
     }
