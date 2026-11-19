@@ -792,7 +792,7 @@ private fun SectionHeader(text: String) {
 
 @Composable
 private fun DashboardPeriodChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    androidx.compose.material3.FilterChip(
+    com.bydmate.app.ui.skin.FilterChip( // fork: skin
         selected = selected,
         onClick = onClick,
         label = { Text(label, fontSize = 12.sp) },

@@ -86,6 +86,64 @@ class SkinImportsScriptTest {
         assertTrue(out, out.contains("alias, review by hand"))
     }
 
+    /** `Card { … }` is a call too: a trailing lambda without parentheses. */
+    @Test fun starFileTrailingLambdaCallGetsTheImport() {
+        val lambda = "package a\nimport androidx.compose.material3.*\n\nfun Z() {\n    Card {\n    }\n}\n"
+        val root = scratch(mapOf("L.kt" to lambda), "[imports]\nL.kt\n")
+        assertEquals(1, run(root, "--check").first)
+        run(root, "--apply")
+        assertTrue("import com.bydmate.app.ui.skin.Card // fork: skin" in File(root, "L.kt").readLines())
+        assertEquals(0, run(root, "--check").first)
+    }
+
+    @Test fun fullyQualifiedCallIsReportedAndNeverTouched() {
+        val fqn = "package a\nimport com.bydmate.app.ui.skin.Text // fork: skin\n\nfun F() {\n" +
+            "    androidx.compose.material3.FilterChip(selected = true, onClick = {}, label = { Text(\"x\") })\n" +
+            "    androidx.compose.material3.FilterChipDefaults.filterChipColors()\n}\n"
+        val root = scratch(mapOf("F.kt" to fqn), "[imports]\nF.kt\n")
+        run(root, "--apply")
+        assertEquals(fqn, File(root, "F.kt").readText())
+        val (code, out) = run(root, "--check")
+        assertEquals(out, 1, code)
+        assertTrue(out, out.contains("F.kt:5  fully qualified, review by hand: FilterChip("))
+        assertFalse(out, out.contains("FilterChipDefaults"))
+        // the marked rewrite passes
+        File(root, "F.kt").writeText(fqn.replace("androidx.compose.material3.FilterChip(", "com.bydmate.app.ui.skin.FilterChip( // fork: skin\n       "))
+        assertEquals(0, run(root, "--check").first)
+    }
+
+    @Test fun frozenTopLevelShapeIsReported() {
+        fun file(decl: String) = "package a\nimport com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin\n\n$decl\n" +
+            "object O {\n    val IN_OBJECT = RoundedCornerShape(4.dp)\n}\n\nfun G() {\n    val local = RoundedCornerShape(2.dp)\n}\n"
+        val root = scratch(mapOf("G.kt" to file("private val SHAPE = RoundedCornerShape(12.dp)")), "[imports]\nG.kt\n")
+        val (code, out) = run(root, "--check")
+        assertEquals(out, 1, code)
+        assertTrue(out, out.contains("G.kt:4  frozen shape"))
+        assertTrue(out, out.contains("G.kt:6  frozen shape"))
+        assertFalse("a local val is made per call", out.contains("G.kt:10"))
+        File(root, "G.kt").writeText(
+            file("private val SHAPE get() = RoundedCornerShape(12.dp) // fork: skin, live")
+                .replace("val IN_OBJECT = ", "val IN_OBJECT get() = "),
+        )
+        val after = run(root, "--check")
+        assertEquals(after.second, 0, after.first)
+    }
+
+    @Test fun skipSectionIsIgnoredButMustNameRealUnhookedFiles() {
+        val raw = "package a\nimport androidx.compose.material3.Text\n"
+        val root = scratch(mapOf("S.kt" to star, "W.kt" to raw), "[imports]\nS.kt\n\n[skip]\nW.kt\n")
+        run(root, "--apply")
+        assertEquals("a skipped file is never rewritten", raw, File(root, "W.kt").readText())
+        val ok = run(root, "--check")
+        assertEquals(ok.second, 0, ok.first)
+        assertTrue(ok.second, ok.second.contains("1 skipped"))
+        File(root, "tools/skin-imports.list").writeText("[imports]\nS.kt\n\n[skip]\nS.kt\nGone.kt\n")
+        val (code, out) = run(root, "--check")
+        assertEquals(out, 1, code)
+        assertTrue(out, out.contains("S.kt  in [skip] and also hooked"))
+        assertTrue(out, out.contains("Gone.kt  missing (in [skip])"))
+    }
+
     @Test fun starFileAfterApplyPassesCheck() {
         val root = scratch(mapOf("S.kt" to star), "[imports]\nS.kt\n")
         run(root, "--apply")

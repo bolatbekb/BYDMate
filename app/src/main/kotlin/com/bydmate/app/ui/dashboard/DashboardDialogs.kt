@@ -161,7 +161,7 @@ internal fun TripCounterDialog(
 // DashboardPeriodChip on an elevated container: the TRIP popup itself is CardSurface.
 @Composable
 private fun TripAutoResetChip(label: String, selected: Boolean, onClick: () -> Unit) {
-    androidx.compose.material3.FilterChip(
+    com.bydmate.app.ui.skin.FilterChip( // fork: skin
         selected = selected,
         onClick = onClick,
         label = { Text(label, fontSize = 12.sp) },

@@ -113,7 +113,7 @@ import com.bydmate.app.ui.widget.WidgetPreferences
 
 /** Fields, chips and dropdowns: 40dp to see, 48dp to touch. */
 internal val FIELD_HEIGHT = 40.dp
-internal val FIELD_SHAPE = RoundedCornerShape(8.dp)
+internal val FIELD_SHAPE get() = RoundedCornerShape(8.dp) // fork: skin, live
 internal val EDITOR_TEXT = 16.sp
 
 /** Where a missing part sits in the editor: left column (conditions) or right (actions), and its key. */

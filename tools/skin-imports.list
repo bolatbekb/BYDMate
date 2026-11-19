@@ -1,5 +1,6 @@
 # Skin hooks in author files; tools/skin-imports.sh reads this list (its header says what it does).
-# Paths from the repo root. `#` starts a note. A file may sit in both sections.
+# Paths from the repo root. `#` starts a note. A file may sit in both [imports] and [background];
+# [skip] names the author files that stay M3 on purpose.
 
 [imports]
 # import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog,NavigationBar,NavigationBarItem,
@@ -71,10 +72,6 @@ app/src/main/kotlin/com/bydmate/app/ui/trips/TripTemperatureScreen.kt           
 app/src/main/kotlin/com/bydmate/app/ui/trips/TripsScreen.kt                     # FilterChip, HorizontalDivider, Text, TextButton, RoundedCornerShape
 # welcome
 app/src/main/kotlin/com/bydmate/app/ui/welcome/WelcomeScreen.kt                 # Button, Card, FilterChip, OutlinedButton, OutlinedTextField, Text, TextButton, RoundedCornerShape
-# NOT listed: Compose windows outside BYDMateTheme (their own ComposeView/setContent, no app theme):
-#   data/automation/ConfirmOverlayManager.kt, split/SplitPillView.kt, split/SplitStageActivity.kt,
-#   ui/overlay/ListeningOverlay.kt, ui/overlay/OverlayNotificationManager.kt,
-#   ui/widget/FloatingWidgetView.kt, ui/widget/TrashZoneView.kt, ui/widget/WidgetButtonPanel.kt
 
 [background]
 # .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep))) -> .skinBackground() // fork: skin background
@@ -89,3 +86,16 @@ app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelScreen.kt
 app/src/main/kotlin/com/bydmate/app/ui/trips/TripTemperatureScreen.kt
 app/src/main/kotlin/com/bydmate/app/ui/trips/TripsScreen.kt
 app/src/main/kotlin/com/bydmate/app/ui/welcome/WelcomeScreen.kt
+
+[skip]
+# Author files that use swapped names but stay M3 on purpose: Compose windows outside BYDMateTheme
+# (their own ComposeView/setContent, no app theme). The tool ignores them; SkinImportsTest fails on an
+# author file that uses a swapped name and is in neither [imports] nor here.
+app/src/main/kotlin/com/bydmate/app/data/automation/ConfirmOverlayManager.kt
+app/src/main/kotlin/com/bydmate/app/split/SplitPillView.kt
+app/src/main/kotlin/com/bydmate/app/split/SplitStageActivity.kt
+app/src/main/kotlin/com/bydmate/app/ui/overlay/ListeningOverlay.kt
+app/src/main/kotlin/com/bydmate/app/ui/overlay/OverlayNotificationManager.kt
+app/src/main/kotlin/com/bydmate/app/ui/widget/FloatingWidgetView.kt
+app/src/main/kotlin/com/bydmate/app/ui/widget/TrashZoneView.kt
+app/src/main/kotlin/com/bydmate/app/ui/widget/WidgetButtonPanel.kt

@@ -117,7 +117,7 @@ import com.bydmate.app.ui.theme.*
 
 // --- Rule list: rows and cards ---
 
-private val RULE_CARD_SHAPE = RoundedCornerShape(12.dp)
+private val RULE_CARD_SHAPE get() = RoundedCornerShape(12.dp) // fork: skin, live
 /** Card and row buttons: 20dp icon over a 14sp label, no frame. */
 internal val ACTION_LABEL_STYLE = TextStyle(fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold)
 /** A labeled list button: at least this wide, else its label plus 8dp each side. */
