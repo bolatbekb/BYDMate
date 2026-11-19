@@ -1,6 +1,5 @@
 package com.bydmate.app.hud
 
-import com.bydmate.app.fork.hud.HudCustomIcons // fork
 import android.util.Log
 import com.bydmate.app.diagnostics.Trace
 import com.bydmate.app.diagnostics.TraceArea
@@ -85,7 +84,7 @@ class HudPushLoop(
         // slot (f8) shows the camera, f9 counts down to the camera, and the reference
         // arrow (f28) is suppressed so the HUD doesn't draw a stale maneuver arrow.
         val cameraActive = s.cameraAlert.isNotEmpty()
-        val baseIcon = HudCustomIcons.pickIcon(s.maneuverGaode, HudIconLoader::iconFor, s.maneuverPng) // fork: custom HUD icons from Download/bydmate_hud_icons first
+        val baseIcon = com.bydmate.app.fork.hud.HudCustomIcons.pickIcon(s.maneuverGaode, HudIconLoader::iconFor, s.maneuverPng) // fork: own HUD icons (assets/navi_fork) first
         val frame = HudProtobufBuilder.buildFrameSafe(
             maneuverGaode = s.maneuverGaode,
             distanceMeters = if (cameraActive && s.cameraDistanceMeters > 0) s.cameraDistanceMeters else s.distanceMeters,
