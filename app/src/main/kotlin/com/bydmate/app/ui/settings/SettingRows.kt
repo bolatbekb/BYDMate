@@ -21,15 +21,15 @@ import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.KeyboardArrowRight
-import androidx.compose.material3.Button
+import com.bydmate.app.ui.skin.Button // fork: skin
 import androidx.compose.material3.ButtonDefaults
 import com.bydmate.app.ui.skin.Card // fork: skin
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.FilterChip
+import com.bydmate.app.ui.skin.FilterChip // fork: skin
 import androidx.compose.material3.FilterChipDefaults
 import com.bydmate.app.ui.skin.HorizontalDivider // fork: skin
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedButton
+import com.bydmate.app.ui.skin.OutlinedButton // fork: skin
 import com.bydmate.app.ui.skin.Slider // fork: skin
 import androidx.compose.material3.SliderDefaults
 import com.bydmate.app.ui.skin.Switch // fork: skin

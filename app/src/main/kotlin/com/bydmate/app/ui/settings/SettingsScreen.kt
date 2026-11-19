@@ -34,7 +34,7 @@ import androidx.compose.foundation.verticalScroll
 import com.bydmate.app.ui.skin.Card // fork: skin
 import androidx.compose.material3.CardDefaults
 import com.bydmate.app.ui.skin.HorizontalDivider // fork: skin
-import androidx.compose.material3.OutlinedTextField
+import com.bydmate.app.ui.skin.OutlinedTextField // fork: skin
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable

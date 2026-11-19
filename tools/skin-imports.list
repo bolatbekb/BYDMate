@@ -2,22 +2,23 @@
 # Paths from the repo root. `#` starts a note. A file may sit in both sections.
 
 [imports]
-# import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog,NavigationBar,NavigationBarItem} and
+# import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog,NavigationBar,NavigationBarItem,
+#   Button,OutlinedButton,TextButton,FilterChip,Checkbox,RadioButton,OutlinedTextField} and
 # import androidx.compose.foundation.shape.RoundedCornerShape -> import com.bydmate.app.ui.skin.<Name> // fork: skin
 app/src/main/kotlin/com/bydmate/app/ui/components/AppAlertDialog.kt            # AlertDialog: the dialogs built on AppAlertDialog (not the Dialog + Card ones)
-app/src/main/kotlin/com/bydmate/app/ui/navigation/AppNavigation.kt             # NavigationBar, NavigationBarItem (the bottom menu); Card, RoundedCornerShape (the post-install dialog)
-app/src/main/kotlin/com/bydmate/app/ui/settings/DonateDialog.kt                # Card, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/ManualRangeTableDialog.kt      # Card, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/SettingRows.kt                 # Card, HorizontalDivider, Slider, Switch, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsAppVoice.kt            # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/navigation/AppNavigation.kt             # NavigationBar, NavigationBarItem (the bottom menu); Button, Card, RoundedCornerShape (the post-install dialog)
+app/src/main/kotlin/com/bydmate/app/ui/settings/DonateDialog.kt                # Button, Card, OutlinedButton, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/ManualRangeTableDialog.kt      # Button, Card, OutlinedButton, OutlinedTextField, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingRows.kt                 # Button, Card, FilterChip, HorizontalDivider, OutlinedButton, Slider, Switch, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsAppVoice.kt            # Button, Card, OutlinedButton, OutlinedTextField, RadioButton, TextButton, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsBatteryIntegrations.kt # Card, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsScreen.kt              # Card, HorizontalDivider, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsService.kt             # Card, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsSplit.kt               # Card, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsWidgetDisplay.kt       # Card, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/TariffPeriodsScreen.kt         # RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/UpdateDialog.kt                # Card, RoundedCornerShape
-app/src/main/kotlin/com/bydmate/app/ui/settings/VoiceUserPhrasesScreen.kt      # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsScreen.kt              # Card, HorizontalDivider, OutlinedTextField, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsService.kt             # Button, Card, Checkbox, OutlinedButton, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsSplit.kt               # Card, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsWidgetDisplay.kt       # Card, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/TariffPeriodsScreen.kt         # Button, OutlinedTextField, TextButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/UpdateDialog.kt                # Button, Card, OutlinedButton, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/VoiceUserPhrasesScreen.kt      # Card, OutlinedTextField, TextButton, RoundedCornerShape
 
 [background]
 # .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep))) -> .skinBackground() // fork: skin background

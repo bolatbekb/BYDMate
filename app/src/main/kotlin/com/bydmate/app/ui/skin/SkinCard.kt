@@ -15,7 +15,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
@@ -155,15 +154,9 @@ private fun flatElevation(): CardElevation = CardDefaults.cardElevation(
     disabledElevation = 0.dp,
 )
 
+/** The border of [look], as the buttons and chips draw theirs (skinBorder, SkinButtons.kt). */
 @Composable
-private fun lookBorder(look: CardLook): BorderStroke? = when (look.border) {
-    CardBorderKind.NONE -> null
-    CardBorderKind.SOLID -> remember(look.borderColor) { BorderStroke(CardBorderWidth, look.borderColor) }
-    CardBorderKind.TOP_HIGHLIGHT -> remember(look.borderColor, look.borderFadeColor) {
-        BorderStroke(CardBorderWidth, Brush.verticalGradient(listOf(look.borderColor, look.borderFadeColor)))
-    }
-    CardBorderKind.GRAPHITE_EDGE -> graphiteEdgeBorder()
-}
+private fun lookBorder(look: CardLook): BorderStroke? = skinBorder(look.border, look.borderColor, look.borderFadeColor)
 
 /**
  * What [look] draws besides the M3 card, `Modifier` when nothing:

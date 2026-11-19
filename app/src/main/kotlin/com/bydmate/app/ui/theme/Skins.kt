@@ -11,6 +11,7 @@ import com.bydmate.app.ui.home.graphite.GrScheme
 import com.bydmate.app.ui.home.graphite.GraphiteLookState
 import com.bydmate.app.ui.skin.BackgroundStyle
 import com.bydmate.app.ui.skin.CardStyle
+import com.bydmate.app.ui.skin.CheckStyle
 import com.bydmate.app.ui.skin.CornerStyle
 import com.bydmate.app.ui.skin.SkinControls
 import com.bydmate.app.ui.skin.SkinCorners
@@ -188,7 +189,7 @@ object Skins {
             chartGrid = Color(0xFF1C1C1C),
             navBarBackground = Color(0xFF0A0A0A),
         ),
-        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f), SkinCorners(CornerStyle.ROUNDED, 0.3f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE), BackgroundStyle.SCANLINES),
+        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f), SkinCorners(CornerStyle.ROUNDED, 0.3f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.SCANLINES),
     )
 
     /** 5 · OLED: pure black, lime accent. */

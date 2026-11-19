@@ -18,6 +18,9 @@ enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES, GRAPHITE }
  */
 enum class NavStyle { MATERIAL, GRAPHITE, CUT, UNDERLINE, OUTLINE }
 
+/** The checkbox and the radio button (SkinChecks.kt): MATERIAL is M3's; SQUARE draws a square box and a square dot. */
+enum class CheckStyle { MATERIAL, SQUARE }
+
 /** [sizeFactor] evens out fonts that run wider or narrower than Roboto; it multiplies the user's text scale. */
 data class SkinFonts(val text: SkinFont = SkinFont.SYSTEM, val sizeFactor: Float = 1f)
 
@@ -28,6 +31,7 @@ data class SkinControls(
     val card: CardStyle = CardStyle.MATERIAL,
     val slider: SliderStyle = SliderStyle.MATERIAL,
     val nav: NavStyle = NavStyle.MATERIAL,
+    val check: CheckStyle = CheckStyle.MATERIAL,
 )
 
 /** What a skin changes besides colour. The default is the author's look (Classic). */

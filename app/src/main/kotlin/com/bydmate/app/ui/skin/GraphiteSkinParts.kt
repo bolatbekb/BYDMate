@@ -16,6 +16,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -34,13 +35,14 @@ import com.bydmate.app.ui.home.graphite.blurPaint
 import com.bydmate.app.ui.home.graphite.drawNativePath
 import com.bydmate.app.ui.home.graphite.grBackground
 import com.bydmate.app.ui.home.graphite.grCard
+import com.bydmate.app.ui.home.graphite.grPill
 import com.bydmate.app.ui.home.graphite.insetShadowPath
 import com.bydmate.app.ui.home.graphite.smallRelief
 import com.bydmate.app.ui.home.graphite.topHighlightPath
 
 // fork: what the «Graphite» skin draws with the Graphite home's own code and its live look
-// (GraphiteLookState): the card, the background and the switch; the bottom bar is in
-// SkinNavigationBar.kt. Each part is remembered per palette and look, so a recomposition keeps
+// (GraphiteLookState): the card, the pill under buttons and chips, the background and the switch;
+// the bottom bar is in SkinNavigationBar.kt. Each part is remembered per palette and look, so a recomposition keeps
 // its draw cache: shaders, paths and paints are built once per size, the material tiles once
 // per process (GraphiteCard.kt).
 
@@ -80,6 +82,16 @@ internal fun graphiteEdgeBorder(): BorderStroke {
 @Composable
 internal fun Modifier.graphiteSkinCard(shape: Shape): Modifier =
     grCard(GraphiteLookState.scheme.palette, grRadiusOf(shape, LocalDensity.current))
+
+/**
+ * The Graphite home's pill (grPill) under a skinned button or chip of [shape]: [fill] with the
+ * [edge] rim of the live scheme (a top highlight, a contour on Edge) and its reduced relief. A dp
+ * corner keeps its size, a percent corner (the M3 button's default) is a pill. Call it inside
+ * [ProvideGraphiteLook], on the control's own bounds (skinTouchTarget before it).
+ */
+@Composable
+internal fun Modifier.graphiteSkinPill(fill: Color, edge: Color, shape: Shape): Modifier =
+    grPill(fill, edge, GraphiteLookState.scheme.palette.edgeStyle, grRadiusOf(shape, LocalDensity.current, GR_PILL_RADIUS))
 
 /** The Graphite home's background in the live scheme: Bg with its BgGlow radial. */
 @Composable

@@ -128,14 +128,20 @@ private val ProbeSmall = Size(100f, 100f)
 private val ProbeLarge = Size(1000f, 1000f)
 
 /**
- * The corner of [shape] in mockup px, the unit of grCard's radius (1 mockup px = [K] dp). A dp or
- * px corner keeps its size; a rectangle is square; a percent corner, which depends on the size,
- * takes the Graphite card's own [GR_CARD_RADIUS].
+ * The corner of [shape] in mockup px, the unit of grCard's and grPill's radius (1 mockup px = [K]
+ * dp). A dp or px corner keeps its size; a rectangle is square; a percent corner, which depends on
+ * the size, takes [sizeDependent]: the Graphite card's own [GR_CARD_RADIUS] by default.
  */
-internal fun grRadiusOf(shape: Shape, density: Density): Float {
+internal fun grRadiusOf(shape: Shape, density: Density, sizeDependent: Float = GR_CARD_RADIUS): Float {
     if (shape === RectangleShape) return 0f
-    val corner = (shape as? CornerBasedShape)?.topStart ?: return GR_CARD_RADIUS
+    val corner = (shape as? CornerBasedShape)?.topStart ?: return sizeDependent
     val small = corner.toPx(ProbeSmall, density)
-    if (small != corner.toPx(ProbeLarge, density)) return GR_CARD_RADIUS
+    if (small != corner.toPx(ProbeLarge, density)) return sizeDependent
     return small / density.density / K
 }
+
+/**
+ * The grPill radius of a percent corner, such as the M3 button's default pill: far more than any
+ * button is tall. The draw clamps a corner to half the side, so the pill stays a pill.
+ */
+internal const val GR_PILL_RADIUS = 10_000f

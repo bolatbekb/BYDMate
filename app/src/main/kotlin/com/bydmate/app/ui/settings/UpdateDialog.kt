@@ -14,13 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
+import com.bydmate.app.ui.skin.Button // fork: skin
 import androidx.compose.material3.ButtonDefaults
 import com.bydmate.app.ui.skin.Card // fork: skin
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.OutlinedButton
+import com.bydmate.app.ui.skin.OutlinedButton // fork: skin
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
