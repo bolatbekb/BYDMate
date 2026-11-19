@@ -9,10 +9,22 @@ import org.junit.Before
 import org.junit.Test
 
 class HudCustomIconsTest {
-    private class FakeAssets(val files: Map<String, ByteArray>) : HudCustomIcons.AssetSource {
+    private class FakeAssets(
+        val files: Map<String, ByteArray>,
+        val broken: Set<String> = emptySet(),
+        val listFails: Boolean = false,
+    ) : HudCustomIcons.AssetSource {
         var lists = 0; var reads = 0
-        override fun names(): List<String> { lists++; return files.keys.toList() }
-        override fun read(name: String): ByteArray { reads++; return files.getValue(name) }
+        override fun names(): List<String> {
+            lists++
+            if (listFails) throw java.io.IOException("asset list failed")
+            return files.keys.toList()
+        }
+        override fun read(name: String): ByteArray {
+            reads++
+            if (name in broken) throw java.io.IOException("cannot read $name")
+            return files.getValue(name)
+        }
     }
 
     private val ours = byteArrayOf(1)
@@ -64,6 +76,46 @@ class HudCustomIconsTest {
         assertEquals(1, fake.lists)   // loaded once
         assertEquals(1, fake.reads)   // only the png
         assertTrue(HudCustomIcons.lines().contains("icons loaded from navi_fork: 1"))
+    }
+
+    @Test fun aBrokenIconIsSkippedAndTheOthersStay() {
+        val fake = FakeAssets(mapOf("0x1.png" to ours, "0x2.png" to byteArrayOf(7)), broken = setOf("0x2.png"))
+        HudCustomIcons.resetForTest(fake)
+        HudCustomIcons.enabled = true
+        assertArrayEquals(ours, HudCustomIcons.pickIcon(1, { builtin }, nav))
+        assertArrayEquals(builtin, HudCustomIcons.pickIcon(2, { builtin }, nav))   // broken one falls back to BYDMate
+        assertTrue(HudCustomIcons.lines().contains("icons loaded from navi_fork: 1"))
+    }
+
+    @Test fun aFailedListingFallsBackAndIsNotRetriedEveryTick() {
+        val fake = FakeAssets(mapOf("0x1.png" to ours), listFails = true)
+        HudCustomIcons.resetForTest(fake)
+        HudCustomIcons.enabled = true
+        repeat(10) { assertArrayEquals(builtin, HudCustomIcons.pickIcon(1, { builtin }, nav)) }
+        assertEquals(1, fake.lists)
+    }
+
+    @Test fun turningTheSwitchOnLaterLoadsOnceAndOffStopsUsingThem() {
+        val fake = FakeAssets(mapOf("0x1.png" to ours))
+        HudCustomIcons.resetForTest(fake)
+        assertArrayEquals(builtin, HudCustomIcons.pickIcon(1, { builtin }, nav))
+        HudCustomIcons.enabled = true
+        assertArrayEquals(ours, HudCustomIcons.pickIcon(1, { builtin }, nav))
+        assertArrayEquals(ours, HudCustomIcons.pickIcon(1, { builtin }, nav))
+        HudCustomIcons.enabled = false
+        assertArrayEquals(builtin, HudCustomIcons.pickIcon(1, { builtin }, nav))
+        assertEquals(1, fake.lists); assertEquals(1, fake.reads)
+    }
+
+    @Test fun shippedAssetsAre38x41AndCoverTheDrawnCodes() {
+        val names = File("src/main/assets/navi_fork").list().orEmpty().toSet()
+        val expected = ((0x1..0x4) + (0x7..0x2c) + 0x30).map { "0x%x.png".format(it) }.toSet()
+        assertEquals(expected, names)
+        for (n in names) {
+            val b = File("src/main/assets/navi_fork/$n").readBytes()
+            val w = java.nio.ByteBuffer.wrap(b, 16, 4).int; val h = java.nio.ByteBuffer.wrap(b, 20, 4).int
+            assertEquals("$n size", 38 to 41, w to h)
+        }
     }
 
     @Test fun shippedAssetsAreValid() {
