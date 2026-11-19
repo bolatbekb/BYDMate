@@ -11,9 +11,13 @@ import org.junit.Test
  */
 class SkinImportsTest {
     private val repo = File("..").canonicalFile
-    private val swapped = listOf("Switch", "Card", "Slider", "HorizontalDivider", "AlertDialog")
-    private val rawImports = swapped.associateWith { "import androidx.compose.material3.$it" } +
-        ("RoundedCornerShape" to "import androidx.compose.foundation.shape.RoundedCornerShape")
+    // The swapped names are read from tools/skin-imports.sh (SKIN_M3_NAMES / SKIN_SHAPE_NAMES): one list.
+    private val rawImports: Map<String, String> = run {
+        val script = File(repo, "tools/skin-imports.sh").readText()
+        fun names(v: String) = Regex("""(?m)^$v="([^"]*)"""").find(script)!!.groupValues[1].split(' ').filter { it.isNotEmpty() }
+        names("SKIN_M3_NAMES").associateWith { "import androidx.compose.material3.$it" } +
+            names("SKIN_SHAPE_NAMES").associateWith { "import androidx.compose.foundation.shape.$it" }
+    }
     private val rawBackground = "background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))"
 
     /** section name -> paths from the repo root; `#` starts a note. */
@@ -39,6 +43,21 @@ class SkinImportsTest {
         assertTrue("unknown sections ${l.keys}", (l.keys - setOf("imports", "background")).isEmpty())
     }
 
+    /** A star import (material3.* / foundation.shape.*) needs the explicit fork import for each name used. */
+    private fun starProblems(path: String, lines: List<String>): List<String> {
+        val comment = { l: String -> l.trimStart().let { it.startsWith("//") || it.startsWith("*") || it.startsWith("/*") } }
+        val body = lines.filterNot { it.startsWith("import ") || comment(it) }
+        return rawImports.keys.filter { name ->
+            val star = if ("foundation.shape" in rawImports.getValue(name)) {
+                "import androidx.compose.foundation.shape.*"
+            } else {
+                "import androidx.compose.material3.*"
+            }
+            val used = body.any { Regex("""(^|[^A-Za-z0-9_.])$name\s*\(""").containsMatchIn(it) }
+            star in lines && used && "import com.bydmate.app.ui.skin.$name // fork: skin" !in lines
+        }.map { "$path: star import, $it( used without the explicit skin import" }
+    }
+
     @Test fun everyListedFileUsesTheSkinImports() {
         val problems = mutableListOf<String>()
         list()["imports"].orEmpty().forEach { path ->
@@ -47,6 +66,10 @@ class SkinImportsTest {
             val lines = f.readLines().map { it.trimEnd() }
             rawImports.forEach { (name, raw) ->
                 if (raw in lines) problems += "$path: raw import of $name"
+            }
+            problems += starProblems(path, lines)
+            if (lines.any { l -> rawImports.values.any { Regex("^" + Regex.escape(it) + "\\s+as\\s").containsMatchIn(l) } }) {
+                problems += "$path: alias import, review by hand"
             }
             if (rawImports.keys.none { "import com.bydmate.app.ui.skin.$it // fork: skin" in lines }) {
                 problems += "$path: no skin import at all (drop it from the list?)"

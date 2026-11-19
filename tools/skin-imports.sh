@@ -7,6 +7,15 @@
 #                 `import com.bydmate.app.ui.skin.<Name> // fork: skin`. The call sites stay the
 #                 author's: the fork functions have the same names, parameters and defaults.
 #                 Only the names a file actually imports are touched.
+#                 STAR imports: a file with `import androidx.compose.material3.*` (or
+#                 `foundation.shape.*`) that calls a swapped name (word-boundary search for `Name(`
+#                 outside comments) gets an explicit `import com.bydmate.app.ui.skin.<Name> // fork: skin`
+#                 after its last import line; an explicit import wins over a star import in Kotlin.
+#                 Only the names the file really uses are added.
+#                 ALIAS imports (`import androidx.compose.material3.Card as M3Card`) are never touched
+#                 by --apply; --check reports them as "alias, review by hand" and fails.
+#                 The swapped names live in ONE place: SKIN_M3_NAMES / SKIN_SHAPE_NAMES below
+#                 (adding a name is a one-line change; SkinImportsTest reads those two lines).
 #   [background]  `.background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))` becomes
 #                 `.skinBackground() // fork: skin background`, and the file gets
 #                 `import com.bydmate.app.ui.skin.skinBackground // fork: skin`: it takes the place
@@ -31,7 +40,9 @@ case "$mode" in
 esac
 [ -f "$list" ] || { echo "skin imports: no list at $list" >&2; exit 2; }
 
-M3_NAMES="Switch Card Slider HorizontalDivider AlertDialog"
+# The ONE list of swapped names. SkinImportsTest parses these two lines; keep the format.
+SKIN_M3_NAMES="Switch Card Slider HorizontalDivider AlertDialog"   # androidx.compose.material3.<Name>
+SKIN_SHAPE_NAMES="RoundedCornerShape"                              # androidx.compose.foundation.shape.<Name>
 
 # entries <section>: the paths listed under [section]
 entries() {
@@ -43,49 +54,75 @@ entries() {
   ' "$list"
 }
 
+# Shared awk prelude: name tables (pkg of each name), and use detection.
+AWK_COMMON='
+function initNames(   i, c) {
+  nn = 0
+  c = split(m3, t, " "); for (i = 1; i <= c; i++) { nm[++nn] = t[i]; pk[nn] = "androidx\\.compose\\.material3" }
+  c = split(shp, t, " "); for (i = 1; i <= c; i++) { nm[++nn] = t[i]; pk[nn] = "androidx\\.compose\\.foundation\\.shape" }
+}
+function uses(s, name) {
+  if (s ~ /^[ \t]*(\/\/|\*|\/\*)/) return 0
+  return (s ~ ("(^|[^A-Za-z0-9_.])" name "[ \t]*\\("))
+}
+'
+
 # rewrite <file> <imports 0|1> <background 0|1>: prints the rewritten file on stdout
 rewrite() {
-  awk -v names="$M3_NAMES" -v doImports="$2" -v doBg="$3" '
+  awk -v m3="$SKIN_M3_NAMES" -v shp="$SKIN_SHAPE_NAMES" -v doImports="$2" -v doBg="$3" "$AWK_COMMON"'
     { line[++n] = $0 }
     END {
+      initNames()
       raw = ".background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))"
       hook = ".skinBackground()"
       skinImport = "import com.bydmate.app.ui.skin.skinBackground // fork: skin"
-      cnt = split(names, nm, " ")
-      hasHook = 0; hasImport = 0; brushAt = 0; brushUsed = 0; lastImport = 0; pkg = 0
+      hasHook = 0; hasImport = 0; brushAt = 0; brushUsed = 0; lastImport = 0; pkgAt = 0
+      star3 = 0; starShp = 0
       for (i = 1; i <= n; i++) {
         s = line[i]
-        if (s ~ /^package /) pkg = i
+        if (s ~ /^package /) pkgAt = i
         if (s ~ /^import /) {
           lastImport = i
           if (doImports) {
-            for (k = 1; k <= cnt; k++)
-              if (s ~ ("^import androidx\\.compose\\.material3\\." nm[k] "[ \t]*$"))
+            for (k = 1; k <= nn; k++)
+              if (s ~ ("^import " pk[k] "\\." nm[k] "[ \t]*$"))
                 s = "import com.bydmate.app.ui.skin." nm[k] " // fork: skin"
-            if (s ~ /^import androidx\.compose\.foundation\.shape\.RoundedCornerShape[ \t]*$/)
-              s = "import com.bydmate.app.ui.skin.RoundedCornerShape // fork: skin"
+            if (s ~ /^import androidx\.compose\.material3\.\*[ \t]*$/) star3 = 1
+            if (s ~ /^import androidx\.compose\.foundation\.shape\.\*[ \t]*$/) starShp = 1
+            for (k = 1; k <= nn; k++)
+              if (s == "import com.bydmate.app.ui.skin." nm[k] " // fork: skin") present[k] = 1
           }
           if (s == skinImport) hasImport = 1
           if (s ~ /^import androidx\.compose\.ui\.graphics\.Brush[ \t]*$/) brushAt = i
-        } else if (doBg) {
-          changed = 0
-          while ((p = index(s, raw)) > 0) {
-            s = substr(s, 1, p - 1) hook substr(s, p + length(raw)); changed = 1
+        } else {
+          if (doImports)
+            for (k = 1; k <= nn; k++) if (uses(s, nm[k])) used[k] = 1
+          if (doBg) {
+            changed = 0
+            while ((p = index(s, raw)) > 0) {
+              s = substr(s, 1, p - 1) hook substr(s, p + length(raw)); changed = 1
+            }
+            if (changed && tolower(s) !~ /fork/) { sub(/[ \t]+$/, "", s); s = s " // fork: skin background" }
+            if (index(s, hook) > 0) hasHook = 1
+            if (s ~ /(^|[^A-Za-z0-9_])Brush([^A-Za-z0-9_]|$)/) brushUsed = 1
           }
-          if (changed && tolower(s) !~ /fork/) { sub(/[ \t]+$/, "", s); s = s " // fork: skin background" }
-          if (index(s, hook) > 0) hasHook = 1
-          if (s ~ /(^|[^A-Za-z0-9_])Brush([^A-Za-z0-9_]|$)/) brushUsed = 1
         }
         out[i] = s
       }
-      insertAfter = 0
+      extra = ""
+      if (doImports)
+        for (k = 1; k <= nn; k++) {
+          isStar = (pk[k] ~ /material3/) ? star3 : starShp
+          if (isStar && used[k] && !present[k]) extra = extra "import com.bydmate.app.ui.skin." nm[k] " // fork: skin\n"
+        }
       if (doBg && hasHook && !hasImport) {
         if (brushAt && !brushUsed) out[brushAt] = skinImport
-        else insertAfter = (lastImport ? lastImport : pkg)
+        else extra = extra skinImport "\n"
       }
+      insertAfter = (lastImport ? lastImport : pkgAt)
       for (i = 1; i <= n; i++) {
         print out[i]
-        if (i == insertAfter) print skinImport
+        if (i == insertAfter && extra != "") printf "%s", extra
       }
     }
   ' "$1"
@@ -93,15 +130,21 @@ rewrite() {
 
 # problems <file> <imports 0|1> <background 0|1>: one line per problem
 problems() {
-  awk -v f="$1" -v names="$M3_NAMES" -v doImports="$2" -v doBg="$3" '
-    BEGIN { cnt = split(names, nm, " ") }
+  awk -v f="$1" -v m3="$SKIN_M3_NAMES" -v shp="$SKIN_SHAPE_NAMES" -v doImports="$2" -v doBg="$3" "$AWK_COMMON"'
+    BEGIN { initNames() }
     {
-      if (doImports && $0 ~ /^import /) {
-        for (k = 1; k <= cnt; k++)
-          if ($0 ~ ("^import androidx\\.compose\\.material3\\." nm[k] "[ \t]*$")) printf "%s:%d  raw import of %s\n", f, NR, nm[k]
-        if ($0 ~ /^import androidx\.compose\.foundation\.shape\.RoundedCornerShape[ \t]*$/)
-          printf "%s:%d  raw import of RoundedCornerShape\n", f, NR
-        if ($0 ~ /^import com\.bydmate\.app\.ui\.skin\.(Switch|Card|Slider|HorizontalDivider|AlertDialog|RoundedCornerShape) \/\/ fork: skin$/) skinImports++
+      if (doImports) {
+        if ($0 ~ /^import /) {
+          for (k = 1; k <= nn; k++) {
+            if ($0 ~ ("^import " pk[k] "\\." nm[k] "[ \t]*$")) printf "%s:%d  raw import of %s\n", f, NR, nm[k]
+            if ($0 ~ ("^import " pk[k] "\\." nm[k] "[ \t]+as[ \t]")) printf "%s:%d  alias, review by hand: %s\n", f, NR, $0
+            if ($0 == "import com.bydmate.app.ui.skin." nm[k] " // fork: skin") { skinImports++; present[k] = 1 }
+          }
+          if ($0 ~ /^import androidx\.compose\.material3\.\*[ \t]*$/) star3 = 1
+          if ($0 ~ /^import androidx\.compose\.foundation\.shape\.\*[ \t]*$/) starShp = 1
+        } else {
+          for (k = 1; k <= nn; k++) if (uses($0, nm[k]) && !used[k]) { used[k] = 1; usedAt[k] = NR }
+        }
       }
       if (doBg) {
         if (index($0, "background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))") > 0)
@@ -111,7 +154,14 @@ problems() {
       }
     }
     END {
-      if (doImports && !skinImports) printf "%s  no skin import at all (drop it from [imports]?)\n", f
+      if (doImports) {
+        for (k = 1; k <= nn; k++) {
+          isStar = (pk[k] ~ /material3/) ? star3 : starShp
+          if (isStar && used[k] && !present[k])
+            printf "%s:%d  star import, %s( used without the explicit skin import\n", f, usedAt[k], nm[k]
+        }
+        if (!skinImports) printf "%s  no skin import at all (drop it from [imports]?)\n", f
+      }
       if (doBg && !hooks) printf "%s  no skinBackground hook\n", f
       if (doBg && hooks && !bgImport) printf "%s  skinBackground without its import\n", f
     }
