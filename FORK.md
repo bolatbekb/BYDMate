@@ -81,6 +81,26 @@ CWEBP_DIR=<папка с cwebp и dwebp> tools/webp.sh
   - Картинки C-Drive и кассет — заранее, в фоне, в памяти видеокарты (`ui/home/HomeBitmaps.kt`), с повтором при ошибке.
   - В файлах автора — `OdometerConsumptionBuffer` (запомненные строки окна, сбрасываются при записи) и `WidgetController` (данные раз в секунду), см. таблицу ниже.
 
+## Скины
+
+Скин — это не только цвета. У каждого скина есть набор (`SkinKit`, `ui/skin/SkinKit.kt`). В нём шрифт, углы, вид переключателя, карточки и ползунка, фон экрана. Набор по умолчанию — это вид автора: скин Classic выглядит как оригинал.
+
+**Что скин меняет сейчас:**
+- шрифт текста (системный, Inter, Exo 2, Manrope, Roboto Condensed) и его размер;
+- углы: скруглённые или срезанные, с масштабом;
+- переключатели, карточки, ползунки и разделители в настройках;
+- диалоги;
+- фон экрана: градиент автора, сетка, свечение, строки развёртки.
+
+**Чего скин пока не меняет:**
+- карточки внутри главной панели, поездок и зарядок (там свои карточки автора);
+- шрифт цифр (крупные числа остаются как у автора);
+- третий этап (оформление самих экранов) не сделан.
+
+**Что скины не трогают:** ретро-стойки (KX, Integra, C-Drive) и главная Graphite хранят свой вид. Они рисуются в нейтральной теме (`SkinNeutralTheme`), и шрифт, углы и фон скина на них не действуют.
+
+**Где код.** Всё лежит в `ui/skin/` (свои файлы форка). В файлах автора остались только замены импортов (`Card`, `Switch`, `Slider`, `HorizontalDivider`, `AlertDialog`, `RoundedCornerShape` берутся из `ui.skin`, а не из Material и foundation) и вызов `.skinBackground()` вместо градиента. Эти замены можно вернуть после слияния с автором: `tools/skin-imports.sh --apply`; список файлов — `tools/skin-imports.list`. Выбор скина с превью (шрифт, углы, переключатель) — `ui/settings/SkinPickerBlock.kt`. Свои блоки настроек (`DemoModeBlock`, `HomeStylePickerBlock`, `ScreenshotBlock`, `SkinPickerBlock`) тоже берут `Card` и `RoundedCornerShape` из `ui.skin`; в список они не входят, потому что это не файлы автора.
+
 ## Как устроен форк: устойчивость к изменениям автора
 
 Главное правило: **новый код лежит в новых файлах, а в файлах автора остаются только короткие вызовы.** Каждая такая правка помечена комментарием `// fork:` (или `fork` в KDoc). Найти их все можно так:
@@ -98,7 +118,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 
 ### Где возможен конфликт: правки в файлах автора
 
-**Сверено с git 2026-11-19.** База автора — `ff2f6f30` (2026-11-15), последний влитый коммит `upstream/main`. Форк — `main` на коммите релиза 4.4.1.18 (тег `v4.4.1.18`). С базы в форке 193 коммита: изменено 25 файлов автора (около 260 строк), добавлено 414 своих файлов (с 43 значками HUD), удалённых нет. При конфликте ищи в этих файлах метку `fork`. Каждое изменение в файле автора помечено словом `fork` (комментарий `// fork: …` на строке или в начале блока; удаление — комментарием на его месте). Проверка: `tools/fork-marks.sh` сравнивает рабочее дерево с базой автора и выводит изменения без метки; запускать перед каждым релизом и после каждого слияния с автором.
+**Сверено с git 2026-11-19.** База автора — `ff2f6f30` (2026-11-15), последний влитый коммит `upstream/main`. Форк — релиз 4.4.1.18 (тег `v4.4.1.18`) плюс ветка `feat/skins-kit` (набор скина, ещё не в `main`). С базы в форке 198 коммитов: изменено 43 файла автора (около 430 строк), добавлено 438 своих файлов (с 43 значками HUD), удалённых нет. При конфликте ищи в этих файлах метку `fork`. Каждое изменение в файле автора помечено словом `fork` (комментарий `// fork: …` на строке или в начале блока; удаление — комментарием на его месте). Проверка: `tools/fork-marks.sh` сравнивает рабочее дерево с базой автора и выводит изменения без метки; запускать перед каждым релизом и после каждого слияния с автором.
 
 Столбец «Коммиты»: первый коммит форка, тронувший файл, → последний. Текущее состояние правки — по последнему. Пути `.kt` даны от `app/src/main/kotlin/com/bydmate/app/`.
 
@@ -107,10 +127,10 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | `app/build.gradle.kts` | `versionCode` и `versionName` форка: **конфликт при каждом релизе автора**, см. «Версии» | +2/−2 | `baceba15` (2026-11-15) → `50a47ff0` (2026-11-17), меняется в каждом релизе |
 | `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init`, `HudCustomIcons.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) | +8/−0 | `23c2e82c` (2026-11-15) → `4e88c0e4` (2026-11-16) |
 | `ui/theme/Color.kt` | цвета стали геттерами из `SkinState`, чтобы скин менялся на лету | +25/−22 | `23c2e82c` (2026-11-15) |
-| `ui/theme/Theme.kt` | `DarkColorScheme` стал геттером | +3/−1 | `23c2e82c` (2026-11-15) |
-| `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером; пункты `LEDGER` («Расходы») и `APPEARANCE` («Внешний вид») в `SettingsSection` и их ветки в `when` | +5/−1 | `23c2e82c` (2026-11-15) → `6724cdc0` (2026-11-18) |
+| `ui/theme/Theme.kt` | `DarkColorScheme` стал геттером; шрифт, размер шрифта и углы берутся из набора активного скина (`skinTypography`, `skinShapes`, `LocalUserFontScale`) | +20/−4 | `23c2e82c` (2026-11-15) → `913cf9c7` (2026-11-19) |
+| `ui/settings/SettingsScreen.kt` | `PrimaryColor` стал геттером; пункты `LEDGER` («Расходы») и `APPEARANCE` («Внешний вид») в `SettingsSection` и их ветки в `when`; скины: импорты `Card`, `HorizontalDivider`, `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +10/−6 | `23c2e82c` (2026-11-15) → `57389ce2` (2026-11-19) |
 | `data/backup/BackupManager.kt` | 7 строк `fork`: учёт в бэкапе (снимок, запись в zip, проверка и подмена при восстановлении) | +7/−0 | `bce82d0a` (2026-11-16) → `7c79b8fb` (2026-11-17) |
-| `ui/settings/SettingsAppVoice.kt` | в разделе «Приложение» вызовы блоков демо и скриншота; блоки скина и главной вынесены в «Внешний вид» (убраны два вызова, одна строка-комментарий) | +3/−0 | `23c2e82c` (2026-11-15) → `6724cdc0` (2026-11-18) |
+| `ui/settings/SettingsAppVoice.kt` | в разделе «Приложение» вызовы блоков демо и скриншота; блоки скина и главной вынесены в «Внешний вид» (убраны два вызова, одна строка-комментарий); скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +5/−2 | `23c2e82c` (2026-11-15) → `57389ce2` (2026-11-19) |
 | `ui/navigation/AppNavigation.kt` | `DashboardScreen` обёрнут в `ForkHome(onOpenTab) { … }`; нижняя панель скрыта, пока на главной ретро-стойка (`hidesBottomBar`); всплывающая просьба о донате выключена (`ForkConfig.DONATION_PROMPT`) | +24/−12 | `6e1f49ef` (2026-11-15) → `031bc50c` (2026-11-16) |
 | `di/AppModule.kt` | демо-подмены: база, ADB, autoservice, helper; `screenOn` для цикла опроса | +16/−6 | `23c2e82c` (2026-11-15) → `353c5775` (2026-11-15) |
 | `di/NativeModule.kt` | привязка `DemoAwareParsReader` | +1/−1 | `23c2e82c` (2026-11-15) |
@@ -125,9 +145,27 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | `test/.../OdometerConsumptionBufferTest.kt` | тесты запоминания: тот же результат, без повторных чтений, сброс при очистке | +45/−0 | `abd154a8` (2026-11-19) |
 | `hud/HudPushLoop.kt` | `// fork`: картинка манёвра (f8) берётся через `HudCustomIcons.pickIcon` — свой значок, затем BYDMate, затем навигатор; камера как была | +1/−1 | `HEAD` (2026-11-19) |
 | `hud/HudCheck.kt` | `// fork`: тестовый кадр «Проверка HUD» берёт свой значок «налево» первым | +1/−1 | `HEAD` (2026-11-19) |
-| `ui/settings/SettingsWidgetDisplay.kt` | `// fork`: одна строка — переключатель `HudCustomIconsSwitch()` после «Проверки HUD» | +1/−0 | `HEAD` (2026-11-19) |
+| `ui/settings/SettingsWidgetDisplay.kt` | `// fork`: одна строка — переключатель `HudCustomIconsSwitch()` после «Проверки HUD»; скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +3/−2 | `c1d3ccc2` → `57389ce2` (2026-11-19) |
 | `data/loop/SharedAdaptiveLoop.kt` | параметр `screenOn` и `nextInterval()` | +10/−2 | `353c5775` (2026-11-15) → `92007d9b` (2026-11-15) |
 | `test/.../SettingsViewModelTest.kt` | эталонная шапка лога: из сравнения убраны строки `display…` форка и раздел `--- live trip (fork) ---` с журналом поездок | +4/−0 | `879f279c` (2026-11-15) → `992daee1` (2026-11-18) |
+| `ui/automation/AutomationScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
+| `ui/charges/ChargesScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
+| `ui/dashboard/DashboardScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
+| `ui/debug/AgentChatScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
+| `ui/tech/TechPanelScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
+| `ui/trips/TripTemperatureScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
+| `ui/trips/TripsScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
+| `ui/welcome/WelcomeScreen.kt` | скины: фон экрана через `skinBackground()` вместо градиента автора | +2/−2 | `913cf9c7` (2026-11-19) |
+| `ui/components/AppAlertDialog.kt` | скины: импорт `AlertDialog` из `ui/skin` (через него идут все диалоги приложения) | +1/−1 | `57389ce2` (2026-11-19) |
+| `ui/settings/DonateDialog.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
+| `ui/settings/ManualRangeTableDialog.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
+| `ui/settings/SettingRows.kt` | скины: импорты `Card`, `HorizontalDivider`, `Slider`, `Switch`, `RoundedCornerShape` из `ui/skin` | +5/−5 | `57389ce2` (2026-11-19) |
+| `ui/settings/SettingsBatteryIntegrations.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
+| `ui/settings/SettingsService.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
+| `ui/settings/SettingsSplit.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
+| `ui/settings/UpdateDialog.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin` | +2/−2 | `57389ce2` (2026-11-19) |
+| `ui/settings/TariffPeriodsScreen.kt` | скины: импорт `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +3/−3 | `913cf9c7` → `57389ce2` (2026-11-19) |
+| `ui/settings/VoiceUserPhrasesScreen.kt` | скины: импорты `Card` и `RoundedCornerShape` из `ui/skin`, фон через `skinBackground()` | +4/−4 | `913cf9c7` → `57389ce2` (2026-11-19) |
 | `res/values/themes.xml` | тёмный фон окна при запуске вместо белого светлой темы (`fork_window_background` в `colors_fork.xml`), владелец 2026-11-17 | +4/−1 | `f3113624` (2026-11-17) |
 
 ### Что форк добавил своими файлами
@@ -138,6 +176,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 |---|---|---|
 | Демо-режим | `demo/*` (4), `ui/settings/DemoModeBlock.kt`, `res/values*/strings_demo.xml` | `23c2e82c` (2026-11-15) → `569934e0` (2026-11-16) |
 | Скины приложения | `ui/theme/Skins.kt`, `ui/settings/SkinPickerBlock.kt`, `res/values*/strings_skins.xml` | `23c2e82c` (2026-11-15) |
+| Набор скина: шрифт, углы, переключатель, карточка, ползунок, разделитель, диалог, фон | `ui/skin/*` (11 файлов), `res/font/skin_*.ttf`, `assets/licenses/*-OFL.txt`, `tools/skin-imports.sh`, `tools/skin-imports.list`, тесты `ui/skin/*` | `9e867ff8` → `57389ce2` (2026-11-19) |
 | Общие настройки форка, обновления из релизов форка, донат | `fork/ForkConfig.kt` | `c70943c1` (2026-11-15) |
 | Шапка диагностического лога | `fork/DisplayInfo.kt` | `baceba15` (2026-11-15) |
 | Какие режимы движения (ECO / NORMAL / SPORT) есть у машины, для ретро-главных | `fork/DriveModeSupport.kt` | `b94c2b6f` (2026-11-15) |
@@ -183,6 +222,12 @@ git fetch upstream
 git merge upstream/main
 ```
 
+0. **Метки и скины:** после слияния выполни
+   ```bash
+   tools/fork-marks.sh
+   tools/skin-imports.sh --apply && tools/skin-imports.sh --check
+   ```
+   Первая команда находит правки автора без метки `fork`. Вторая возвращает импорты скина и фон там, где автор их переписал, и проверяет, что все на месте.
 1. **Конфликт в `app/build.gradle.kts`** будет при каждом релизе автора. Оставь номер автора и добавь номер сборки форка, см. «Версии».
 2. **Другие конфликты** разбирай по таблице выше: правка форка обычно одна строка с меткой `fork`. Её нужно перенести в новую версию кода автора.
 3. **Проверка:**

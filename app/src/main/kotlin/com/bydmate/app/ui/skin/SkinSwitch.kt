@@ -115,7 +115,7 @@ private fun SwitchFace(look: SwitchLook, checked: Boolean, pressed: State<Boolea
     val fraction = animateFloatAsState(if (checked) 1f else 0f, tween(THUMB_MOVE_MS), label = "skinSwitchThumb")
     Spacer(
         modifier
-            .alpha(look.alpha)
+            .then(if (look.alpha < 1f) Modifier.alpha(look.alpha) else Modifier)
             .drawWithCache {
                 val trackH = look.trackHeight.toPx()
                 val trackTop = (size.height - trackH) / 2f
