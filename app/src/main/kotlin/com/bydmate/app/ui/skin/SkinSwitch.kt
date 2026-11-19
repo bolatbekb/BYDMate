@@ -53,7 +53,9 @@ fun Switch(
 ) {
     val style = SkinState.current.kit.controls.switch
     val look = switchLook(style, checked, enabled, SkinState.palette)
-    // a thumb icon needs the M3 thumb; the styled faces have no room for one
+    // a thumb icon needs the M3 thumb; the styled faces have no room for one. The branch may
+    // stay: the switch is a leaf whose state is `checked`, the caller's, and its thumbContent
+    // always takes this branch, so a skin switch remounts nothing that remembers anything
     if (look == null || thumbContent != null) {
         M3Switch(
             checked = checked, onCheckedChange = onCheckedChange, modifier = modifier, thumbContent = thumbContent,

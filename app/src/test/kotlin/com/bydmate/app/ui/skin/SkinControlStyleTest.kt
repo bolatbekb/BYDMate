@@ -3,6 +3,7 @@ package com.bydmate.app.ui.skin
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
+import com.bydmate.app.ui.home.graphite.GrScheme
 import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -72,6 +73,39 @@ class SkinControlStyleTest {
             // solid: the M3 container, or the opaque Graphite card under the see-through one
             if (look.graphite) assertEquals(it.name, 0f, look.containerAlpha) else assertEquals(it.name, 1f, look.containerAlpha)
             assertEquals(it.name, cardLook(it, p).border, look.border)
+        }
+    }
+
+    @Test fun aNestedCardDoesNotRepeatTheOuterOne() {
+        val g = grToSkinPalette(GrScheme.DARK.palette)
+        // GRAPHITE: the caller's opaque container and the raised key's edge; no grCard (shadow,
+        // material, relief, glare) a second time
+        val graphite = cardLook(CardStyle.GRAPHITE, g, nested = true)
+        assertFalse(graphite.graphite)
+        assertEquals(1f, graphite.containerAlpha)
+        assertTrue("no second shadow", graphite.flat)
+        assertEquals(CardBorderKind.GRAPHITE_EDGE, graphite.border)
+        assertFalse(graphite.stripe)
+        assertFalse(graphite.passThrough)
+        // STRIPE: the bar only on the outer card
+        val stripe = cardLook(CardStyle.STRIPE, p, nested = true)
+        assertFalse(stripe.stripe)
+        assertTrue("the plain M3 card", stripe.passThrough)
+        // GLASS: solid, with the glass rim
+        val glass = cardLook(CardStyle.GLASS, p, nested = true)
+        assertEquals(1f, glass.containerAlpha)
+        assertEquals(cardLook(CardStyle.GLASS, p).border, glass.border)
+        assertEquals(cardLook(CardStyle.GLASS, p).borderColor, glass.borderColor)
+        // the others nest as they are
+        listOf(CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.BORDER_ONLY).forEach {
+            assertEquals(it.name, cardLook(it, p), cardLook(it, p, nested = true))
+        }
+        // no nested look draws a stripe or a Graphite card, or adds padding
+        CardStyle.entries.forEach {
+            val look = cardLook(it, p, nested = true)
+            assertFalse(it.name, look.stripe)
+            assertFalse(it.name, look.graphite)
+            assertEquals(it.name, 0.dp, look.padding)
         }
     }
 

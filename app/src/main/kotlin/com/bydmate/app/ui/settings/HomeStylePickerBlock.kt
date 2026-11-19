@@ -21,13 +21,14 @@ import com.bydmate.app.ui.home.graphite.GrFont
 import com.bydmate.app.ui.home.graphite.GrRelief
 import com.bydmate.app.ui.home.graphite.GrScheme
 import com.bydmate.app.ui.home.graphite.rememberGrLang
-import com.bydmate.app.ui.skin.GRAPHITE_SKIN_ID
 import com.bydmate.app.ui.theme.CardSurfaceElevated
+import com.bydmate.app.ui.theme.Skin
 import com.bydmate.app.ui.theme.SkinState
 
 /**
  * Settings › App: which home screen the first tab shows, and the Graphite home's look. The look
- * shows with the Graphite home and with the «Graphite» app skin, which follows it. fork-local.
+ * shows with the Graphite home and with the «Graphite» app skin, which follows it; «Плеер слева»
+ * only with the Graphite home, the one screen it moves. fork-local.
  */
 @Composable
 internal fun HomeStylePickerBlock() {
@@ -47,17 +48,25 @@ internal fun HomeStylePickerBlock() {
                 selectedIndex = styles.indexOf(HomeStyleState.current),
                 onSelect = { idx -> HomeStyleState.select(context, styles[idx]) },
             )
-            if (HomeStyleState.current == HomeStyle.GRAPHITE || SkinState.selected.id == GRAPHITE_SKIN_ID) GraphiteLookRows()
+            val home = HomeStyleState.current
+            if (graphiteLookShown(home, SkinState.selected)) GraphiteLookRows(mediaLeft = mediaLeftShown(home))
         }
     }
 }
 
+/** The Graphite look rows show with the Graphite home or the «Graphite» skin, which follows them. */
+internal fun graphiteLookShown(home: HomeStyle, skin: Skin): Boolean = home == HomeStyle.GRAPHITE || skin.isGraphite
+
+/** «Плеер слева» moves the Graphite home's player only, so it shows with that home alone. */
+internal fun mediaLeftShown(home: HomeStyle): Boolean = home == HomeStyle.GRAPHITE
+
 /**
  * The Graphite home's own look. The rest of the app keeps the skin from «Цвета приложения»,
- * unless that skin is «Graphite»: then the app follows this look too.
+ * unless that skin is «Graphite»: then the app follows this look too. [mediaLeft] adds the home's
+ * «Плеер слева» row.
  */
 @Composable
-private fun GraphiteLookRows() {
+private fun GraphiteLookRows(mediaLeft: Boolean) {
     val context = LocalContext.current
     val lang = rememberGrLang()
     val schemes = GrScheme.entries
@@ -99,10 +108,12 @@ private fun GraphiteLookRows() {
         checked = GraphiteLookState.edges25d,
         onCheckedChange = { GraphiteLookState.selectEdges25d(context, it) },
     )
-    SettingToggleRow(
-        title = stringResource(R.string.home_gr_set_media_left),
-        description = stringResource(R.string.home_gr_set_media_left_desc),
-        checked = GraphiteLookState.mediaLeft,
-        onCheckedChange = { GraphiteLookState.selectMediaLeft(context, it) },
-    )
+    if (mediaLeft) {
+        SettingToggleRow(
+            title = stringResource(R.string.home_gr_set_media_left),
+            description = stringResource(R.string.home_gr_set_media_left_desc),
+            checked = GraphiteLookState.mediaLeft,
+            onCheckedChange = { GraphiteLookState.selectMediaLeft(context, it) },
+        )
+    }
 }

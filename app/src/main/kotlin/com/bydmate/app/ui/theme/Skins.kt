@@ -58,7 +58,13 @@ data class SkinPalette(
 )
 
 /** A selectable skin: stable [id] for storage, [title] shown as is (proper names, not translated). */
-data class Skin(val id: String, val title: String, val palette: SkinPalette, val kit: SkinKit = SkinKit())
+data class Skin(val id: String, val title: String, val palette: SkinPalette, val kit: SkinKit = SkinKit()) {
+    /**
+     * The «Graphite» skin, in any scheme and font. Set once here: SkinState.palette asks it for
+     * every colour token, so that read is a field, not a string compare.
+     */
+    val isGraphite: Boolean = id == GRAPHITE_SKIN_ID
+}
 
 object Skins {
     /** The author's original look. */
@@ -221,7 +227,7 @@ object Skins {
  * for it this reads GraphiteLookState (snapshot state): a change there recomposes the readers.
  * Every other skin is itself. No allocation: the Graphite skins are built once (graphiteSkin).
  */
-fun Skin.live(): Skin = if (id == GRAPHITE_SKIN_ID) graphiteSkin(GraphiteLookState.scheme, GraphiteLookState.font) else this
+fun Skin.live(): Skin = if (isGraphite) graphiteSkin(GraphiteLookState.scheme, GraphiteLookState.font) else this
 
 /**
  * The skin in effect. Snapshot state: any composable that reads a color token
@@ -240,7 +246,7 @@ object SkinState {
 
     /** The palette in effect; for «Graphite» the Graphite home's scheme (it reads the scheme only, not the font). */
     val palette: SkinPalette
-        get() = selected.let { if (it.id == GRAPHITE_SKIN_ID) graphitePalette(GraphiteLookState.scheme) else it.palette }
+        get() = selected.let { if (it.isGraphite) graphitePalette(GraphiteLookState.scheme) else it.palette }
 
     /** Loads the saved skin. Call once from Application.onCreate, before any UI. */
     fun init(context: Context) {

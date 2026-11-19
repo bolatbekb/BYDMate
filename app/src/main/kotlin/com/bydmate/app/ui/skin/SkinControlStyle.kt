@@ -11,8 +11,11 @@ import kotlin.math.roundToInt
 // SkinDivider and SkinAlertDialog draw these; the unit tests check them. A new style is one more
 // branch in each `when` below.
 
-/** How a styled card outlines itself. */
-enum class CardBorderKind { NONE, SOLID, TOP_HIGHLIGHT }
+/**
+ * How a styled card outlines itself. GRAPHITE_EDGE is the 1 px edge of the Graphite home's raised
+ * key (tabActiveEdge of the live scheme), which SkinCard reads from GraphiteLookState.
+ */
+enum class CardBorderKind { NONE, SOLID, TOP_HIGHLIGHT, GRAPHITE_EDGE }
 
 /**
  * A card in one style. The default value is MATERIAL: the caller's arguments as they are.
@@ -44,17 +47,30 @@ val CardBorderWidth: Dp = 1.dp
 val CardStripeWidth: Dp = 3.dp
 const val GLASS_ALPHA = 0.7f
 
-fun cardLook(style: CardStyle, palette: SkinPalette): CardLook = when (style) {
+/**
+ * The card of [style]. A [nested] card sits inside another skinned card (LocalSkinCardDepth ≥ 1)
+ * and does not repeat what the outer one already draws:
+ * - GRAPHITE: the caller's own opaque container with the raised key's thin edge
+ *   (GRAPHITE_EDGE); no shadow, material, relief or glare;
+ * - STRIPE: no second bar, the plain M3 card;
+ * - GLASS: the caller's container, solid, so the see-through layers do not stack;
+ * - the other styles nest as they are (a border inside a border, a flat card in a flat one).
+ */
+fun cardLook(style: CardStyle, palette: SkinPalette, nested: Boolean = false): CardLook = when (style) {
     CardStyle.MATERIAL -> CardLook()
     CardStyle.OUTLINED -> CardLook(border = CardBorderKind.SOLID, borderColor = palette.cardBorder)
     CardStyle.FLAT -> CardLook(flat = true)
     CardStyle.GLASS -> CardLook(
-        containerAlpha = GLASS_ALPHA,
+        containerAlpha = if (nested) 1f else GLASS_ALPHA,
         border = CardBorderKind.TOP_HIGHLIGHT,
         borderColor = palette.textPrimary.copy(alpha = 0.22f),
         borderFadeColor = palette.cardBorder.copy(alpha = 0.3f),
     )
-    CardStyle.STRIPE -> CardLook(stripe = true, stripeColor = palette.accentGreen, stripeWidth = CardStripeWidth)
+    CardStyle.STRIPE -> if (nested) {
+        CardLook()
+    } else {
+        CardLook(stripe = true, stripeColor = palette.accentGreen, stripeWidth = CardStripeWidth)
+    }
     // a shadow would show through a see-through card, so it is flat as well
     CardStyle.BORDER_ONLY -> CardLook(
         containerAlpha = 0f,
@@ -62,8 +78,12 @@ fun cardLook(style: CardStyle, palette: SkinPalette): CardLook = when (style) {
         borderColor = palette.cardBorder,
         flat = true,
     )
-    // grCard draws the fill, the contour and its own shadow
-    CardStyle.GRAPHITE -> CardLook(containerAlpha = 0f, flat = true, graphite = true)
+    // grCard draws the fill, the contour and its own shadow; inside it, the raised key of the home
+    CardStyle.GRAPHITE -> if (nested) {
+        CardLook(border = CardBorderKind.GRAPHITE_EDGE, flat = true)
+    } else {
+        CardLook(containerAlpha = 0f, flat = true, graphite = true)
+    }
 }
 
 /**

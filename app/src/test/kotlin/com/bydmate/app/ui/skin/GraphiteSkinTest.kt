@@ -133,6 +133,15 @@ class GraphiteSkinTest {
         assertSame(Skins.VOLT.palette, SkinState.palette)
     }
 
+    @Test fun isGraphiteIsSetOnceForEveryGraphiteSkin() {
+        assertTrue(Skins.GRAPHITE_HOME.isGraphite)
+        GrScheme.entries.forEach { s -> GrFont.entries.forEach { f -> assertTrue("$s $f", graphiteSkin(s, f).isGraphite) } }
+        Skins.ALL.filter { it !== Skins.GRAPHITE_HOME }.forEach { assertFalse(it.id, it.isGraphite) }
+        // a copy keeps it: it follows the id
+        assertTrue(Skins.GRAPHITE_HOME.copy(title = "x").isGraphite)
+        assertFalse(Skins.GRAPHITE_HOME.copy(id = "classic").isGraphite)
+    }
+
     @Test fun livePalettesAndKitsAreBuiltOnce() {
         GrScheme.entries.forEach { s ->
             GrFont.entries.forEach { f ->

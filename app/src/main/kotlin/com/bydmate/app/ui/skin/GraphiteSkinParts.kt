@@ -2,6 +2,7 @@ package com.bydmate.app.ui.skin
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -23,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
 import com.bydmate.app.ui.home.common.px
+import com.bydmate.app.ui.home.graphite.GrLook
 import com.bydmate.app.ui.home.graphite.GrPalette
 import com.bydmate.app.ui.home.graphite.GrRelief
 import com.bydmate.app.ui.home.graphite.GraphiteLookState
@@ -42,12 +44,27 @@ import com.bydmate.app.ui.home.graphite.topHighlightPath
 
 /**
  * [content] with LocalGrLook from GraphiteLookState.look when [on], so the grCard and grPill
- * inside draw the owner's material, relief and 2.5D edges. Off, [content] runs as it is and reads
- * nothing from the Graphite look.
+ * inside draw the owner's material, relief and 2.5D edges. Off, it re-provides the look already
+ * in effect. The provider is there either way: a branch would be two groups, and a skin switch
+ * would drop the content's remembered state (scroll, list position, an open dialog).
  */
 @Composable
 internal fun ProvideGraphiteLook(on: Boolean, content: @Composable () -> Unit) {
-    if (on) CompositionLocalProvider(LocalGrLook provides GraphiteLookState.look, content = content) else content()
+    CompositionLocalProvider(LocalGrLook provides graphiteLookFor(on), content = content)
+}
+
+/** The LocalGrLook value for a skinned part: the live look when [on], else the one in effect. */
+@Composable
+internal fun graphiteLookFor(on: Boolean): GrLook = if (on) GraphiteLookState.look else LocalGrLook.current
+
+/**
+ * The edge of a card inside a Graphite card (CardBorderKind.GRAPHITE_EDGE): the 1 px edge of the
+ * Graphite home's raised key, tabActiveEdge of the live scheme, over the caller's own container.
+ */
+@Composable
+internal fun graphiteEdgeBorder(): BorderStroke {
+    val edge = GraphiteLookState.scheme.palette.tabActiveEdge
+    return remember(edge) { BorderStroke(px(1), edge) }
 }
 
 /**

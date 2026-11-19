@@ -28,9 +28,10 @@ import com.bydmate.app.ui.theme.SkinState
 import androidx.compose.material3.Slider as M3Slider
 
 // fork: drop-in for the M3 Slider (same name, parameters and defaults as M3 1.3.1). MATERIAL
-// passes every argument straight to M3. THIN and SEGMENTED go through the M3 thumb and track
-// slots, so the value, steps, callbacks, gestures, semantics and touch target stay M3's own;
-// only the drawing changes. Colours are the caller's SliderColors.
+// passes every argument straight to M3, with M3's own thumb and track. THIN and SEGMENTED go
+// through the same M3 thumb and track slots, so the value, steps, callbacks, gestures,
+// semantics and touch target stay M3's own; only the drawing changes. Colours are the caller's
+// SliderColors.
 
 private val ThinTrackHeight = 2.dp
 private val ThinThumbSize = 14.dp
@@ -53,29 +54,30 @@ fun Slider(
     colors: SliderColors = SliderDefaults.colors(),
     interactionSource: MutableInteractionSource = remember { MutableInteractionSource() },
 ) {
-    when (SkinState.current.kit.controls.slider) {
-        SliderStyle.MATERIAL -> M3Slider(
-            value = value, onValueChange = onValueChange, modifier = modifier, enabled = enabled,
-            valueRange = valueRange, steps = steps, onValueChangeFinished = onValueChangeFinished,
-            colors = colors, interactionSource = interactionSource,
-        )
-        SliderStyle.THIN -> M3Slider(
-            value = value, onValueChange = onValueChange, modifier = modifier, enabled = enabled,
-            onValueChangeFinished = onValueChangeFinished, colors = colors, interactionSource = interactionSource,
-            steps = steps,
-            thumb = { ThinThumb(interactionSource, colors, enabled) },
-            track = { ThinTrack(it, colors, enabled) },
-            valueRange = valueRange,
-        )
-        SliderStyle.SEGMENTED -> M3Slider(
-            value = value, onValueChange = onValueChange, modifier = modifier, enabled = enabled,
-            onValueChangeFinished = onValueChangeFinished, colors = colors, interactionSource = interactionSource,
-            steps = steps,
-            thumb = { SliderDefaults.Thumb(interactionSource = interactionSource, colors = colors, enabled = enabled) },
-            track = { SegmentedTrack(it, colors, enabled) },
-            valueRange = valueRange,
-        )
-    }
+    // one M3Slider call whatever the style, so a skin switch keeps the slider (a branch per
+    // style would be three call sites); the style picks the thumb and the track. MATERIAL's two
+    // are the ones M3 1.3.1's value overload passes, with the same arguments.
+    val style = SkinState.current.kit.controls.slider
+    M3Slider(
+        value = value, onValueChange = onValueChange, modifier = modifier, enabled = enabled,
+        onValueChangeFinished = onValueChangeFinished, colors = colors, interactionSource = interactionSource,
+        steps = steps,
+        thumb = {
+            if (style == SliderStyle.THIN) {
+                ThinThumb(interactionSource, colors, enabled)
+            } else {
+                SliderDefaults.Thumb(interactionSource = interactionSource, colors = colors, enabled = enabled)
+            }
+        },
+        track = { state ->
+            when (style) {
+                SliderStyle.MATERIAL -> SliderDefaults.Track(colors = colors, enabled = enabled, sliderState = state)
+                SliderStyle.THIN -> ThinTrack(state, colors, enabled)
+                SliderStyle.SEGMENTED -> SegmentedTrack(state, colors, enabled)
+            }
+        },
+        valueRange = valueRange,
+    )
 }
 
 /** A 14 dp dot; a soft halo while it is pressed or dragged. */

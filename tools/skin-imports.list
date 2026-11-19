@@ -4,7 +4,7 @@
 [imports]
 # import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog} and
 # import androidx.compose.foundation.shape.RoundedCornerShape -> import com.bydmate.app.ui.skin.<Name> // fork: skin
-app/src/main/kotlin/com/bydmate/app/ui/components/AppAlertDialog.kt            # AlertDialog: every app dialog goes through it
+app/src/main/kotlin/com/bydmate/app/ui/components/AppAlertDialog.kt            # AlertDialog: the dialogs built on AppAlertDialog (not the Dialog + Card ones)
 app/src/main/kotlin/com/bydmate/app/ui/settings/DonateDialog.kt                # Card, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/settings/ManualRangeTableDialog.kt      # Card, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/settings/SettingRows.kt                 # Card, HorizontalDivider, Slider, Switch, RoundedCornerShape

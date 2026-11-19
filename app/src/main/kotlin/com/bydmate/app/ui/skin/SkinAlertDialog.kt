@@ -17,7 +17,8 @@ import androidx.compose.material3.AlertDialog as M3AlertDialog
 // BORDER_ONLY and STRIPE outline the dialog surface with a 1 dp CardBorder. GRAPHITE makes the
 // surface the Graphite home's card (grCard, the live look) under a see-through container with no
 // tonal elevation; the caller's text colours stay. Every other style passes the caller's
-// arguments straight to M3.
+// arguments straight to M3. One M3AlertDialog call inside one provider, whatever the style: a
+// skin switch with the dialog open keeps its window and its content's state.
 
 @Composable
 fun AlertDialog(

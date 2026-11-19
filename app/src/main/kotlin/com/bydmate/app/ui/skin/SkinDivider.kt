@@ -26,18 +26,22 @@ fun HorizontalDivider(
     thickness: Dp = DividerDefaults.Thickness,
     color: Color = DividerDefaults.color,
 ) {
-    when (dividerLook(SkinState.current.kit.controls.card)) {
-        DividerLook.AS_GIVEN -> M3HorizontalDivider(modifier = modifier, thickness = thickness, color = color)
-        DividerLook.CARD_BORDER -> M3HorizontalDivider(modifier = modifier, thickness = thickness, color = SkinState.palette.cardBorder)
-        DividerLook.FADED_ENDS -> {
-            val brush = remember(color) {
-                Brush.horizontalGradient(0f to Color.Transparent, FADE_END to color, 1f - FADE_END to color, 1f to Color.Transparent)
-            }
-            // the M3 divider's own drawing, with the brush for the colour
-            Canvas(modifier.fillMaxWidth().height(thickness)) {
-                val y = thickness.toPx() / 2f
-                drawLine(brush, Offset(0f, y), Offset(size.width, y), thickness.toPx())
-            }
+    // a leaf with no state: GLASS draws its own line, every other look is one M3 call
+    val look = dividerLook(SkinState.current.kit.controls.card)
+    if (look == DividerLook.FADED_ENDS) {
+        val brush = remember(color) {
+            Brush.horizontalGradient(0f to Color.Transparent, FADE_END to color, 1f - FADE_END to color, 1f to Color.Transparent)
         }
+        // the M3 divider's own drawing, with the brush for the colour
+        Canvas(modifier.fillMaxWidth().height(thickness)) {
+            val y = thickness.toPx() / 2f
+            drawLine(brush, Offset(0f, y), Offset(size.width, y), thickness.toPx())
+        }
+    } else {
+        M3HorizontalDivider(
+            modifier = modifier,
+            thickness = thickness,
+            color = if (look == DividerLook.CARD_BORDER) SkinState.palette.cardBorder else color,
+        )
     }
 }
