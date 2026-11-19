@@ -1,5 +1,6 @@
 package com.bydmate.app.ui.settings
 
+import com.bydmate.app.R
 import com.bydmate.app.ui.home.HomeStyle
 import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
@@ -18,6 +19,12 @@ class GraphiteLookRowsTest {
         HomeStyle.entries.filter { it != HomeStyle.GRAPHITE }.forEach { home ->
             Skins.ALL.filter { !it.isGraphite }.forEach { assertFalse("$home ${it.id}", graphiteLookShown(home, it)) }
         }
+    }
+
+    @Test fun theSchemeHintSaysWhatTheSchemeColours() {
+        // with the «Graphite» skin the scheme colours the whole app, otherwise the Graphite home only
+        assertEquals(R.string.home_gr_set_scheme_desc_app, schemeHint(Skins.GRAPHITE_HOME))
+        Skins.ALL.filter { !it.isGraphite }.forEach { assertEquals(it.id, R.string.home_gr_set_scheme_desc, schemeHint(it)) }
     }
 
     @Test fun mediaLeftShowsWithTheGraphiteHomeOnly() {

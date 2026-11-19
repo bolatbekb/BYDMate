@@ -8,8 +8,8 @@ import com.bydmate.app.ui.theme.SkinPalette
 import kotlin.math.roundToInt
 
 // fork: what each control style looks like, as plain values. SkinCard, SkinSwitch, SkinSlider,
-// SkinDivider and SkinAlertDialog draw these; the unit tests check them. A new style is one more
-// branch in each `when` below.
+// SkinDivider, SkinAlertDialog and SkinNavigationBar draw these; the unit tests check them. A new
+// style is one more branch in each `when` below.
 
 /**
  * How a styled card outlines itself. GRAPHITE_EDGE is the 1 px edge of the Graphite home's raised
@@ -199,3 +199,56 @@ fun sliderFraction(value: Float, range: ClosedFloatingPointRange<Float>): Float 
 /** How many of the [SLIDER_SEGMENTS] segments are lit at [fraction]. */
 fun litSegments(fraction: Float): Int =
     (fraction.coerceIn(0f, 1f) * SLIDER_SEGMENTS).roundToInt().coerceIn(0, SLIDER_SEGMENTS)
+
+/**
+ * A key of the bottom bar in one style (navLook). The default value is MATERIAL: the M3 item with
+ * the caller's arguments.
+ *
+ * [lit] says the key shows its indicator: the selected key (GRAPHITE: also a pressed one, as on the
+ * Graphite home). [fill] and [edge] colour the CUT plate, the UNDERLINE bar and the OUTLINE ring
+ * ([edge] is [NavEdgeWidth] wide). [content] is the GRAPHITE key's icon and label colour; the other
+ * styles keep the caller's `colors`.
+ */
+data class NavLook(
+    val style: NavStyle = NavStyle.MATERIAL,
+    val lit: Boolean = false,
+    val fill: Color = Color.Unspecified,
+    val edge: Color = Color.Unspecified,
+    val content: Color = Color.Unspecified,
+) {
+    /** The M3 item with the caller's arguments, untouched. */
+    val passThrough: Boolean get() = this == NavLook()
+}
+
+/** M3's indicator around a 24 dp icon is 64 x 32 dp: 20 dp on each side, 4 dp above and below. */
+val NavIndicatorPadX: Dp = 20.dp
+val NavIndicatorPadY: Dp = 4.dp
+val NavCutCorner: Dp = 8.dp
+val NavUnderlineHeight: Dp = CardStripeWidth
+val NavEdgeWidth: Dp = CardBorderWidth
+
+/**
+ * The key of [style], [selected] or not, in [palette]:
+ * - GRAPHITE: the Graphite home's menu key; lit, it is the raised key with the glowing bar and
+ *   textPrimary, else textSecondary (the home's MenuKey);
+ * - CUT (Cockpit): a plate with cut corners in navIndicator with an accent edge;
+ * - UNDERLINE (Telemetry): an accent bar along the bottom of the indicator;
+ * - OUTLINE (OLED): the M3 pill as an accent ring, no fill.
+ */
+fun navLook(style: NavStyle, selected: Boolean, palette: SkinPalette): NavLook = when (style) {
+    NavStyle.MATERIAL -> NavLook()
+    NavStyle.GRAPHITE -> NavLook(style, selected, content = if (selected) palette.textPrimary else palette.textSecondary)
+    NavStyle.CUT -> NavLook(style, selected, fill = palette.navIndicator, edge = palette.accentGreen)
+    NavStyle.UNDERLINE -> NavLook(style, selected, fill = palette.accentGreen)
+    NavStyle.OUTLINE -> NavLook(style, selected, fill = Color.Transparent, edge = palette.accentGreen)
+}
+
+/** Where a key of the GRAPHITE dock sits in its row (px, left to right) and whether it is lit. */
+data class NavKeySpan(val left: Float, val right: Float, val lit: Boolean)
+
+/**
+ * The x of each divider of the GRAPHITE dock: the middle of the gap between two neighbouring keys,
+ * none beside a lit key (the Graphite home hides the dividers next to its lit key).
+ */
+fun navDividerXs(keys: Collection<NavKeySpan>): List<Float> =
+    keys.sortedBy { it.left }.zipWithNext().filter { (a, b) -> !a.lit && !b.lit }.map { (a, b) -> (a.right + b.left) / 2f }

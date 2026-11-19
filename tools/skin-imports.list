@@ -2,9 +2,10 @@
 # Paths from the repo root. `#` starts a note. A file may sit in both sections.
 
 [imports]
-# import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog} and
+# import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog,NavigationBar,NavigationBarItem} and
 # import androidx.compose.foundation.shape.RoundedCornerShape -> import com.bydmate.app.ui.skin.<Name> // fork: skin
 app/src/main/kotlin/com/bydmate/app/ui/components/AppAlertDialog.kt            # AlertDialog: the dialogs built on AppAlertDialog (not the Dialog + Card ones)
+app/src/main/kotlin/com/bydmate/app/ui/navigation/AppNavigation.kt             # NavigationBar, NavigationBarItem (the bottom menu); Card, RoundedCornerShape (the post-install dialog)
 app/src/main/kotlin/com/bydmate/app/ui/settings/DonateDialog.kt                # Card, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/settings/ManualRangeTableDialog.kt      # Card, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/settings/SettingRows.kt                 # Card, HorizontalDivider, Slider, Switch, RoundedCornerShape

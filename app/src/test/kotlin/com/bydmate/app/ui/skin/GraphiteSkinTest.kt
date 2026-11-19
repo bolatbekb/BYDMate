@@ -92,7 +92,7 @@ class GraphiteSkinTest {
         val k = graphiteKit(GrFont.INTER)
         assertEquals(SkinFonts(SkinFont.INTER, 0.97f), k.fonts)
         assertEquals(CornerStyle.ROUNDED, k.corners.style)
-        assertEquals(SkinControls(SwitchStyle.GRAPHITE, CardStyle.GRAPHITE, SliderStyle.THIN), k.controls)
+        assertEquals(SkinControls(SwitchStyle.GRAPHITE, CardStyle.GRAPHITE, SliderStyle.THIN, NavStyle.GRAPHITE), k.controls)
         assertEquals(BackgroundStyle.GRAPHITE, k.background)
         // an author 12 dp card corner becomes the Graphite card's 34 mockup px = 17 dp
         assertEquals(17f, mapCornerDp(k.corners, 12.dp).value, 0.01f)

@@ -57,6 +57,13 @@ internal fun HomeStylePickerBlock() {
 /** The Graphite look rows show with the Graphite home or the «Graphite» skin, which follows them. */
 internal fun graphiteLookShown(home: HomeStyle, skin: Skin): Boolean = home == HomeStyle.GRAPHITE || skin.isGraphite
 
+/**
+ * The hint under «Цветовая схема»: the scheme colours the Graphite home and, with the «Graphite»
+ * skin, the whole app; with any other skin the app follows «Цвета приложения».
+ */
+internal fun schemeHint(skin: Skin): Int =
+    if (skin.isGraphite) R.string.home_gr_set_scheme_desc_app else R.string.home_gr_set_scheme_desc
+
 /** «Плеер слева» moves the Graphite home's player only, so it shows with that home alone. */
 internal fun mediaLeftShown(home: HomeStyle): Boolean = home == HomeStyle.GRAPHITE
 
@@ -76,7 +83,7 @@ private fun GraphiteLookRows(mediaLeft: Boolean) {
     SettingSubhead("Graphite")
     SettingChipRow(
         title = stringResource(R.string.home_gr_set_scheme),
-        description = stringResource(R.string.home_gr_set_scheme_desc),
+        description = stringResource(schemeHint(SkinState.selected)),
         // Scheme names are names: the same in every language.
         options = schemes.map { it.title },
         selectedIndex = schemes.indexOf(GraphiteLookState.scheme),

@@ -2,7 +2,8 @@
 # skin imports: restores and checks the fork's skin hooks in AUTHOR files, from one list.
 #
 # The skin reaches author screens through one-line hooks, each marked `// fork: skin…`:
-#   [imports]     `import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog}`
+#   [imports]     `import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog,
+#                 NavigationBar,NavigationBarItem}`
 #                 and `import androidx.compose.foundation.shape.RoundedCornerShape` become
 #                 `import com.bydmate.app.ui.skin.<Name> // fork: skin`. The call sites stay the
 #                 author's: the fork functions have the same names, parameters and defaults.
@@ -41,7 +42,7 @@ esac
 [ -f "$list" ] || { echo "skin imports: no list at $list" >&2; exit 2; }
 
 # The ONE list of swapped names. SkinImportsTest parses these two lines; keep the format.
-SKIN_M3_NAMES="Switch Card Slider HorizontalDivider AlertDialog"   # androidx.compose.material3.<Name>
+SKIN_M3_NAMES="Switch Card Slider HorizontalDivider AlertDialog NavigationBar NavigationBarItem"   # androidx.compose.material3.<Name>
 SKIN_SHAPE_NAMES="RoundedCornerShape"                              # androidx.compose.foundation.shape.<Name>
 
 # entries <section>: the paths listed under [section]

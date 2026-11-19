@@ -18,6 +18,7 @@ import com.bydmate.app.ui.skin.SkinFont
 import com.bydmate.app.ui.skin.SkinFonts
 import com.bydmate.app.ui.skin.SkinKit
 import com.bydmate.app.ui.skin.GRAPHITE_SKIN_ID
+import com.bydmate.app.ui.skin.NavStyle
 import com.bydmate.app.ui.skin.SliderStyle
 import com.bydmate.app.ui.skin.SwitchStyle
 import com.bydmate.app.ui.skin.graphitePalette
@@ -117,7 +118,7 @@ object Skins {
             chartGrid = Color(0xFF1A222C),
             navBarBackground = Color(0xFF090C10),
         ),
-        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f), SkinCorners(CornerStyle.CUT, 0.75f), SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN), BackgroundStyle.GRID),
+        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f), SkinCorners(CornerStyle.CUT, 0.75f), SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
     )
 
     /** 2 · Graphite Pro: neutral graphite, periwinkle accent. */
@@ -187,7 +188,7 @@ object Skins {
             chartGrid = Color(0xFF1C1C1C),
             navBarBackground = Color(0xFF0A0A0A),
         ),
-        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f), SkinCorners(CornerStyle.ROUNDED, 0.3f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED), BackgroundStyle.SCANLINES),
+        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f), SkinCorners(CornerStyle.ROUNDED, 0.3f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE), BackgroundStyle.SCANLINES),
     )
 
     /** 5 · OLED: pure black, lime accent. */
@@ -210,7 +211,7 @@ object Skins {
             chartGrid = Color(0xFF1A1A1A),
             navBarBackground = Color(0xFF000000),
         ),
-        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
+        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
     )
 
     /**

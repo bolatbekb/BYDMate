@@ -28,6 +28,7 @@ import com.bydmate.app.ui.home.graphite.GrLook
 import com.bydmate.app.ui.home.graphite.GrPalette
 import com.bydmate.app.ui.home.graphite.GrRelief
 import com.bydmate.app.ui.home.graphite.GraphiteLookState
+import com.bydmate.app.ui.home.graphite.LocalGr
 import com.bydmate.app.ui.home.graphite.LocalGrLook
 import com.bydmate.app.ui.home.graphite.blurPaint
 import com.bydmate.app.ui.home.graphite.drawNativePath
@@ -37,8 +38,9 @@ import com.bydmate.app.ui.home.graphite.insetShadowPath
 import com.bydmate.app.ui.home.graphite.smallRelief
 import com.bydmate.app.ui.home.graphite.topHighlightPath
 
-// fork: what the «Graphite» skin draws, with the Graphite home's own code and its live look
-// (GraphiteLookState). Each part is remembered per palette and look, so a recomposition keeps
+// fork: what the «Graphite» skin draws with the Graphite home's own code and its live look
+// (GraphiteLookState): the card, the background and the switch; the bottom bar is in
+// SkinNavigationBar.kt. Each part is remembered per palette and look, so a recomposition keeps
 // its draw cache: shaders, paths and paints are built once per size, the material tiles once
 // per process (GraphiteCard.kt).
 
@@ -56,6 +58,10 @@ internal fun ProvideGraphiteLook(on: Boolean, content: @Composable () -> Unit) {
 /** The LocalGrLook value for a skinned part: the live look when [on], else the one in effect. */
 @Composable
 internal fun graphiteLookFor(on: Boolean): GrLook = if (on) GraphiteLookState.look else LocalGrLook.current
+
+/** The LocalGr value for a skinned part: the live scheme's palette when [on], else the one in effect. */
+@Composable
+internal fun graphitePaletteFor(on: Boolean): GrPalette = if (on) GraphiteLookState.scheme.palette else LocalGr.current
 
 /**
  * The edge of a card inside a Graphite card (CardBorderKind.GRAPHITE_EDGE): the 1 px edge of the

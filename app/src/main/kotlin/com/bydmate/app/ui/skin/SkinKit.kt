@@ -11,6 +11,13 @@ enum class CardStyle { MATERIAL, OUTLINED, FLAT, GLASS, STRIPE, BORDER_ONLY, GRA
 enum class SliderStyle { MATERIAL, THIN, SEGMENTED }
 enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES, GRAPHITE }
 
+/**
+ * The bottom bar (SkinNavigationBar.kt). MATERIAL is the author's M3 bar; GRAPHITE is the Graphite
+ * home's menu (a card dock, one-row keys, the raised lit key); CUT, UNDERLINE and OUTLINE change
+ * only the selected key's indicator: a cut plate, an underline, an outline.
+ */
+enum class NavStyle { MATERIAL, GRAPHITE, CUT, UNDERLINE, OUTLINE }
+
 /** [sizeFactor] evens out fonts that run wider or narrower than Roboto; it multiplies the user's text scale. */
 data class SkinFonts(val text: SkinFont = SkinFont.SYSTEM, val sizeFactor: Float = 1f)
 
@@ -20,6 +27,7 @@ data class SkinControls(
     val switch: SwitchStyle = SwitchStyle.MATERIAL,
     val card: CardStyle = CardStyle.MATERIAL,
     val slider: SliderStyle = SliderStyle.MATERIAL,
+    val nav: NavStyle = NavStyle.MATERIAL,
 )
 
 /** What a skin changes besides colour. The default is the author's look (Classic). */

@@ -17,30 +17,30 @@ class SkinThemeTest {
         assertEquals(SkinFont.SYSTEM, k.fonts.text)
         assertEquals(1f, k.fonts.sizeFactor)
         assertEquals(SkinCorners(CornerStyle.ROUNDED, 1f), k.corners)
-        assertEquals(SkinControls(SwitchStyle.MATERIAL, CardStyle.MATERIAL, SliderStyle.MATERIAL), k.controls)
+        assertEquals(SkinControls(SwitchStyle.MATERIAL, CardStyle.MATERIAL, SliderStyle.MATERIAL, NavStyle.MATERIAL), k.controls)
         assertEquals(BackgroundStyle.AUTHOR, k.background)
     }
 
     @Test fun everyOtherSkinHasTheSpecKit() {
         assertEquals(
             SkinKit(SkinFonts(SkinFont.EXO2, 0.95f), SkinCorners(CornerStyle.CUT, 0.75f),
-                SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN), BackgroundStyle.GRID),
+                SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
             Skins.COCKPIT.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.25f),
-                SkinControls(SwitchStyle.MATERIAL, CardStyle.FLAT, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
+                SkinControls(SwitchStyle.MATERIAL, CardStyle.FLAT, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.AUTHOR),
             Skins.GRAPHITE.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f),
-                SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL), BackgroundStyle.GLOW),
+                SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.GLOW),
             Skins.VOLT.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f), SkinCorners(CornerStyle.ROUNDED, 0.3f),
-                SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED), BackgroundStyle.SCANLINES),
+                SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE), BackgroundStyle.SCANLINES),
             Skins.TELEMETRY.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f),
-                SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
+                SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
             Skins.OLED.kit)
     }
 

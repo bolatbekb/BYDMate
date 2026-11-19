@@ -26,6 +26,7 @@
     <string name="home_gr_set_font">Fonte</string>
     <string name="home_gr_set_scheme">Esquema de cores</string>
     <string name="home_gr_set_scheme_desc">Cores da tela inicial Graphite; o resto do aplicativo segue “Cores do app”</string>
+    <string name="home_gr_set_scheme_desc_app">Cores da tela inicial Graphite e de todo o app: Graphite está selecionado em “Cores do app”</string>
     <string name="home_gr_set_material">Material</string>
     <string name="home_gr_set_material_desc">Textura da superfície dos cartões</string>
     <string name="home_gr_set_relief">Relevo</string>

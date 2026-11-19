@@ -87,7 +87,7 @@ fun grToSkinPalette(p: GrPalette): SkinPalette = SkinPalette(
 /**
  * The kit for the Graphite home's [font]: Inter, or DiLink (Roboto text, i.e. the system font;
  * its Rajdhani numerals stay on the home). Corners ×[GRAPHITE_CORNER_SCALE], the Graphite card,
- * switch and background, the thin slider.
+ * switch, background and bottom menu, the thin slider.
  */
 fun graphiteKit(font: GrFont): SkinKit = SkinKit(
     fonts = when (font) {
@@ -95,7 +95,12 @@ fun graphiteKit(font: GrFont): SkinKit = SkinKit(
         GrFont.DILINK -> SkinFonts(SkinFont.SYSTEM, 1f)
     },
     corners = SkinCorners(CornerStyle.ROUNDED, GRAPHITE_CORNER_SCALE),
-    controls = SkinControls(switch = SwitchStyle.GRAPHITE, card = CardStyle.GRAPHITE, slider = SliderStyle.THIN),
+    controls = SkinControls(
+        switch = SwitchStyle.GRAPHITE,
+        card = CardStyle.GRAPHITE,
+        slider = SliderStyle.THIN,
+        nav = NavStyle.GRAPHITE,
+    ),
     background = BackgroundStyle.GRAPHITE,
 )
 

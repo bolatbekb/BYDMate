@@ -26,6 +26,7 @@
     <string name="home_gr_set_font">Font</string>
     <string name="home_gr_set_scheme">Color scheme</string>
     <string name="home_gr_set_scheme_desc">Colors of the Graphite home; the rest of the app follows “App colors”</string>
+    <string name="home_gr_set_scheme_desc_app">Colors of the Graphite home and the whole app: Graphite is selected in “App colors”</string>
     <string name="home_gr_set_material">Material</string>
     <string name="home_gr_set_material_desc">Surface texture of the cards</string>
     <string name="home_gr_set_relief">Relief</string>

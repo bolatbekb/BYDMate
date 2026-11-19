@@ -26,6 +26,7 @@
     <string name="home_gr_set_font">字体</string>
     <string name="home_gr_set_scheme">配色方案</string>
     <string name="home_gr_set_scheme_desc">Graphite 主屏幕的配色；应用其余部分遵循“应用配色”设置</string>
+    <string name="home_gr_set_scheme_desc_app">Graphite 主屏幕和整个应用的配色：“应用配色”中已选择 Graphite</string>
     <string name="home_gr_set_material">材质</string>
     <string name="home_gr_set_material_desc">卡片表面的质感</string>
     <string name="home_gr_set_relief">凹凸</string>

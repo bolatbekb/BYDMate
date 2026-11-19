@@ -62,6 +62,10 @@ class GraphiteStringsTest {
             "Цвета главной Graphite; остальное приложение — по «Цветам приложения»",
             ctx.getString(R.string.home_gr_set_scheme_desc),
         )
+        assertEquals(
+            "Цвета главной Graphite и всего приложения: в «Цветах приложения» выбран Graphite",
+            ctx.getString(R.string.home_gr_set_scheme_desc_app),
+        )
     }
 
     @Test @Config(qualifiers = "en")
@@ -72,5 +76,9 @@ class GraphiteStringsTest {
         assertEquals("Current trip", ctx.getString(R.string.home_gr_trip_current))
         assertEquals("Last trip", ctx.getString(R.string.home_gr_trip_last))
         assertEquals("Day", ctx.getString(R.string.home_gr_period_day))
+        assertEquals(
+            "Colors of the Graphite home and the whole app: Graphite is selected in “App colors”",
+            ctx.getString(R.string.home_gr_set_scheme_desc_app),
+        )
     }
 }
