@@ -29,6 +29,7 @@ import androidx.compose.material3.Card as M3Card
 // fork: drop-ins for the M3 Card overloads (same names, parameters and defaults as M3 1.3.1).
 // MATERIAL passes every argument straight to M3; the other styles change the container alpha,
 // the border, the elevation or draw a stripe, never the layout. A caller's explicit border wins.
+// GRAPHITE lays the Graphite home's card (grCard, the live look) under a see-through container.
 
 @Composable
 fun Card(
@@ -44,14 +45,16 @@ fun Card(
         M3Card(modifier = modifier, shape = shape, colors = colors, elevation = elevation, border = border, content = content)
         return
     }
-    M3Card(
-        modifier = modifier.then(stripeModifier(look, shape)),
-        shape = shape,
-        colors = colors.withContainerAlpha(look.containerAlpha),
-        elevation = if (look.flat) flatElevation() else elevation,
-        border = border ?: lookBorder(look),
-        content = content,
-    )
+    ProvideGraphiteLook(look.graphite) {
+        M3Card(
+            modifier = modifier.then(stripeModifier(look, shape)).then(graphiteModifier(look, shape)),
+            shape = shape,
+            colors = colors.withContainerAlpha(look.containerAlpha),
+            elevation = if (look.flat) flatElevation() else elevation,
+            border = border ?: lookBorder(look),
+            content = content,
+        )
+    }
 }
 
 @Composable
@@ -74,17 +77,19 @@ fun Card(
         )
         return
     }
-    M3Card(
-        onClick = onClick,
-        modifier = modifier.then(stripeModifier(look, shape)),
-        enabled = enabled,
-        shape = shape,
-        colors = colors.withContainerAlpha(look.containerAlpha),
-        elevation = if (look.flat) flatElevation() else elevation,
-        border = border ?: lookBorder(look),
-        interactionSource = interactionSource,
-        content = content,
-    )
+    ProvideGraphiteLook(look.graphite) {
+        M3Card(
+            onClick = onClick,
+            modifier = modifier.then(stripeModifier(look, shape)).then(graphiteModifier(look, shape)),
+            enabled = enabled,
+            shape = shape,
+            colors = colors.withContainerAlpha(look.containerAlpha),
+            elevation = if (look.flat) flatElevation() else elevation,
+            border = border ?: lookBorder(look),
+            interactionSource = interactionSource,
+            content = content,
+        )
+    }
 }
 
 /** The active skin's card look; a card that is a dialog's surface keeps a solid container. */
@@ -124,6 +129,11 @@ private fun lookBorder(look: CardLook): BorderStroke? = when (look.border) {
         BorderStroke(CardBorderWidth, Brush.verticalGradient(listOf(look.borderColor, look.borderFadeColor)))
     }
 }
+
+/** GRAPHITE: the Graphite home's card under the container, inside ProvideGraphiteLook. */
+@Composable
+private fun graphiteModifier(look: CardLook, shape: Shape): Modifier =
+    if (look.graphite) Modifier.graphiteSkinCard(shape) else Modifier
 
 /**
  * The STRIPE bar along the start edge, drawn over the card and clipped to its [shape], so the

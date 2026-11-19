@@ -40,6 +40,7 @@ import com.bydmate.app.ui.theme.Skin
 import com.bydmate.app.ui.theme.SkinState
 import com.bydmate.app.ui.theme.Skins
 import com.bydmate.app.ui.theme.TextSecondary
+import com.bydmate.app.ui.theme.live
 
 /** Settings › App: a row of skin previews; a tap switches the whole app live. fork-local. */
 @Composable
@@ -56,7 +57,8 @@ internal fun SkinPickerBlock() {
             Text(stringResource(R.string.settings_skin_desc), color = TextSecondary, fontSize = 13.sp)
             LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 items(Skins.ALL, key = { it.id }) { skin ->
-                    SkinPreview(skin, selected = skin.id == current.id) { SkinState.select(context, skin) }
+                    // live: the «Graphite» tile shows the Graphite home's scheme and font of the moment
+                    SkinPreview(skin.live(), selected = skin.id == current.id) { SkinState.select(context, skin) }
                 }
             }
         }

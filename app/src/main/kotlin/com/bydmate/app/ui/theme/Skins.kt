@@ -6,6 +6,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.lerp
+import com.bydmate.app.ui.home.graphite.GrFont
+import com.bydmate.app.ui.home.graphite.GrScheme
+import com.bydmate.app.ui.home.graphite.GraphiteLookState
 import com.bydmate.app.ui.skin.BackgroundStyle
 import com.bydmate.app.ui.skin.CardStyle
 import com.bydmate.app.ui.skin.CornerStyle
@@ -14,8 +17,11 @@ import com.bydmate.app.ui.skin.SkinCorners
 import com.bydmate.app.ui.skin.SkinFont
 import com.bydmate.app.ui.skin.SkinFonts
 import com.bydmate.app.ui.skin.SkinKit
+import com.bydmate.app.ui.skin.GRAPHITE_SKIN_ID
 import com.bydmate.app.ui.skin.SliderStyle
 import com.bydmate.app.ui.skin.SwitchStyle
+import com.bydmate.app.ui.skin.graphitePalette
+import com.bydmate.app.ui.skin.graphiteSkin
 
 /**
  * Every color token the app reads through Color.kt. A skin swaps the whole set at once;
@@ -77,6 +83,13 @@ object Skins {
             navIndicator = Color(0xFF1B3A4B),
         )
     )
+
+    /**
+     * «Graphite»: the look the owner set for the Graphite home (scheme, card material, relief,
+     * 2.5D edges, font), see ui/skin/GraphiteSkin.kt. This entry is the default look (Dark,
+     * Inter); what shows is [live], which follows GraphiteLookState.
+     */
+    val GRAPHITE_HOME: Skin = graphiteSkin(GrScheme.DARK, GrFont.INTER)
 
     /** 1 · Cockpit: near-black instrument panel, cyan accent. */
     val COCKPIT = Skin(
@@ -194,11 +207,21 @@ object Skins {
         SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
     )
 
-    /** «Цвета приложения»: the app-wide skins. The Graphite home has its own schemes (GraphiteLookState). */
-    val ALL = listOf(CLASSIC, COCKPIT, GRAPHITE, VOLT, TELEMETRY, OLED)
+    /**
+     * «Цвета приложения»: the app-wide skins. The Graphite home has its own schemes
+     * (GraphiteLookState); the «Graphite» skin, second, takes whichever is set there.
+     */
+    val ALL = listOf(CLASSIC, GRAPHITE_HOME, COCKPIT, GRAPHITE, VOLT, TELEMETRY, OLED)
 
     fun byId(id: String?): Skin = ALL.firstOrNull { it.id == id } ?: CLASSIC
 }
+
+/**
+ * This skin as it shows now. The «Graphite» skin takes the Graphite home's scheme and font, so
+ * for it this reads GraphiteLookState (snapshot state): a change there recomposes the readers.
+ * Every other skin is itself. No allocation: the Graphite skins are built once (graphiteSkin).
+ */
+fun Skin.live(): Skin = if (id == GRAPHITE_SKIN_ID) graphiteSkin(GraphiteLookState.scheme, GraphiteLookState.font) else this
 
 /**
  * The skin in effect. Snapshot state: any composable that reads a color token
@@ -208,21 +231,27 @@ object SkinState {
     private const val PREFS = "bydmate_skin"
     private const val KEY = "skin_id"
 
-    var current: Skin by mutableStateOf(Skins.CLASSIC)
+    /** The skin chosen in settings, as listed in [Skins.ALL]. */
+    var selected: Skin by mutableStateOf(Skins.CLASSIC)
         private set
 
-    val palette: SkinPalette get() = current.palette
+    /** The skin in effect: [selected] in its [live] form, so «Graphite» follows the Graphite home. */
+    val current: Skin get() = selected.live()
+
+    /** The palette in effect; for «Graphite» the Graphite home's scheme (it reads the scheme only, not the font). */
+    val palette: SkinPalette
+        get() = selected.let { if (it.id == GRAPHITE_SKIN_ID) graphitePalette(GraphiteLookState.scheme) else it.palette }
 
     /** Loads the saved skin. Call once from Application.onCreate, before any UI. */
     fun init(context: Context) {
         val id = runCatching {
             context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(KEY, null)
         }.getOrNull()
-        current = Skins.byId(id)
+        selected = Skins.byId(id)
     }
 
     fun select(context: Context, skin: Skin) {
-        current = skin
+        selected = skin
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, skin.id).apply()
     }
 }

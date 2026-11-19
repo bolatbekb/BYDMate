@@ -24,6 +24,9 @@ import com.bydmate.app.ui.home.common.px
 
 /* ---------------------------------------------------------------- card */
 
+/** The card radius of the mockup (SPEC §5), in mockup px: 17 dp. The «Graphite» app skin scales its corners to it. */
+internal const val GR_CARD_RADIUS = 34f
+
 /*
  * The draw helpers below are @Composable and remember their drawWithCache modifier per key: a
  * fresh lambda on every call would make an unequal modifier, so each recomposition (the live
@@ -41,7 +44,7 @@ import com.bydmate.app.ui.home.common.px
  * card (the gallery) is covered by its picture: the relief lies over it and only glass shows.
  */
 @Composable
-fun Modifier.grCard(p: GrPalette, radius: Float = 34f, photo: Boolean = false): Modifier {
+fun Modifier.grCard(p: GrPalette, radius: Float = GR_CARD_RADIUS, photo: Boolean = false): Modifier {
     val look = LocalGrLook.current
     return this then remember(p, radius, look, photo) { cardModifier(p, radius, look, photo) }
 }

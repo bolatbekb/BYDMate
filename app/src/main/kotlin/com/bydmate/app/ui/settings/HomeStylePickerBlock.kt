@@ -21,9 +21,14 @@ import com.bydmate.app.ui.home.graphite.GrFont
 import com.bydmate.app.ui.home.graphite.GrRelief
 import com.bydmate.app.ui.home.graphite.GrScheme
 import com.bydmate.app.ui.home.graphite.rememberGrLang
+import com.bydmate.app.ui.skin.GRAPHITE_SKIN_ID
 import com.bydmate.app.ui.theme.CardSurfaceElevated
+import com.bydmate.app.ui.theme.SkinState
 
-/** Settings › App: which home screen the first tab shows, and the Graphite home's look. fork-local. */
+/**
+ * Settings › App: which home screen the first tab shows, and the Graphite home's look. The look
+ * shows with the Graphite home and with the «Graphite» app skin, which follows it. fork-local.
+ */
 @Composable
 internal fun HomeStylePickerBlock() {
     val context = LocalContext.current
@@ -42,12 +47,15 @@ internal fun HomeStylePickerBlock() {
                 selectedIndex = styles.indexOf(HomeStyleState.current),
                 onSelect = { idx -> HomeStyleState.select(context, styles[idx]) },
             )
-            if (HomeStyleState.current == HomeStyle.GRAPHITE) GraphiteLookRows()
+            if (HomeStyleState.current == HomeStyle.GRAPHITE || SkinState.selected.id == GRAPHITE_SKIN_ID) GraphiteLookRows()
         }
     }
 }
 
-/** The Graphite home's own look; the rest of the app keeps the skin from «Цвета приложения». */
+/**
+ * The Graphite home's own look. The rest of the app keeps the skin from «Цвета приложения»,
+ * unless that skin is «Graphite»: then the app follows this look too.
+ */
 @Composable
 private fun GraphiteLookRows() {
     val context = LocalContext.current

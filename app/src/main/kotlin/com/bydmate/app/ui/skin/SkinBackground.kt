@@ -15,18 +15,19 @@ import com.bydmate.app.ui.theme.NavyDeep
 import com.bydmate.app.ui.theme.SkinState
 
 // fork: the screen background of the active skin. AUTHOR is the original gradient, untouched.
+// GRAPHITE is the Graphite home's own background in its live scheme, instead of the gradient.
 
 /** Full-screen background; reads the skin in composition, so a switch redraws it. */
 @Composable
-fun Modifier.skinBackground(): Modifier {
-    val base = background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))
-    return when (SkinState.current.kit.background) {
-        BackgroundStyle.AUTHOR -> base
-        BackgroundStyle.GRID -> base.then(gridLines(AccentBlue.copy(alpha = 0.04f)))
-        BackgroundStyle.GLOW -> base.then(glow(AccentGreen.copy(alpha = 0.06f)))
-        BackgroundStyle.SCANLINES -> base.then(scanlines(Color.White.copy(alpha = 0.03f)))
-    }
+fun Modifier.skinBackground(): Modifier = when (SkinState.current.kit.background) {
+    BackgroundStyle.AUTHOR -> authorGradient()
+    BackgroundStyle.GRID -> authorGradient().then(gridLines(AccentBlue.copy(alpha = 0.04f)))
+    BackgroundStyle.GLOW -> authorGradient().then(glow(AccentGreen.copy(alpha = 0.06f)))
+    BackgroundStyle.SCANLINES -> authorGradient().then(scanlines(Color.White.copy(alpha = 0.03f)))
+    BackgroundStyle.GRAPHITE -> graphiteSkinBackground()
 }
+
+private fun Modifier.authorGradient(): Modifier = background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))
 
 private fun gridLines(color: Color): Modifier = Modifier.drawWithCache {
     val step = 48.dp.toPx()

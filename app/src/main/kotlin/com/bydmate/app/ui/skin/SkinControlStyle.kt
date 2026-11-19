@@ -1,6 +1,7 @@
 package com.bydmate.app.ui.skin
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bydmate.app.ui.theme.SkinPalette
@@ -19,7 +20,9 @@ enum class CardBorderKind { NONE, SOLID, TOP_HIGHLIGHT }
  * [containerAlpha] multiplies the alpha of the caller's container colour. [borderColor] is the
  * SOLID colour, or the top of the TOP_HIGHLIGHT gradient that fades to [borderFadeColor].
  * [flat] drops the elevation. [padding] is the layout padding the style adds: none ever does,
- * the stripe is drawn over the card's start edge, not beside it.
+ * the stripe is drawn over the card's start edge, not beside it. [graphite] puts the Graphite
+ * home's card (grCard: fill, material, relief, 2.5D edges, contour and shadow) under a see-through
+ * M3 container (GraphiteSkinParts.kt).
  */
 data class CardLook(
     val containerAlpha: Float = 1f,
@@ -31,6 +34,7 @@ data class CardLook(
     val stripeWidth: Dp = 0.dp,
     val flat: Boolean = false,
     val padding: Dp = 0.dp,
+    val graphite: Boolean = false,
 ) {
     /** The M3 card with the caller's arguments, untouched. */
     val passThrough: Boolean get() = this == CardLook()
@@ -58,15 +62,21 @@ fun cardLook(style: CardStyle, palette: SkinPalette): CardLook = when (style) {
         borderColor = palette.cardBorder,
         flat = true,
     )
+    // grCard draws the fill, the contour and its own shadow
+    CardStyle.GRAPHITE -> CardLook(containerAlpha = 0f, flat = true, graphite = true)
 }
 
-/** A card that is a dialog's surface: see-through would show the screen behind the scrim, so it stays solid. */
-fun CardLook.inDialog(): CardLook = copy(containerAlpha = 1f)
+/**
+ * A card that is a dialog's surface: see-through would show the screen behind the scrim, so it
+ * stays solid. The Graphite card already is: its fill is opaque, under the see-through container.
+ */
+fun CardLook.inDialog(): CardLook = if (graphite) this else copy(containerAlpha = 1f)
 
 /** OUTLINED, BORDER_ONLY and STRIPE outline the AlertDialog surface with a 1 dp CardBorder. */
 fun dialogHasBorder(style: CardStyle): Boolean = when (style) {
     CardStyle.OUTLINED, CardStyle.BORDER_ONLY, CardStyle.STRIPE -> true
     CardStyle.MATERIAL, CardStyle.FLAT, CardStyle.GLASS -> false
+    CardStyle.GRAPHITE -> false // the Graphite card draws its own contour
 }
 
 /** How HorizontalDivider draws under a card style. */
@@ -75,7 +85,8 @@ enum class DividerLook { AS_GIVEN, FADED_ENDS, CARD_BORDER }
 fun dividerLook(style: CardStyle): DividerLook = when (style) {
     CardStyle.GLASS -> DividerLook.FADED_ENDS
     CardStyle.BORDER_ONLY -> DividerLook.CARD_BORDER
-    CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE -> DividerLook.AS_GIVEN
+    // the Graphite home's dividers are plain lines too
+    CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE, CardStyle.GRAPHITE -> DividerLook.AS_GIVEN
 }
 
 /**
@@ -106,6 +117,9 @@ val SwitchWidth: Dp = 52.dp
 val SwitchHeight: Dp = 32.dp
 const val SWITCH_DISABLED_ALPHA = 0.38f
 
+/** How much of the accent lights the GRAPHITE groove when on. */
+const val GRAPHITE_GROOVE_LIT = 0.3f
+
 /** The face of [style]; null for MATERIAL, which M3 draws itself. */
 fun switchLook(style: SwitchStyle, checked: Boolean, enabled: Boolean, palette: SkinPalette): SwitchLook? {
     val state = if (checked) palette.accentGreen else palette.cardBorder
@@ -132,6 +146,17 @@ fun switchLook(style: SwitchStyle, checked: Boolean, enabled: Boolean, palette: 
             trackCorner = 16.dp, thumbColor = mark, thumbFill = Color.Transparent, thumbRing = 2.dp,
             thumbSize = 20.dp, thumbCorner = 10.dp, thumbInset = 6.dp, alpha = alpha,
         )
+        // a sunken groove (Inset) lit by the accent when on, a raised round thumb; the Graphite
+        // rims and relief over them are drawn by GraphiteSwitchFace
+        SwitchStyle.GRAPHITE -> {
+            val thumb = if (checked) palette.accentGreen else palette.textMuted
+            SwitchLook(
+                stateColor = if (checked) lerp(palette.navyMid, palette.accentGreen, GRAPHITE_GROOVE_LIT) else palette.navyMid,
+                trackFilled = true, trackStroke = 0.dp, trackHeight = SwitchHeight, trackCorner = 16.dp,
+                thumbColor = thumb, thumbFill = thumb, thumbRing = 0.dp,
+                thumbSize = 24.dp, thumbCorner = 12.dp, thumbInset = 4.dp, alpha = alpha,
+            )
+        }
     }
 }
 

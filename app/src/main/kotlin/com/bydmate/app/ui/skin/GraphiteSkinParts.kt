@@ -1,0 +1,136 @@
+package com.bydmate.app.ui.skin
+
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.State
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.RoundRect
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
+import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.LayoutDirection
+import com.bydmate.app.ui.home.common.px
+import com.bydmate.app.ui.home.graphite.GrPalette
+import com.bydmate.app.ui.home.graphite.GrRelief
+import com.bydmate.app.ui.home.graphite.GraphiteLookState
+import com.bydmate.app.ui.home.graphite.LocalGrLook
+import com.bydmate.app.ui.home.graphite.blurPaint
+import com.bydmate.app.ui.home.graphite.drawNativePath
+import com.bydmate.app.ui.home.graphite.grBackground
+import com.bydmate.app.ui.home.graphite.grCard
+import com.bydmate.app.ui.home.graphite.insetShadowPath
+import com.bydmate.app.ui.home.graphite.smallRelief
+import com.bydmate.app.ui.home.graphite.topHighlightPath
+
+// fork: what the «Graphite» skin draws, with the Graphite home's own code and its live look
+// (GraphiteLookState). Each part is remembered per palette and look, so a recomposition keeps
+// its draw cache: shaders, paths and paints are built once per size, the material tiles once
+// per process (GraphiteCard.kt).
+
+/**
+ * [content] with LocalGrLook from GraphiteLookState.look when [on], so the grCard and grPill
+ * inside draw the owner's material, relief and 2.5D edges. Off, [content] runs as it is and reads
+ * nothing from the Graphite look.
+ */
+@Composable
+internal fun ProvideGraphiteLook(on: Boolean, content: @Composable () -> Unit) {
+    if (on) CompositionLocalProvider(LocalGrLook provides GraphiteLookState.look, content = content) else content()
+}
+
+/**
+ * The Graphite home's card under a skinned Card or dialog of [shape]: grCard in the live scheme,
+ * its corner taken from [shape] (grRadiusOf). Call it inside [ProvideGraphiteLook].
+ */
+@Composable
+internal fun Modifier.graphiteSkinCard(shape: Shape): Modifier =
+    grCard(GraphiteLookState.scheme.palette, grRadiusOf(shape, LocalDensity.current))
+
+/** The Graphite home's background in the live scheme: Bg with its BgGlow radial. */
+@Composable
+internal fun Modifier.graphiteSkinBackground(): Modifier = grBackground(GraphiteLookState.scheme.palette)
+
+/**
+ * The GRAPHITE switch: [look] gives the sizes and colours (a sunken groove lit by the accent
+ * when on, a raised round thumb), the live scheme adds the Graphite rims: the groove has the
+ * inset shadow of a sunken block (Edge: its 1 px contour), the thumb the top highlight of a pill
+ * (Edge: a contour), both the relief in its reduced form, as InsetBox and grPill do on the home.
+ */
+@Composable
+internal fun GraphiteSwitchFace(look: SwitchLook, checked: Boolean, pressed: State<Boolean>?, modifier: Modifier) {
+    val g = GraphiteLookState.scheme.palette
+    val relief = GraphiteLookState.relief
+    val fraction = animateFloatAsState(if (checked) 1f else 0f, tween(THUMB_MOVE_MS), label = "graphiteSwitchThumb")
+    val face = remember(look, g, relief, fraction, pressed) { graphiteSwitch(look, g, relief, fraction, pressed) }
+    Spacer(modifier.then(if (look.alpha < 1f) Modifier.alpha(look.alpha) else Modifier).then(face))
+}
+
+private fun graphiteSwitch(
+    look: SwitchLook,
+    g: GrPalette,
+    relief: GrRelief,
+    fraction: State<Float>,
+    pressed: State<Boolean>?,
+): Modifier = Modifier.drawWithCache {
+    val u = px(1).toPx()
+    val rim = Stroke(u)
+    val trackH = look.trackHeight.toPx()
+    val trackTop = (size.height - trackH) / 2f
+    val groove = Size(size.width, trackH)
+    val grooveR = CornerRadius(look.trackCorner.toPx().coerceAtMost(trackH / 2f))
+    val grooveClip = Path().apply { addRoundRect(RoundRect(Rect(Offset.Zero, groove), grooveR)) }
+    // InsetBox's `inset 0 1px 3px InsetEdge`; Edge draws a contour instead
+    val grooveShadow = if (g.edgeStyle) null else insetShadowPath(groove, grooveR.x, u, 8 * u) to blurPaint(g.insetEdge, 3 * u)
+    val grooveShade = smallRelief(relief) // one brush per size: a shared one would rebuild its shader on every draw
+    val thumb = look.thumbSize.toPx()
+    val thumbBox = Size(thumb, thumb)
+    val thumbTop = (size.height - thumb) / 2f
+    val thumbR = CornerRadius(look.thumbCorner.toPx().coerceAtMost(thumb / 2f))
+    val thumbHighlight = if (g.edgeStyle) null else topHighlightPath(thumbBox, thumbR.x, u)
+    val thumbShade = smallRelief(relief)
+    val inset = look.thumbInset.toPx()
+    val halo = PressHaloRadius.toPx()
+    val rtl = layoutDirection == LayoutDirection.Rtl
+    onDrawBehind {
+        translate(top = trackTop) {
+            drawRoundRect(look.stateColor, size = groove, cornerRadius = grooveR)
+            grooveShade?.let { drawRoundRect(it, size = groove, cornerRadius = grooveR) }
+            if (grooveShadow != null) {
+                clipPath(grooveClip) { drawNativePath(grooveShadow.first, grooveShadow.second) }
+            } else {
+                drawRoundRect(
+                    g.insetEdge, topLeft = Offset(u / 2, u / 2), size = Size(groove.width - u, groove.height - u),
+                    cornerRadius = CornerRadius((grooveR.x - u / 2).coerceAtLeast(0f)), style = rim,
+                )
+            }
+        }
+        val x = switchThumbX(size.width, thumb, inset, fraction.value, rtl)
+        if (pressed?.value == true) {
+            drawCircle(look.thumbColor.copy(alpha = PRESS_HALO_ALPHA), halo, Offset(x + thumb / 2f, size.height / 2f))
+        }
+        translate(left = x, top = thumbTop) {
+            drawRoundRect(look.thumbFill, size = thumbBox, cornerRadius = thumbR)
+            thumbShade?.let { drawRoundRect(it, size = thumbBox, cornerRadius = thumbR) }
+            if (thumbHighlight != null) {
+                drawPath(thumbHighlight, g.tabActiveEdge)
+            } else {
+                drawRoundRect(
+                    g.tabActiveEdge, topLeft = Offset(u / 2, u / 2), size = Size(thumb - u, thumb - u),
+                    cornerRadius = CornerRadius((thumbR.x - u / 2).coerceAtLeast(0f)), style = rim,
+                )
+            }
+        }
+    }
+}

@@ -4,10 +4,12 @@ package com.bydmate.app.ui.skin
 enum class SkinFont { SYSTEM, INTER, EXO2, MANROPE, ROBOTO_CONDENSED }
 
 enum class CornerStyle { ROUNDED, CUT }
-enum class SwitchStyle { MATERIAL, SQUARE, PILL, OUTLINE }
-enum class CardStyle { MATERIAL, OUTLINED, FLAT, GLASS, STRIPE, BORDER_ONLY }
+
+/** GRAPHITE, here and in the card and background styles, is the Graphite home's own look (GraphiteSkin.kt). */
+enum class SwitchStyle { MATERIAL, SQUARE, PILL, OUTLINE, GRAPHITE }
+enum class CardStyle { MATERIAL, OUTLINED, FLAT, GLASS, STRIPE, BORDER_ONLY, GRAPHITE }
 enum class SliderStyle { MATERIAL, THIN, SEGMENTED }
-enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES }
+enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES, GRAPHITE }
 
 /** [sizeFactor] evens out fonts that run wider or narrower than Roboto; it multiplies the user's text scale. */
 data class SkinFonts(val text: SkinFont = SkinFont.SYSTEM, val sizeFactor: Float = 1f)

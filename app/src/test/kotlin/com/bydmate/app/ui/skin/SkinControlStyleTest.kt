@@ -69,7 +69,8 @@ class SkinControlStyleTest {
     @Test fun aDialogCardStaysSolid() {
         CardStyle.entries.forEach {
             val look = cardLook(it, p).inDialog()
-            assertEquals(it.name, 1f, look.containerAlpha)
+            // solid: the M3 container, or the opaque Graphite card under the see-through one
+            if (look.graphite) assertEquals(it.name, 0f, look.containerAlpha) else assertEquals(it.name, 1f, look.containerAlpha)
             assertEquals(it.name, cardLook(it, p).border, look.border)
         }
     }

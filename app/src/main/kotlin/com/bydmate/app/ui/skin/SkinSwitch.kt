@@ -35,10 +35,11 @@ import androidx.compose.material3.Switch as M3Switch
 // box of 52 x 32 dp, with the same toggleable (Role.Switch, 48 dp touch target, enabled) and the
 // same `onCheckedChange == null` behaviour: then the switch is a picture, not a control.
 // The styled faces take their colours from the skin palette (switchLook), not from `colors`.
+// GRAPHITE adds the Graphite home's rims and relief over its face (GraphiteSkinParts.kt).
 
-private const val THUMB_MOVE_MS = 100 // as M3
-private const val PRESS_HALO_ALPHA = 0.12f
-private val PressHaloRadius = 20.dp // the M3 state layer, 40 dp across
+internal const val THUMB_MOVE_MS = 100 // as M3
+internal const val PRESS_HALO_ALPHA = 0.12f
+internal val PressHaloRadius = 20.dp // the M3 state layer, 40 dp across
 
 @Composable
 fun Switch(
@@ -50,7 +51,8 @@ fun Switch(
     colors: SwitchColors = SwitchDefaults.colors(),
     interactionSource: MutableInteractionSource? = null,
 ) {
-    val look = switchLook(SkinState.current.kit.controls.switch, checked, enabled, SkinState.palette)
+    val style = SkinState.current.kit.controls.switch
+    val look = switchLook(style, checked, enabled, SkinState.palette)
     // a thumb icon needs the M3 thumb; the styled faces have no room for one
     if (look == null || thumbContent != null) {
         M3Switch(
@@ -74,12 +76,13 @@ fun Switch(
     } else {
         Modifier
     }
-    SwitchFace(
-        look = look,
-        checked = checked,
-        pressed = source.collectIsPressedAsState(),
-        modifier = modifier.then(toggle).wrapContentSize(Alignment.Center).requiredSize(SwitchWidth, SwitchHeight),
-    )
+    val pressed = source.collectIsPressedAsState()
+    val face = modifier.then(toggle).wrapContentSize(Alignment.Center).requiredSize(SwitchWidth, SwitchHeight)
+    if (style == SwitchStyle.GRAPHITE) {
+        GraphiteSwitchFace(look = look, checked = checked, pressed = pressed, modifier = face)
+    } else {
+        SwitchFace(look = look, checked = checked, pressed = pressed, modifier = face)
+    }
 }
 
 /**
@@ -106,7 +109,12 @@ internal fun SkinSwitchFace(style: SwitchStyle, palette: SkinPalette, checked: B
         )
         return
     }
-    SwitchFace(look = look, checked = checked, pressed = null, modifier = modifier.requiredSize(SwitchWidth, SwitchHeight))
+    val face = modifier.requiredSize(SwitchWidth, SwitchHeight)
+    if (style == SwitchStyle.GRAPHITE) {
+        GraphiteSwitchFace(look = look, checked = checked, pressed = null, modifier = face)
+    } else {
+        SwitchFace(look = look, checked = checked, pressed = null, modifier = face)
+    }
 }
 
 /** The styled face: the track, the thumb sliding to [checked], a halo while [pressed]. */
