@@ -64,3 +64,6 @@ docs/superpowers/**/handoff-*
 # Owner's private notes, kept out of the public repo.
 PHILOSOPHY.md
 CONTEXT.md
+
+# fork: local scratch at the repo root (emulator screenshots, comparison pages, test APKs), never committed
+/tmp/
