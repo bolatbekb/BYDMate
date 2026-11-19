@@ -50,7 +50,7 @@ import androidx.compose.ui.res.stringResource
 import com.bydmate.app.R
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
+import com.bydmate.app.ui.skin.skinBackground // fork: skin
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -79,7 +79,7 @@ fun WelcomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))
+            .skinBackground() // fork: skin background
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {

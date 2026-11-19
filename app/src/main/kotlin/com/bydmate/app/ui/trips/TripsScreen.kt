@@ -38,7 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
+import com.bydmate.app.ui.skin.skinBackground // fork: skin
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
@@ -78,7 +78,7 @@ fun TripsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))
+            .skinBackground() // fork: skin background
             .padding(horizontal = 16.dp, vertical = 12.dp)
     ) {
         // Period chips

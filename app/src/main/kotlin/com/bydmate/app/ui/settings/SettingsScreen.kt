@@ -49,7 +49,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import com.bydmate.app.ui.skin.skinBackground // fork: skin
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -145,7 +145,7 @@ fun SettingsScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))
+            .skinBackground() // fork: skin background
             .padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
         Text(

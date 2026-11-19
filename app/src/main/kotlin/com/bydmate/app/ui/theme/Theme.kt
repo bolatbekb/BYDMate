@@ -5,6 +5,7 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.remember // fork: cache the skin typography and shapes
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
@@ -63,6 +64,8 @@ fun BYDMateTheme(fontScale: Float = 1f, content: @Composable () -> Unit) {
     // fork: removed the author's CompositionLocalProvider(LocalAppFontScale provides fontScale), WithAppFontScale(fontScale), typography = BYDMateTypography; replaced by the skin lines below
     val kit = SkinState.current.kit // fork: the skin's kit, a snapshot read so a switch recomposes
     val scale = fontScale * kit.fonts.sizeFactor // fork: user scale x the skin's size factor
+    val typography = remember(kit) { skinTypography(BYDMateTypography, kit.fonts.text.family()) } // fork: built once per kit
+    val shapes = remember(kit) { skinShapes(kit.corners) } // fork: built once per kit
     CompositionLocalProvider(
         LocalUserFontScale provides fontScale, // fork: keep the user's scale apart for neutral homes
         LocalAppFontScale provides scale // fork: the combined value, so dialogs follow
@@ -70,8 +73,8 @@ fun BYDMateTheme(fontScale: Float = 1f, content: @Composable () -> Unit) {
         WithAppFontScale(scale) { // fork: combined scale instead of fontScale
             MaterialTheme(
                 colorScheme = DarkColorScheme,
-                typography = skinTypography(BYDMateTypography, kit.fonts.text.family()), // fork: skin font
-                shapes = skinShapes(kit.corners), // fork: skin corners
+                typography = typography, // fork: skin font
+                shapes = shapes, // fork: skin corners
                 content = content
             )
         }

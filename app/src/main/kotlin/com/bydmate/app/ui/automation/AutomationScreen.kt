@@ -47,7 +47,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
+import com.bydmate.app.ui.skin.skinBackground // fork: skin
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -86,7 +86,7 @@ fun AutomationScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))
+                .skinBackground() // fork: skin background
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
             // Header: title and filters on the left; «Места» / «Журнал», a divider, then «Импорт» /

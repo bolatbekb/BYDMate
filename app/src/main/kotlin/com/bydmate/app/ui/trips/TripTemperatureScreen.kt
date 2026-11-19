@@ -23,7 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Brush
+import com.bydmate.app.ui.skin.skinBackground // fork: skin
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalDensity
@@ -71,7 +71,7 @@ fun TripTemperatureScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep)))
+            .skinBackground() // fork: skin background
             .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Header(onBack = onBack)
