@@ -1,4 +1,5 @@
-@file:Suppress("FunctionNaming")
+// TooManyFunctions: the five drop-ins mirror the foundation factories one for one, plus their pure helpers
+@file:Suppress("FunctionNaming", "TooManyFunctions")
 
 package com.bydmate.app.ui.skin
 
@@ -43,11 +44,26 @@ private fun shapeFor(corners: SkinCorners, size: CornerSize): CornerBasedShape {
 @Suppress("FunctionNaming") // drop-in for the foundation factory
 fun RoundedCornerShape(size: Dp): CornerBasedShape = shapeFor(active(), size)
 
-@Suppress("FunctionNaming") // drop-in for the foundation factory
-fun RoundedCornerShape(percent: Int): CornerBasedShape = when (active().style) {
+/** A percent corner for [corners]: the percent is kept as is (a pill stays a pill), only the style follows. */
+fun percentShapeFor(corners: SkinCorners, percent: Int): CornerBasedShape = when (corners.style) {
     CornerStyle.ROUNDED -> FoundationRounded(percent)
     CornerStyle.CUT -> CutCornerShape(percent)
 }
+
+/** Four corner sizes for [corners], each scaled; the classic kit gives the foundation rounded shape. */
+fun shapeFor(corners: SkinCorners, topStart: Dp, topEnd: Dp, bottomEnd: Dp, bottomStart: Dp): CornerBasedShape {
+    val ts = mapCornerDp(corners, topStart)
+    val te = mapCornerDp(corners, topEnd)
+    val be = mapCornerDp(corners, bottomEnd)
+    val bs = mapCornerDp(corners, bottomStart)
+    return when (corners.style) {
+        CornerStyle.ROUNDED -> FoundationRounded(ts, te, be, bs)
+        CornerStyle.CUT -> CutCornerShape(ts, te, be, bs)
+    }
+}
+
+@Suppress("FunctionNaming") // drop-in for the foundation factory
+fun RoundedCornerShape(percent: Int): CornerBasedShape = percentShapeFor(active(), percent)
 
 @Suppress("FunctionNaming") // drop-in for the foundation factory
 fun RoundedCornerShape(
@@ -55,17 +71,7 @@ fun RoundedCornerShape(
     topEnd: Dp = 0.dp,
     bottomEnd: Dp = 0.dp,
     bottomStart: Dp = 0.dp,
-): CornerBasedShape {
-    val c = active()
-    return when (c.style) {
-        CornerStyle.ROUNDED -> FoundationRounded(
-            mapCornerDp(c, topStart), mapCornerDp(c, topEnd), mapCornerDp(c, bottomEnd), mapCornerDp(c, bottomStart),
-        )
-        CornerStyle.CUT -> CutCornerShape(
-            mapCornerDp(c, topStart), mapCornerDp(c, topEnd), mapCornerDp(c, bottomEnd), mapCornerDp(c, bottomStart),
-        )
-    }
-}
+): CornerBasedShape = shapeFor(active(), topStart, topEnd, bottomEnd, bottomStart)
 
 @Suppress("FunctionNaming") // drop-in for the foundation factory
 fun RoundedCornerShape(size: Float): CornerBasedShape =

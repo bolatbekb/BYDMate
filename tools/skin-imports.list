@@ -1,0 +1,33 @@
+# Skin hooks in author files; tools/skin-imports.sh reads this list (its header says what it does).
+# Paths from the repo root. `#` starts a note. A file may sit in both sections.
+
+[imports]
+# import androidx.compose.material3.{Switch,Card,Slider,HorizontalDivider,AlertDialog} and
+# import androidx.compose.foundation.shape.RoundedCornerShape -> import com.bydmate.app.ui.skin.<Name> // fork: skin
+app/src/main/kotlin/com/bydmate/app/ui/components/AppAlertDialog.kt            # AlertDialog: every app dialog goes through it
+app/src/main/kotlin/com/bydmate/app/ui/settings/DonateDialog.kt                # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/ManualRangeTableDialog.kt      # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingRows.kt                 # Card, HorizontalDivider, Slider, Switch, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsAppVoice.kt            # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsBatteryIntegrations.kt # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsScreen.kt              # Card, HorizontalDivider, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsService.kt             # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsSplit.kt               # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsWidgetDisplay.kt       # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/TariffPeriodsScreen.kt         # RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/UpdateDialog.kt                # Card, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/settings/VoiceUserPhrasesScreen.kt      # Card, RoundedCornerShape
+
+[background]
+# .background(Brush.verticalGradient(listOf(NavyDark, NavyDeep))) -> .skinBackground() // fork: skin background
+app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/charges/ChargesScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/dashboard/DashboardScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/debug/AgentChatScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/settings/SettingsScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/settings/TariffPeriodsScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/settings/VoiceUserPhrasesScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/trips/TripTemperatureScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/trips/TripsScreen.kt
+app/src/main/kotlin/com/bydmate/app/ui/welcome/WelcomeScreen.kt

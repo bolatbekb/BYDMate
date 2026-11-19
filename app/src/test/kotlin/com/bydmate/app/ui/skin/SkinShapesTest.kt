@@ -25,7 +25,28 @@ class SkinShapesTest {
     }
 
     @Test fun percentKeptWhenRounded() {
-        // the percent overload follows the active skin, which is classic in unit tests
+        // the percent is never scaled: a pill stays a pill whatever the corner scale
+        assertEquals(RoundedCornerShape(50), percentShapeFor(SkinCorners(), 50))
+        assertEquals(RoundedCornerShape(50), percentShapeFor(SkinCorners(CornerStyle.ROUNDED, 1.5f), 50))
+        // the drop-in follows the active skin, which is classic in unit tests
         assertEquals(RoundedCornerShape(50), com.bydmate.app.ui.skin.RoundedCornerShape(50))
+    }
+
+    @Test fun percentCutsWhenCut() {
+        val shape = percentShapeFor(SkinCorners(CornerStyle.CUT, 0.75f), 50)
+        assertTrue(shape is CutCornerShape)
+        assertEquals(CutCornerShape(50), shape)
+    }
+
+    @Test fun scaledDpGivesTheScaledSize() {
+        assertEquals(CutCornerShape(9.dp), shapeFor(SkinCorners(CornerStyle.CUT, 0.75f), 12.dp))
+        assertEquals(
+            RoundedCornerShape(topStart = 18.dp, topEnd = 0.dp, bottomEnd = 6.dp, bottomStart = 0.dp),
+            shapeFor(SkinCorners(CornerStyle.ROUNDED, 1.5f), topStart = 12.dp, topEnd = 0.dp, bottomEnd = 4.dp, bottomStart = 0.dp),
+        )
+        assertEquals(
+            CutCornerShape(topStart = 3.dp, topEnd = 3.dp, bottomEnd = 0.dp, bottomStart = 0.dp),
+            shapeFor(SkinCorners(CornerStyle.CUT, 0.25f), topStart = 12.dp, topEnd = 12.dp, bottomEnd = 0.dp, bottomStart = 0.dp),
+        )
     }
 }

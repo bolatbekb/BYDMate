@@ -1,6 +1,6 @@
 package com.bydmate.app.ui.components
 
-import androidx.compose.material3.AlertDialog
+import com.bydmate.app.ui.skin.AlertDialog // fork: skin
 import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
