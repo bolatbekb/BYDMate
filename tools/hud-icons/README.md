@@ -4,7 +4,7 @@ The fork's own maneuver pictures for the windshield HUD, `app/src/main/assets/na
 
 The app uses them only while Settings → «Дисплей» → HUD → «Использовать свои иконки для навигатора» is on. The order is: this set → the author's `assets/navi` → the navigator's own picture.
 
-- `svg/0x<hex>.svg` — the source of every shipped PNG.
+- `svg/0x<hex>.svg` — the source of every shipped PNG. The exception is the finish flag `0x30`: it is the fork's earlier flag from 4.4.1.18, kept on the owner's request because it reads brighter and larger on the live HUD. Its SVG is that version (drawn by the earlier generator, see git history at 693f27b7), and `gen_hud.py` would overwrite it, so keep the shipped `0x30.png` when regenerating.
 - `gen_hud.py` — the geometry. It writes `svg/` and `codes.md`, and needs `fontTools` and Inter Bold (`FONT` at the top of the file).
 - `render_hud.js` — renders `svg/` to `png/38x41` (and 2×–4×) with Playwright (`npm i playwright`).
 - `codes.md` — what each code means. The rings are counter-clockwise (right-hand traffic) except 0x14, 0x16, 0x17 and 0x23–0x2c (left-hand).
