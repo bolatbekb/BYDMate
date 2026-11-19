@@ -52,6 +52,7 @@ import com.bydmate.app.ui.home.NowPlaying
 import com.bydmate.app.ui.home.RetroTab
 import com.bydmate.app.ui.home.common.MockupFrame
 import com.bydmate.app.ui.home.common.px
+import com.bydmate.app.ui.navigation.Screen
 import kotlinx.coroutines.delay
 
 private const val ONLINE_TICK_MS = 5_000L
@@ -133,7 +134,7 @@ fun GraphiteHome(
                         TripCard(trip, hasFuelTank, tall = pmSides != null, Modifier.fillMaxWidth().height(bottomH))
                     }
                 }
-                BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)))
+                BottomMenu(tabs, onTab, Modifier.fillMaxWidth().height(px(116)), current = Screen.Dashboard.route)
             }
         }
     }
@@ -186,6 +187,7 @@ private fun rememberOnline(): Boolean {
 internal fun menuItem(route: String, label: String, lang: GrLang = GrLang.RU): Pair<Int, String> {
     val w = lang.words
     return when (route) {
+        "dashboard" -> R.drawable.gr_ic_home to w.menuHome
         "tech_panel" -> R.drawable.gr_ic_car to w.menuCar
         "trips" -> R.drawable.gr_ic_route to w.menuTrips
         "charges" -> R.drawable.gr_ic_plug to w.menuCharges
@@ -196,18 +198,19 @@ internal fun menuItem(route: String, label: String, lang: GrLang = GrLang.RU): P
 }
 
 /**
- * The menu card (radius 40, padding 12): equal keys, 1 px Divider between them. No key is
- * active at rest; a pressed key lights (TabActive, Electric bar) and hides its neighbouring dividers.
+ * The menu card (radius 40, padding 12): equal keys, 1 px Divider between them. The key of
+ * [current] (the home's own «Главная») and a pressed key light (TabActive, Electric bar) and hide
+ * their neighbouring dividers.
  */
 @Composable
-private fun BottomMenu(tabs: List<RetroTab>, onTab: (RetroTab) -> Unit, modifier: Modifier) {
+private fun BottomMenu(tabs: List<RetroTab>, onTab: (RetroTab) -> Unit, modifier: Modifier, current: String? = null) {
     val p = LocalGr.current
     val sources = remember(tabs.size) { List(tabs.size) { MutableInteractionSource() } }
-    val pressed = sources.map { it.collectIsPressedAsState().value }
+    val lit = sources.mapIndexed { i, s -> s.collectIsPressedAsState().value || tabs[i].route == current }
     Row(modifier.grCard(p, 40f).padding(px(12))) {
         tabs.forEachIndexed { i, tab ->
-            val divider = i > 0 && !pressed[i] && !pressed[i - 1]
-            MenuKey(tab, pressed[i], divider, sources[i], onTab)
+            val divider = i > 0 && !lit[i] && !lit[i - 1]
+            MenuKey(tab, lit[i], divider, sources[i], onTab)
         }
     }
 }

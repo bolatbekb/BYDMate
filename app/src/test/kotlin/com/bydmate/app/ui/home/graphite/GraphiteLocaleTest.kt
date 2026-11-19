@@ -170,7 +170,7 @@ class GraphiteLocaleTest {
                 insulationText(3_500, lang), insulationText(12_000, lang),
             ) + (1..4).mapNotNull { pm25Quality(it, lang)?.first } +
                 GrMaterial.entries.map { it.title(lang) } + GrRelief.entries.map { it.title(lang) } +
-                listOf("tech_panel", "trips", "charges", "automation", "settings").map { menuItem(it, "x", lang).second } +
+                listOf("dashboard", "tech_panel", "trips", "charges", "automation", "settings").map { menuItem(it, "x", lang).second } +
                 tripCells(TripCardModel.EMPTY, true, Color.White, lang).flatMap { listOf(it.value, it.label) } +
                 lang.words.let { listOf(it.km, it.kwh, it.litre, it.kmh, it.rpm, it.cabin, it.outside) }
             for (t in texts) assertEquals("$lang: $t", false, t.cyrillic())

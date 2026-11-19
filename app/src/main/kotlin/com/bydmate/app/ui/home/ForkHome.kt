@@ -41,12 +41,18 @@ fun ForkHome(onOpenTab: (String) -> Unit, standard: @Composable () -> Unit) {
     when (val style = HomeStyleState.current) {
         HomeStyle.STANDARD -> standard()
         else -> {
-            val tabs = Screen.entries.filter { it != Screen.Dashboard }
-                .map { RetroTab(it.route, stringResource(it.labelRes), it.icon) }
+            val tabs = retroTabScreens(style).map { RetroTab(it.route, stringResource(it.labelRes), it.icon) }
             RetroHome(style, tabs, onTab = { onOpenTab(it.route) })
         }
     }
 }
+
+/**
+ * The tabs a retro home draws itself: every tab but its own, except the Graphite home, whose menu
+ * starts with its own «Главная», lit (owner, 2026-11-20).
+ */
+internal fun retroTabScreens(style: HomeStyle): List<Screen> =
+    Screen.entries.filter { it != Screen.Dashboard || style == HomeStyle.GRAPHITE }
 
 /** Retro counters (tape time, progress) run on this local tick; the source publishes only on change. */
 private const val COUNTER_TICK_MS = 1_000L
