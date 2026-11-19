@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="38" height="41" viewBox="0 0 38 41">
+<defs>
+<linearGradient id="b" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="41"><stop offset="0" stop-color="#A6DCFF"/><stop offset="1" stop-color="#3D9BFF"/></linearGradient>
+<mask id="k" maskUnits="userSpaceOnUse" x="-8" y="-8" width="54" height="57">
+<rect x="-8" y="-8" width="54" height="57" fill="#fff"/>
+<path d="M9 44 L9 24 A6 6 0 0 1 15 18 L23 18 L24.6 18" fill="none" stroke="#000" stroke-width="9.2" stroke-linejoin="round"/>
+<path d="M32 18 L23 10.5 L23 25.5 Z" fill="#000" stroke="#000" stroke-width="4.6" stroke-linejoin="round"/>
+</mask>
+<linearGradient id="f" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="24"><stop offset="0" stop-color="#5E636B" stop-opacity="0.25"/><stop offset="1" stop-color="#5E636B"/></linearGradient>
+</defs>
+<g mask="url(#k)" fill="none" stroke="#5E636B">
+<path d="M9 0 L9 24" stroke="url(#f)" stroke-width="6"/>
+</g>
+<path d="M9 44 L9 24 A6 6 0 0 1 15 18 L23 18 L24.6 18" fill="none" stroke="url(#b)" stroke-width="6" stroke-linejoin="round"/>
+<path d="M32 18 L23 10.5 L23 25.5 Z" fill="url(#b)" stroke="url(#b)" stroke-width="1.4" stroke-linejoin="round"/>
+</svg>

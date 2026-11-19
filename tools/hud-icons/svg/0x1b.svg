@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="38" height="41" viewBox="0 0 38 41">
+<defs>
+<linearGradient id="b" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2="41"><stop offset="0" stop-color="#A6DCFF"/><stop offset="1" stop-color="#3D9BFF"/></linearGradient>
+<mask id="k" maskUnits="userSpaceOnUse" x="-8" y="-8" width="54" height="57">
+<rect x="-8" y="-8" width="54" height="57" fill="#fff"/>
+<path d="M19 44 L19 32.2 A3 3 0 0 1 21.4 29.26 A12 12 0 1 0 14.5 6.37 L13.02 6.97" fill="none" stroke="#000" stroke-width="7.2" stroke-linejoin="round"/>
+<path d="M8.48 8.81 L12.63 1.74 L16.38 11.01 Z" fill="#000" stroke="#000" stroke-width="4.6" stroke-linejoin="round"/>
+</mask>
+</defs>
+<g mask="url(#k)" fill="none" stroke="#5E636B">
+<circle cx="19" cy="17.5" r="12" stroke-width="4"/>
+</g>
+<path d="M19 44 L19 32.2 A3 3 0 0 1 21.4 29.26 A12 12 0 1 0 14.5 6.37 L13.02 6.97" fill="none" stroke="url(#b)" stroke-width="4" stroke-linejoin="round"/>
+<path d="M8.48 8.81 L12.63 1.74 L16.38 11.01 Z" fill="url(#b)" stroke="url(#b)" stroke-width="1.4" stroke-linejoin="round"/>
+<path d="M18.97 22.95C21.25 22.95 22.87 21.69 22.87 19.95C22.87 18.68 22.08 17.77 20.59 17.57V17.49C21.72 17.27 22.5 16.46 22.5 15.32C22.5 13.72 21.1 12.45 19 12.45C16.92 12.45 15.35 13.67 15.32 15.42H17.34C17.36 14.63 18.1 14.12 18.99 14.12C19.88 14.12 20.47 14.66 20.47 15.45C20.47 16.27 19.78 16.82 18.78 16.82H17.84V18.38H18.78C19.97 18.38 20.69 18.97 20.69 19.81C20.69 20.64 19.98 21.21 18.98 21.21C18.01 21.21 17.27 20.71 17.23 19.94H15.13C15.15 21.72 16.75 22.95 18.97 22.95Z" fill="url(#b)"/>
+</svg>

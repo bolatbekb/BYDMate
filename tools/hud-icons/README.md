@@ -1,16 +1,16 @@
 # HUD maneuver icons (fork)
 
-The fork's own maneuver pictures for the windshield HUD, drawn from scratch for projection on glass:
-- light blue, with no dark blue (dark blue fades on glass in daylight);
-- no blur, wide strokes, large arrowheads;
-- neighbouring roads in grey;
-- the roundabout exit number in a corner.
+The fork's own maneuver pictures for the windshield HUD, `app/src/main/assets/navi_fork/0x<gaode hex>.png`. They are 38×41 RGBA, the same format and names as the author's `assets/navi`, and were drawn from scratch. The digits are outlines of Inter Bold (SIL OFL).
 
-The app uses them only when Settings → «Дисплей» → HUD → «Использовать свои иконки для навигатора» is on. The order is: this set, then the author's `assets/navi`, then the navigator's own picture.
+The app uses them only while Settings → «Дисплей» → HUD → «Использовать свои иконки для навигатора» is on. The order is: this set → the author's `assets/navi` → the navigator's own picture.
 
-- `draw.py` holds the geometry, one function per maneuver. It writes `src/0x<gaode hex>.svg` (96×96) into the folder given.
-- `fit.py` crops each SVG's viewBox to its drawing, with a 0.6-unit margin and the 38:41 aspect. The drawing then fills the frame as fully as it can, without any change to its content.
-- `render.sh` runs draw → fit and renders `app/src/main/assets/navi_fork/0x<hex>.png` at 38×41, the same format as the author's set.
+- `svg/0x<hex>.svg` — the source of every shipped PNG.
+- `gen_hud.py` — the geometry. It writes `svg/` and `codes.md`, and needs `fontTools` and Inter Bold (`FONT` at the top of the file).
+- `render_hud.js` — renders `svg/` to `png/38x41` (and 2×–4×) with Playwright (`npm i playwright`).
+- `codes.md` — what each code means. The rings are counter-clockwise (right-hand traffic) except 0x14, 0x16, 0x17 and 0x23–0x2c (left-hand).
 
-Codes: 0x1–0x4, 0x7–0x22 (0x19–0x22 = roundabout exits 1–10), 0x23–0x2c (clockwise roundabouts for left-hand traffic, exits 1–10), 0x30 finish.
-Waypoint, rest area, toll and tunnel have no fork icon; the author's icon stays.
+Regenerate:
+
+    python3 tools/hud-icons/gen_hud.py <work-dir> && node tools/hud-icons/render_hud.js <work-dir>
+
+Then copy `<work-dir>/png/38x41/0x*.png` into `app/src/main/assets/navi_fork/`. Leave out `0x0.png`: code 0 never gets an icon.
