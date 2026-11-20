@@ -67,7 +67,8 @@ CWEBP_DIR=<папка с cwebp и dwebp> tools/webp.sh
   CWEBP_DIR=<папка с cwebp> tools/graphite/photos.sh
   ```
 
-- **Шрифт Inter** (`res/font/gr_inter.ttf`, Inter Variable) распространяется по SIL Open Font License 1.1, текст лицензии — `tools/graphite/fonts/OFL.txt`. Используется только на главной Graphite.
+- **Шрифт Inter** (`res/font/gr_inter.ttf`, Inter Variable) распространяется по SIL Open Font License 1.1, текст лицензии в APK — `assets/licenses/inter-OFL.txt` (копия — `tools/graphite/fonts/OFL.txt`). Им пишут главная Graphite и скины Graphite, Graphite Pro и OLED.
+- **Шрифт Rajdhani** (`res/font/gr_rajdhani.ttf`, Medium, © 2014 Indian Type Foundry) распространяется по SIL Open Font License 1.1, текст лицензии — `assets/licenses/rajdhani-OFL.txt`. Кириллицы в нём нет, поэтому он рисует только крупные числа: на главной Graphite и в скине Graphite со шрифтом DiLink, а также в скине Telemetry.
 - **Права на фото.** Фото леопарда взяты из референсов владельца. Для публичного релиза замени все пять `gr_photo_*` на пресс-фото с подтверждёнными правами (размер 920×440, тот же скрипт), иначе их выпускать нельзя.
 
 ### Оптимизации опроса машины
@@ -282,7 +283,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 | Пробег за сегодня по одометру | `ui/home/DayMileage.kt` | `031bc50c` (2026-11-16) |
 | Главная Graphite | `ui/home/graphite/*` (38 файлов), `res/drawable/gr_ic_*.xml`, `res/drawable-nodpi/gr_*.webp`, `res/font/gr_inter.ttf`, `res/values*/strings_graphite.xml`, `tools/graphite/*` | `f2be6756` (2026-11-16) → `453d255f` (2026-11-17) |
 | Быстрое открытие главной: тёплые значения с прошлого запуска (`GraphiteWarm.kt`), правила движения (`GraphiteAnim.kt`: без анимации «в никуда» и с «неизвестного», рост графика только при смене периода), тёмное окно при запуске (`res/values/colors_fork.xml`) | `ui/home/graphite/GraphiteWarm.kt`, `GraphiteAnim.kt`, `res/values/colors_fork.xml` | `283e63ac` → `e2e0a360` → `453d255f` (2026-11-17) |
-| Схема и шрифт DiLink | `GraphiteSchemes.kt` (`GrDiLink`), `GraphiteLook.kt` (`GrFont`), `res/font/gr_rajdhani.ttf` | `b90c3dd5` (2026-11-17) |
+| Схема и шрифт DiLink | `GraphiteSchemes.kt` (`GrDiLink`), `GraphiteLook.kt` (`GrFont`), `res/font/gr_rajdhani.ttf`, лицензия `assets/licenses/rajdhani-OFL.txt` | `b90c3dd5` (2026-11-17) |
 | Одинаковые боковые карточки, «Плеер слева», шкала шрифтов (ничего меньше 19) | `GraphiteHome.kt` (`SIDE_COLUMN`, `bottomCardHeight`, `topCards`), `GraphiteMedia.kt` (`compact`), `GraphiteTrip.kt` (`tall`), `GraphiteRules.kt` (`visibleTicks`), `GraphiteLook.kt` (`mediaLeft`, prefs `graphite_media_left`), `strings_graphite.xml` | `145e6cd6` → `48b29fa1` → `8687f283` (2026-11-17) |
 | Плеер Graphite: открыть приложение нажатием, «Мне нравится» (сердце в ряду кнопок вместо «Повтора» с 4.4.1.12), состояние «Перемешать» по контракту с Я.Музыкой (`like`, `shuffle`; `dislike` и `repeat` читаются в модели, но кнопок нет) | `ui/home/MediaActions.kt`, `ui/home/NowPlaying.kt`, `ui/home/graphite/GraphiteMediaActions.kt`, `GraphiteMedia.kt`, `GraphiteMediaControls.kt`, `res/drawable/gr_ic_heart_filled.xml` | `321f95c1` → `64f470ea` (4.4.1.11) → `2d41c69c` (4.4.1.12) |
 | Утечки памяти в плеере: анимация смены трека по «лицу» трека (F1), опрос плеера только на видимом экране (F2), освобождение контроллера (F5) | `GraphiteMedia.kt` (`TrackFace`), `ui/home/ForkHome.kt`, `ui/home/NowPlaying.kt` | `f85f83f5`, `cde01919`, `64f470ea` (2026-11-17) |
