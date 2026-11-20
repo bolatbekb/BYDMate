@@ -2,6 +2,7 @@ package com.bydmate.app.ui.skin
 
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
@@ -145,3 +146,9 @@ internal fun grRadiusOf(shape: Shape, density: Density, sizeDependent: Float = G
  * button is tall. The draw clamps a corner to half the side, so the pill stays a pill.
  */
 internal const val GR_PILL_RADIUS = 10_000f
+
+/** The nested blocks' edge: the key edge at twice its alpha (capped at 1), so it reads inside a card. */
+internal fun graphiteNestedEdge(edge: Color): Color = edge.copy(alpha = (edge.alpha * 2f).coerceAtMost(1f))
+
+/** True when [edge] is opaque (Hub, Code): the nested edge keeps the key's own hairline, px(1), not 1 dp. */
+internal fun graphiteNestedEdgeIsHairline(edge: Color): Boolean = edge.alpha >= 1f
