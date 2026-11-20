@@ -44,7 +44,11 @@ import com.bydmate.app.fork.automation.YAMUSIC_CAR_COMMANDS
 import com.bydmate.app.fork.automation.YAMUSIC_CAR_KIND
 import com.bydmate.app.fork.automation.YamusicCarId
 import com.bydmate.app.fork.automation.yamusicCarCommand
-import com.bydmate.app.fork.automation.yamusicCarCommandName
+import com.bydmate.app.fork.automation.YamusicCarPayload
+import com.bydmate.app.fork.automation.isYamusicCarPlaylistKind
+import com.bydmate.app.fork.automation.isYamusicCarStationId
+import com.bydmate.app.fork.automation.isYamusicCarUid
+import com.bydmate.app.fork.automation.yamusicCarLine
 import com.bydmate.app.fork.automation.yamusicCarUriFromPayload
 import com.bydmate.app.ui.components.AppAlertDialog
 import com.bydmate.app.ui.theme.AccentGreen
@@ -54,60 +58,26 @@ import com.bydmate.app.ui.theme.ScaledDialogContent
 import com.bydmate.app.ui.theme.TextMuted
 import com.bydmate.app.ui.theme.TextPrimary
 import com.bydmate.app.ui.theme.TextSecondary
-import org.json.JSONObject
 
 // Fork: the editor of the «Я.Музыка Car» action (kind `yamusic_car`).
 
 /** A new action: «Моя волна», the player stays in the background. */
-fun newYamusicCarAction(context: Context): ActionDef = ActionDef(
-    command = "",
-    displayName = context.getString(R.string.yamusic_car_name),
-    kind = YAMUSIC_CAR_KIND,
-    payload = JSONObject().put("command", "wave").put("show", false).toString(),
-)
-
-/** The fields of the dialog, as they are saved in the payload. */
-private data class YamusicCarDraft(
-    val command: String = "wave",
-    val id: String = "",
-    val uid: String = "",
-    val kind: String = "",
-    val show: Boolean = false,
-) {
-    fun toPayload(): String {
-        val json = JSONObject().put("command", command)
-        when (yamusicCarCommand(command)?.idKind) {
-            YamusicCarId.STATION -> json.put("id", id.trim())
-            YamusicCarId.PLAYLIST -> json.put("uid", uid.trim()).put("kind", kind.trim())
-            else -> Unit
-        }
-        return json.put("show", show && yamusicCarCommand(command)?.allowsShow != false).toString()
-    }
-
-    /** Changing the command clears the fields that no longer apply. */
-    fun withCommand(newCommand: String): YamusicCarDraft {
-        val idKind = yamusicCarCommand(newCommand)?.idKind
-        val allowsShow = yamusicCarCommand(newCommand)?.allowsShow != false
-        return copy(
-            command = newCommand,
-            id = if (idKind == YamusicCarId.STATION && yamusicCarCommand(command)?.idKind == YamusicCarId.STATION) id else "",
-            uid = if (idKind == YamusicCarId.PLAYLIST) uid else "",
-            kind = if (idKind == YamusicCarId.PLAYLIST) kind else "",
-            show = show && allowsShow,
-        )
-    }
-}
-
-private fun ActionDef.yamusicCarDraft(): YamusicCarDraft {
-    val json = try { JSONObject(payload ?: "{}") } catch (_: Exception) { JSONObject() }
-    return YamusicCarDraft(
-        command = json.optString("command").ifBlank { "wave" },
-        id = json.optString("id"),
-        uid = json.optString("uid"),
-        kind = json.optString("kind"),
-        show = json.optBoolean("show", false),
+fun newYamusicCarAction(context: Context): ActionDef {
+    val draft = YamusicCarPayload()
+    return ActionDef(
+        command = "",
+        displayName = yamusicCarLine(draft.toPayload(), context) ?: context.getString(R.string.yamusic_car_name),
+        kind = YAMUSIC_CAR_KIND,
+        payload = draft.toPayload(),
     )
 }
+
+private fun ActionDef.yamusicCarDraft(): YamusicCarPayload {
+    val p = YamusicCarPayload.fromPayload(payload) ?: YamusicCarPayload()
+    return p.copy(command = p.command.ifBlank { "wave" })
+}
+
+private fun asciiDigits(s: String) = s.filter { it in '0'..'9' }
 
 @Composable
 internal fun YamusicCarActionControls(
@@ -116,7 +86,8 @@ internal fun YamusicCarActionControls(
     modifier: Modifier = Modifier,
 ) {
     var editing by remember { mutableStateOf(false) }
-    val name = yamusicCarCommandName(action.payload, LocalContext.current)
+    val context = LocalContext.current
+    val name = yamusicCarLine(action.payload, context)
     val preview = name ?: stringResource(R.string.automation_tap_to_configure)
 
     Row(
@@ -142,7 +113,8 @@ internal fun YamusicCarActionControls(
             initial = action.yamusicCarDraft(),
             onDismiss = { editing = false },
             onSave = { draft ->
-                onUpdate(action.copy(payload = draft.toPayload()))
+                val saved = draft.toPayload()
+                onUpdate(action.copy(payload = saved, displayName = yamusicCarLine(saved, context) ?: action.displayName))
                 editing = false
             },
         )
@@ -151,9 +123,9 @@ internal fun YamusicCarActionControls(
 
 @Composable
 private fun YamusicCarEditDialog(
-    initial: YamusicCarDraft,
+    initial: YamusicCarPayload,
     onDismiss: () -> Unit,
-    onSave: (YamusicCarDraft) -> Unit,
+    onSave: (YamusicCarPayload) -> Unit,
 ) {
     var draft by remember { mutableStateOf(initial) }
     var dropdownExpanded by remember { mutableStateOf(false) }
@@ -214,6 +186,8 @@ private fun YamusicCarEditDialog(
                             value = draft.id,
                             onValueChange = { draft = draft.copy(id = it) },
                             label = { Text(stringResource(stationIdLabel(command.id))) },
+                            isError = draft.id.isNotEmpty() && !isYamusicCarStationId(draft.id.trim()),
+                            supportingText = { Text(stringResource(R.string.yamusic_car_hint_id)) },
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
                             colors = fieldColors,
@@ -224,8 +198,10 @@ private fun YamusicCarEditDialog(
                         Spacer(Modifier.height(8.dp))
                         OutlinedTextField(
                             value = draft.uid,
-                            onValueChange = { draft = draft.copy(uid = it.filter(Char::isDigit)) },
+                            onValueChange = { draft = draft.copy(uid = asciiDigits(it)) },
                             label = { Text(stringResource(R.string.yamusic_car_field_uid)) },
+                            isError = draft.uid.isNotEmpty() && !isYamusicCarUid(draft.uid),
+                            supportingText = { Text(stringResource(R.string.yamusic_car_hint_uid)) },
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
                             colors = fieldColors,
@@ -235,8 +211,10 @@ private fun YamusicCarEditDialog(
                         Spacer(Modifier.height(8.dp))
                         OutlinedTextField(
                             value = draft.kind,
-                            onValueChange = { draft = draft.copy(kind = it.filter(Char::isDigit)) },
+                            onValueChange = { draft = draft.copy(kind = asciiDigits(it)) },
                             label = { Text(stringResource(R.string.yamusic_car_field_kind)) },
+                            isError = draft.kind.isNotEmpty() && !isYamusicCarPlaylistKind(draft.kind),
+                            supportingText = { Text(stringResource(R.string.yamusic_car_hint_kind)) },
                             singleLine = true,
                             shape = RoundedCornerShape(8.dp),
                             colors = fieldColors,

@@ -33,4 +33,10 @@
     <string name="yamusic_car_not_installed">未安装 Я.Музыка Car</string>
     <string name="yamusic_car_invalid">Я.Музыка Car 的命令未知或 ID 无效</string>
     <string name="auto_msg_yamusic_car_invalid">动作 #%1$d：Я.Музыка Car 的命令或 ID 未填写或无效</string>
+    <string name="yamusic_car_line">Я.Музыка Car：%1$s</string>
+    <string name="yamusic_car_detail_id">ID：%1$s</string>
+    <string name="yamusic_car_detail_show">显示播放器</string>
+    <string name="yamusic_car_hint_id">拉丁字母、数字、_ 和 -，最多 64 个字符</string>
+    <string name="yamusic_car_hint_uid">仅限数字</string>
+    <string name="yamusic_car_hint_kind">最多 12 位数字</string>
 </resources>

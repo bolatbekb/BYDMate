@@ -5,7 +5,9 @@ import com.bydmate.app.data.automation.RuleDraftValidator
 import com.bydmate.app.data.automation.RuleJournal
 import com.bydmate.app.data.local.entity.ActionDef
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.json.JSONObject
 import org.junit.Test
 
 class YamusicCarTest {
@@ -41,7 +43,7 @@ class YamusicCarTest {
     @Test fun `every command in the list is built`() {
         YAMUSIC_CAR_COMMANDS.forEach { c ->
             val id = when (c.id) { "wave_playlist" -> "1_2"; else -> if (c.idKind == YamusicCarId.NONE) null else "abc" }
-            assertEquals(c.id, true, yamusicCarUri(c.id, id, false) != null)
+            assertNotNull(c.id, yamusicCarUri(c.id, id, false))
         }
         assertEquals(21, YAMUSIC_CAR_COMMANDS.size)
     }
@@ -99,5 +101,31 @@ class YamusicCarTest {
     @Test fun `journal shows the command only, never an id`() {
         val shown = RuleJournal.shownPayload(action("""{"command":"wave_artist","id":"SECRET","show":true}"""))
         assertEquals("""{"command":"wave_artist"}""", shown)
+    }
+
+    @Test fun `writer drops show for open and writes only the fields that apply`() {
+        val open = JSONObject(YamusicCarPayload(command = "open", show = true).toPayload())
+        assertEquals(false, open.getBoolean("show"))
+        assertEquals("open", open.getString("command"))
+        val playlist = JSONObject(YamusicCarPayload(command = "wave_playlist", id = "x", uid = " 7 ", kind = "9", show = true).toPayload())
+        assertEquals("7", playlist.getString("uid"))
+        assertEquals("9", playlist.getString("kind"))
+        assertEquals(false, playlist.has("id"))
+        assertEquals(true, playlist.getBoolean("show"))
+        val station = JSONObject(YamusicCarPayload(command = "wave_track", id = "ab", uid = "7").toPayload())
+        assertEquals("ab", station.getString("id"))
+        assertEquals(false, station.has("uid"))
+    }
+
+    @Test fun `switching the command clears the fields that no longer apply`() {
+        val artist = YamusicCarPayload(command = "wave_artist", id = "ab", show = true)
+        assertEquals("", artist.withCommand("wave_track").id)
+        assertEquals("", artist.withCommand("wave_playlist").id)
+        assertEquals(true, artist.withCommand("next").show)
+        assertEquals(false, artist.withCommand("open").show)
+        val playlist = YamusicCarPayload(command = "wave_playlist", uid = "7", kind = "9")
+        val next = playlist.withCommand("next")
+        assertEquals("", next.uid)
+        assertEquals("", next.kind)
     }
 }

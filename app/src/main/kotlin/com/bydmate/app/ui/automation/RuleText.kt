@@ -256,7 +256,7 @@ internal fun actionText(a: ActionDef, lc: Context): String = when (a.kind) {
     "call" -> quoted(R.string.automation_action_call, a.callName().ifBlank { a.callPhone() }, lc)
     "navigate" -> quoted(R.string.automation_action_navigate, a.navigateName(), lc)
     "url" -> quoted(R.string.automation_action_url, a.urlString(), lc)
-    "yamusic_car" -> quoted(R.string.yamusic_car_name, com.bydmate.app.fork.automation.yamusicCarCommandName(a.payload, lc).orEmpty(), lc) // fork: yamusic_car
+    "yamusic_car" -> com.bydmate.app.fork.automation.yamusicCarLine(a.payload, lc) ?: a.displayName // fork: yamusic_car
     TELEGRAM_REPORT_KIND -> lc.getString(R.string.automation_action_tg_report)
     "sentry" -> onOffText(
         R.string.automation_action_sentry, R.string.automation_action_sentry_on, R.string.automation_action_sentry_off, a.payload, lc,

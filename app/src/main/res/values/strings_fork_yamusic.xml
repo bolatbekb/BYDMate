@@ -33,4 +33,10 @@
     <string name="yamusic_car_not_installed">Я.Музыка Car не установлена</string>
     <string name="yamusic_car_invalid">Неизвестная команда или неверный ID для Я.Музыка Car</string>
     <string name="auto_msg_yamusic_car_invalid">Действие #%1$d: Я.Музыка Car — команда или ID не заданы или неверны</string>
+    <string name="yamusic_car_line">Я.Музыка Car: %1$s</string>
+    <string name="yamusic_car_detail_id">ID: %1$s</string>
+    <string name="yamusic_car_detail_show">показать плеер</string>
+    <string name="yamusic_car_hint_id">Латиница, цифры, _ и -, до 64 знаков</string>
+    <string name="yamusic_car_hint_uid">Только цифры</string>
+    <string name="yamusic_car_hint_kind">До 12 цифр</string>
 </resources>

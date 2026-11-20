@@ -202,7 +202,7 @@ private val MUSIC_QUERY_MODES = setOf("play", "search")
 private fun launchDetail(kind: String, json: JSONObject, lc: Context, autoGo: (JSONObject) -> Boolean): String? = when (kind) {
     "navigate" -> navigateDetail(json, lc, autoGo)
     "yandex_music" -> musicDetail(json)
-    "yamusic_car" -> com.bydmate.app.fork.automation.yamusicCarCommandName(json.toString(), lc) // fork: yamusic_car
+    "yamusic_car" -> com.bydmate.app.fork.automation.yamusicCarDetail(json.toString(), lc) // fork: yamusic_car
     "split_screen" -> "${json.optString("narrow")} / ${json.optString("wide")}, ${splitSide(json, lc)}"
     else -> null
 }

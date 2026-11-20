@@ -1,13 +1,7 @@
 package com.bydmate.app.fork.automation
 
-import android.content.Context
-import android.content.Intent
-import android.content.pm.PackageManager
-import android.net.Uri
 import androidx.annotation.StringRes
 import com.bydmate.app.R
-import com.bydmate.app.data.automation.DispatchResult
-import com.bydmate.app.util.AppStrings
 import org.json.JSONObject
 
 // Fork: the automation action «Я.Музыка Car» (kind `yamusic_car`). The commands of the player
@@ -16,11 +10,18 @@ import org.json.JSONObject
 internal const val YAMUSIC_CAR_KIND = "yamusic_car"
 internal const val YAMUSIC_CAR_PACKAGE = "app.yamusic.car"
 
+// Payload keys, one place.
+internal const val KEY_COMMAND = "command"
+internal const val KEY_ID = "id"
+internal const val KEY_UID = "uid"
+internal const val KEY_KIND = "kind"
+internal const val KEY_SHOW = "show"
+
 /** What the identifier of a command looks like. */
-enum class YamusicCarId { NONE, STATION, PLAYLIST }
+internal enum class YamusicCarId { NONE, STATION, PLAYLIST }
 
 /** One command of the list: [address] carries `{ID}` where the identifier goes. */
-class YamusicCarCommand(
+internal class YamusicCarCommand(
     val id: String,
     @StringRes val nameRes: Int,
     val address: String,
@@ -29,7 +30,7 @@ class YamusicCarCommand(
     val allowsShow: Boolean = true,
 )
 
-val YAMUSIC_CAR_COMMANDS: List<YamusicCarCommand> = listOf(
+internal val YAMUSIC_CAR_COMMANDS: List<YamusicCarCommand> = listOf(
     YamusicCarCommand("wave", R.string.yamusic_car_cmd_wave, "yamusiccar://play/wave"),
     YamusicCarCommand("wave_artist", R.string.yamusic_car_cmd_wave_artist,
         "yamusiccar://play/wave?station=artist:{ID}", YamusicCarId.STATION),
@@ -61,10 +62,14 @@ private val STATION_ID = Regex("^[A-Za-z0-9_-]{1,64}$")
 private val PLAYLIST_UID = Regex("^[0-9]{1,64}$")
 private val PLAYLIST_KIND = Regex("^[0-9]{1,12}$")
 
-fun yamusicCarCommand(id: String?): YamusicCarCommand? = YAMUSIC_CAR_COMMANDS.firstOrNull { it.id == id }
+internal fun isYamusicCarStationId(v: String) = STATION_ID.matches(v)
+internal fun isYamusicCarUid(v: String) = PLAYLIST_UID.matches(v)
+internal fun isYamusicCarPlaylistKind(v: String) = PLAYLIST_KIND.matches(v)
+
+internal fun yamusicCarCommand(id: String?): YamusicCarCommand? = YAMUSIC_CAR_COMMANDS.firstOrNull { it.id == id }
 
 /** A playlist is `UID_KIND`: the owner's numeric uid and the playlist number. */
-fun yamusicCarPlaylistId(uid: String, kind: String): String = "${uid}_$kind"
+internal fun yamusicCarPlaylistId(uid: String, kind: String): String = "${uid}_$kind"
 
 private fun idOrNull(kind: YamusicCarId, id: String?): String? = when (kind) {
     YamusicCarId.NONE -> ""
@@ -79,7 +84,7 @@ private fun idOrNull(kind: YamusicCarId, id: String?): String? = when (kind) {
  * The address of [command], or null for an unknown command, a missing or malformed [id].
  * [show] adds `ui=show` (the player comes to the front) except for the command that opens it.
  */
-fun yamusicCarUri(command: String, id: String?, show: Boolean): String? {
+internal fun yamusicCarUri(command: String, id: String?, show: Boolean): String? {
     val c = yamusicCarCommand(command) ?: return null
     val value = idOrNull(c.idKind, id) ?: return null
     val uri = c.address.replace("{ID}", value)
@@ -87,45 +92,53 @@ fun yamusicCarUri(command: String, id: String?, show: Boolean): String? {
     return uri + (if ('?' in uri) "&" else "?") + "ui=show"
 }
 
-/** The address of a saved action payload; null when the payload does not describe a valid command. */
-fun yamusicCarUriFromPayload(payload: String?): String? {
-    val json = try { JSONObject(payload ?: return null) } catch (_: Exception) { return null }
-    val command = json.optString("command")
-    val id = when (yamusicCarCommand(command)?.idKind) {
-        YamusicCarId.STATION -> json.optString("id")
-        YamusicCarId.PLAYLIST -> yamusicCarPlaylistId(json.optString("uid"), json.optString("kind"))
+/** The fields of an action as the editor holds them and the payload stores them. */
+internal data class YamusicCarPayload(
+    val command: String = "wave",
+    val id: String = "",
+    val uid: String = "",
+    val kind: String = "",
+    val show: Boolean = false,
+) {
+    /** Only the fields that apply to [command]; `show` never for the command that opens the player. */
+    fun toPayload(): String {
+        val c = yamusicCarCommand(command)
+        val json = JSONObject().put(KEY_COMMAND, command)
+        when (c?.idKind) {
+            YamusicCarId.STATION -> json.put(KEY_ID, id.trim())
+            YamusicCarId.PLAYLIST -> json.put(KEY_UID, uid.trim()).put(KEY_KIND, kind.trim())
+            else -> Unit
+        }
+        return json.put(KEY_SHOW, show && c?.allowsShow != false).toString()
+    }
+
+    /** Changing the command clears every ID field and the flag where it no longer applies. */
+    fun withCommand(newCommand: String): YamusicCarPayload =
+        YamusicCarPayload(command = newCommand, show = show && yamusicCarCommand(newCommand)?.allowsShow != false)
+
+    /** The identifier the address carries: station id, or `UID_KIND`; null when the command has none. */
+    fun idValue(): String? = when (yamusicCarCommand(command)?.idKind) {
+        YamusicCarId.STATION -> id
+        YamusicCarId.PLAYLIST -> yamusicCarPlaylistId(uid, kind)
         else -> null
     }
-    return yamusicCarUri(command, id, json.optBoolean("show", false))
+
+    companion object {
+        /** Null when the payload is not JSON; a missing command reads as «wave». */
+        fun fromPayload(payload: String?): YamusicCarPayload? {
+            val json = try { JSONObject(payload ?: return null) } catch (_: Exception) { return null }
+            return YamusicCarPayload(
+                command = json.optString(KEY_COMMAND),
+                id = json.optString(KEY_ID),
+                uid = json.optString(KEY_UID),
+                kind = json.optString(KEY_KIND),
+                show = json.optBoolean(KEY_SHOW, false),
+            )
+        }
+    }
 }
 
-/** Runs the action: not installed or a bad command/ID is a failed result, the rest goes through [start]. */
-fun dispatchYamusicCar(
-    payload: String?,
-    context: Context,
-    strings: AppStrings,
-    start: (Intent, String) -> DispatchResult,
-): DispatchResult {
-    val command = try { JSONObject(payload ?: "{}").optString("command") } catch (_: Exception) { "" }
-    val uri = yamusicCarUriFromPayload(payload)
-        ?: return DispatchResult(false, strings.get(R.string.yamusic_car_invalid))
-    if (!isYamusicCarInstalled(context)) return DispatchResult(false, strings.get(R.string.yamusic_car_not_installed))
-    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(uri))
-        .setPackage(YAMUSIC_CAR_PACKAGE)
-        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-    // The label never carries an ID value: only the command.
-    return start(intent, "yamusic_car:$command")
-}
+internal fun YamusicCarPayload.uri(): String? = yamusicCarUri(command, idValue(), show)
 
-private fun isYamusicCarInstalled(context: Context): Boolean = try {
-    context.packageManager.getPackageInfo(YAMUSIC_CAR_PACKAGE, 0)
-    true
-} catch (_: PackageManager.NameNotFoundException) {
-    false
-}
-
-/** The line a rule shows: «Я.Музыка Car: Играть». */
-fun yamusicCarCommandName(payload: String?, lc: Context): String? {
-    val command = try { JSONObject(payload ?: return null).optString("command") } catch (_: Exception) { return null }
-    return yamusicCarCommand(command)?.let { lc.getString(it.nameRes) }
-}
+/** The address of a saved action payload; null when the payload does not describe a valid command. */
+internal fun yamusicCarUriFromPayload(payload: String?): String? = YamusicCarPayload.fromPayload(payload)?.uri()
