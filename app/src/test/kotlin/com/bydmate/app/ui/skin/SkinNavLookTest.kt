@@ -71,6 +71,35 @@ class SkinNavLookTest {
         assertEquals(p.accentGreen, outline.edge)
     }
 
+    @Test fun topDotAndDockColourTheKey() {
+        val top = navLook(NavStyle.TOP, true, p)
+        assertEquals(p.accentGreen, top.content)
+        assertEquals(p.accentGreen, top.fill)
+        assertEquals(p.textSecondary, navLook(NavStyle.TOP, false, p).content)
+
+        val dot = navLook(NavStyle.DOT, true, p)
+        assertEquals(p.textPrimary, dot.content)
+        assertEquals(p.accentGreen, dot.fill)
+        assertEquals(p.textSecondary, navLook(NavStyle.DOT, false, p).content)
+
+        val dock = navLook(NavStyle.DOCK, true, p)
+        assertEquals(p.textPrimary, dock.content)
+        assertEquals("the raised plate", p.cardSurfaceElevated, dock.fill)
+        assertEquals("the glowing bar", p.accentGreen, dock.edge)
+        assertEquals(p.textSecondary, navLook(NavStyle.DOCK, false, p).content)
+    }
+
+    @Test fun topDotAndDockSizes() {
+        assertEquals(3.dp, NavUnderlineHeight)
+        assertEquals(6.dp, NavDotSize)
+        assertEquals(64.dp, NavDockHeight)
+        assertEquals(22.dp, NavDockRadius)
+        assertEquals(8.dp, NavDockMargin)
+        assertEquals(14.dp, NavDockPlateRadius)
+        assertEquals(24.dp, NavDockBarWidth)
+        assertEquals(0.8f, NAV_DOCK_FILL_ALPHA)
+    }
+
     @Test fun indicatorBoxIsTheM3One() {
         // M3 1.3.1: a 64 x 32 dp indicator around the 24 dp icon
         assertEquals(64.dp, 24.dp + NavIndicatorPadX * 2)
@@ -82,9 +111,9 @@ class SkinNavLookTest {
 
     @Test fun skinsUseTheirNavStyles() {
         assertEquals(NavStyle.MATERIAL, Skins.CLASSIC.kit.controls.nav)
-        assertEquals(NavStyle.CUT, Skins.COCKPIT.kit.controls.nav)
-        assertEquals(NavStyle.MATERIAL, Skins.GRAPHITE.kit.controls.nav)
-        assertEquals(NavStyle.MATERIAL, Skins.VOLT.kit.controls.nav)
+        assertEquals(NavStyle.TOP, Skins.COCKPIT.kit.controls.nav)
+        assertEquals(NavStyle.DOT, Skins.GRAPHITE.kit.controls.nav)
+        assertEquals(NavStyle.DOCK, Skins.VOLT.kit.controls.nav)
         assertEquals(NavStyle.UNDERLINE, Skins.TELEMETRY.kit.controls.nav)
         assertEquals(NavStyle.OUTLINE, Skins.OLED.kit.controls.nav)
         GrFont.entries.forEach { assertEquals(it.name, NavStyle.GRAPHITE, graphiteKit(it).controls.nav) }

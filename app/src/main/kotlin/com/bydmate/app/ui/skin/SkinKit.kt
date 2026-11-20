@@ -14,9 +14,11 @@ enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES, NEON, CARBON, GRAPHI
 /**
  * The bottom bar (SkinNavigationBar.kt). MATERIAL is the author's M3 bar; GRAPHITE is the Graphite
  * home's menu (a card dock, one-row keys, the raised lit key); CUT, UNDERLINE and OUTLINE change
- * only the selected key's indicator: a cut plate, an underline, an outline.
+ * only the selected key's indicator: a cut plate, an underline, an outline. TOP (a line along the
+ * bar's top edge over the selected key), DOT (a dot under its label) and DOCK (a floating card with
+ * a raised plate under the selected key) are the final kits' bars.
  */
-enum class NavStyle { MATERIAL, GRAPHITE, CUT, UNDERLINE, OUTLINE }
+enum class NavStyle { MATERIAL, GRAPHITE, CUT, UNDERLINE, OUTLINE, TOP, DOT, DOCK } // fork: TOP, DOT, DOCK
 
 /** The checkbox and the radio button (SkinChecks.kt): MATERIAL is M3's; SQUARE draws a square checkbox; its radio button stays round so it never reads as a checkbox. */
 enum class CheckStyle { MATERIAL, SQUARE }

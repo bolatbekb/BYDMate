@@ -259,13 +259,38 @@ val NavCutCorner: Dp = 8.dp
 val NavUnderlineHeight: Dp = CardStripeWidth
 val NavEdgeWidth: Dp = CardBorderWidth
 
+/** TOP: a 3 dp line along the selected slot's top edge, inset 14 dp each side, with a 10 dp glow below it. */
+val NavTopLineInset: Dp = 14.dp
+val NavTopGlow: Dp = 10.dp
+
+/** DOT: 6 dp round, 1 dp under the label's box (about 6 dp under its glyphs, and still inside the 64 dp bar). */
+val NavDotSize: Dp = 6.dp
+val NavDotGap: Dp = 1.dp
+
+/** DOCK: a 64 dp floating card (radius 22) 8 dp from the bottom and the sides; the selected key a plate (radius 14) with a 24 x 3 dp bar 3 dp above its bottom. */
+val NavDockHeight: Dp = 64.dp
+val NavDockRadius: Dp = 22.dp
+val NavDockMargin: Dp = 8.dp
+val NavDockPlateRadius: Dp = 14.dp
+val NavDockPlateInsetX: Dp = 8.dp
+val NavDockPlateInsetY: Dp = 6.dp
+val NavDockBarWidth: Dp = 24.dp
+val NavDockBarGap: Dp = 3.dp
+const val NAV_DOCK_FILL_ALPHA = 0.8f
+const val NAV_LINE_ALPHA = 0.15f
+const val NAV_GLOW_ALPHA = 0.5f
+
 /**
  * The key of [style], [selected] or not, in [palette]:
  * - GRAPHITE: the Graphite home's menu key; lit, it is the raised key with the glowing bar and
  *   textPrimary, else textSecondary (as the Graphite home's own menu had it);
  * - CUT (Cockpit): a plate with cut corners in navIndicator with an accent edge;
  * - UNDERLINE (Telemetry): an accent bar along the bottom of the indicator;
- * - OUTLINE (OLED): the M3 pill as an accent ring, no fill.
+ * - OUTLINE (OLED): the M3 pill as an accent ring, no fill;
+ * - TOP (Cockpit): accentGreen icon and label and a glowing accent line on the slot's top edge;
+ * - DOT (Graphite Pro): textPrimary key with an accent dot under the label, no pill;
+ * - DOCK (Volt): textPrimary key on a raised plate (fill) with a glowing accent bar (edge).
+ * TOP, DOT and DOCK colour the key's [NavLook.content] (textSecondary when not selected).
  */
 fun navLook(style: NavStyle, selected: Boolean, palette: SkinPalette): NavLook = when (style) {
     NavStyle.MATERIAL -> NavLook.MATERIAL
@@ -273,6 +298,12 @@ fun navLook(style: NavStyle, selected: Boolean, palette: SkinPalette): NavLook =
     NavStyle.CUT -> NavLook(style, selected, fill = palette.navIndicator, edge = palette.accentGreen)
     NavStyle.UNDERLINE -> NavLook(style, selected, fill = palette.accentGreen)
     NavStyle.OUTLINE -> NavLook(style, selected, fill = Color.Transparent, edge = palette.accentGreen)
+    NavStyle.TOP -> NavLook(style, selected, fill = palette.accentGreen, content = if (selected) palette.accentGreen else palette.textSecondary)
+    NavStyle.DOT -> NavLook(style, selected, fill = palette.accentGreen, content = if (selected) palette.textPrimary else palette.textSecondary)
+    NavStyle.DOCK -> NavLook(
+        style, selected, fill = palette.cardSurfaceElevated, edge = palette.accentGreen,
+        content = if (selected) palette.textPrimary else palette.textSecondary,
+    )
 }
 
 /** Where a key of the GRAPHITE dock sits in its row (px, left to right) and whether it is lit. */

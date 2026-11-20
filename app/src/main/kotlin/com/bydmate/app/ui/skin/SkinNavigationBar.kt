@@ -69,6 +69,10 @@ import androidx.compose.material3.NavigationBarItem as M3NavigationBarItem
 //   sits the home's menu card, and each key is the home's MenuKeyFace with the caller's icon and
 //   label in one row, lit (the raised pill and the glowing bar) when selected or pressed. The dock
 //   draws the home's fading dividers between the keys, none beside a lit one.
+// - TOP and DOT keep the M3 bar and items, add a 1 dp top border and colour the key; TOP draws a
+//   glowing line on the selected slot's top edge, DOT a dot under the label. DOCK floats the bar as
+//   a card 8 dp in from the bottom and the sides (insets handled as the GRAPHITE dock does) with a
+//   raised plate and a glowing bar under the selected key.
 // - CUT, UNDERLINE and OUTLINE keep the M3 bar and items; the fork draws the selected key's
 //   indicator (navLook) under the icon, and the M3 pill is made transparent.
 //
@@ -137,19 +141,26 @@ fun NavigationBar(
     windowInsets: WindowInsets = NavigationBarDefaults.windowInsets,
     content: @Composable RowScope.() -> Unit,
 ) {
-    val dock = SkinState.current.kit.controls.nav == NavStyle.GRAPHITE
+    val style = SkinState.current.kit.controls.nav
+    val dock = style == NavStyle.GRAPHITE
     val keys = remember { NavDock() }
+    val palette = SkinState.palette
+    val barLook = remember(style, palette, containerColor, windowInsets) { barModifier(style, palette, containerColor, windowInsets) }
     CompositionLocalProvider(
         LocalNavDock provides if (dock) keys else null,
         LocalGrLook provides graphiteLookFor(dock),
     ) {
         M3NavigationBar(
             // the caller's height stays the bar's: the content above does not move
-            modifier = if (dock) modifier.graphiteSkinDock(containerColor, windowInsets, keys) else modifier,
-            containerColor = if (dock) Color.Transparent else containerColor,
+            modifier = when {
+                dock -> modifier.graphiteSkinDock(containerColor, windowInsets, keys)
+                style == NavStyle.DOCK -> Modifier.dockHeight(windowInsets).then(modifier).then(barLook)
+                else -> modifier.then(barLook)
+            },
+            containerColor = if (dock || style == NavStyle.DOCK) Color.Transparent else containerColor,
             contentColor = contentColor,
             tonalElevation = tonalElevation,
-            windowInsets = if (dock) NoInsets else windowInsets,
+            windowInsets = if (dock || style == NavStyle.DOCK) NoInsets else windowInsets,
             content = content,
         )
     }
@@ -186,11 +197,35 @@ fun RowScope.NavigationBarItem(
     }
     val slot = remember(dock, id) { if (dock == null) Modifier else Modifier.dockSlot(dock, id) }
     val noPill = remember(colors) { colors.copy(selectedIndicatorColor = Color.Transparent) }
+    // TOP, DOT and DOCK colour the key through M3's own colours, so its icon and label follow M3
+    val keyColors = remember(colors, look) {
+        if (look.style == NavStyle.TOP || look.style == NavStyle.DOT || look.style == NavStyle.DOCK) {
+            noPill.copy(
+                selectedIconColor = look.content, selectedTextColor = look.content,
+                unselectedIconColor = look.content, unselectedTextColor = look.content,
+            )
+        } else {
+            noPill
+        }
+    }
+    val mark = remember(look) { keyMark(look) }
     val keyColor = if (enabled) look.content else colors.disabledIconColor
     val graphiteKey: @Composable () -> Unit = {
         GraphiteNavKey(look, keyColor, icon, if (alwaysShowLabel || selected) label else null)
     }
     val indicatorIcon: @Composable () -> Unit = { NavIndicatorIcon(look, icon) }
+    // DOT: the dot sits under the label; without one, under the icon
+    val dotted = style == NavStyle.DOT && look.lit
+    val dotIcon: @Composable () -> Unit = if (dotted && label == null) {
+        { Box(Modifier.dotUnder(look.fill)) { icon() } }
+    } else {
+        icon
+    }
+    val dotLabel: (@Composable () -> Unit)? = if (dotted && label != null) {
+        { Box(Modifier.dotUnder(look.fill)) { label() } }
+    } else {
+        label
+    }
     CompositionLocalProvider(
         LocalRippleConfiguration provides if (graphite) null else LocalRippleConfiguration.current,
         LocalGr provides graphitePaletteFor(graphite),
@@ -200,16 +235,17 @@ fun RowScope.NavigationBarItem(
             selected = selected,
             onClick = onClick,
             icon = when (style) {
-                NavStyle.MATERIAL -> icon
+                NavStyle.MATERIAL, NavStyle.TOP, NavStyle.DOCK -> icon
+                NavStyle.DOT -> dotIcon
                 NavStyle.GRAPHITE -> graphiteKey
                 NavStyle.CUT, NavStyle.UNDERLINE, NavStyle.OUTLINE -> indicatorIcon
             },
-            modifier = if (graphite) modifier.then(slot) else modifier,
+            modifier = (if (graphite) modifier.then(slot) else modifier).then(mark),
             enabled = enabled,
             // GRAPHITE has the label in the key's row
-            label = if (graphite) null else label,
+            label = if (graphite) null else dotLabel,
             alwaysShowLabel = alwaysShowLabel,
-            colors = if (style == NavStyle.MATERIAL) colors else noPill,
+            colors = if (style == NavStyle.MATERIAL) colors else keyColors,
             interactionSource = if (graphite) source else interactionSource,
         )
     }
