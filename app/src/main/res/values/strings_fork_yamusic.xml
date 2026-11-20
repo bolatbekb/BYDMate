@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="yamusic_car_name">Я.Музыка Car</string>
+    <string name="yamusic_car_cmd_wave">Моя волна</string>
+    <string name="yamusic_car_cmd_wave_artist">Волна по исполнителю</string>
+    <string name="yamusic_car_cmd_wave_track">Волна по треку</string>
+    <string name="yamusic_car_cmd_wave_album">Волна по альбому</string>
+    <string name="yamusic_car_cmd_wave_playlist">Волна по плейлисту</string>
+    <string name="yamusic_car_cmd_likes">«Мне нравится»</string>
+    <string name="yamusic_car_cmd_likes_shuffle">«Мне нравится» вперемешку</string>
+    <string name="yamusic_car_cmd_resume">Продолжить</string>
+    <string name="yamusic_car_cmd_disk">Своя музыка (папка «Диска»)</string>
+    <string name="yamusic_car_cmd_play">Играть</string>
+    <string name="yamusic_car_cmd_pause">Пауза</string>
+    <string name="yamusic_car_cmd_toggle">Играть/пауза</string>
+    <string name="yamusic_car_cmd_stop">Стоп</string>
+    <string name="yamusic_car_cmd_next">Следующий</string>
+    <string name="yamusic_car_cmd_prev">Предыдущий</string>
+    <string name="yamusic_car_cmd_shuffle_on">Перемешивание вкл</string>
+    <string name="yamusic_car_cmd_shuffle_off">Перемешивание выкл</string>
+    <string name="yamusic_car_cmd_repeat_off">Повтор: выкл</string>
+    <string name="yamusic_car_cmd_repeat_all">Повтор: список</string>
+    <string name="yamusic_car_cmd_repeat_one">Повтор: трек</string>
+    <string name="yamusic_car_cmd_open">Открыть плеер</string>
+    <string name="yamusic_car_field_command">Команда</string>
+    <string name="yamusic_car_field_artist_id">ID исполнителя</string>
+    <string name="yamusic_car_field_track_id">ID трека</string>
+    <string name="yamusic_car_field_album_id">ID альбома</string>
+    <string name="yamusic_car_field_uid">UID владельца</string>
+    <string name="yamusic_car_field_kind">Номер плейлиста</string>
+    <string name="yamusic_car_field_show">Показать плеер</string>
+    <string name="yamusic_car_not_installed">Я.Музыка Car не установлена</string>
+    <string name="yamusic_car_invalid">Неизвестная команда или неверный ID для Я.Музыка Car</string>
+    <string name="auto_msg_yamusic_car_invalid">Действие #%1$d: Я.Музыка Car — команда или ID не заданы или неверны</string>
+</resources>

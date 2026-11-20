@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="yamusic_car_name">Я.Музыка Car</string>
+    <string name="yamusic_car_cmd_wave">Moja fala</string>
+    <string name="yamusic_car_cmd_wave_artist">Fala według wykonawcy</string>
+    <string name="yamusic_car_cmd_wave_track">Fala według utworu</string>
+    <string name="yamusic_car_cmd_wave_album">Fala według albumu</string>
+    <string name="yamusic_car_cmd_wave_playlist">Fala według playlisty</string>
+    <string name="yamusic_car_cmd_likes">Polubione</string>
+    <string name="yamusic_car_cmd_likes_shuffle">Polubione w losowej kolejności</string>
+    <string name="yamusic_car_cmd_resume">Wznów</string>
+    <string name="yamusic_car_cmd_disk">Moja muzyka (folder Dysku)</string>
+    <string name="yamusic_car_cmd_play">Odtwarzaj</string>
+    <string name="yamusic_car_cmd_pause">Pauza</string>
+    <string name="yamusic_car_cmd_toggle">Odtwarzaj/pauza</string>
+    <string name="yamusic_car_cmd_stop">Stop</string>
+    <string name="yamusic_car_cmd_next">Następny</string>
+    <string name="yamusic_car_cmd_prev">Poprzedni</string>
+    <string name="yamusic_car_cmd_shuffle_on">Losowo włączone</string>
+    <string name="yamusic_car_cmd_shuffle_off">Losowo wyłączone</string>
+    <string name="yamusic_car_cmd_repeat_off">Powtarzanie: wył.</string>
+    <string name="yamusic_car_cmd_repeat_all">Powtarzanie: lista</string>
+    <string name="yamusic_car_cmd_repeat_one">Powtarzanie: utwór</string>
+    <string name="yamusic_car_cmd_open">Otwórz odtwarzacz</string>
+    <string name="yamusic_car_field_command">Polecenie</string>
+    <string name="yamusic_car_field_artist_id">ID wykonawcy</string>
+    <string name="yamusic_car_field_track_id">ID utworu</string>
+    <string name="yamusic_car_field_album_id">ID albumu</string>
+    <string name="yamusic_car_field_uid">UID właściciela</string>
+    <string name="yamusic_car_field_kind">Numer playlisty</string>
+    <string name="yamusic_car_field_show">Pokaż odtwarzacz</string>
+    <string name="yamusic_car_not_installed">Я.Музыка Car nie jest zainstalowana</string>
+    <string name="yamusic_car_invalid">Nieznane polecenie lub błędne ID dla Я.Музыка Car</string>
+    <string name="auto_msg_yamusic_car_invalid">Akcja #%1$d: brak polecenia lub ID Я.Музыка Car albo są błędne</string>
+</resources>

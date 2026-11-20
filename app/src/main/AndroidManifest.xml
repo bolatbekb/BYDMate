@@ -69,6 +69,8 @@
         </intent>
         <!-- SOME/IP gateway capability probe (HudSomeIpBridge.isServicePresent) -->
         <package android:name="com.ts.car.someip.service" />
+        <!-- fork: «Я.Музыка Car» action checks the player app is installed -->
+        <package android:name="app.yamusic.car" />
     </queries>
 
     <application

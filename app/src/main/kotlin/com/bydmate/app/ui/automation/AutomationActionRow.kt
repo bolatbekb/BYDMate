@@ -143,6 +143,7 @@ internal fun ActionRow(
                     UrlActionControls(action = action, onUpdate = onUpdate, modifier = fill)
                 "yandex_music" ->
                     YandexMusicActionControls(action = action, onUpdate = onUpdate, modifier = fill)
+                "yamusic_car" -> YamusicCarActionControls(action = action, onUpdate = onUpdate, modifier = fill) // fork: yamusic_car
                 "delay" ->
                     DelayActionControls(action = action, onUpdate = onUpdate, modifier = fill)
                 "media_volume" ->

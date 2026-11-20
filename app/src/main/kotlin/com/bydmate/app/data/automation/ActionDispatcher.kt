@@ -676,6 +676,7 @@ class ActionDispatcher @Inject @Suppress("LongParameterList") constructor( // Hi
             "url" -> openUrl(action)
             "yandex_music" -> launchYandexMusic(action)
             "youtube" -> launchYoutube(action)
+            "yamusic_car" -> com.bydmate.app.fork.automation.dispatchYamusicCar(action.payload, context, appStrings, ::tryStartActivity) // fork: yamusic_car
             "go_home" -> goHome()
             "delay" -> dispatchDelay(action)
             "media_volume" -> setMediaVolume(action)
