@@ -67,7 +67,7 @@ internal fun Modifier.dockHeight(insets: WindowInsets): Modifier = layout { meas
 
 /**
  * What the selected key of TOP and DOCK draws in its slot, behind the ripple (none when it is not
- * lit or in any other style): TOP a 3 dp accent line on the top edge inset 14 dp each side with a
+ * lit or in any other style): DOT a dot near the slot's bottom; TOP a 3 dp accent line on the top edge inset 14 dp each side with a
  * glow below it; DOCK a raised plate with a 24 x 3 dp accent bar near its bottom and a glow. The
  * glows are gradients.
  */
@@ -75,6 +75,7 @@ internal fun keyMark(look: NavLook): Modifier = when {
     !look.lit -> Modifier
     look.style == NavStyle.TOP -> Modifier.topLine(look.fill)
     look.style == NavStyle.DOCK -> Modifier.dockPlate(look.fill, look.edge)
+    look.style == NavStyle.DOT -> Modifier.dotAtBottom(look.fill)
     else -> Modifier
 }
 
@@ -111,9 +112,17 @@ private fun Modifier.dockPlate(plate: Color, accent: Color): Modifier = drawWith
     }
 }
 
-/** DOT's dot: round, centred under this box, [NavDotGap] below its bottom edge. */
-internal fun Modifier.dotUnder(color: Color): Modifier = drawWithCache {
+/**
+ * The centre of DOT's dot, from the top of the key's slot: [gap] above the slot's bottom edge, the
+ * slot being the bar without the window insets. The bar is at least 64 dp whatever the text scale,
+ * so the dot (radius [dotRadius]) stays whole inside it; a [gap] under the radius is lifted to it.
+ */
+fun navDotCentreY(barInnerHeight: Float, dotRadius: Float, gap: Float): Float =
+    (barInnerHeight - maxOf(gap, dotRadius)).coerceAtLeast(dotRadius)
+
+/** DOT's dot: round, centred on the key, [NavDotBottomGap] above the bar's inner bottom edge (navDotCentreY). */
+private fun Modifier.dotAtBottom(color: Color): Modifier = drawWithCache {
     val d = NavDotSize.toPx()
-    val c = Offset(size.width / 2, size.height + NavDotGap.toPx() + d / 2)
+    val c = Offset(size.width / 2, navDotCentreY(size.height, d / 2, NavDotBottomGap.toPx()))
     onDrawBehind { drawCircle(color, d / 2, c) }
 }

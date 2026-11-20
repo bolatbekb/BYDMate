@@ -263,9 +263,9 @@ val NavEdgeWidth: Dp = CardBorderWidth
 val NavTopLineInset: Dp = 14.dp
 val NavTopGlow: Dp = 10.dp
 
-/** DOT: 6 dp round, 1 dp under the label's box (about 6 dp under its glyphs, and still inside the 64 dp bar). */
+/** DOT: 6 dp round, its centre 6 dp above the bar's inner bottom edge (the bar is at least 64 dp, so the dot stays whole at every text scale). */
 val NavDotSize: Dp = 6.dp
-val NavDotGap: Dp = 1.dp
+val NavDotBottomGap: Dp = 6.dp
 
 /** DOCK: a 64 dp floating card (radius 22) 8 dp from the bottom and the sides; the selected key a plate (radius 14) with a 24 x 3 dp bar 3 dp above its bottom. */
 val NavDockHeight: Dp = 64.dp

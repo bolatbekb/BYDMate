@@ -100,6 +100,22 @@ class SkinNavLookTest {
         assertEquals(0.8f, NAV_DOCK_FILL_ALPHA)
     }
 
+    @Test fun dotStaysInsideTheBarAtEveryTextScale() {
+        val r = NavDotSize.value / 2
+        val gap = NavBottomGapDp()
+        // the bar is max(64, 16 sp x scale + 40) dp: 64 at 1.0, 1.15 and 1.3, then taller
+        for (h in listOf(16f * 1.0f + 40, 16f * 1.15f + 40, 16f * 1.3f + 40, 64f, 72f).map { maxOf(64f, it) }) {
+            val y = navDotCentreY(h, r, gap)
+            assertEquals("bar $h", h - 6f, y, 0.001f)
+            assertTrue("bar $h top", y - r >= 0f)
+            assertTrue("bar $h bottom", y + r <= h)
+        }
+        assertEquals("a gap under the radius is lifted", 61f, navDotCentreY(64f, 3f, 1f), 0.001f)
+        assertEquals("a tiny bar keeps the dot whole", 3f, navDotCentreY(4f, 3f, 6f), 0.001f)
+    }
+
+    private fun NavBottomGapDp() = NavDotBottomGap.value
+
     @Test fun indicatorBoxIsTheM3One() {
         // M3 1.3.1: a 64 x 32 dp indicator around the 24 dp icon
         assertEquals(64.dp, 24.dp + NavIndicatorPadX * 2)

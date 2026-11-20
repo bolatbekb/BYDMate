@@ -145,6 +145,7 @@ fun NavigationBar(
     val dock = style == NavStyle.GRAPHITE
     val keys = remember { NavDock() }
     val palette = SkinState.palette
+    val dockHeight = remember(windowInsets) { Modifier.dockHeight(windowInsets) }
     val barLook = remember(style, palette, containerColor, windowInsets) { barModifier(style, palette, containerColor, windowInsets) }
     CompositionLocalProvider(
         LocalNavDock provides if (dock) keys else null,
@@ -154,7 +155,8 @@ fun NavigationBar(
             // the caller's height stays the bar's: the content above does not move
             modifier = when {
                 dock -> modifier.graphiteSkinDock(containerColor, windowInsets, keys)
-                style == NavStyle.DOCK -> Modifier.dockHeight(windowInsets).then(modifier).then(barLook)
+                // DOCK's card is a fixed 64 dp: enough at the supported text scales (<= 1.3)
+                style == NavStyle.DOCK -> dockHeight.then(modifier).then(barLook)
                 else -> modifier.then(barLook)
             },
             containerColor = if (dock || style == NavStyle.DOCK) Color.Transparent else containerColor,
@@ -214,18 +216,6 @@ fun RowScope.NavigationBarItem(
         GraphiteNavKey(look, keyColor, icon, if (alwaysShowLabel || selected) label else null)
     }
     val indicatorIcon: @Composable () -> Unit = { NavIndicatorIcon(look, icon) }
-    // DOT: the dot sits under the label; without one, under the icon
-    val dotted = style == NavStyle.DOT && look.lit
-    val dotIcon: @Composable () -> Unit = if (dotted && label == null) {
-        { Box(Modifier.dotUnder(look.fill)) { icon() } }
-    } else {
-        icon
-    }
-    val dotLabel: (@Composable () -> Unit)? = if (dotted && label != null) {
-        { Box(Modifier.dotUnder(look.fill)) { label() } }
-    } else {
-        label
-    }
     CompositionLocalProvider(
         LocalRippleConfiguration provides if (graphite) null else LocalRippleConfiguration.current,
         LocalGr provides graphitePaletteFor(graphite),
@@ -235,15 +225,14 @@ fun RowScope.NavigationBarItem(
             selected = selected,
             onClick = onClick,
             icon = when (style) {
-                NavStyle.MATERIAL, NavStyle.TOP, NavStyle.DOCK -> icon
-                NavStyle.DOT -> dotIcon
+                NavStyle.MATERIAL, NavStyle.TOP, NavStyle.DOT, NavStyle.DOCK -> icon
                 NavStyle.GRAPHITE -> graphiteKey
                 NavStyle.CUT, NavStyle.UNDERLINE, NavStyle.OUTLINE -> indicatorIcon
             },
             modifier = (if (graphite) modifier.then(slot) else modifier).then(mark),
             enabled = enabled,
             // GRAPHITE has the label in the key's row
-            label = if (graphite) null else dotLabel,
+            label = if (graphite) null else label,
             alwaysShowLabel = alwaysShowLabel,
             colors = if (style == NavStyle.MATERIAL) colors else keyColors,
             interactionSource = if (graphite) source else interactionSource,
