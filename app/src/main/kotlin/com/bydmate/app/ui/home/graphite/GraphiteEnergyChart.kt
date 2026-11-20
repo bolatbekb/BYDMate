@@ -25,6 +25,7 @@ import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
+import com.bydmate.app.ui.home.common.LocalMockupExtra
 import com.bydmate.app.ui.home.common.px
 import kotlin.math.max
 import kotlin.math.min
@@ -35,6 +36,12 @@ import kotlin.math.min
  * The chart; its bars grow in from the baseline whenever a series for another period arrives
  * (and on the first one). [grow] holds the elapsed ms of that grow-in, read only while drawing.
  */
+/** The Energy card receives the whole row's extra height (tall screens, 0..232 mockup px); the chart takes all of it. */
+private const val CHART_SHARE = 1f
+
+/** Chart height (mockup px): 266 at extra 0. */
+internal fun chartHeight(extra: Float): Float = 266f + extra * CHART_SHARE
+
 @Composable
 internal fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
     val p = LocalGr.current
@@ -64,7 +71,7 @@ internal fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
             onDrawBehind { drawEnergy(content, grow.value) }
         }
     }
-    Canvas(Modifier.fillMaxWidth().height(px(266)).then(chart)) {}
+    Canvas(Modifier.fillMaxWidth().height(px(chartHeight(LocalMockupExtra.current))).then(chart)) {}
 }
 
 /** One bucket's bars, mockup px: kWh on the left, litres on the right; [fuelW] 0 = no litres bar. */

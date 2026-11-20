@@ -47,6 +47,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.IntOffset
 import com.bydmate.app.R
 import com.bydmate.app.ui.home.HomeData
+import com.bydmate.app.ui.home.common.LocalMockupExtra
 import com.bydmate.app.ui.home.common.fs
 import com.bydmate.app.ui.home.common.px
 import kotlin.math.PI
@@ -62,7 +63,7 @@ fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: D
     val w = lang.words
     val total = data.totalRangeKm?.takeIf { it > 0 }
     // Compact: the card is 76 shorter (the PM2.5 line below); only the gaps shrink.
-    val g = if (compact) RangeGaps.Compact else RangeGaps.Regular
+    val g = (if (compact) RangeGaps.Compact else RangeGaps.Regular).stretched(LocalMockupExtra.current)
     CardBody(modifier, bottom = g.bottom) {
         CardHeader(R.drawable.gr_ic_gauge, stringResource(R.string.home_gr_range_title)) {
             data.odometerKm?.let {
@@ -118,7 +119,7 @@ fun RangeCard(data: HomeData, sohPercent: Float?, tankL: Double?, capacityKwh: D
 }
 
 /** The range card's vertical gaps, mockup px; Compact takes 78 off (the card loses 76). */
-private data class RangeGaps(
+internal data class RangeGaps(
     val number: Int, val bar: Int, val scale: Int, val divider: Int, val gauges: Int, val footer: Int,
     val footerPad: Int, val bottom: Int,
 ) {
@@ -126,6 +127,16 @@ private data class RangeGaps(
         val Regular = RangeGaps(number = 10, bar = 26, scale = 12, divider = 26, gauges = 24, footer = 24, footerPad = 18, bottom = 30)
         val Compact = RangeGaps(number = 0, bar = 16, scale = 8, divider = 14, gauges = 14, footer = 12, footerPad = 12, bottom = 22)
     }
+}
+
+/** Spreads the row's extra height (0..232 mockup px) evenly over the six gaps; the remainder goes to [bottom]. */
+internal fun RangeGaps.stretched(extra: Float): RangeGaps {
+    val each = (extra / 6f).toInt()
+    val rest = extra.toInt() - each * 6
+    return copy(
+        number = number + each, bar = bar + each, scale = scale + each, divider = divider + each,
+        gauges = gauges + each, footer = footer + each, bottom = bottom + rest,
+    )
 }
 
 private fun kmLine(km: Int?, tail: String?, lang: GrLang): Pair<String, String?> =

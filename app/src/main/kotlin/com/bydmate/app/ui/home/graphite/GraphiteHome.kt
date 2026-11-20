@@ -93,7 +93,7 @@ fun GraphiteHome(
     ) {
         // The bands (only where the window is taller than the car's) take the scheme's background,
         // the same as the «Graphite» skin's bar below.
-        MockupFrame(designH = GRAPHITE_DESIGN_H, letterbox = LocalGr.current.bg) {
+        MockupFrame(designH = GRAPHITE_DESIGN_H, letterbox = LocalGr.current.bg, fillHeight = true) {
             val p = LocalGr.current
             Column(
                 Modifier.fillMaxSize().grBackground(p).padding(start = px(32), top = px(22), end = px(32), bottom = px(22)),

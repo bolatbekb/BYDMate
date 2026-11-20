@@ -101,20 +101,20 @@ internal fun MockupFrame(
 
 // fork: fluid frame. The mockup grows from 2560 x 1208 up to 2560 x 1440 design px with the height.
 
-private const val DesignWPx = 2560f
-private const val DesignHMinPx = 1208f
-private const val DesignHMaxPx = 1440f
+private const val DESIGN_W_PX = 2560f
+private const val DESIGN_H_MIN_PX = 1208f
+private const val DESIGN_H_MAX_PX = 1440f
 
 /** The fluid frame: [scale] by width, [heightPx] design px of content, [extraPx] = heightPx - 1208. */
 internal data class FluidFrame(val scale: Float, val heightPx: Float, val extraPx: Float)
 
 /** The frame for an area of [maxWidthDp] x [maxHeightDp]: too short keeps today's min scale. */
 internal fun fluidFrame(maxWidthDp: Float, maxHeightDp: Float): FluidFrame {
-    val sw = maxWidthDp / (DesignWPx * K)
-    val sh = maxHeightDp / (DesignHMinPx * K)
-    if (sh < sw) return FluidFrame(sh, DesignHMinPx, 0f)
-    val h = (maxHeightDp / sw / K).coerceIn(DesignHMinPx, DesignHMaxPx)
-    return FluidFrame(sw, h, h - DesignHMinPx)
+    val sw = maxWidthDp / (DESIGN_W_PX * K)
+    val sh = maxHeightDp / (DESIGN_H_MIN_PX * K)
+    if (sh < sw) return FluidFrame(sh, DESIGN_H_MIN_PX, 0f)
+    val h = (maxHeightDp / sw / K).coerceIn(DESIGN_H_MIN_PX, DESIGN_H_MAX_PX)
+    return FluidFrame(sw, h, h - DESIGN_H_MIN_PX)
 }
 
 /** The extra design px of height the fluid frame gives (0 in the fixed frame). */
@@ -123,8 +123,8 @@ internal val LocalMockupExtra = staticCompositionLocalOf { 0f }
 @Composable
 private fun FluidMockupFrame(letterbox: Color, content: @Composable BoxScope.() -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize().background(letterbox), contentAlignment = Alignment.Center) {
-        val w = if (constraints.hasBoundedWidth) maxWidth.value else DesignWPx * K
-        val h = if (constraints.hasBoundedHeight) maxHeight.value else DesignHMinPx * K
+        val w = if (constraints.hasBoundedWidth) maxWidth.value else DESIGN_W_PX * K
+        val h = if (constraints.hasBoundedHeight) maxHeight.value else DESIGN_H_MIN_PX * K
         val frame = fluidFrame(w, h)
         val base = LocalDensity.current
         CompositionLocalProvider(
