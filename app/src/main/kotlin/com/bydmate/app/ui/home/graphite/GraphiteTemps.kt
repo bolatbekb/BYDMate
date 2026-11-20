@@ -21,7 +21,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.LinearGradientShader
 import androidx.compose.ui.graphics.ShaderBrush
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -45,19 +44,19 @@ internal fun TempsCard(data: HomeData, pm25: List<Pm25Side>?, modifier: Modifier
             TempColumn(
                 Modifier.weight(1f), bottom, false, R.drawable.gr_ic_tree, lang.words.outside,
                 data.outsideTemp?.let { grDec(it.toDouble(), lang = lang) }, data.outsideTemp?.let { tempFraction(TempKind.OUTSIDE, it) },
-                listOf(0f to p.coldDeep, 1f to p.cold), true,
+                listOf(0f to p.coldDeep, 1f to p.cold),
                 outsideNote(data.outsideTemp, lang)?.let { Triple(R.drawable.gr_ic_snow, it, p.cold) },
             )
             TempColumn(
                 Modifier.weight(1f), bottom, true, R.drawable.gr_ic_seat, lang.words.cabin,
                 data.insideTemp?.let { grDec(it.toDouble(), lang = lang) }, data.insideTemp?.let { tempFraction(TempKind.CABIN, it) },
-                listOf(0f to p.cold, 0.55f to p.fuel, 1f to p.heat), false,
+                listOf(0f to p.cold, 0.55f to p.fuel, 1f to p.heat),
                 cabinNote(data.acAuto, data.acOn, data.acTemp, lang)?.let { Triple(R.drawable.gr_ic_fan, it, p.textTertiary) },
             )
             TempColumn(
                 Modifier.weight(1f), bottom, true, R.drawable.gr_ic_battery, stringResource(R.string.home_gr_battery),
                 data.batteryTemp?.let { grDec(it.toDouble(), lang = lang) }, data.batteryTemp?.let { tempFraction(TempKind.BATTERY, it) },
-                listOf(0f to p.heat, 1f to p.heat), true, null,
+                listOf(0f to p.heat, 1f to p.heat), null,
             )
         }
         if (pm25 != null) Pm25Line(pm25, Modifier.padding(start = px(30), end = px(30), bottom = px(24)))
@@ -74,7 +73,6 @@ private fun TempColumn(
     value: String?,
     fraction: Float?,
     stops: List<Pair<Float, Color>>,
-    trackAfter: Boolean,
     note: Triple<Int, String, Color>?,
 ) {
     val p = LocalGr.current
@@ -109,7 +107,7 @@ private fun TempColumn(
                 )
             }
         }
-        TempBar(fraction, stops, trackAfter, Modifier.padding(top = px(26)))
+        TempBar(fraction, stops, Modifier.padding(top = px(26)))
         if (note != null) {
             Row(Modifier.padding(top = px(18)), verticalAlignment = Alignment.CenterVertically) {
                 GrIcon(note.first, 20f, note.third)
@@ -158,29 +156,26 @@ private fun GrPalette.tone(t: Tone): Color = when (t) {
     Tone.HEAT -> heat
 }
 
+/** Width of the fill of a bar [width] wide: nothing for an unknown value, else the clamped [fraction] of it. */
+internal fun tempFillWidth(width: Float, fraction: Float?): Float =
+    if (fraction == null) 0f else width * fraction.coerceIn(0f, 1f)
+
 /**
- * 6 px bar. [trackAfter]: the gradient [stops] span only 0..[fraction] and Track fills the rest;
- * otherwise they span the whole bar. The 16 px knob has a 4 px ring in the card colour.
+ * 6 px scale without a knob (it only shows a value, it is not a slider): the whole bar is Track, the fill
+ * runs from 0 to the value with round ends. The gradient [stops] span the WHOLE bar and are clipped at the
+ * fill end, so one colour always means one temperature. Unknown value: the track only.
  */
 @Composable
-private fun TempBar(fraction: Float?, stops: List<Pair<Float, Color>>, trackAfter: Boolean, modifier: Modifier) {
+private fun TempBar(fraction: Float?, stops: List<Pair<Float, Color>>, modifier: Modifier) {
     val p = LocalGr.current
-    val known = fraction != null
-    val eased by animatedValue(fraction, "tempKnob")
+    val eased by animatedValue(fraction, "tempFill")
     Canvas(modifier.fillMaxWidth().height(px(6))) {
-        val f = eased
         val r = CornerRadius(px(3).toPx())
         drawRoundRect(p.track, size = size, cornerRadius = r)
-        val w = if (trackAfter) size.width * (if (known) f else 0f) else size.width
+        val w = tempFillWidth(size.width, if (fraction == null) null else eased)
         if (w > 0f) {
-            // the stops' gradient from 0 to w, as Brush.horizontalGradient(colorStops, 0, w) makes it
-            val brush = ShaderBrush(LinearGradientShader(Offset.Zero, Offset(w, 0f), stops.map { it.second }, stops.map { it.first }))
-            clipRect(0f, 0f, w, size.height) { drawRoundRect(brush, size = size, cornerRadius = r) }
-        }
-        if (known) {
-            val c = Offset(size.width * f, size.height / 2)
-            drawCircle(p.cardTop, px(12).toPx(), c)
-            drawCircle(p.textPrimary, px(8).toPx(), c)
+            val brush = ShaderBrush(LinearGradientShader(Offset.Zero, Offset(size.width, 0f), stops.map { it.second }, stops.map { it.first }))
+            drawRoundRect(brush, size = Size(w, size.height), cornerRadius = CornerRadius(minOf(r.x, w / 2), minOf(r.y, w / 2)))
         }
     }
 }
