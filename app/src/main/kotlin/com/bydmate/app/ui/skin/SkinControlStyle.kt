@@ -24,7 +24,7 @@ enum class CardBorderKind { NONE, SOLID, TOP_HIGHLIGHT, GRAPHITE_EDGE }
  * [containerAlpha] multiplies the alpha of the caller's container colour. [borderColor] is the
  * SOLID colour, or the top of the TOP_HIGHLIGHT gradient that fades to [borderFadeColor].
  * [flat] drops the elevation. [padding] is the layout padding the style adds: none ever does,
- * the stripe is drawn over the card's start edge, not beside it. [graphite] puts the Graphite
+ * the stripe (top edge) and the brackets (corners) are drawn over the card, not beside it. [graphite] puts the Graphite
  * home's card (grCard: fill, material, relief, 2.5D edges, contour and shadow) under a see-through
  * M3 container (GraphiteSkinParts.kt).
  */
@@ -36,6 +36,9 @@ data class CardLook(
     val stripe: Boolean = false,
     val stripeColor: Color = Color.Unspecified,
     val stripeWidth: Dp = 0.dp,
+    val stripeTop: Boolean = false,
+    val brackets: Boolean = false,
+    val bracketColor: Color = Color.Unspecified,
     val flat: Boolean = false,
     val padding: Dp = 0.dp,
     val graphite: Boolean = false,
@@ -51,6 +54,8 @@ data class CardLook(
 
 val CardBorderWidth: Dp = 1.dp
 val CardStripeWidth: Dp = 3.dp
+val CardBracketLength: Dp = 14.dp
+val CardBracketThickness: Dp = 2.dp
 const val GLASS_ALPHA = 0.7f
 
 /**
@@ -69,13 +74,26 @@ fun cardLook(style: CardStyle, palette: SkinPalette, nested: Boolean = false): C
     CardStyle.GLASS -> CardLook(
         containerAlpha = if (nested) 1f else GLASS_ALPHA,
         border = CardBorderKind.TOP_HIGHLIGHT,
-        borderColor = palette.textPrimary.copy(alpha = 0.22f),
-        borderFadeColor = palette.cardBorder.copy(alpha = 0.3f),
+        borderColor = palette.accentGreen.copy(alpha = 0.40f),
+        borderFadeColor = palette.accentGreen.copy(alpha = 0.15f),
     )
     CardStyle.STRIPE -> if (nested) {
         CardLook.MATERIAL
     } else {
-        CardLook(stripe = true, stripeColor = palette.accentGreen, stripeWidth = CardStripeWidth)
+        CardLook(
+            border = CardBorderKind.SOLID,
+            borderColor = palette.cardBorder,
+            stripe = true,
+            stripeColor = palette.accentGreen,
+            stripeWidth = CardStripeWidth,
+            stripeTop = true,
+        )
+    }
+    // flat and borderless, with four accent L-marks on the card's corners; a nested card has none
+    CardStyle.BRACKETS -> if (nested) {
+        CardLook(flat = true)
+    } else {
+        CardLook(flat = true, brackets = true, bracketColor = palette.accentGreen)
     }
     // a shadow would show through a see-through card, so it is flat as well
     CardStyle.BORDER_ONLY -> CardLook(
@@ -98,9 +116,9 @@ fun cardLook(style: CardStyle, palette: SkinPalette, nested: Boolean = false): C
  */
 fun CardLook.inDialog(): CardLook = if (graphite) this else copy(containerAlpha = 1f)
 
-/** OUTLINED, BORDER_ONLY and STRIPE outline the AlertDialog surface with a 1 dp CardBorder. */
+/** OUTLINED, BORDER_ONLY, STRIPE and BRACKETS outline the AlertDialog surface with a 1 dp CardBorder. */
 fun dialogHasBorder(style: CardStyle): Boolean = when (style) {
-    CardStyle.OUTLINED, CardStyle.BORDER_ONLY, CardStyle.STRIPE -> true
+    CardStyle.OUTLINED, CardStyle.BORDER_ONLY, CardStyle.STRIPE, CardStyle.BRACKETS -> true
     CardStyle.MATERIAL, CardStyle.FLAT, CardStyle.GLASS -> false
     CardStyle.GRAPHITE -> false // the Graphite card draws its own contour
 }
@@ -112,7 +130,7 @@ fun dividerLook(style: CardStyle): DividerLook = when (style) {
     CardStyle.GLASS -> DividerLook.FADED_ENDS
     CardStyle.BORDER_ONLY -> DividerLook.CARD_BORDER
     // the Graphite home's dividers are plain lines too
-    CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE, CardStyle.GRAPHITE -> DividerLook.AS_GIVEN
+    CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE, CardStyle.GRAPHITE, CardStyle.BRACKETS -> DividerLook.AS_GIVEN
 }
 
 /**

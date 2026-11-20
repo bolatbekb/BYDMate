@@ -75,7 +75,7 @@ fun buttonLook(style: CardStyle, kind: ButtonKind, palette: SkinPalette, fill: C
         ButtonKind.OUTLINED -> ButtonLook(border = CardBorderKind.GRAPHITE_EDGE, flat = true)
         ButtonKind.TEXT -> ButtonLook(contentColor = palette.textPrimary, flat = true)
     }
-    CardStyle.OUTLINED, CardStyle.BORDER_ONLY -> ButtonLook(
+    CardStyle.OUTLINED, CardStyle.BORDER_ONLY, CardStyle.BRACKETS -> ButtonLook(
         containerAlpha = if (kind == ButtonKind.OUTLINED) 0f else 1f,
         flat = style == CardStyle.BORDER_ONLY,
     )
@@ -167,7 +167,7 @@ fun chipLook(style: CardStyle, selected: Boolean, enabled: Boolean, palette: Ski
                 flat = true,
             )
         }
-        CardStyle.OUTLINED, CardStyle.BORDER_ONLY -> {
+        CardStyle.OUTLINED, CardStyle.BORDER_ONLY, CardStyle.BRACKETS -> {
             val edge = if (selected) palette.accentGreen else palette.cardBorder
             ChipLook(
                 transparent = true,
@@ -237,7 +237,7 @@ data class FieldLook(val fill: Color = Color.Unspecified, val containerAlpha: Fl
  * - GLASS: a caller's container see-through as the glass card's; BORDER_ONLY: none at all.
  */
 fun fieldLook(style: CardStyle, palette: SkinPalette): FieldLook = when (style) {
-    CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE -> FieldLook.MATERIAL
+    CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE, CardStyle.BRACKETS -> FieldLook.MATERIAL
     CardStyle.GRAPHITE -> FieldLook(fill = palette.navyMid)
     CardStyle.GLASS -> FieldLook(containerAlpha = GLASS_ALPHA)
     CardStyle.BORDER_ONLY -> FieldLook(containerAlpha = 0f)

@@ -14,6 +14,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -160,27 +161,55 @@ private fun lookBorder(look: CardLook): BorderStroke? = skinBorder(look.border, 
 
 /**
  * What [look] draws besides the M3 card, `Modifier` when nothing:
- * - STRIPE: the bar along the start edge, drawn over the card and clipped to its [shape], so the
- *   layout does not move; remembered per (colour, width, shape), so a recomposition keeps the cache;
+ * - STRIPE: the bar along the top edge (the start edge when not [CardLook.stripeTop]), drawn over
+ *   the card and clipped to its [shape], so the layout does not move;
+ * - BRACKETS: four L-marks on the card's corners, over its own bounds, clipped by nothing;
  * - GRAPHITE: the Graphite home's card under the container, inside ProvideSkinCard (the live look).
+ * Each is remembered per its colours (and width, shape), so a recomposition keeps the cache.
  */
 @Composable
 private fun lookModifier(look: CardLook, shape: Shape): Modifier {
     val stripe = if (look.stripe) {
-        remember(look.stripeColor, look.stripeWidth, shape) { stripe(look.stripeColor, look.stripeWidth, shape) }
+        remember(look.stripeColor, look.stripeWidth, look.stripeTop, shape) {
+            stripe(look.stripeColor, look.stripeWidth, look.stripeTop, shape)
+        }
     } else {
         Modifier
     }
-    return stripe.then(if (look.graphite) Modifier.graphiteSkinCard(shape) else Modifier)
+    val brackets = if (look.brackets) {
+        remember(look.bracketColor) { brackets(look.bracketColor) }
+    } else {
+        Modifier
+    }
+    return stripe.then(brackets).then(if (look.graphite) Modifier.graphiteSkinCard(shape) else Modifier)
 }
 
-private fun stripe(color: Color, width: Dp, shape: Shape): Modifier = Modifier.drawWithCache {
+private fun stripe(color: Color, width: Dp, top: Boolean, shape: Shape): Modifier = Modifier.drawWithCache {
     val clip = Path().apply { addOutline(shape.createOutline(size, layoutDirection, this@drawWithCache)) }
     val w = width.toPx()
     val left = if (layoutDirection == LayoutDirection.Ltr) 0f else size.width - w
-    val bar = Size(w, size.height)
+    val origin = if (top) Offset.Zero else Offset(left, 0f)
+    val bar = if (top) Size(size.width, w) else Size(w, size.height)
     onDrawWithContent {
         drawContent()
-        clipPath(clip) { drawRect(color, topLeft = Offset(left, 0f), size = bar) }
+        clipPath(clip) { drawRect(color, topLeft = origin, size = bar) }
+    }
+}
+
+/** Four L-marks (CardBracketLength long, CardBracketThickness thick) on the corners of the bounds. */
+private fun brackets(color: Color): Modifier = Modifier.drawWithCache {
+    val len = CardBracketLength.toPx()
+    val t = CardBracketThickness.toPx()
+    val w = size.width
+    val h = size.height
+    val marks = Path().apply {
+        addRect(Rect(0f, 0f, len, t)); addRect(Rect(0f, 0f, t, len))
+        addRect(Rect(w - len, 0f, w, t)); addRect(Rect(w - t, 0f, w, len))
+        addRect(Rect(0f, h - t, len, h)); addRect(Rect(0f, h - len, t, h))
+        addRect(Rect(w - len, h - t, w, h)); addRect(Rect(w - t, h - len, w, h))
+    }
+    onDrawWithContent {
+        drawContent()
+        drawPath(marks, color)
     }
 }

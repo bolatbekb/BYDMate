@@ -119,7 +119,7 @@ object Skins {
             chartGrid = Color(0xFF141B23),
             navBarBackground = Color(0xFF05070A),
         ),
-        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f), SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
+        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f), SkinControls(SwitchStyle.SQUARE, CardStyle.BRACKETS, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
     )
 
     /** 2 · Graphite Pro: neutral graphite, periwinkle accent. */
@@ -212,7 +212,7 @@ object Skins {
             chartGrid = Color(0xFF1A1A1A),
             navBarBackground = Color(0xFF000000),
         ),
-        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
+        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.OUTLINE, CardStyle.OUTLINED, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
     )
 
     /**

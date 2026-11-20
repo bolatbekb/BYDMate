@@ -24,6 +24,7 @@ class SkinControlStyleTest {
         assertEquals(1f, look.containerAlpha)
         assertEquals(CardBorderKind.NONE, look.border)
         assertFalse(look.stripe)
+        assertFalse(look.brackets)
         assertFalse(look.flat)
         // every other style changes something
         CardStyle.entries.filter { it != CardStyle.MATERIAL }.forEach {
@@ -36,10 +37,32 @@ class SkinControlStyleTest {
         assertTrue(look.stripe)
         assertEquals(p.accentGreen, look.stripeColor)
         assertEquals(3.dp, look.stripeWidth)
+        assertTrue("on the top edge", look.stripeTop)
+        assertEquals(CardBorderKind.SOLID, look.border)
+        assertEquals(p.cardBorder, look.borderColor)
         assertEquals(0.dp, look.padding)
         assertEquals(1f, look.containerAlpha)
         // no style adds layout padding
         CardStyle.entries.forEach { assertEquals(it.name, 0.dp, cardLook(it, p).padding) }
+    }
+
+    @Test fun bracketsAreFlatMarksWithoutBorder() {
+        val look = cardLook(CardStyle.BRACKETS, p)
+        assertTrue(look.flat)
+        assertTrue(look.brackets)
+        assertEquals(p.accentGreen, look.bracketColor)
+        assertEquals(CardBorderKind.NONE, look.border)
+        assertEquals(14.dp, CardBracketLength)
+        assertEquals(2.dp, CardBracketThickness)
+        assertFalse(cardLook(CardStyle.BRACKETS, p, nested = true).brackets)
+        assertTrue(dialogHasBorder(CardStyle.BRACKETS))
+        assertEquals(DividerLook.AS_GIVEN, dividerLook(CardStyle.BRACKETS))
+    }
+
+    @Test fun glassBorderIsTheAccent() {
+        val glass = cardLook(CardStyle.GLASS, p)
+        assertEquals(p.accentGreen.copy(alpha = 0.40f), glass.borderColor)
+        assertEquals(p.accentGreen.copy(alpha = 0.15f), glass.borderFadeColor)
     }
 
     @Test fun borderOnlyIsTransparent() {
@@ -114,7 +137,7 @@ class SkinControlStyleTest {
 
     @Test fun dialogBorderAndDividerFollowTheCardStyle() {
         val bordered = CardStyle.entries.filter { dialogHasBorder(it) }.toSet()
-        assertEquals(setOf(CardStyle.OUTLINED, CardStyle.BORDER_ONLY, CardStyle.STRIPE), bordered)
+        assertEquals(setOf(CardStyle.OUTLINED, CardStyle.BORDER_ONLY, CardStyle.STRIPE, CardStyle.BRACKETS), bordered)
 
         assertEquals(DividerLook.FADED_ENDS, dividerLook(CardStyle.GLASS))
         assertEquals(DividerLook.CARD_BORDER, dividerLook(CardStyle.BORDER_ONLY))
