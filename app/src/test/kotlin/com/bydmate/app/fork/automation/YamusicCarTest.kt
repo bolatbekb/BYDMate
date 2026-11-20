@@ -128,4 +128,16 @@ class YamusicCarTest {
         assertEquals("", next.uid)
         assertEquals("", next.kind)
     }
+
+    @Test fun `picking the command already chosen keeps the typed ids`() {
+        val p = YamusicCarPayload(command = "wave_artist", id = "abc_1", show = true)
+        assertEquals(p, p.withCommand("wave_artist"))
+        val pl = YamusicCarPayload(command = "wave_playlist", uid = "123", kind = "7")
+        assertEquals(pl, pl.withCommand("wave_playlist"))
+    }
+
+    @Test fun `picking another command still clears the ids`() {
+        val p = YamusicCarPayload(command = "wave_artist", id = "abc_1")
+        assertEquals("", p.withCommand("wave_track").id)
+    }
 }
