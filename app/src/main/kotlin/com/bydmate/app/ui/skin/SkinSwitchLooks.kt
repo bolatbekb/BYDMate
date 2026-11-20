@@ -58,7 +58,7 @@ internal fun iosSwitch(checked: Boolean, alpha: Float, palette: SkinPalette): Sw
 internal fun glowSwitch(checked: Boolean, enabled: Boolean, alpha: Float, palette: SkinPalette): SwitchLook {
     val thumb = if (checked) palette.navyDark else palette.textSecondary
     return SwitchLook(
-        stateColor = if (checked) palette.accentGreen else palette.cardSurfaceElevated,
+        stateColor = if (checked) palette.accentGreen else palette.textMuted.copy(alpha = 0.35f),
         trackFilled = true, trackStroke = 0.dp, trackHeight = SwitchHeight, trackCorner = 16.dp,
         thumbColor = thumb, thumbFill = thumb, thumbRing = 0.dp,
         thumbSize = 26.dp, thumbCorner = 13.dp, thumbInset = 3.dp, alpha = alpha,

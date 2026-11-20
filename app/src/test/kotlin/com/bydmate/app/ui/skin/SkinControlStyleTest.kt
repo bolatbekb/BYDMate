@@ -271,7 +271,7 @@ class SkinControlStyleTest {
         assertEquals(14.dp, on.glowSpread)
         assertFalse(on.glowOnThumb)
         val off = switchLook(SwitchStyle.GLOW, false, true, p)!!
-        assertEquals(p.cardSurfaceElevated, off.stateColor)
+        assertEquals(p.textMuted.copy(alpha = 0.35f), off.stateColor)
         assertEquals(p.textSecondary, off.thumbColor)
         assertFalse(off.glow.isSpecified)
     }
