@@ -22,11 +22,15 @@ internal fun graphiteButton(kind: ButtonKind, palette: SkinPalette, fill: Color)
     ButtonKind.TEXT -> ButtonLook(contentColor = palette.textPrimary, flat = true)
 }
 
-/** Volt's buttons: the filled one a glowing gradient. */
-internal fun glassButton(kind: ButtonKind, palette: SkinPalette, fill: Color): ButtonLook =
+/**
+ * Volt's buttons: the filled one in the skin accent a glowing gradient. [enabledFill] is the
+ * caller's container when enabled (fill is that of the button's state): any other colour keeps
+ * the caller's fill, so a grey, blue or red button is not taken for the primary one.
+ */
+internal fun glassButton(kind: ButtonKind, palette: SkinPalette, fill: Color, enabledFill: Color = fill): ButtonLook =
     if (kind == ButtonKind.TEXT) {
         ButtonLook.MATERIAL
-    } else if (kind == ButtonKind.FILLED && fill.alpha > 0f) {
+    } else if (kind == ButtonKind.FILLED && enabledFill.alpha > 0f && enabledFill == palette.accentGreen) {
         ButtonLook(
             flat = true,
             gradientStart = palette.accentBlue,
@@ -34,6 +38,8 @@ internal fun glassButton(kind: ButtonKind, palette: SkinPalette, fill: Color): B
             glow = palette.accentGreen.copy(alpha = BUTTON_GLOW_ALPHA),
             glowSpread = BUTTON_GLOW_SPREAD,
         )
+    } else if (kind == ButtonKind.FILLED && enabledFill.alpha > 0f) {
+        ButtonLook(flat = true)
     } else {
         val glass = cardLook(CardStyle.GLASS, palette)
         ButtonLook(
@@ -47,7 +53,7 @@ internal fun glassButton(kind: ButtonKind, palette: SkinPalette, fill: Color): B
 /** Graphite Pro's chip: a raised segment (selected) or plain text. */
 internal fun raisedChip(selected: Boolean, enabled: Boolean, palette: SkinPalette): ChipLook = if (selected) {
     val fill = palette.cardBorder
-    ChipLook(fill = if (enabled) fill else fill.dimmed(), label = palette.textPrimary, noBorder = true, raised = true)
+    ChipLook(fill = if (enabled) fill else fill.dimmed(), label = palette.textPrimary, noBorder = true, raised = enabled)
 } else {
     ChipLook(transparent = true, label = palette.textSecondary, noBorder = true, flat = true)
 }

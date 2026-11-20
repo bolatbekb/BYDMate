@@ -106,12 +106,35 @@ class SkinNavLookTest {
         // the bar is max(64, 16 sp x scale + 40) dp: 64 at 1.0, 1.15 and 1.3, then taller
         for (h in listOf(16f * 1.0f + 40, 16f * 1.15f + 40, 16f * 1.3f + 40, 64f, 72f).map { maxOf(64f, it) }) {
             val y = navDotCentreY(h, r, gap)
-            assertEquals("bar $h", h - 6f, y, 0.001f)
+            assertEquals("bar $h", h - gap, y, 0.001f)
             assertTrue("bar $h top", y - r >= 0f)
             assertTrue("bar $h bottom", y + r <= h)
         }
         assertEquals("a gap under the radius is lifted", 61f, navDotCentreY(64f, 3f, 1f), 0.001f)
-        assertEquals("a tiny bar keeps the dot whole", 3f, navDotCentreY(4f, 3f, 6f), 0.001f)
+        assertEquals("a bar shorter than the dot puts its centre at the radius", 3f, navDotCentreY(4f, 3f, 6f), 0.001f)
+    }
+
+    @Test fun dotClearsTheLabelAtEveryTextScale() {
+        val r = NavDotSize.value / 2
+        for (scale in listOf(1.0f, 1.15f, 1.3f)) {
+            val line = 16f * scale
+            val dotTop = navDotCentreY(64f, r, NavDotBottomGap.value) - r
+            // the descenders end inside the line box (about 1 dp above its bottom at 1.0, in proportion)
+            val glyphBottom = navLabelBottom(64f, line) - line * 0.06f
+            assertTrue("text $scale: dot top $dotTop, glyphs end $glyphBottom", dotTop >= glyphBottom)
+        }
+    }
+
+    @Test fun dockBarClearsTheLabelAtEveryTextScale() {
+        // M3's label: 40..56 dp at 1.0, 37.6..58.4 dp at 1.3 in the 64 dp row
+        assertEquals(56f, navLabelBottom(64f, 16f), 0.001f)
+        assertEquals(58.4f, navLabelBottom(64f, 16f * 1.3f), 0.001f)
+        val top = navDockBarTop(NavDockHeight.value, NavDockPlateInsetY.value, NavDockBarGap.value, NavUnderlineHeight.value)
+        for (scale in listOf(1.0f, 1.15f, 1.3f)) {
+            val label = navLabelBottom(NavDockHeight.value, 16f * scale)
+            assertTrue("text $scale: bar top $top, label bottom $label", top >= label)
+            assertTrue("the bar stays inside the plate", top + NavUnderlineHeight.value <= NavDockHeight.value - NavDockPlateInsetY.value)
+        }
     }
 
     private fun NavBottomGapDp() = NavDotBottomGap.value

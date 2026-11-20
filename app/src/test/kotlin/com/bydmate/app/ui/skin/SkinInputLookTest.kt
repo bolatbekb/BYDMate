@@ -115,6 +115,18 @@ class SkinInputLookTest {
         assertFalse(BorderStroke(1.dp, Brush.verticalGradient(listOf(Color.Transparent, Color.Red))).showsNothing())
     }
 
+    @Test fun aSquareSkinsDefaultButtonIsSquare() {
+        val cockpit = Skins.COCKPIT.kit.corners
+        assertEquals(0f, cockpit.scale)
+        assertEquals(FoundationRounded(0.dp, 0.dp, 0.dp, 0.dp), skinButtonShape(CircleShape, CircleShape, cockpit))
+        // Classic keeps M3's pill; a shape the caller chose stays
+        assertSame(CircleShape, skinButtonShape(CircleShape, CircleShape, SkinCorners.CLASSIC))
+        val own = FoundationRounded(8.dp)
+        assertSame(own, skinButtonShape(own, CircleShape, cockpit))
+        // round things elsewhere stay round
+        assertEquals(FoundationRounded(50), percentShapeFor(cockpit, 50))
+    }
+
     @Test fun theM3PillFollowsTheCornerStyle() {
         val cut = SkinCorners(CornerStyle.CUT, 0.75f)
         assertEquals(CutCornerShape(50), skinButtonShape(CircleShape, CircleShape, cut))
@@ -256,6 +268,7 @@ class SkinInputLookTest {
         assertFalse(off.raised)
         val dim = chipLook(CardStyle.OUTLINED, selected = true, enabled = false, p, gr)
         assertEquals(p.cardBorder.alpha * SWITCH_DISABLED_ALPHA, dim.fill.alpha, 0.01f)
+        assertFalse("a disabled chip drops its shadow", dim.raised)
     }
 
     @Test fun voltChipsAreSolidWithAGlowWhenSelected() {
@@ -306,7 +319,7 @@ class SkinInputLookTest {
         assertEquals(CardBorderKind.SOLID, outlined.border)
         assertEquals(p.cardBorder, outlined.borderColor)
         assertEquals(0f, outlined.containerAlpha)
-        val volt = buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, fill)
+        val volt = buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, p.accentGreen)
         assertTrue(volt.gradient)
         assertEquals(p.accentBlue, volt.gradientStart)
         assertEquals(p.accentGreen, volt.gradientEnd)
@@ -320,6 +333,25 @@ class SkinInputLookTest {
         assertFalse("outlined and text stay", buttonLook(CardStyle.GLASS, ButtonKind.OUTLINED, p, fill).gradient)
         assertFalse(buttonLook(CardStyle.GLASS, ButtonKind.TEXT, p, fill).gradient)
         assertFalse("a see-through caller fill stays", buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, Color.Transparent).gradient)
+    }
+
+    @Test fun voltGradientIsForTheAccentButtonOnly() {
+        val accent = p.accentGreen
+        assertTrue(buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, accent).gradient)
+        // a disabled accent button: the state's fill is faint, the enabled one decides, the gradient stays (faded by the wrapper)
+        val faint = accent.copy(alpha = 0.12f)
+        assertTrue(buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, faint, enabledFill = accent).gradient)
+        assertEquals(buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, accent), buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, faint, enabledFill = accent))
+        listOf(p.cardSurfaceElevated, p.accentBlue, Color(0xFFE53935)).forEach { other ->
+            val look = buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, other, enabledFill = other)
+            assertFalse("$other", look.gradient)
+            assertFalse("$other", look.underlay)
+            val c = colors.withLook(look, isDefault = false)
+            assertEquals("the caller's fill stays", fill, c.containerColor)
+            assertEquals(Color.Gray, c.disabledContainerColor)
+            // the same look whether enabled or not
+            assertEquals(look, buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, other.copy(alpha = 0.12f), enabledFill = other))
+        }
     }
 
     @Test fun theSelectionNeverChangesTheChipsCall() {

@@ -167,21 +167,22 @@ private fun LitThumb(style: SliderStyle, interactionSource: MutableInteractionSo
             .size(size)
             .hoverable(interactionSource = interactionSource)
             .then(if (enabled) Modifier else Modifier.alpha(SWITCH_DISABLED_ALPHA))
-            .then(remember(p, gradient) { litThumbDraw(p, gradient) }),
+            .then(remember(p, gradient, enabled) { litThumbDraw(p, gradient, enabled) }),
     )
 }
 
-private fun litThumbDraw(p: SkinPalette, gradient: Boolean): Modifier = Modifier.drawWithCache {
+private fun litThumbDraw(p: SkinPalette, gradient: Boolean, enabled: Boolean): Modifier = Modifier.drawWithCache {
     val r = size.minDimension / 2f
     val ring = GradientThumbRing.toPx()
     val spread = SliderGlowSpread.toPx()
-    val glow = if (gradient) null else Brush.radialGradient(listOf(p.accentGreen.copy(alpha = SLIDER_GLOW_ALPHA), Color.Transparent), Offset(size.width / 2f, size.height / 2f), r + spread)
+    val glow = if (gradient || !enabled) null else Brush.radialGradient(listOf(p.accentGreen.copy(alpha = SLIDER_GLOW_ALPHA), Color.Transparent), Offset(size.width / 2f, size.height / 2f), r + spread)
     onDrawBehind {
         if (gradient) {
             drawCircle(p.accentGreen, r)
             drawCircle(Color.White, r - ring)
         } else {
-            drawCircle(glow!!, r + spread)
+            // a disabled thumb is faded by a clipping layer, which would cut the glow to a square
+            if (glow != null) drawCircle(glow, r + spread)
             drawCircle(p.accentGreen, r)
         }
     }

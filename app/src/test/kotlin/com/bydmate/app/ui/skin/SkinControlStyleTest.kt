@@ -183,6 +183,14 @@ class SkinControlStyleTest {
         }
     }
 
+    @Test fun aDisabledSwitchHasNoGlow() {
+        for (style in listOf(SwitchStyle.HUD, SwitchStyle.GLOW)) {
+            assertTrue("$style on", switchLook(style, true, true, p)!!.glow.isSpecified)
+            assertFalse("$style disabled", switchLook(style, true, false, p)!!.glow.isSpecified)
+            assertFalse("$style off", switchLook(style, false, true, p)!!.glow.isSpecified)
+        }
+    }
+
     @Test fun squareIsRectangularWithTwoDpCorners() {
         val on = switchLook(SwitchStyle.SQUARE, true, true, p)!!
         assertTrue(on.trackFilled)

@@ -63,7 +63,7 @@ fun Button(
     content: @Composable RowScope.() -> Unit,
 ) {
     val fill = if (enabled) colors.containerColor else colors.disabledContainerColor
-    val look = activeButtonLook(ButtonKind.FILLED, fill)
+    val look = activeButtonLook(ButtonKind.FILLED, fill, colors.containerColor)
     val face = skinButtonShape(shape, ButtonDefaults.shape, SkinState.current.kit.corners)
     val styled = skinBorder(look.border, look.borderColor, look.borderFadeColor)
     ProvidePillFrame(look.pill, look.underlay) { touch ->
@@ -155,11 +155,11 @@ fun TextButton(
     )
 }
 
-/** The active skin's look for a [kind] of button whose container is [fill]; a snapshot read of the skin. */
-private fun activeButtonLook(kind: ButtonKind, fill: Color): ButtonLook {
+/** The active skin's look for a [kind] of button whose container is [fill] ([enabledFill] when enabled); a snapshot read of the skin. */
+private fun activeButtonLook(kind: ButtonKind, fill: Color, enabledFill: Color = fill): ButtonLook {
     val style = SkinState.current.kit.controls.card
     if (style == CardStyle.MATERIAL) return ButtonLook.MATERIAL
-    return buttonLook(style, kind, SkinState.palette, fill)
+    return buttonLook(style, kind, SkinState.palette, fill, enabledFill)
 }
 
 /**

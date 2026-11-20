@@ -193,9 +193,9 @@ fun switchLook(style: SwitchStyle, checked: Boolean, enabled: Boolean, palette: 
             trackCorner = 2.dp, thumbColor = mark, thumbFill = palette.navyMid, thumbRing = 2.dp,
             thumbSize = 20.dp, thumbCorner = 10.dp, thumbInset = 0.dp, alpha = alpha,
         )
-        SwitchStyle.HUD -> hudSwitch(checked, alpha, palette)
+        SwitchStyle.HUD -> hudSwitch(checked, enabled, alpha, palette)
         SwitchStyle.IOS -> iosSwitch(checked, alpha, palette)
-        SwitchStyle.GLOW -> glowSwitch(checked, alpha, palette)
+        SwitchStyle.GLOW -> glowSwitch(checked, enabled, alpha, palette)
         SwitchStyle.OUTLINE -> SwitchLook(
             stateColor = state, trackFilled = false, trackStroke = 2.dp, trackHeight = SwitchHeight,
             trackCorner = 16.dp, thumbColor = mark, thumbFill = Color.Transparent, thumbRing = 2.dp,
@@ -263,19 +263,19 @@ val NavEdgeWidth: Dp = CardBorderWidth
 val NavTopLineInset: Dp = 14.dp
 val NavTopGlow: Dp = 10.dp
 
-/** DOT: 6 dp round, its centre 6 dp above the bar's inner bottom edge (the bar is at least 64 dp, so the dot stays whole at every text scale). */
+/** DOT: 6 dp round, its centre 3.5 dp above the bar's inner bottom edge, under the label's descenders (the bar is at least 64 dp, so the dot stays whole at every text scale). */
 val NavDotSize: Dp = 6.dp
-val NavDotBottomGap: Dp = 6.dp
+val NavDotBottomGap: Dp = 3.5.dp
 
-/** DOCK: a 64 dp floating card (radius 22) 8 dp from the bottom and the sides; the selected key a plate (radius 14) with a 24 x 3 dp bar 3 dp above its bottom. */
+/** DOCK: a 64 dp floating card (radius 22) 8 dp from the bottom and the sides; the selected key a plate (radius 14) with a 24 x 3 dp bar 1 dp above its bottom, under the label (navDockBarTop). */
 val NavDockHeight: Dp = 64.dp
 val NavDockRadius: Dp = 22.dp
 val NavDockMargin: Dp = 8.dp
 val NavDockPlateRadius: Dp = 14.dp
 val NavDockPlateInsetX: Dp = 8.dp
-val NavDockPlateInsetY: Dp = 6.dp
+val NavDockPlateInsetY: Dp = 1.dp
 val NavDockBarWidth: Dp = 24.dp
-val NavDockBarGap: Dp = 3.dp
+val NavDockBarGap: Dp = 1.dp
 const val NAV_DOCK_FILL_ALPHA = 0.8f
 const val NAV_LINE_ALPHA = 0.15f
 const val NAV_GLOW_ALPHA = 0.5f

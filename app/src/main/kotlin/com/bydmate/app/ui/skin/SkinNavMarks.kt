@@ -66,10 +66,13 @@ internal fun Modifier.dockHeight(insets: WindowInsets): Modifier = layout { meas
 }
 
 /**
- * What the selected key of TOP and DOCK draws in its slot, behind the ripple (none when it is not
- * lit or in any other style): DOT a dot near the slot's bottom; TOP a 3 dp accent line on the top edge inset 14 dp each side with a
- * glow below it; DOCK a raised plate with a 24 x 3 dp accent bar near its bottom and a glow. The
- * glows are gradients.
+ * What the selected key draws in its slot, behind the ripple (none when it is not lit or in
+ * another style):
+ * - TOP: a 3 dp accent line on the top edge, inset 14 dp each side, with a glow below it;
+ * - DOT: a dot near the slot's bottom, under the label;
+ * - DOCK: a raised plate with a 24 x 3 dp accent bar under the label and a glow.
+ *
+ * The glows are gradients.
  */
 internal fun keyMark(look: NavLook): Modifier = when {
     !look.lit -> Modifier
@@ -99,7 +102,7 @@ private fun Modifier.dockPlate(plate: Color, accent: Color): Modifier = drawWith
     val r = NavDockPlateRadius.toPx()
     val barW = NavDockBarWidth.toPx()
     val barH = NavUnderlineHeight.toPx()
-    val barTop = y + box.height - NavDockBarGap.toPx() - barH
+    val barTop = navDockBarTop(size.height, y, NavDockBarGap.toPx(), barH)
     val barLeft = (size.width - barW) / 2
     val centre = Offset(size.width / 2, barTop + barH / 2)
     val glowR = barW * 0.75f
@@ -111,6 +114,21 @@ private fun Modifier.dockPlate(plate: Color, accent: Color): Modifier = drawWith
         drawRoundRect(accent, Offset(barLeft, barTop), Size(barW, barH), CornerRadius(barH / 2))
     }
 }
+
+/** The top of DOCK's accent bar in a slot [slotHeight] tall: the plate's [insetY] and the [gap] above its bottom edge. */
+fun navDockBarTop(slotHeight: Float, insetY: Float, gap: Float, barHeight: Float): Float =
+    slotHeight - insetY - gap - barHeight
+
+/**
+ * The bottom of the label line of an M3 1.3.1 NavigationBarItem in a slot [slotHeight] tall, the
+ * line being [labelHeight] high: the 32 dp indicator and the label are centred, at least 4 dp
+ * from the top; the label starts 8 dp under the padding plus the 24 dp icon.
+ */
+fun navLabelBottom(slotHeight: Float, labelHeight: Float): Float =
+    maxOf((slotHeight - NAV_ITEM_CONTENT - labelHeight) / 2f, NAV_ITEM_MIN_PAD) + NAV_ITEM_CONTENT + labelHeight
+
+private const val NAV_ITEM_CONTENT = 32f
+private const val NAV_ITEM_MIN_PAD = 4f
 
 /**
  * The centre of DOT's dot, from the top of the key's slot: [gap] above the slot's bottom edge, the

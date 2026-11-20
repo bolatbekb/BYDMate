@@ -67,21 +67,22 @@ data class ButtonLook(
 
 /**
  * The [kind] of button under the card [style], in [palette]; [fill] is the caller's container
- * colour in the button's state. A filled button keeps its fill in every style: the author's
+ * colour in the button's state ([enabledFill]: the same when enabled). A filled button keeps its fill in every style: the author's
  * buttons colour their text for that fill (NavyDark on AccentGreen), often on the Text itself.
  * - GRAPHITE: the filled button is the Graphite home's pill in its own fill (a see-through one
  *   stays as M3 draws it); the outlined one takes the raised key's edge; the text one the
  *   Graphite text colour; all flat, as the Graphite card;
- * - OUTLINED (Cockpit) and BORDER_ONLY (OLED): the outlined button is an outline only (no
+ * - OUTLINED (Graphite Pro) and BORDER_ONLY (OLED): the outlined button is an outline only (no
  *   container); BORDER_ONLY is flat, as its cards; the cut corners come with the shape;
  * - BRACKETS (Cockpit): the filled button flat; the outlined one an outline of cardBorder;
- * - GLASS (Volt): the filled button a gradient accentBlue to accentGreen with a glow, under a
- *   see-through container; the outlined button the glass card's top highlight edge and a
+ * - GLASS (Volt): the filled button in the skin accent ([enabledFill] is accentGreen, M3's default) a
+ *   gradient accentBlue to accentGreen with a glow, under a see-through container; any other
+ *   filled button keeps its fill, flat; the outlined button the glass card's top highlight edge and a
  *   see-through container; the text one M3's own;
  * - FLAT: no elevation;
  * - STRIPE (Telemetry): the filled button flat; the others M3's own, with the skin's corners.
  */
-fun buttonLook(style: CardStyle, kind: ButtonKind, palette: SkinPalette, fill: Color): ButtonLook = when (style) {
+fun buttonLook(style: CardStyle, kind: ButtonKind, palette: SkinPalette, fill: Color, enabledFill: Color = fill): ButtonLook = when (style) {
     CardStyle.MATERIAL -> ButtonLook.MATERIAL
     CardStyle.STRIPE -> if (kind == ButtonKind.FILLED) ButtonLook(flat = true) else ButtonLook.MATERIAL
     CardStyle.FLAT -> ButtonLook(flat = true)
@@ -91,7 +92,7 @@ fun buttonLook(style: CardStyle, kind: ButtonKind, palette: SkinPalette, fill: C
         containerAlpha = if (kind == ButtonKind.OUTLINED) 0f else 1f,
         flat = style == CardStyle.BORDER_ONLY,
     )
-    CardStyle.GLASS -> glassButton(kind, palette, fill)
+    CardStyle.GLASS -> glassButton(kind, palette, fill, enabledFill)
 }
 
 const val BUTTON_GLOW_ALPHA = 0.35f
@@ -214,10 +215,15 @@ private const val PILL_PERCENT = 50
  * The shape of a button whose caller passed [shape], [default] being M3's for that button (the
  * full pill, CircleShape). The caller's own shape stays: the fork RoundedCornerShape already
  * follows the skin. M3's pill follows the skin's corner style, its percent kept (a CUT skin cuts
- * it), as RoundedCornerShape(50) does. The classic corners give the caller's shape itself.
+ * it), as RoundedCornerShape(50) does; a skin with square corners (scale 0) gets square buttons. The classic corners give the caller's shape itself.
  */
 fun skinButtonShape(shape: Shape, default: Shape, corners: SkinCorners): Shape =
-    if (corners == SkinCorners.CLASSIC || shape != default || default != CircleShape) shape else percentShapeFor(corners, PILL_PERCENT)
+    when {
+        corners == SkinCorners.CLASSIC || shape != default || default != CircleShape -> shape
+        // square skin: M3's pill is square too (percentShapeFor keeps its percent, a round dot elsewhere stays round)
+        corners.scale == 0f -> shapeFor(corners, 0.dp, 0.dp, 0.dp, 0.dp)
+        else -> percentShapeFor(corners, PILL_PERCENT)
+    }
 
 /**
  * An outlined text field in one style: [fill] fills a see-through container (the Graphite home's

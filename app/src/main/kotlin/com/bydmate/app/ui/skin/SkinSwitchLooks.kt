@@ -29,15 +29,15 @@ internal fun graphiteSwitch(checked: Boolean, alpha: Float, palette: SkinPalette
     )
 }
 
-/** Cockpit: a square-cornered 52 x 28 outline, a block thumb, a soft glow around it when on. */
-internal fun hudSwitch(checked: Boolean, alpha: Float, palette: SkinPalette): SwitchLook {
+/** Cockpit: a square-cornered 52 x 28 outline, a block thumb, a soft glow around it when on and enabled (a faded glow would be cut to the box). */
+internal fun hudSwitch(checked: Boolean, enabled: Boolean, alpha: Float, palette: SkinPalette): SwitchLook {
     val c = if (checked) palette.accentGreen else palette.textMuted
     return SwitchLook(
         stateColor = c, trackFilled = false, trackStroke = 1.dp, trackHeight = 28.dp,
         trackCorner = 0.dp, thumbColor = c, thumbFill = c, thumbRing = 0.dp,
         thumbSize = 20.dp, thumbCorner = 0.dp, thumbInset = 3.dp, alpha = alpha, thumbWidth = 22.dp,
         trackFill = if (checked) palette.accentGreen.copy(alpha = 0.12f) else Color.Transparent,
-        glow = if (checked) palette.accentGreen.copy(alpha = 0.5f) else Color.Unspecified,
+        glow = if (checked && enabled) palette.accentGreen.copy(alpha = 0.5f) else Color.Unspecified,
         glowSpread = 16.dp, glowOnThumb = true,
     )
 }
@@ -54,15 +54,15 @@ internal fun iosSwitch(checked: Boolean, alpha: Float, palette: SkinPalette): Sw
     )
 }
 
-/** Volt: a filled pill with a glow around the track when on. */
-internal fun glowSwitch(checked: Boolean, alpha: Float, palette: SkinPalette): SwitchLook {
+/** Volt: a filled pill with a glow around the track when on and enabled. */
+internal fun glowSwitch(checked: Boolean, enabled: Boolean, alpha: Float, palette: SkinPalette): SwitchLook {
     val thumb = if (checked) palette.navyDark else palette.textSecondary
     return SwitchLook(
         stateColor = if (checked) palette.accentGreen else palette.cardSurfaceElevated,
         trackFilled = true, trackStroke = 0.dp, trackHeight = SwitchHeight, trackCorner = 16.dp,
         thumbColor = thumb, thumbFill = thumb, thumbRing = 0.dp,
         thumbSize = 26.dp, thumbCorner = 13.dp, thumbInset = 3.dp, alpha = alpha,
-        glow = if (checked) palette.accentGreen.copy(alpha = 0.45f) else Color.Unspecified,
+        glow = if (checked && enabled) palette.accentGreen.copy(alpha = 0.45f) else Color.Unspecified,
         glowSpread = 14.dp,
     )
 }
