@@ -197,6 +197,11 @@ class GraphiteSkinTest {
         assertEquals(on.thumbSize, off.thumbSize)
     }
 
+    @Test fun `nested edge is a hairline only when the key edge is opaque`() {
+        assertTrue(graphiteNestedEdgeIsHairline(Color(0xFF0078D4)))
+        assertFalse(graphiteNestedEdgeIsHairline(Color.White.copy(alpha = 0.08f)))
+    }
+
     @Test fun `nested edge doubles the key edge alpha, capped at 1`() {
         assertEquals(0.16f, graphiteNestedEdge(Color.White.copy(alpha = 0.08f)).alpha, 0.005f)
         assertEquals(1f, graphiteNestedEdge(Color.White.copy(alpha = 0.7f)).alpha, 0.001f)

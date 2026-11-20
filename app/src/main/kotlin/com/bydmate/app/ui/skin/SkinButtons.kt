@@ -157,7 +157,7 @@ private fun activeButtonLook(kind: ButtonKind, fill: Color): ButtonLook {
 
 /**
  * The border of [kind]: [color] solid, or [color] fading to [fade] (TOP_HIGHLIGHT), or the Graphite
- * raised key's edge; null for NONE. Remembered per colour. Cards (SkinCard.kt), buttons and chips share it.
+ * nested edge (graphiteEdgeBorder); null for NONE. Remembered per colour. Cards (SkinCard.kt), buttons and chips share it.
  */
 @Composable
 internal fun skinBorder(kind: CardBorderKind, color: Color, fade: Color): BorderStroke? = when (kind) {

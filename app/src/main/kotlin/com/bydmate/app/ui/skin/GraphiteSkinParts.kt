@@ -66,17 +66,23 @@ internal fun graphiteLookFor(on: Boolean): GrLook = if (on) GraphiteLookState.lo
 @Composable
 internal fun graphitePaletteFor(on: Boolean): GrPalette = if (on) GraphiteLookState.scheme.palette else LocalGr.current
 
-/**
- * The edge of a card inside a Graphite card (CardBorderKind.GRAPHITE_EDGE): the 1 px edge of the
- * Graphite home's raised key, tabActiveEdge of the live scheme, over the caller's own container.
- */
 /** The nested blocks' edge: the key edge at twice its alpha (capped at 1), so it reads inside a card. */
 internal fun graphiteNestedEdge(edge: Color): Color = edge.copy(alpha = (edge.alpha * 2f).coerceAtMost(1f))
 
+/** True when [edge] is opaque (Hub, Code): the nested edge keeps the key's own hairline, px(1), not 1 dp. */
+internal fun graphiteNestedEdgeIsHairline(edge: Color): Boolean = edge.alpha >= 1f
+
+/**
+ * The edge of a card inside a Graphite card (CardBorderKind.GRAPHITE_EDGE), also the outlined
+ * button's: the live scheme's tabActiveEdge at twice its alpha (graphiteNestedEdge), 1 dp wide, or
+ * px(1) when that edge is opaque, over the caller's own container.
+ */
 @Composable
 internal fun graphiteEdgeBorder(): BorderStroke {
     val edge = GraphiteLookState.scheme.palette.tabActiveEdge
-    return remember(edge) { BorderStroke(1.dp, graphiteNestedEdge(edge)) }
+    return remember(edge) {
+        BorderStroke(if (graphiteNestedEdgeIsHairline(edge)) px(1) else 1.dp, graphiteNestedEdge(edge))
+    }
 }
 
 /**

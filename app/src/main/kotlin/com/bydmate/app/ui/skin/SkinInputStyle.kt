@@ -143,9 +143,10 @@ data class ChipLook(
 /**
  * The chip under the card [style] in [palette]; [gr] is the Graphite scheme, read by GRAPHITE only.
  * - GRAPHITE: the Graphite home's chips. Selected, the accent-tinted key (highlight at 16 % with
- *   a 50 % rim and a highlight label), the same look as the selected settings section; otherwise
- *   the top bar's plaque (chip with chipEdge) and
- *   textSecondary. Disabled, the pill at M3's disabled alpha;
+ *   a 50 % highlight edge, a full contour on the Edge scheme and a 1 px top highlight in the
+ *   others, and a highlight label), the same look as the selected settings section; otherwise the
+ *   top bar's plaque (chip with chipEdge) and textSecondary. Disabled, the pill at M3's disabled
+ *   alpha;
  * - OUTLINED (Cockpit) and BORDER_ONLY (OLED): an outline only. No container; the edge and the
  *   selected label in the accent, the unselected edge in cardBorder;
  * - GLASS (Volt): the glass card's top highlight edge;

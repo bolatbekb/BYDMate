@@ -12,8 +12,9 @@ import kotlin.math.roundToInt
 // style is one more branch in each `when` below.
 
 /**
- * How a styled card outlines itself. GRAPHITE_EDGE is the 1 px edge of the Graphite home's raised
- * key (tabActiveEdge of the live scheme), which SkinCard reads from GraphiteLookState.
+ * How a styled card outlines itself. GRAPHITE_EDGE is the Graphite raised key's edge colour
+ * (tabActiveEdge of the live scheme) at twice its alpha, 1 dp wide (px(1) when opaque), which
+ * SkinCard reads from GraphiteLookState.
  */
 enum class CardBorderKind { NONE, SOLID, TOP_HIGHLIGHT, GRAPHITE_EDGE }
 
