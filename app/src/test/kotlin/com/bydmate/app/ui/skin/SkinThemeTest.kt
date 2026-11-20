@@ -23,7 +23,7 @@ class SkinThemeTest {
 
     @Test fun everyOtherSkinHasTheSpecKit() {
         assertEquals(
-            SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f),
+            SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2, glow = true), SkinCorners(CornerStyle.ROUNDED, 0f),
                 SkinControls(SwitchStyle.HUD, CardStyle.BRACKETS, SliderStyle.THIN, NavStyle.TOP, CheckStyle.SQUARE), BackgroundStyle.GRID),
             Skins.COCKPIT.kit)
         assertEquals(
@@ -31,7 +31,7 @@ class SkinThemeTest {
                 SkinControls(SwitchStyle.IOS, CardStyle.OUTLINED, SliderStyle.MATERIAL, NavStyle.DOT), BackgroundStyle.AUTHOR),
             Skins.GRAPHITE.kit)
         assertEquals(
-            SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f),
+            SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f, glow = true), SkinCorners(CornerStyle.ROUNDED, 1.5f),
                 SkinControls(SwitchStyle.GLOW, CardStyle.GLASS, SliderStyle.GLOW, NavStyle.DOCK), BackgroundStyle.NEON),
             Skins.VOLT.kit)
         assertEquals(

@@ -6,6 +6,8 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.home.graphite.GrFont
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -113,5 +115,41 @@ class SkinNumbersTest {
         assertEquals("cv11, tnum", tnumSettings("cv11"))
         assertEquals("tnum, cv11", tnumSettings("tnum, cv11"))
         assertEquals("cv11, tnum", tnumSettings(tnumSettings("cv11")))
+    }
+
+    private val accent = Color(0xFF00E676)
+
+    @Test fun glowForABigNumber() {
+        val s = numberGlow(24.sp, accent, 22f)!!
+        assertEquals(accent.copy(alpha = 0.40f), s.color)
+        assertEquals(Offset.Zero, s.offset)
+        assertEquals(22f, s.blurRadius, 0f)
+        assertEquals(s, numberGlow(24.sp, accent, 22f))
+        assertEquals(numberGlow(23.sp, accent, 22f)!!.color, s.color)
+    }
+
+    @Test fun noGlowForASmallNumber() {
+        assertNull(numberGlow(22.sp, accent, 22f))
+        assertNull(numberGlow(TextUnit.Unspecified, accent, 22f))
+    }
+
+    @Test fun glowGate() {
+        assertTrue(glowsNumber(true, mono, null, "12,5"))
+        assertTrue(glowsNumber(true, null, mono, "12"))
+        assertFalse(glowsNumber(false, mono, null, "12"))
+        assertFalse(glowsNumber(true, mono, null, "12 км"))
+        assertFalse(glowsNumber(true, null, null, "12"))
+        assertFalse(glowsNumber(true, FontFamily.Default, mono, "12"))
+    }
+
+    @Test fun glowOnlyForCockpitAndVolt() {
+        assertTrue(Skins.COCKPIT.kit.fonts.glow)
+        assertTrue(Skins.VOLT.kit.fonts.glow)
+        assertFalse(Skins.CLASSIC.kit.fonts.glow)
+        assertFalse(Skins.GRAPHITE.kit.fonts.glow)
+        assertFalse(Skins.TELEMETRY.kit.fonts.glow)
+        assertFalse(Skins.OLED.kit.fonts.glow)
+        assertFalse(graphiteKit(GrFont.INTER).fonts.glow)
+        assertFalse(graphiteKit(GrFont.DILINK).fonts.glow)
     }
 }

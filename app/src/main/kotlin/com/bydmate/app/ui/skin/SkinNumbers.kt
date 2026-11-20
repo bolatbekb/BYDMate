@@ -80,29 +80,6 @@ fun SkinFont.forNumber(size: TextUnit, weight: FontWeight?, fallback: SkinFont =
 /** The font a number takes when Rajdhani does not fit: the skin's text font, else SYSTEM (Graphite DiLink keeps SYSTEM). */
 fun numberFallback(text: SkinFont): SkinFont = if (text != SkinFont.SYSTEM) text else SkinFont.SYSTEM
 
-/**
- * Fonts whose digits are made tabular here: Inter's and Exo 2's are proportional by default and
- * have a tnum feature; the system font (Roboto) is tabular, and tnum keeps any other system font
- * still. Roboto Condensed's digits are tabular already; Rajdhani has no tnum (see numberFont).
- */
-internal fun SkinFont.needsTnum(): Boolean = this == SkinFont.INTER || this == SkinFont.EXO2 || this == SkinFont.SYSTEM
-
-/** The family a numeric [SkinFont] draws in: SYSTEM is the platform default (Roboto), never the caller's Monospace. */
-private fun SkinFont.numberFamily(): FontFamily = family() ?: FontFamily.Default
-
-/** [have] (a style's feature settings) with "tnum" in it exactly once. */
-internal fun tnumSettings(have: String?): String = when {
-    have.isNullOrEmpty() -> "tnum"
-    have.split(',').any { it.trim().startsWith("tnum") } -> have
-    else -> "$have, tnum"
-}
-
-private fun TextStyle.withTnum(): TextStyle {
-    val have = fontFeatureSettings
-    val want = tnumSettings(have)
-    return if (want == have) this else merge(TextStyle(fontFeatureSettings = want))
-}
-
 @Composable
 fun Text(
     text: String,
@@ -125,12 +102,13 @@ fun Text(
 ) {
     val font = numberFont(SkinState.current.kit.fonts.numeric, fontFamily, style.fontFamily, text)
         ?.forNumber(if (fontSize.isSpecified) fontSize else style.fontSize, fontWeight ?: style.fontWeight, numberFallback(SkinState.current.kit.fonts.text))
+    val base = if (font != null && font.needsTnum()) style.withTnum() else style
     M3Text(
         text, modifier, color, fontSize, fontStyle, fontWeight,
         if (font == null) fontFamily else font.numberFamily(),
         letterSpacing, textDecoration, textAlign, lineHeight, overflow, softWrap, maxLines, minLines,
         onTextLayout,
-        if (font != null && font.needsTnum()) style.withTnum() else style,
+        glowStyle(base, SkinState.current.kit.fonts.glow, fontFamily, text, if (fontSize.isSpecified) fontSize else style.fontSize, SkinState.palette.accentGreen),
     )
 }
 
@@ -157,11 +135,12 @@ fun Text(
 ) {
     val font = numberFont(SkinState.current.kit.fonts.numeric, fontFamily, style.fontFamily, text.text)
         ?.forNumber(if (fontSize.isSpecified) fontSize else style.fontSize, fontWeight ?: style.fontWeight, numberFallback(SkinState.current.kit.fonts.text))
+    val base = if (font != null && font.needsTnum()) style.withTnum() else style
     M3Text(
         text, modifier, color, fontSize, fontStyle, fontWeight,
         if (font == null) fontFamily else font.numberFamily(),
         letterSpacing, textDecoration, textAlign, lineHeight, overflow, softWrap, maxLines, minLines,
         inlineContent, onTextLayout,
-        if (font != null && font.needsTnum()) style.withTnum() else style,
+        glowStyle(base, SkinState.current.kit.fonts.glow, fontFamily, text.text, if (fontSize.isSpecified) fontSize else style.fontSize, SkinState.palette.accentGreen),
     )
 }

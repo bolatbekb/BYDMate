@@ -119,7 +119,7 @@ object Skins {
             chartGrid = Color(0xFF141B23),
             navBarBackground = Color(0xFF05070A),
         ),
-        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f), SkinControls(SwitchStyle.HUD, CardStyle.BRACKETS, SliderStyle.THIN, NavStyle.TOP, CheckStyle.SQUARE), BackgroundStyle.GRID),
+        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2, glow = true), SkinCorners(CornerStyle.ROUNDED, 0f), SkinControls(SwitchStyle.HUD, CardStyle.BRACKETS, SliderStyle.THIN, NavStyle.TOP, CheckStyle.SQUARE), BackgroundStyle.GRID),
     )
 
     /** 2 · Graphite Pro: neutral graphite, periwinkle accent. */
@@ -166,7 +166,7 @@ object Skins {
             chartGrid = Color(0xFF141C33),
             navBarBackground = Color(0xFF0A0F1E),
         ),
-        SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f), SkinControls(SwitchStyle.GLOW, CardStyle.GLASS, SliderStyle.GLOW, NavStyle.DOCK), BackgroundStyle.NEON),
+        SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f, glow = true), SkinCorners(CornerStyle.ROUNDED, 1.5f), SkinControls(SwitchStyle.GLOW, CardStyle.GLASS, SliderStyle.GLOW, NavStyle.DOCK), BackgroundStyle.NEON),
     )
 
     /** 4 · Telemetry: race-telemetry black, signal orange. */

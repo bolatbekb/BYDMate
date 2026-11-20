@@ -26,8 +26,9 @@ enum class CheckStyle { MATERIAL, SQUARE }
 /**
  * [sizeFactor] evens out fonts that run wider or narrower than Roboto; it multiplies the user's text scale.
  * [numeric] is the font of the author's monospace numbers (SkinNumbers.kt); null keeps the monospace.
+ * [glow] puts a soft accent glow behind big numbers (SkinNumberGlow.kt).
  */
-data class SkinFonts(val text: SkinFont = SkinFont.SYSTEM, val sizeFactor: Float = 1f, val numeric: SkinFont? = null)
+data class SkinFonts(val text: SkinFont = SkinFont.SYSTEM, val sizeFactor: Float = 1f, val numeric: SkinFont? = null, val glow: Boolean = false)
 
 data class SkinCorners(val style: CornerStyle = CornerStyle.ROUNDED, val scale: Float = 1f) {
     companion object {
