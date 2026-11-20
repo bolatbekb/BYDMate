@@ -1,13 +1,13 @@
 package com.bydmate.app.ui.skin
 
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.ui.home.graphite.GrFont
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
