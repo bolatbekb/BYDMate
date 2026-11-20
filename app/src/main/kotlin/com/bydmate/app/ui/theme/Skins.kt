@@ -143,7 +143,7 @@ object Skins {
             navBarBackground = Color(0xFF0F1013),
             navIndicator = Color(0xFF2A2C33),
         ),
-        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.MATERIAL, CardStyle.FLAT, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
+        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.MATERIAL, CardStyle.OUTLINED, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
     )
 
     /** 3 · Volt: deep navy, electric green with fuel amber. */
@@ -212,7 +212,7 @@ object Skins {
             chartGrid = Color(0xFF1A1A1A),
             navBarBackground = Color(0xFF000000),
         ),
-        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.OUTLINE, CardStyle.OUTLINED, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
+        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
     )
 
     /**

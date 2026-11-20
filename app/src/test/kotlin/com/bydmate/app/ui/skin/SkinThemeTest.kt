@@ -28,7 +28,7 @@ class SkinThemeTest {
             Skins.COCKPIT.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f),
-                SkinControls(SwitchStyle.MATERIAL, CardStyle.FLAT, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.AUTHOR),
+                SkinControls(SwitchStyle.MATERIAL, CardStyle.OUTLINED, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.AUTHOR),
             Skins.GRAPHITE.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f),
@@ -40,7 +40,7 @@ class SkinThemeTest {
             Skins.TELEMETRY.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f),
-                SkinControls(SwitchStyle.OUTLINE, CardStyle.OUTLINED, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
+                SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
             Skins.OLED.kit)
     }
 

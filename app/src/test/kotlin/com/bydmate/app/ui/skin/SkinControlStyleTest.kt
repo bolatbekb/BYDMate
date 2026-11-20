@@ -141,7 +141,7 @@ class SkinControlStyleTest {
 
         assertEquals(DividerLook.FADED_ENDS, dividerLook(CardStyle.GLASS))
         assertEquals(DividerLook.CARD_BORDER, dividerLook(CardStyle.BORDER_ONLY))
-        listOf(CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE).forEach {
+        listOf(CardStyle.MATERIAL, CardStyle.OUTLINED, CardStyle.FLAT, CardStyle.STRIPE, CardStyle.BRACKETS).forEach {
             assertEquals(it.name, DividerLook.AS_GIVEN, dividerLook(it))
         }
     }
