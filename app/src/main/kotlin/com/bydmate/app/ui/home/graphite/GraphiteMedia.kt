@@ -71,12 +71,12 @@ import com.bydmate.app.ui.home.common.px
 import java.util.Locale
 import kotlinx.coroutines.delay
 
-/** Cover side (mockup px) in the regular and the compact card (compact: the PM2.5 line shortens the top cards). */
 /** Share of the row's extra height (0..232 mockup px) that grows the cover; the card's spacer takes the rest. */
 private const val COVER_SHARE = 0.5f
 
 // The cover never squeezes the title: Meta = SIDE_COLUMN 805 - padding 2*34 - gap 30 - cover = 707 - cover,
 // 477 px at extra 0 and 361 px at extra 232 (cover 346), above the 320 px floor, so no cap is needed.
+/** Cover side (mockup px) in the regular and the compact card (compact: the PM2.5 line shortens the top cards). */
 internal fun coverSide(compact: Boolean, extra: Float = 0f): Float = (if (compact) 192f else 230f) + extra * COVER_SHARE
 
 /** «Медиа» card: source pill, cover and title, progress, transport row and media volume. */

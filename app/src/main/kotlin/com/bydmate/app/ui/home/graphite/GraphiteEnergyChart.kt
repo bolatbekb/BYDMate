@@ -32,16 +32,16 @@ import kotlin.math.min
 
 /* ---------------------------------------------------------------- «Расход энергии» chart */
 
-/**
- * The chart; its bars grow in from the baseline whenever a series for another period arrives
- * (and on the first one). [grow] holds the elapsed ms of that grow-in, read only while drawing.
- */
 /** The Energy card receives the whole row's extra height (tall screens, 0..232 mockup px); the chart takes all of it. */
 private const val CHART_SHARE = 1f
 
 /** Chart height (mockup px): 266 at extra 0. */
 internal fun chartHeight(extra: Float): Float = 266f + extra * CHART_SHARE
 
+/**
+ * The chart; its bars grow in from the baseline whenever a series for another period arrives
+ * (and on the first one). [grow] holds the elapsed ms of that grow-in, read only while drawing.
+ */
 @Composable
 internal fun EnergyChart(series: EnergySeries?, hasFuelTank: Boolean) {
     val p = LocalGr.current

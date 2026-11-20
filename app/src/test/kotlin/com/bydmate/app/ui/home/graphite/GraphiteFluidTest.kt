@@ -1,6 +1,7 @@
 package com.bydmate.app.ui.home.graphite
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class GraphiteFluidTest {
@@ -16,8 +17,8 @@ class GraphiteFluidTest {
     }
 
     @Test fun coverLeavesTheTitleRoom() {
-        // side column 805 - padding 2*34 - gap 30 - cover
-        for (compact in listOf(false, true)) assert(805f - 68f - 30f - coverSide(compact, 232f) >= 320f)
+        // SIDE_COLUMN - padding 2*34 - gap 30 - cover
+        for (compact in listOf(false, true)) assertTrue(SIDE_COLUMN - 68f - 30f - coverSide(compact, 232f) >= 320f)
     }
 
     @Test fun gapsStretch() {
@@ -32,6 +33,6 @@ class GraphiteFluidTest {
         assertEquals(r.footer + 38, s.footer)
         assertEquals(r.bottom + 4, s.bottom)
         assertEquals(232, (s.number + s.bar + s.scale + s.divider + s.gauges + s.footer + s.bottom) -
-            (r.number + r.bar + r.scale + r.divider + r.gauges + r.footer + r.bottom) + 0)
+            (r.number + r.bar + r.scale + r.divider + r.gauges + r.footer + r.bottom))
     }
 }

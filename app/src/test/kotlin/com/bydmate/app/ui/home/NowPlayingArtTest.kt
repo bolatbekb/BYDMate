@@ -16,8 +16,8 @@ import org.robolectric.annotation.Config
 class NowPlayingArtTest {
     @Test fun downscalesKeepingAspect() {
         val out = scaleArt(Bitmap.createBitmap(1000, 500, Bitmap.Config.ARGB_8888))
-        assertEquals(264, out.width)
-        assertEquals(132, out.height)
+        assertEquals(ART_MAX_PX, out.width)
+        assertEquals(ART_MAX_PX / 2, out.height)
     }
 
     @Test fun neverUpscales() {

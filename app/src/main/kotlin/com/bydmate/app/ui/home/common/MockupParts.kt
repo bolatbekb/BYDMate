@@ -54,9 +54,9 @@ import java.util.Locale
 import kotlin.math.min
 
 /*
- * Shared by the mockup homes (C-Drive, Graphite): each is laid out on a 2560 x 1208 mockup, twice
- * the car's 1280 x 604 dp content area. Everything is placed on the mockup's pixel grid, converted
- * by [K].
+ * Shared by the mockup homes (C-Drive, Graphite): each is laid out on a 2560-wide mockup grid
+ * (twice the car's 1280 dp): C-Drive 1208 tall, Graphite 1080 tall and fluid up to 1312. Everything
+ * is placed on the mockup's pixel grid, converted by [K].
  */
 
 /** Mockup pixel to dp. */
@@ -102,7 +102,6 @@ internal fun MockupFrame(
 // fork: fluid frame. The mockup grows from 2560 x baseH up to 2560 x (baseH + 232) design px with the height.
 
 private const val DESIGN_W_PX = 2560f
-private const val DESIGN_BASE_H_PX = 1208f
 private const val DESIGN_MAX_EXTRA_PX = 232f
 
 /** The fluid frame: [scale] by width, [heightPx] design px of content, [extraPx] = heightPx - the base height. */
@@ -115,9 +114,11 @@ internal data class FluidFrame(val scale: Float, val heightPx: Float, val extraP
 internal fun fluidFrame(
     maxWidthDp: Float,
     maxHeightDp: Float,
-    baseHPx: Float = DESIGN_BASE_H_PX,
+    baseHPx: Float,
     maxExtraPx: Float = DESIGN_MAX_EXTRA_PX,
 ): FluidFrame {
+    // a 0 x 0 (or negative) area: scale 0, no extra, as the fixed frame does (never NaN)
+    if (maxWidthDp <= 0f || maxHeightDp <= 0f) return FluidFrame(0f, baseHPx, 0f)
     val sw = maxWidthDp / (DESIGN_W_PX * K)
     val sh = maxHeightDp / (baseHPx * K)
     if (sh < sw) return FluidFrame(sh, baseHPx, 0f)

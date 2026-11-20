@@ -109,7 +109,7 @@ private const val MAX_BYTES = 4 * 1024 * 1024
 private const val TIMEOUT_MS = 5_000
 private const val MAX_REDIRECTS = 3
 
-/** Loads [uri] and scales it to ≤ 264 px. Blocking: call it off the main thread. */
+/** Loads [uri] and scales it to ≤ [ART_MAX_PX]. Blocking: call it off the main thread. */
 @Suppress("TooGenericExceptionCaught") // why: the URI comes from any third-party player; whatever its provider throws must end as «uri failed», never a crash
 internal fun loadArtUri(ctx: Context, uri: String): ArtLoad = try {
     val bytes = when (uriKind(uri)) {
@@ -172,8 +172,8 @@ private fun redirectTarget(c: HttpURLConnection, url: URL): URL =
 /** A non-200 answer; the log shows only its code. */
 private class HttpStatus(code: Int) : java.io.IOException("http $code")
 
-/** Decodes [bytes] sampled down close to 264 px first (bounds pass), then [scaleArt]. */
-private fun decodeScaled(bytes: ByteArray, max: Int = 264): Bitmap? {
+/** Decodes [bytes] sampled down close to [ART_MAX_PX] first (bounds pass), then [scaleArt]. */
+private fun decodeScaled(bytes: ByteArray, max: Int = ART_MAX_PX): Bitmap? {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     val longest = maxOf(bounds.outWidth, bounds.outHeight)

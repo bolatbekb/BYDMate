@@ -479,8 +479,11 @@ object NowPlayingSource : MusicControls {
     }
 }
 
+/** The longest side of a decoded cover, px: the Graphite cover reaches 346 px on a tall screen. */
+internal const val ART_MAX_PX = 352
+
 /** Downscales [src] so its longer side is at most [max], keeping the aspect; never upscales (same instance). */
-internal fun scaleArt(src: Bitmap, max: Int = 264): Bitmap {
+internal fun scaleArt(src: Bitmap, max: Int = ART_MAX_PX): Bitmap {
     val longest = maxOf(src.width, src.height)
     if (longest <= max) return src
     val k = max.toFloat() / longest

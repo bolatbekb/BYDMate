@@ -4,24 +4,24 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class MockupFrameTest {
-    private fun check(w: Float, h: Float, want: FluidFrame, base: Float = 1208f) {
+    private fun check(w: Float, h: Float, want: FluidFrame, base: Float) {
         val f = fluidFrame(w, h, base)
         assertEquals(want.scale, f.scale, 0.0001f)
         assertEquals(want.heightPx, f.heightPx, 0.001f)
         assertEquals(want.extraPx, f.extraPx, 0.001f)
     }
 
-    @Test fun `the car's content area is today's frame`() = check(1280f, 604f, FluidFrame(1f, 1208f, 0f))
+    @Test fun `the car's content area is today's frame`() = check(1280f, 604f, FluidFrame(1f, 1208f, 0f), 1208f)
 
-    @Test fun `a taller area gives the full extra`() = check(1280f, 720f, FluidFrame(1f, 1440f, 232f))
+    @Test fun `a taller area gives the full extra`() = check(1280f, 720f, FluidFrame(1f, 1440f, 232f), 1208f)
 
-    @Test fun `a part of the extra`() = check(1280f, 680f, FluidFrame(1f, 1360f, 152f))
+    @Test fun `a part of the extra`() = check(1280f, 680f, FluidFrame(1f, 1360f, 152f), 1208f)
 
-    @Test fun `above 1440 the rest letterboxes`() = check(1280f, 800f, FluidFrame(1f, 1440f, 232f))
+    @Test fun `above 1440 the rest letterboxes`() = check(1280f, 800f, FluidFrame(1f, 1440f, 232f), 1208f)
 
-    @Test fun `too short keeps the min scale`() = check(1280f, 500f, FluidFrame(500f / 604f, 1208f, 0f))
+    @Test fun `too short keeps the min scale`() = check(1280f, 500f, FluidFrame(500f / 604f, 1208f, 0f), 1208f)
 
-    @Test fun `a larger screen scales by width`() = check(1920f, 1080f, FluidFrame(1.5f, 1440f, 232f))
+    @Test fun `a larger screen scales by width`() = check(1920f, 1080f, FluidFrame(1.5f, 1440f, 232f), 1208f)
 
     @Test fun `base 1080 - the car is unchanged`() = check(1280f, 540f, FluidFrame(1f, 1080f, 0f), 1080f)
 
@@ -33,5 +33,7 @@ class MockupFrameTest {
 
     @Test fun `base 1080 - too short keeps the min scale`() = check(1280f, 500f, FluidFrame(500f / 540f, 1080f, 0f), 1080f)
 
-    @Test fun `a wide short area keeps the min scale`() = check(2000f, 600f, FluidFrame(600f / 604f, 1208f, 0f))
+    @Test fun `a zero area never gives NaN`() = check(0f, 0f, FluidFrame(0f, 1080f, 0f), 1080f)
+
+    @Test fun `a wide short area keeps the min scale`() = check(2000f, 600f, FluidFrame(600f / 604f, 1208f, 0f), 1208f)
 }
