@@ -10,6 +10,7 @@ import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bydmate.app.ui.home.graphite.GrPalette
+import com.bydmate.app.ui.home.graphite.highlight
 import com.bydmate.app.ui.theme.SkinPalette
 
 // fork: what the buttons, the filter chip, the outlined text field, the checkbox and the radio
@@ -141,8 +142,9 @@ data class ChipLook(
 
 /**
  * The chip under the card [style] in [palette]; [gr] is the Graphite scheme, read by GRAPHITE only.
- * - GRAPHITE: the Graphite home's chips. Selected, the raised key (tabActive with its edge) and
- *   textPrimary, as the home's period tabs; otherwise the top bar's plaque (chip with chipEdge) and
+ * - GRAPHITE: the Graphite home's chips. Selected, the accent-tinted key (highlight at 16 % with
+ *   a 50 % rim and a highlight label), the same look as the selected settings section; otherwise
+ *   the top bar's plaque (chip with chipEdge) and
  *   textSecondary. Disabled, the pill at M3's disabled alpha;
  * - OUTLINED (Cockpit) and BORDER_ONLY (OLED): an outline only. No container; the edge and the
  *   selected label in the accent, the unselected edge in cardBorder;
@@ -155,12 +157,12 @@ fun chipLook(style: CardStyle, selected: Boolean, enabled: Boolean, palette: Ski
         CardStyle.MATERIAL, CardStyle.STRIPE -> ChipLook.MATERIAL
         CardStyle.FLAT -> ChipLook(flat = true)
         CardStyle.GRAPHITE -> {
-            val fill = if (selected) gr.tabActive else gr.chip
+            val fill = if (selected) gr.highlight.copy(alpha = 0.16f) else gr.chip
             ChipLook(
                 pillFill = if (enabled) fill else fill.dimmed(),
-                pillEdge = if (selected) gr.tabActiveEdge else gr.chipEdge,
+                pillEdge = if (selected) gr.highlight.copy(alpha = 0.5f) else gr.chipEdge,
                 transparent = true,
-                label = if (selected) gr.textPrimary else gr.textSecondary,
+                label = if (selected) gr.highlight else gr.textSecondary,
                 flat = true,
             )
         }

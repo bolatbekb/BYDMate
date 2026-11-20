@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.bydmate.app.ui.home.graphite.GrScheme
+import com.bydmate.app.ui.home.graphite.highlight
 import com.bydmate.app.ui.theme.Skins
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -181,12 +182,27 @@ class SkinInputLookTest {
 
     // ---- chips per style
 
+    @Test fun `graphite selected chip is the accent, unselected stays the plaque`() {
+        GrScheme.entries.forEach { s ->
+            val g = s.palette
+            val pal = grToSkinPalette(g)
+            val on = chipLook(CardStyle.GRAPHITE, selected = true, enabled = true, pal, g)
+            assertEquals(s.name, g.highlight, on.label)
+            assertEquals(s.name, g.highlight.copy(alpha = 0.16f), on.pillFill)
+            assertEquals(s.name, g.highlight.copy(alpha = 0.5f), on.pillEdge)
+            val off = chipLook(CardStyle.GRAPHITE, selected = false, enabled = true, pal, g)
+            assertEquals(s.name, g.chip, off.pillFill)
+            assertEquals(s.name, g.chipEdge, off.pillEdge)
+            assertEquals(s.name, g.textSecondary, off.label)
+        }
+    }
+
     @Test fun graphiteChipsAreTheHomesKeys() {
         val on = chipLook(CardStyle.GRAPHITE, selected = true, enabled = true, grSkin, gr)
         assertTrue(on.pill)
-        assertEquals("the raised key", gr.tabActive, on.pillFill)
-        assertEquals(gr.tabActiveEdge, on.pillEdge)
-        assertEquals(gr.textPrimary, on.label)
+        assertEquals(gr.highlight.copy(alpha = 0.16f), on.pillFill)
+        assertEquals(gr.highlight.copy(alpha = 0.5f), on.pillEdge)
+        assertEquals(gr.highlight, on.label)
         assertTrue(on.transparent)
         assertTrue(on.flat)
         val off = chipLook(CardStyle.GRAPHITE, selected = false, enabled = true, grSkin, gr)
@@ -194,7 +210,7 @@ class SkinInputLookTest {
         assertEquals(gr.chipEdge, off.pillEdge)
         assertEquals(gr.textSecondary, off.label)
         val dim = chipLook(CardStyle.GRAPHITE, selected = true, enabled = false, grSkin, gr)
-        assertEquals(gr.tabActive.alpha * SWITCH_DISABLED_ALPHA, dim.pillFill.alpha, 0.01f)
+        assertEquals(0.16f * SWITCH_DISABLED_ALPHA, dim.pillFill.alpha, 0.01f)
         // Edge's plaque has no fill: still a pill, its rim alone
         val edge = GrScheme.entries.first { it.palette.edgeStyle }.palette
         assertTrue(chipLook(CardStyle.GRAPHITE, false, true, grToSkinPalette(edge), edge).pill)

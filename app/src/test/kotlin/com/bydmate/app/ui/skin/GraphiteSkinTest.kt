@@ -2,6 +2,7 @@ package com.bydmate.app.ui.skin
 
 import android.content.Context
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
@@ -194,5 +195,11 @@ class GraphiteSkinTest {
         assertEquals(p.textMuted, off.thumbFill)
         assertTrue("the groove lights when on", on.stateColor != off.stateColor)
         assertEquals(on.thumbSize, off.thumbSize)
+    }
+
+    @Test fun `nested edge doubles the key edge alpha, capped at 1`() {
+        assertEquals(0.16f, graphiteNestedEdge(Color.White.copy(alpha = 0.08f)).alpha, 0.005f)
+        assertEquals(1f, graphiteNestedEdge(Color.White.copy(alpha = 0.7f)).alpha, 0.001f)
+        assertEquals(Color.White.copy(alpha = 0.16f).red, graphiteNestedEdge(Color.White.copy(alpha = 0.08f)).red, 0.001f)
     }
 }

@@ -24,6 +24,7 @@ import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import com.bydmate.app.ui.home.common.px
 import com.bydmate.app.ui.home.graphite.GrLook
 import com.bydmate.app.ui.home.graphite.GrPalette
@@ -69,10 +70,13 @@ internal fun graphitePaletteFor(on: Boolean): GrPalette = if (on) GraphiteLookSt
  * The edge of a card inside a Graphite card (CardBorderKind.GRAPHITE_EDGE): the 1 px edge of the
  * Graphite home's raised key, tabActiveEdge of the live scheme, over the caller's own container.
  */
+/** The nested blocks' edge: the key edge at twice its alpha (capped at 1), so it reads inside a card. */
+internal fun graphiteNestedEdge(edge: Color): Color = edge.copy(alpha = (edge.alpha * 2f).coerceAtMost(1f))
+
 @Composable
 internal fun graphiteEdgeBorder(): BorderStroke {
     val edge = GraphiteLookState.scheme.palette.tabActiveEdge
-    return remember(edge) { BorderStroke(px(1), edge) }
+    return remember(edge) { BorderStroke(1.dp, graphiteNestedEdge(edge)) }
 }
 
 /**

@@ -32,7 +32,7 @@ import androidx.compose.material3.RadioButton as M3RadioButton
 
 // fork: drop-ins for the M3 Checkbox and RadioButton (same names, parameters and defaults as M3
 // 1.3.1). MATERIAL passes every argument straight to M3. SQUARE (Telemetry) draws a square box
-// and a square ring with a square dot in M3's 20 dp box with its 2 dp padding, behind the same
+// and a round ring with a round dot in M3's 20 dp box with its 2 dp padding, behind the same
 // modifiers M3 uses: toggleable (Role.Checkbox) or selectable (Role.RadioButton), the 48 dp touch
 // target, enabled, and M3's round ripple, 40 dp across. With `onCheckedChange` / `onClick` null
 // the check is a picture, as in M3: no touch target and no click. The square faces take their
@@ -121,7 +121,7 @@ fun RadioButton(
     } else {
         Modifier
     }
-    val face = remember(look, selected) { squareRadio(look, selected) }
+    val face = remember(look, selected) { roundRadio(look, selected) }
     Spacer(
         modifier.then(select).wrapContentSize(Alignment.Center)
             .padding(CheckPadding).requiredSize(CheckBoxSize).then(face),
@@ -153,8 +153,8 @@ private fun squareBox(look: CheckLook, checked: Boolean): Modifier = Modifier
         }
     }
 
-/** The SQUARE radio button: a square ring, [CheckLook.on] with a square dot when [selected], else [CheckLook.off]. */
-private fun squareRadio(look: CheckLook, selected: Boolean): Modifier = Modifier
+/** The SQUARE style's radio button, kept round so it never reads as a checkbox: a ring, [CheckLook.on] with a round dot when [selected], else [CheckLook.off]. */
+private fun roundRadio(look: CheckLook, selected: Boolean): Modifier = Modifier
     .then(if (look.alpha < 1f) Modifier.alpha(look.alpha) else Modifier)
     .drawWithCache {
         val stroke = floor(CheckStroke.toPx()).coerceAtLeast(1f)
@@ -162,10 +162,9 @@ private fun squareRadio(look: CheckLook, selected: Boolean): Modifier = Modifier
         val ring = Stroke(stroke)
         val inner = Size(size.width - stroke, size.height - stroke)
         val dot = RadioDotSize.toPx()
-        val dotAt = Offset((size.width - dot) / 2f, (size.height - dot) / 2f)
         val color = if (selected) look.on else look.off
         onDrawBehind {
-            drawRect(color, topLeft = Offset(half, half), size = inner, style = ring)
-            if (selected) drawRect(color, topLeft = dotAt, size = Size(dot, dot))
+            drawOval(color, topLeft = Offset(half, half), size = inner, style = ring)
+            if (selected) drawCircle(color, radius = dot / 2f, center = center)
         }
     }

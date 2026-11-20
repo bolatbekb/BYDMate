@@ -123,13 +123,25 @@ class SkinControlStyleTest {
         }
     }
 
+    @Test fun `volt pill switch off shows its track in textMuted`() {
+        assertEquals(p.textMuted, switchLook(SwitchStyle.PILL, checked = false, enabled = true, p)!!.stateColor)
+        assertEquals(p.accentGreen, switchLook(SwitchStyle.PILL, checked = true, enabled = true, p)!!.stateColor)
+    }
+
+    @Test fun `other styles keep the cardBorder off track`() {
+        listOf(SwitchStyle.SQUARE, SwitchStyle.OUTLINE).forEach {
+            assertEquals(p.cardBorder, switchLook(it, checked = false, enabled = true, p)!!.stateColor)
+        }
+    }
+
     @Test fun switchLookOnOffDisabled() {
         assertNull("MATERIAL is drawn by M3", switchLook(SwitchStyle.MATERIAL, true, true, p))
         listOf(SwitchStyle.SQUARE, SwitchStyle.PILL, SwitchStyle.OUTLINE).forEach { style ->
             for (checked in listOf(true, false)) for (enabled in listOf(true, false)) {
                 val look = switchLook(style, checked, enabled, p)!!
                 val case = "$style checked=$checked enabled=$enabled"
-                assertEquals(case, if (checked) p.accentGreen else p.cardBorder, look.stateColor)
+                val off = if (style == SwitchStyle.PILL) p.textMuted else p.cardBorder
+                assertEquals(case, if (checked) p.accentGreen else off, look.stateColor)
                 assertEquals(case, if (enabled) 1f else 0.38f, look.alpha)
                 // the face fits the M3 switch box: 52 x 32 dp
                 assertTrue(case, look.trackHeight <= 32.dp)

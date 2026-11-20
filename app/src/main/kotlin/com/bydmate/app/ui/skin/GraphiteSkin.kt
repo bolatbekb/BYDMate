@@ -63,7 +63,7 @@ private const val TEAL_MIX = 0.5f
  * | chartGrid | divider over cardTop | dividers and the chart grid |
  * | navBarBackground | bg | |
  * | navIndicator | tabActive over bg | the active menu key |
- * | socGreen, socYellow, socRed | not taken | the traffic lights keep one meaning in every skin (SkinPalette's defaults) |
+ * | socGreen, socYellow, socRed | not taken | SkinPalette's defaults; the SOC gauge's normal level reads accentGreen (SocGreen in ui/theme/Color.kt) and so follows highlight; socGreen stays for ConsumptionGood |
  */
 fun grToSkinPalette(p: GrPalette): SkinPalette = SkinPalette(
     navyDark = p.bg,

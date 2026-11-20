@@ -147,7 +147,9 @@ const val GRAPHITE_GROOVE_LIT = 0.3f
 
 /** The face of [style]; null for MATERIAL, which M3 draws itself. */
 fun switchLook(style: SwitchStyle, checked: Boolean, enabled: Boolean, palette: SkinPalette): SwitchLook? {
-    val state = if (checked) palette.accentGreen else palette.cardBorder
+    // fork: Volt's thin PILL track would vanish in the dim cardBorder when off, so it takes textMuted
+    val off = if (style == SwitchStyle.PILL) palette.textMuted else palette.cardBorder
+    val state = if (checked) palette.accentGreen else off
     // the thumb stays readable on the dim off track
     val mark = if (checked) palette.accentGreen else palette.textSecondary
     val alpha = if (enabled) 1f else SWITCH_DISABLED_ALPHA

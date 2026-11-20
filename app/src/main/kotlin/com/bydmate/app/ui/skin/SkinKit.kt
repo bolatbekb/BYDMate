@@ -18,7 +18,7 @@ enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES, GRAPHITE }
  */
 enum class NavStyle { MATERIAL, GRAPHITE, CUT, UNDERLINE, OUTLINE }
 
-/** The checkbox and the radio button (SkinChecks.kt): MATERIAL is M3's; SQUARE draws a square box and a square dot. */
+/** The checkbox and the radio button (SkinChecks.kt): MATERIAL is M3's; SQUARE draws a square checkbox; its radio button stays round so it never reads as a checkbox. */
 enum class CheckStyle { MATERIAL, SQUARE }
 
 /**
