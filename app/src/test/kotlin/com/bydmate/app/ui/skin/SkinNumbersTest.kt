@@ -19,7 +19,8 @@ class SkinNumbersTest {
     @Test fun numericFontPerKit() {
         assertNull(Skins.CLASSIC.kit.fonts.numeric)
         assertEquals(SkinFont.EXO2, Skins.COCKPIT.kit.fonts.numeric)
-        assertEquals(SkinFont.ROBOTO_CONDENSED, Skins.TELEMETRY.kit.fonts.numeric)
+        assertEquals(SkinFont.RAJDHANI, Skins.TELEMETRY.kit.fonts.numeric)
+        assertEquals(SkinFont.ROBOTO_CONDENSED, Skins.TELEMETRY.kit.fonts.text)
         assertNull(Skins.VOLT.kit.fonts.numeric)
         assertNull(Skins.GRAPHITE.kit.fonts.numeric)
         assertEquals(SkinFont.INTER, graphiteKit(GrFont.INTER).fonts.numeric)
@@ -69,6 +70,17 @@ class SkinNumbersTest {
         }
         // and only a numeric-only Monospace text gets that far
         assertNull(numberFont(r, mono, null, "12 км")?.forNumber(30.sp, null))
+    }
+
+    @Test fun rajdhaniFallbackIsTheGivenFont() {
+        val r = SkinFont.RAJDHANI
+        assertEquals(SkinFont.ROBOTO_CONDENSED, r.forNumber(14.sp, null, SkinFont.ROBOTO_CONDENSED))
+        assertEquals(SkinFont.ROBOTO_CONDENSED, r.forNumber(30.sp, FontWeight.Bold, SkinFont.ROBOTO_CONDENSED))
+        assertEquals(r, r.forNumber(30.sp, null, SkinFont.ROBOTO_CONDENSED))
+        assertEquals(SkinFont.SYSTEM, r.forNumber(14.sp, null))
+        assertEquals(SkinFont.INTER, SkinFont.INTER.forNumber(14.sp, null, SkinFont.ROBOTO_CONDENSED))
+        assertEquals(SkinFont.SYSTEM, numberFallback(SkinFont.SYSTEM))
+        assertEquals(SkinFont.ROBOTO_CONDENSED, numberFallback(SkinFont.ROBOTO_CONDENSED))
     }
 
     @Test fun rajdhaniFits() {

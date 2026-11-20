@@ -9,7 +9,7 @@ enum class CornerStyle { ROUNDED, CUT }
 enum class SwitchStyle { MATERIAL, SQUARE, PILL, OUTLINE, GRAPHITE }
 enum class CardStyle { MATERIAL, OUTLINED, FLAT, GLASS, STRIPE, BORDER_ONLY, GRAPHITE }
 enum class SliderStyle { MATERIAL, THIN, SEGMENTED }
-enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES, GRAPHITE }
+enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES, NEON, CARBON, GRAPHITE }
 
 /**
  * The bottom bar (SkinNavigationBar.kt). MATERIAL is the author's M3 bar; GRAPHITE is the Graphite

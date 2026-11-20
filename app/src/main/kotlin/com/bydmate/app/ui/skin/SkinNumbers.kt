@@ -72,10 +72,13 @@ fun numberFont(numeric: SkinFont?, family: FontFamily?, styleFamily: FontFamily?
 /**
  * This numeric font for a number of [size] and [weight], the effective ones (the argument, else
  * the style's): RAJDHANI keeps only big light numerals (rajdhaniFits) and gives the others to
- * SYSTEM; every other font takes any size and weight.
+ * [fallback] (SYSTEM by default); every other font takes any size and weight.
  */
-fun SkinFont.forNumber(size: TextUnit, weight: FontWeight?): SkinFont =
-    if (this == SkinFont.RAJDHANI && !rajdhaniFits(size, weight)) SkinFont.SYSTEM else this
+fun SkinFont.forNumber(size: TextUnit, weight: FontWeight?, fallback: SkinFont = SkinFont.SYSTEM): SkinFont =
+    if (this == SkinFont.RAJDHANI && !rajdhaniFits(size, weight)) fallback else this
+
+/** The font a number takes when Rajdhani does not fit: the skin's text font, else SYSTEM (Graphite DiLink keeps SYSTEM). */
+fun numberFallback(text: SkinFont): SkinFont = if (text != SkinFont.SYSTEM) text else SkinFont.SYSTEM
 
 /**
  * Fonts whose digits are made tabular here: Inter's and Exo 2's are proportional by default and
@@ -121,7 +124,7 @@ fun Text(
     style: TextStyle = LocalTextStyle.current,
 ) {
     val font = numberFont(SkinState.current.kit.fonts.numeric, fontFamily, style.fontFamily, text)
-        ?.forNumber(if (fontSize.isSpecified) fontSize else style.fontSize, fontWeight ?: style.fontWeight)
+        ?.forNumber(if (fontSize.isSpecified) fontSize else style.fontSize, fontWeight ?: style.fontWeight, numberFallback(SkinState.current.kit.fonts.text))
     M3Text(
         text, modifier, color, fontSize, fontStyle, fontWeight,
         if (font == null) fontFamily else font.numberFamily(),
@@ -153,7 +156,7 @@ fun Text(
     style: TextStyle = LocalTextStyle.current,
 ) {
     val font = numberFont(SkinState.current.kit.fonts.numeric, fontFamily, style.fontFamily, text.text)
-        ?.forNumber(if (fontSize.isSpecified) fontSize else style.fontSize, fontWeight ?: style.fontWeight)
+        ?.forNumber(if (fontSize.isSpecified) fontSize else style.fontSize, fontWeight ?: style.fontWeight, numberFallback(SkinState.current.kit.fonts.text))
     M3Text(
         text, modifier, color, fontSize, fontStyle, fontWeight,
         if (font == null) fontFamily else font.numberFamily(),

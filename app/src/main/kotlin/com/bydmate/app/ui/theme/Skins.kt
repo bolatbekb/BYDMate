@@ -103,11 +103,11 @@ object Skins {
     val COCKPIT = Skin(
         "cockpit", "Cockpit",
         SkinPalette(
-            navyDark = Color(0xFF07090C),
-            navyDeep = Color(0xFF090C10),
+            navyDark = Color(0xFF05070A),
+            navyDeep = Color(0xFF05070A),
             navyMid = Color(0xFF0B0F14),
-            cardSurface = Color(0xFF0B0F14),
-            cardSurfaceElevated = Color(0xFF111820),
+            cardSurface = Color(0xFF090D12),
+            cardSurfaceElevated = Color(0xFF0F151C),
             cardBorder = Color(0xFF1E2630),
             accentGreen = Color(0xFF3DE8FF),
             accentBlue = Color(0xFF9AF3FF),
@@ -116,45 +116,45 @@ object Skins {
             textPrimary = Color(0xFFE6EDF3),
             textSecondary = Color(0xFF8B98A5),
             textMuted = Color(0xFF5F6C78),
-            chartGrid = Color(0xFF1A222C),
-            navBarBackground = Color(0xFF090C10),
+            chartGrid = Color(0xFF141B23),
+            navBarBackground = Color(0xFF05070A),
         ),
-        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.CUT, 0.75f), SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
+        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f), SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
     )
 
     /** 2 · Graphite Pro: neutral graphite, periwinkle accent. */
     val GRAPHITE = Skin(
         "graphite", "Graphite Pro",
         SkinPalette(
-            navyDark = Color(0xFF0E0F12),
-            navyDeep = Color(0xFF0E0F12),
+            navyDark = Color(0xFF0F1013),
+            navyDeep = Color(0xFF0F1013),
             navyMid = Color(0xFF16171B),
-            cardSurface = Color(0xFF16171B),
+            cardSurface = Color(0xFF141519),
             cardSurfaceElevated = Color(0xFF1A1C21),
-            cardBorder = Color(0xFF26282E),
+            cardBorder = Color(0xFF24262C),
             accentGreen = Color(0xFF8B96FF),
             accentBlue = Color(0xFFA5B0FF),
             accentOrange = Color(0xFFF0A35E),
             accentTeal = Color(0xFF5EEAD4),
             textPrimary = Color(0xFFEDEEF0),
-            textSecondary = Color(0xFF8A8F98),
+            textSecondary = Color(0xFF8E939C),
             textMuted = Color(0xFF6E737C),
-            chartGrid = Color(0xFF1E2025),
-            navBarBackground = Color(0xFF0E0F12),
+            chartGrid = Color(0xFF202227),
+            navBarBackground = Color(0xFF0F1013),
             navIndicator = Color(0xFF2A2C33),
         ),
-        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.25f), SkinControls(SwitchStyle.MATERIAL, CardStyle.FLAT, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
+        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.MATERIAL, CardStyle.FLAT, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
     )
 
     /** 3 · Volt: deep navy, electric green with fuel amber. */
     val VOLT = Skin(
         "volt", "Volt",
         SkinPalette(
-            navyDark = Color(0xFF070B16),
+            navyDark = Color(0xFF060A14),
             navyDeep = Color(0xFF0A0F1E),
             navyMid = Color(0xFF0B1020),
-            cardSurface = Color(0xFF0E1426),
-            cardSurfaceElevated = Color(0xFF131B32),
+            cardSurface = Color(0xFF0C1324),
+            cardSurfaceElevated = Color(0xFF13203A),
             cardBorder = Color(0xFF1B2440),
             accentGreen = Color(0xFF39F5A0),
             accentBlue = Color(0xFF4DA3FF),
@@ -166,30 +166,30 @@ object Skins {
             chartGrid = Color(0xFF141C33),
             navBarBackground = Color(0xFF0A0F1E),
         ),
-        SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f), SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL), BackgroundStyle.GLOW),
+        SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f), SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL), BackgroundStyle.NEON),
     )
 
     /** 4 · Telemetry: race-telemetry black, signal orange. */
     val TELEMETRY = Skin(
         "telemetry", "Telemetry",
         SkinPalette(
-            navyDark = Color(0xFF0A0A0A),
-            navyDeep = Color(0xFF0A0A0A),
+            navyDark = Color(0xFF0B0B0B),
+            navyDeep = Color(0xFF0B0B0B),
             navyMid = Color(0xFF0E0E0E),
-            cardSurface = Color(0xFF0E0E0E),
+            cardSurface = Color(0xFF111111),
             cardSurfaceElevated = Color(0xFF151515),
-            cardBorder = Color(0xFF262626),
-            accentGreen = Color(0xFFFF7A1A),
+            cardBorder = Color(0xFF2A2A2A),
+            accentGreen = Color(0xFFFF5A1F),
             accentBlue = Color(0xFFE8FF3D),
-            accentOrange = Color(0xFFFFA866),
+            accentOrange = Color(0xFFFFB020),
             accentTeal = Color(0xFFFF3D5A),
             textPrimary = Color(0xFFF2F2F2),
             textSecondary = Color(0xFF9A9A9A),
             textMuted = Color(0xFF6E6E6E),
             chartGrid = Color(0xFF1C1C1C),
-            navBarBackground = Color(0xFF0A0A0A),
+            navBarBackground = Color(0xFF0B0B0B),
         ),
-        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f, SkinFont.ROBOTO_CONDENSED), SkinCorners(CornerStyle.ROUNDED, 0.3f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.SCANLINES),
+        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f, SkinFont.RAJDHANI), SkinCorners(CornerStyle.ROUNDED, 0.5f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.CARBON),
     )
 
     /** 5 · OLED: pure black, lime accent. */

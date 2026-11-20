@@ -23,25 +23,57 @@ class SkinThemeTest {
 
     @Test fun everyOtherSkinHasTheSpecKit() {
         assertEquals(
-            SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.CUT, 0.75f),
+            SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f),
                 SkinControls(SwitchStyle.SQUARE, CardStyle.OUTLINED, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
             Skins.COCKPIT.kit)
         assertEquals(
-            SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.25f),
+            SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f),
                 SkinControls(SwitchStyle.MATERIAL, CardStyle.FLAT, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.AUTHOR),
             Skins.GRAPHITE.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f),
-                SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.GLOW),
+                SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.NEON),
             Skins.VOLT.kit)
         assertEquals(
-            SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f, SkinFont.ROBOTO_CONDENSED), SkinCorners(CornerStyle.ROUNDED, 0.3f),
-                SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.SCANLINES),
+            SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f, SkinFont.RAJDHANI), SkinCorners(CornerStyle.ROUNDED, 0.5f),
+                SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.CARBON),
             Skins.TELEMETRY.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f),
                 SkinControls(SwitchStyle.OUTLINE, CardStyle.BORDER_ONLY, SliderStyle.MATERIAL, NavStyle.OUTLINE), BackgroundStyle.AUTHOR),
             Skins.OLED.kit)
+    }
+
+    @Test fun finalBackgroundsExist() {
+        assertTrue(BackgroundStyle.values().toList().containsAll(listOf(BackgroundStyle.NEON, BackgroundStyle.CARBON)))
+        assertEquals(BackgroundStyle.NEON, Skins.VOLT.kit.background)
+        assertEquals(BackgroundStyle.CARBON, Skins.TELEMETRY.kit.background)
+        assertEquals(BackgroundStyle.GRID, Skins.COCKPIT.kit.background)
+    }
+
+    @Test fun finalPalettes() {
+        fun c(v: Long) = androidx.compose.ui.graphics.Color(v)
+        Skins.COCKPIT.palette.let {
+            assertEquals(c(0xFF05070A), it.navyDark); assertEquals(c(0xFF05070A), it.navyDeep)
+            assertEquals(c(0xFF090D12), it.cardSurface); assertEquals(c(0xFF0F151C), it.cardSurfaceElevated)
+            assertEquals(c(0xFF141B23), it.chartGrid); assertEquals(c(0xFF05070A), it.navBarBackground)
+        }
+        Skins.GRAPHITE.palette.let {
+            assertEquals(c(0xFF0F1013), it.navyDark); assertEquals(c(0xFF0F1013), it.navyDeep)
+            assertEquals(c(0xFF141519), it.cardSurface); assertEquals(c(0xFF24262C), it.cardBorder)
+            assertEquals(c(0xFF8E939C), it.textSecondary); assertEquals(c(0xFF202227), it.chartGrid)
+            assertEquals(c(0xFF0F1013), it.navBarBackground)
+        }
+        Skins.VOLT.palette.let {
+            assertEquals(c(0xFF060A14), it.navyDark)
+            assertEquals(c(0xFF0C1324), it.cardSurface); assertEquals(c(0xFF13203A), it.cardSurfaceElevated)
+        }
+        Skins.TELEMETRY.palette.let {
+            assertEquals(c(0xFF0B0B0B), it.navyDark); assertEquals(c(0xFF0B0B0B), it.navyDeep)
+            assertEquals(c(0xFF111111), it.cardSurface); assertEquals(c(0xFF2A2A2A), it.cardBorder)
+            assertEquals(c(0xFFFF5A1F), it.accentGreen); assertEquals(c(0xFFFFB020), it.accentOrange)
+            assertEquals(c(0xFF0B0B0B), it.navBarBackground)
+        }
     }
 
     @Test fun systemFontKeepsTheAuthorTypography() {
