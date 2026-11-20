@@ -112,9 +112,10 @@ internal data class YamusicCarPayload(
         return json.put(KEY_SHOW, show && c?.allowsShow != false).toString()
     }
 
-    /** Changing the command clears every ID field and the flag where it no longer applies. */
+    /** Changing the command clears every ID field and the flag where it no longer applies; picking the same one changes nothing. */
     fun withCommand(newCommand: String): YamusicCarPayload =
-        YamusicCarPayload(command = newCommand, show = show && yamusicCarCommand(newCommand)?.allowsShow != false)
+        if (newCommand == command) this
+        else YamusicCarPayload(command = newCommand, show = show && yamusicCarCommand(newCommand)?.allowsShow != false)
 
     /** The identifier the address carries: station id, or `UID_KIND`; null when the command has none. */
     fun idValue(): String? = when (yamusicCarCommand(command)?.idKind) {
