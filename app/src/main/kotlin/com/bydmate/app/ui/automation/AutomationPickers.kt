@@ -201,6 +201,7 @@ private fun pickerSections(): List<PickerSection> {
                 PickerTile(lc.getString(R.string.automation_action_app_launch)) { newAppLaunchAction(it) },
                 PickerTile(lc.getString(R.string.automation_action_app_close)) { newAppCloseAction(it) },
                 PickerTile(lc.getString(R.string.automation_action_yandex_music)) { newYandexMusicAction(it) },
+                PickerTile(lc.getString(R.string.yamusic_car_name)) { newYamusicCarAction(it) }, // fork: yamusic_car
                 PickerTile(lc.getString(R.string.automation_action_media_play)) { newMediaKeyAction(it, "play") },
                 PickerTile(lc.getString(R.string.automation_action_media_pause)) { newMediaKeyAction(it, "pause") },
                 PickerTile(lc.getString(R.string.automation_action_call)) { newCallAction(it) },

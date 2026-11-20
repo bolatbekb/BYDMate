@@ -62,6 +62,8 @@
             <action android:name="android.intent.action.VIEW" />
             <data android:scheme="yandexnavi" />
         </intent>
+        <!-- fork: «Я.Музыка Car» install check. Not needed at targetSdk 29 (no package-visibility filtering); kept so it keeps working if targetSdk reaches 30+ -->
+        <package android:name="app.yamusic.car" />
         <!-- Launcher apps picker (app_launch action) -->
         <intent>
             <action android:name="android.intent.action.MAIN" />

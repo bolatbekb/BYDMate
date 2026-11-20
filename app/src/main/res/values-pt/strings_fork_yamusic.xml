@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="yamusic_car_name">Я.Музыка Car</string>
+    <string name="yamusic_car_cmd_wave">Minha onda</string>
+    <string name="yamusic_car_cmd_wave_artist">Onda por artista</string>
+    <string name="yamusic_car_cmd_wave_track">Onda por faixa</string>
+    <string name="yamusic_car_cmd_wave_album">Onda por álbum</string>
+    <string name="yamusic_car_cmd_wave_playlist">Onda por playlist</string>
+    <string name="yamusic_car_cmd_likes">Curtidas</string>
+    <string name="yamusic_car_cmd_likes_shuffle">Curtidas em ordem aleatória</string>
+    <string name="yamusic_car_cmd_resume">Continuar</string>
+    <string name="yamusic_car_cmd_disk">Minha música (pasta do Disco)</string>
+    <string name="yamusic_car_cmd_play">Tocar</string>
+    <string name="yamusic_car_cmd_pause">Pausar</string>
+    <string name="yamusic_car_cmd_toggle">Tocar/pausar</string>
+    <string name="yamusic_car_cmd_stop">Parar</string>
+    <string name="yamusic_car_cmd_next">Próxima</string>
+    <string name="yamusic_car_cmd_prev">Anterior</string>
+    <string name="yamusic_car_cmd_shuffle_on">Aleatório ligado</string>
+    <string name="yamusic_car_cmd_shuffle_off">Aleatório desligado</string>
+    <string name="yamusic_car_cmd_repeat_off">Repetir: desligado</string>
+    <string name="yamusic_car_cmd_repeat_all">Repetir: lista</string>
+    <string name="yamusic_car_cmd_repeat_one">Repetir: faixa</string>
+    <string name="yamusic_car_cmd_open">Abrir o player</string>
+    <string name="yamusic_car_field_command">Comando</string>
+    <string name="yamusic_car_field_artist_id">ID do artista</string>
+    <string name="yamusic_car_field_track_id">ID da faixa</string>
+    <string name="yamusic_car_field_album_id">ID do álbum</string>
+    <string name="yamusic_car_field_uid">UID do proprietário</string>
+    <string name="yamusic_car_field_kind">Número da playlist</string>
+    <string name="yamusic_car_field_show">Mostrar o player</string>
+    <string name="yamusic_car_not_installed">Я.Музыка Car não está instalado</string>
+    <string name="yamusic_car_invalid">Comando desconhecido ou ID inválido para Я.Музыка Car</string>
+    <string name="auto_msg_yamusic_car_invalid">Ação nº %1$d: comando ou ID do Я.Музыка Car ausente ou inválido</string>
+    <string name="yamusic_car_line">Я.Музыка Car: %1$s</string>
+    <string name="yamusic_car_detail_id">ID: %1$s</string>
+    <string name="yamusic_car_detail_show">mostrar o player</string>
+    <string name="yamusic_car_hint_id">Letras latinas, dígitos, _ e -, até 64 caracteres</string>
+    <string name="yamusic_car_hint_uid">Somente dígitos</string>
+    <string name="yamusic_car_hint_kind">Até 12 dígitos</string>
+</resources>

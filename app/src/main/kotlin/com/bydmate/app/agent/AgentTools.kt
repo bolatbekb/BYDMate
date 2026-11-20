@@ -2453,6 +2453,8 @@ class AgentTools @Inject constructor(
                 "в отчёте в Telegram не выбран ни один пункт (действие ${err.index})"
             is ActionValidationError.DelayInvalid ->
                 "длительность паузы вне 0..${ActionDispatcher.MAX_DELAY_MS} мс (действие ${err.index})"
+            is ActionValidationError.YamusicCarInvalid -> // fork: yamusic_car — exhaustive branch only, the agent does not build this action
+                "неверная команда Я.Музыка Car (действие ${err.index})"
         }
         return JSONObject().put("error", msg).toString()
     }

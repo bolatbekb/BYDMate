@@ -40,6 +40,7 @@ internal object RuleImportSummary {
         "navigate" to R.string.automation_action_navigate,
         "url" to R.string.automation_action_url,
         "yandex_music" to R.string.automation_action_yandex_music,
+        "yamusic_car" to R.string.yamusic_car_name, // fork: yamusic_car
         "youtube" to R.string.widget_button_icon_youtube,
         "go_home" to R.string.widget_button_icon_home,
         "delay" to R.string.automation_action_delay,
@@ -201,6 +202,7 @@ private val MUSIC_QUERY_MODES = setOf("play", "search")
 private fun launchDetail(kind: String, json: JSONObject, lc: Context, autoGo: (JSONObject) -> Boolean): String? = when (kind) {
     "navigate" -> navigateDetail(json, lc, autoGo)
     "yandex_music" -> musicDetail(json)
+    "yamusic_car" -> com.bydmate.app.fork.automation.yamusicCarDetail(json.toString(), lc) // fork: yamusic_car
     "split_screen" -> "${json.optString("narrow")} / ${json.optString("wide")}, ${splitSide(json, lc)}"
     else -> null
 }

@@ -256,6 +256,7 @@ internal fun actionText(a: ActionDef, lc: Context): String = when (a.kind) {
     "call" -> quoted(R.string.automation_action_call, a.callName().ifBlank { a.callPhone() }, lc)
     "navigate" -> quoted(R.string.automation_action_navigate, a.navigateName(), lc)
     "url" -> quoted(R.string.automation_action_url, a.urlString(), lc)
+    "yamusic_car" -> com.bydmate.app.fork.automation.yamusicCarLine(a.payload, lc) ?: a.displayName // fork: yamusic_car
     TELEGRAM_REPORT_KIND -> lc.getString(R.string.automation_action_tg_report)
     "sentry" -> onOffText(
         R.string.automation_action_sentry, R.string.automation_action_sentry_on, R.string.automation_action_sentry_off, a.payload, lc,
@@ -567,4 +568,5 @@ internal fun ActionValidationError.toMissing(lc: Context): Missing.Action = when
     is ActionValidationError.SplitScreenInvalidSide -> Missing.Action(index, lc.getString(R.string.auto_msg_split_invalid_side, index))
     is ActionValidationError.TelegramReportEmpty -> Missing.Action(index, lc.getString(R.string.auto_msg_tg_report_empty, index))
     is ActionValidationError.DelayInvalid -> Missing.Action(index, lc.getString(R.string.auto_msg_delay_invalid, index))
+    is ActionValidationError.YamusicCarInvalid -> Missing.Action(index, lc.getString(R.string.auto_msg_yamusic_car_invalid, index)) // fork: yamusic_car
 }

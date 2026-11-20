@@ -147,6 +147,7 @@ internal class RuleJournal(
                 "app_launch", "app_close" -> field("appLabel")
                 "navigate" -> field("name")
                 "url" -> field("url")
+                "yamusic_car" -> field("command") // fork: yamusic_car — the command only, never an ID
                 "call" -> field(if (json?.optString("name").isNullOrBlank()) "phone" else "name")
                 else -> null
             }

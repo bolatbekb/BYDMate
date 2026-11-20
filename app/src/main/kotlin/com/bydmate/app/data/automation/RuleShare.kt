@@ -89,6 +89,7 @@ object RuleShare {
     /** Action kinds ActionDispatcher.dispatch routes in this build. */
     internal val KNOWN_ACTION_KINDS = setOf(
         "param", "notification", "notification_silent", "notification_sound", "app_launch", "call",
+        "yamusic_car", // fork: yamusic_car — payload copied as is on export
         "navigate", "url", "yandex_music", "youtube", "go_home", "delay", "media_volume", "sentry",
         "hotspot", "cluster_projection", "toggle", "speak", "agent_query", "split_screen",
         "split_screen_close", "split_screen_toggle", "telegram_report", "app_close",

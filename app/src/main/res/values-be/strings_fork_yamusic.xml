@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="yamusic_car_name">Я.Музыка Car</string>
+    <string name="yamusic_car_cmd_wave">Мая хваля</string>
+    <string name="yamusic_car_cmd_wave_artist">Хваля па выканаўцы</string>
+    <string name="yamusic_car_cmd_wave_track">Хваля па трэку</string>
+    <string name="yamusic_car_cmd_wave_album">Хваля па альбоме</string>
+    <string name="yamusic_car_cmd_wave_playlist">Хваля па плэйлісце</string>
+    <string name="yamusic_car_cmd_likes">«Мне падабаецца»</string>
+    <string name="yamusic_car_cmd_likes_shuffle">«Мне падабаецца» вымяшана</string>
+    <string name="yamusic_car_cmd_resume">Працягнуць</string>
+    <string name="yamusic_car_cmd_disk">Мая музыка (папка «Дыска»)</string>
+    <string name="yamusic_car_cmd_play">Іграць</string>
+    <string name="yamusic_car_cmd_pause">Паўза</string>
+    <string name="yamusic_car_cmd_toggle">Іграць/паўза</string>
+    <string name="yamusic_car_cmd_stop">Стоп</string>
+    <string name="yamusic_car_cmd_next">Наступны</string>
+    <string name="yamusic_car_cmd_prev">Папярэдні</string>
+    <string name="yamusic_car_cmd_shuffle_on">Перамешванне ўкл.</string>
+    <string name="yamusic_car_cmd_shuffle_off">Перамешванне выкл.</string>
+    <string name="yamusic_car_cmd_repeat_off">Паўтор: выкл.</string>
+    <string name="yamusic_car_cmd_repeat_all">Паўтор: спіс</string>
+    <string name="yamusic_car_cmd_repeat_one">Паўтор: трэк</string>
+    <string name="yamusic_car_cmd_open">Адкрыць плэер</string>
+    <string name="yamusic_car_field_command">Каманда</string>
+    <string name="yamusic_car_field_artist_id">ID выканаўцы</string>
+    <string name="yamusic_car_field_track_id">ID трэка</string>
+    <string name="yamusic_car_field_album_id">ID альбома</string>
+    <string name="yamusic_car_field_uid">UID уладальніка</string>
+    <string name="yamusic_car_field_kind">Нумар плэйліста</string>
+    <string name="yamusic_car_field_show">Паказаць плэер</string>
+    <string name="yamusic_car_not_installed">Я.Музыка Car не ўсталявана</string>
+    <string name="yamusic_car_invalid">Невядомая каманда або няправільны ID для Я.Музыка Car</string>
+    <string name="auto_msg_yamusic_car_invalid">Дзеянне #%1$d: каманда або ID Я.Музыка Car не зададзены або няправільны</string>
+    <string name="yamusic_car_line">Я.Музыка Car: %1$s</string>
+    <string name="yamusic_car_detail_id">ID: %1$s</string>
+    <string name="yamusic_car_detail_show">паказаць плэер</string>
+    <string name="yamusic_car_hint_id">Лацінка, лічбы, _ і -, да 64 знакаў</string>
+    <string name="yamusic_car_hint_uid">Толькі лічбы</string>
+    <string name="yamusic_car_hint_kind">Да 12 лічбаў</string>
+</resources>

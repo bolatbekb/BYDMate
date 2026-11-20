@@ -33,6 +33,7 @@ sealed class ActionValidationError {
     data class TelegramReportEmpty(val index: Int) : ActionValidationError()
     /** A pause that is empty, not a number, negative or above [ActionDispatcher.MAX_DELAY_MS]. */
     data class DelayInvalid(val index: Int) : ActionValidationError()
+    data class YamusicCarInvalid(val index: Int) : ActionValidationError() // fork: yamusic_car — bad command or ID
 }
 
 /** Reason a trigger draft failed validation. */
@@ -105,6 +106,7 @@ object RuleDraftValidator {
                         return ActionValidationError.UrlNoScheme(n)
                     }
                 }
+                "yamusic_car" -> if (com.bydmate.app.fork.automation.yamusicCarUriFromPayload(a.payload) == null) return ActionValidationError.YamusicCarInvalid(n) // fork: yamusic_car
                 "yandex_music" -> {
                     val mode = payloadJson(a.payload).optString("mode")
                     if (mode.isBlank()) return ActionValidationError.YandexMusicModeMissing(n)
