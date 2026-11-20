@@ -31,7 +31,7 @@ class TelegramReportBuilderTest {
         return ReportStrings { id, args -> lc.getString(id, *args) }
     }
 
-    private val now = 1_758_965_400_000L // fork: tz-independent fixture (09:30 UTC, a 34-min trip never crosses local midnight)
+    private val now = 1_759_000_000_000L
 
     /** The indent of the trip's number lines: two EM SPACEs. */
     private val em = "\u2003\u2003"

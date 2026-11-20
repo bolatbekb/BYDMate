@@ -102,6 +102,7 @@ android {
                 // Robolectric suite on RAM-constrained CI runners (TtsModelManagerTest OOM,
                 // CI runs 2026-08-19/24); dev machines pass on GC luck. One worker → 2g is safe.
                 test.maxHeapSize = "2g"
+                test.systemProperty("user.timezone", "UTC") // fork: unit tests run in UTC, as on CI (TelegramReportBuilder formats in the JVM's zone)
                 // CI only: a failed test is rerun, but the run stays red even when the rerun
                 // passes. The rerun is there to tell in the log a test that fails at random
                 // (failed, then passed) from a real break (failed all 3 attempts); it no
