@@ -80,11 +80,11 @@ private val DesignW = px(2560)
 internal fun MockupFrame(
     designH: Int = 1208,
     letterbox: Color = MockupInk.Letterbox,
-    fillHeight: Boolean = false, // fork: fluid height, 1208..1440 design px, scaled by width
+    fillHeight: Boolean = false, // fork: fluid height, designH..designH + 232 design px, scaled by width
     content: @Composable BoxScope.() -> Unit,
 ) {
     if (fillHeight) { // fork: the fluid frame; the default path below is untouched
-        FluidMockupFrame(letterbox, content)
+        FluidMockupFrame(designH.toFloat(), letterbox, content)
         return
     }
     val designHDp = px(designH)
@@ -99,33 +99,41 @@ internal fun MockupFrame(
     }
 }
 
-// fork: fluid frame. The mockup grows from 2560 x 1208 up to 2560 x 1440 design px with the height.
+// fork: fluid frame. The mockup grows from 2560 x baseH up to 2560 x (baseH + 232) design px with the height.
 
 private const val DESIGN_W_PX = 2560f
-private const val DESIGN_H_MIN_PX = 1208f
-private const val DESIGN_H_MAX_PX = 1440f
+private const val DESIGN_BASE_H_PX = 1208f
+private const val DESIGN_MAX_EXTRA_PX = 232f
 
-/** The fluid frame: [scale] by width, [heightPx] design px of content, [extraPx] = heightPx - 1208. */
+/** The fluid frame: [scale] by width, [heightPx] design px of content, [extraPx] = heightPx - the base height. */
 internal data class FluidFrame(val scale: Float, val heightPx: Float, val extraPx: Float)
 
-/** The frame for an area of [maxWidthDp] x [maxHeightDp]: too short keeps today's min scale. */
-internal fun fluidFrame(maxWidthDp: Float, maxHeightDp: Float): FluidFrame {
+/**
+ * The frame for an area of [maxWidthDp] x [maxHeightDp] over a [baseHPx]-px home: too short keeps
+ * today's min scale; the height grows up to [baseHPx] + [maxExtraPx].
+ */
+internal fun fluidFrame(
+    maxWidthDp: Float,
+    maxHeightDp: Float,
+    baseHPx: Float = DESIGN_BASE_H_PX,
+    maxExtraPx: Float = DESIGN_MAX_EXTRA_PX,
+): FluidFrame {
     val sw = maxWidthDp / (DESIGN_W_PX * K)
-    val sh = maxHeightDp / (DESIGN_H_MIN_PX * K)
-    if (sh < sw) return FluidFrame(sh, DESIGN_H_MIN_PX, 0f)
-    val h = (maxHeightDp / sw / K).coerceIn(DESIGN_H_MIN_PX, DESIGN_H_MAX_PX)
-    return FluidFrame(sw, h, h - DESIGN_H_MIN_PX)
+    val sh = maxHeightDp / (baseHPx * K)
+    if (sh < sw) return FluidFrame(sh, baseHPx, 0f)
+    val h = (maxHeightDp / sw / K).coerceIn(baseHPx, baseHPx + maxExtraPx)
+    return FluidFrame(sw, h, h - baseHPx)
 }
 
 /** The extra design px of height the fluid frame gives (0 in the fixed frame). */
 internal val LocalMockupExtra = staticCompositionLocalOf { 0f }
 
 @Composable
-private fun FluidMockupFrame(letterbox: Color, content: @Composable BoxScope.() -> Unit) {
+private fun FluidMockupFrame(baseHPx: Float, letterbox: Color, content: @Composable BoxScope.() -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize().background(letterbox), contentAlignment = Alignment.Center) {
         val w = if (constraints.hasBoundedWidth) maxWidth.value else DESIGN_W_PX * K
-        val h = if (constraints.hasBoundedHeight) maxHeight.value else DESIGN_H_MIN_PX * K
-        val frame = fluidFrame(w, h)
+        val h = if (constraints.hasBoundedHeight) maxHeight.value else baseHPx * K
+        val frame = fluidFrame(w, h, baseHPx)
         val base = LocalDensity.current
         CompositionLocalProvider(
             LocalDensity provides Density(base.density * frame.scale, 1f),
