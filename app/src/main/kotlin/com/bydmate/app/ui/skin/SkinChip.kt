@@ -10,6 +10,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.bydmate.app.ui.theme.SkinState
 import androidx.compose.material3.FilterChip as M3FilterChip
@@ -50,21 +52,30 @@ fun FilterChip(
     }
     val styled = skinBorder(look.border, look.borderColor, look.borderFadeColor)
     // M3's own border, to tell «left as it is» from a border the caller chose; only a style that replaces it asks
-    val default = if (styled != null || look.pill) FilterChipDefaults.filterChipBorder(enabled, selected) else null
+    val default = if (styled != null || look.framed || look.noBorder) FilterChipDefaults.filterChipBorder(enabled, selected) else null
     val chipColors = if (look.passThrough) colors else remember(colors, look, selected) { colors.withLook(look, selected) }
-    ProvidePillFrame(look.pill) { touch ->
+    ProvidePillFrame(look.pill, look.framed) { touch ->
         M3FilterChip(
             selected = selected,
             onClick = onClick,
             label = label,
-            modifier = if (look.pill) modifier.skinPill(touch, look.pillFill, look.pillEdge, shape) else modifier,
+            modifier = when {
+                look.pill -> modifier.skinPill(touch, look.pillFill, look.pillEdge, shape)
+                look.framed -> modifier.skinGlow(touch, look.glow, look.glowSpread, shape)
+                else -> modifier
+            },
             enabled = enabled,
             leadingIcon = leadingIcon,
             trailingIcon = trailingIcon,
             shape = shape,
             colors = chipColors,
-            elevation = if (look.flat && elevation != null) flatChipElevation() else elevation,
-            border = styledBorder(border, default, styled, drop = look.pill),
+            elevation = when {
+                elevation == null -> null
+                look.raised -> chipElevation(RaisedChipElevation)
+                look.flat -> chipElevation(0.dp)
+                else -> elevation
+            },
+            border = styledBorder(border, default, styled, drop = look.pill || look.noBorder),
             interactionSource = interactionSource,
         )
     }
@@ -76,7 +87,11 @@ fun FilterChip(
  * this state. Unspecified keeps the caller's colour (M3's copy takes it as «unchanged»).
  */
 private fun SelectableChipColors.withLook(look: ChipLook, selected: Boolean): SelectableChipColors {
-    val clear = if (look.transparent) Color.Transparent else Color.Unspecified
+    val clear = when {
+        look.fill.isSpecified -> look.fill
+        look.transparent -> Color.Transparent
+        else -> Color.Unspecified
+    }
     val label = if (selected) Color.Unspecified else look.label
     val selectedLabel = if (selected) look.label else Color.Unspecified
     return copy(
@@ -94,11 +109,14 @@ private fun SelectableChipColors.withLook(look: ChipLook, selected: Boolean): Se
 }
 
 @Composable
-private fun flatChipElevation(): SelectableChipElevation = FilterChipDefaults.filterChipElevation(
-    elevation = 0.dp,
-    pressedElevation = 0.dp,
-    focusedElevation = 0.dp,
-    hoveredElevation = 0.dp,
-    draggedElevation = 0.dp,
-    disabledElevation = 0.dp,
+private fun chipElevation(level: Dp): SelectableChipElevation = FilterChipDefaults.filterChipElevation(
+    elevation = level,
+    pressedElevation = level,
+    focusedElevation = level,
+    hoveredElevation = level,
+    draggedElevation = level,
+    disabledElevation = level,
 )
+
+/** The raised segment's shadow (Graphite Pro's selected chip). */
+private val RaisedChipElevation = 1.dp

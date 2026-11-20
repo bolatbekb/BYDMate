@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.CutCornerShape
 import androidx.compose.material3.ButtonColors
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.bydmate.app.ui.home.graphite.GrScheme
@@ -72,7 +73,8 @@ class SkinInputLookTest {
     @Test fun theClassicKitHasMaterialChecks() {
         assertEquals(CheckStyle.MATERIAL, Skins.CLASSIC.kit.controls.check)
         assertEquals(CheckStyle.SQUARE, Skins.TELEMETRY.kit.controls.check)
-        Skins.ALL.filter { it.id != Skins.TELEMETRY.id }.forEach {
+        assertEquals(CheckStyle.SQUARE, Skins.COCKPIT.kit.controls.check)
+        Skins.ALL.filter { it.id != Skins.TELEMETRY.id && it.id != Skins.COCKPIT.id }.forEach {
             assertEquals(it.id, CheckStyle.MATERIAL, it.kit.controls.check)
         }
     }
@@ -86,7 +88,7 @@ class SkinInputLookTest {
             assertEquals(style.name, 1f, look.containerAlpha)
             assertEquals(style.name, Color.Unspecified, look.contentColor)
             val c = colors.withLook(look, isDefault = false)
-            if (!look.pill) assertEquals(style.name, fill, c.containerColor)
+            if (!look.underlay) assertEquals(style.name, fill, c.containerColor)
             assertEquals(style.name, Color.Black, c.contentColor)
         }
     }
@@ -160,7 +162,7 @@ class SkinInputLookTest {
 
     @Test fun glassAndFlatButtons() {
         val glassCard = cardLook(CardStyle.GLASS, p)
-        listOf(ButtonKind.FILLED, ButtonKind.OUTLINED).forEach { kind ->
+        listOf(ButtonKind.OUTLINED).forEach { kind ->
             val look = buttonLook(CardStyle.GLASS, kind, p, fill)
             assertEquals(CardBorderKind.TOP_HIGHLIGHT, look.border)
             assertEquals(glassCard.borderColor, look.borderColor)
@@ -168,7 +170,8 @@ class SkinInputLookTest {
         }
         assertEquals(GLASS_ALPHA, buttonLook(CardStyle.GLASS, ButtonKind.OUTLINED, p, fill).containerAlpha)
         ButtonKind.entries.forEach { assertEquals(ButtonLook(flat = true), buttonLook(CardStyle.FLAT, it, p, fill)) }
-        ButtonKind.entries.forEach { assertTrue(buttonLook(CardStyle.STRIPE, it, p, fill).passThrough) }
+        assertEquals(ButtonLook(flat = true), buttonLook(CardStyle.STRIPE, ButtonKind.FILLED, p, fill))
+        listOf(ButtonKind.OUTLINED, ButtonKind.TEXT).forEach { assertTrue(buttonLook(CardStyle.STRIPE, it, p, fill).passThrough) }
     }
 
     @Test fun onlyTheGraphiteFilledButtonIsAPill() {
@@ -217,7 +220,7 @@ class SkinInputLookTest {
     }
 
     @Test fun outlineSkinsOutlineTheChips() {
-        listOf(CardStyle.OUTLINED, CardStyle.BORDER_ONLY).forEach { style ->
+        listOf(CardStyle.BRACKETS, CardStyle.BORDER_ONLY).forEach { style ->
             val on = chipLook(style, selected = true, enabled = true, p, gr)
             assertTrue(on.transparent)
             assertFalse(on.pill)
@@ -231,17 +234,92 @@ class SkinInputLookTest {
             assertEquals(p.accentGreen.alpha * SWITCH_DISABLED_ALPHA, dim.borderColor.alpha, 0.01f)
         }
         assertTrue(chipLook(CardStyle.BORDER_ONLY, true, true, p, gr).flat)
-        assertFalse(chipLook(CardStyle.OUTLINED, true, true, p, gr).flat)
+        assertFalse(chipLook(CardStyle.BRACKETS, true, true, p, gr).flat)
     }
 
-    @Test fun glassFlatAndStripeChips() {
-        for (selected in both) {
-            val glass = chipLook(CardStyle.GLASS, selected, true, p, gr)
-            assertEquals(CardBorderKind.TOP_HIGHLIGHT, glass.border)
-            assertFalse(glass.transparent)
-            assertEquals(ChipLook(flat = true), chipLook(CardStyle.FLAT, selected, true, p, gr))
-            assertTrue(chipLook(CardStyle.STRIPE, selected, true, p, gr).passThrough)
-        }
+    @Test fun flatChipsHaveNoElevation() {
+        for (selected in both) assertEquals(ChipLook(flat = true), chipLook(CardStyle.FLAT, selected, true, p, gr))
+    }
+
+    @Test fun graphiteProChipsAreARaisedSegment() {
+        val on = chipLook(CardStyle.OUTLINED, selected = true, enabled = true, p, gr)
+        assertEquals(p.cardBorder, on.fill)
+        assertEquals(p.textPrimary, on.label)
+        assertTrue(on.noBorder)
+        assertTrue("a 1 dp shadow", on.raised)
+        assertFalse(on.pill)
+        val off = chipLook(CardStyle.OUTLINED, selected = false, enabled = true, p, gr)
+        assertTrue(off.transparent)
+        assertEquals(Color.Unspecified, off.fill)
+        assertEquals(p.textSecondary, off.label)
+        assertTrue(off.noBorder)
+        assertFalse(off.raised)
+        val dim = chipLook(CardStyle.OUTLINED, selected = true, enabled = false, p, gr)
+        assertEquals(p.cardBorder.alpha * SWITCH_DISABLED_ALPHA, dim.fill.alpha, 0.01f)
+    }
+
+    @Test fun voltChipsAreSolidWithAGlowWhenSelected() {
+        val on = chipLook(CardStyle.GLASS, selected = true, enabled = true, p, gr)
+        assertEquals(p.accentGreen, on.fill)
+        assertEquals(p.navyDark, on.label)
+        assertEquals(p.accentGreen.copy(alpha = 0.4f), on.glow)
+        assertEquals(14.dp, on.glowSpread)
+        val off = chipLook(CardStyle.GLASS, selected = false, enabled = true, p, gr)
+        assertEquals(p.cardSurfaceElevated.copy(alpha = 0.8f), off.fill)
+        assertEquals(CardBorderKind.SOLID, off.border)
+        assertEquals(Color.White.copy(alpha = 0.08f), off.borderColor)
+        assertEquals(p.textSecondary, off.label)
+        assertFalse("an unselected chip has no glow", off.glow.isSpecified)
+        // the frame (M3's touch padding off) does not depend on the state
+        assertEquals(on.framed, off.framed)
+        assertTrue(on.framed)
+        val dim = chipLook(CardStyle.GLASS, selected = true, enabled = false, p, gr)
+        assertFalse("a disabled chip does not glow", dim.glow.isSpecified)
+        assertEquals(p.accentGreen.alpha * SWITCH_DISABLED_ALPHA, dim.fill.alpha, 0.01f)
+        assertEquals(on.framed, dim.framed)
+    }
+
+    @Test fun telemetryChipsAreSolidWhenSelected() {
+        val on = chipLook(CardStyle.STRIPE, selected = true, enabled = true, p, gr)
+        assertEquals(p.accentGreen, on.fill)
+        assertEquals(p.navyDark, on.label)
+        assertTrue(on.noBorder)
+        val off = chipLook(CardStyle.STRIPE, selected = false, enabled = true, p, gr)
+        assertEquals(p.cardSurfaceElevated, off.fill)
+        assertEquals(p.textSecondary, off.label)
+        assertTrue(off.noBorder)
+        assertFalse(off.framed)
+    }
+
+    @Test fun cockpitChipsAreOutlines() {
+        val on = chipLook(CardStyle.BRACKETS, selected = true, enabled = true, p, gr)
+        assertEquals(p.accentGreen, on.borderColor)
+        assertEquals(chipLook(CardStyle.BORDER_ONLY, true, true, p, gr).copy(flat = false), on)
+        assertEquals(p.cardBorder, chipLook(CardStyle.BRACKETS, false, true, p, gr).borderColor)
+    }
+
+    @Test fun buttonsOfTheFinalKits() {
+        val cockpit = buttonLook(CardStyle.BRACKETS, ButtonKind.FILLED, p, fill)
+        assertTrue(cockpit.flat)
+        assertFalse(cockpit.underlay)
+        val outlined = buttonLook(CardStyle.BRACKETS, ButtonKind.OUTLINED, p, Color.Transparent)
+        assertEquals(CardBorderKind.SOLID, outlined.border)
+        assertEquals(p.cardBorder, outlined.borderColor)
+        assertEquals(0f, outlined.containerAlpha)
+        val volt = buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, fill)
+        assertTrue(volt.gradient)
+        assertEquals(p.accentBlue, volt.gradientStart)
+        assertEquals(p.accentGreen, volt.gradientEnd)
+        assertEquals(p.accentGreen.copy(alpha = 0.35f), volt.glow)
+        assertEquals(12.dp, volt.glowSpread)
+        assertFalse(volt.pill)
+        val c = colors.withLook(volt, isDefault = false)
+        assertEquals("the M3 container is see-through", 0f, c.containerColor.alpha)
+        assertEquals(0f, c.disabledContainerColor.alpha)
+        assertEquals(Color.Black, c.contentColor)
+        assertFalse("outlined and text stay", buttonLook(CardStyle.GLASS, ButtonKind.OUTLINED, p, fill).gradient)
+        assertFalse(buttonLook(CardStyle.GLASS, ButtonKind.TEXT, p, fill).gradient)
+        assertFalse("a see-through caller fill stays", buttonLook(CardStyle.GLASS, ButtonKind.FILLED, p, Color.Transparent).gradient)
     }
 
     @Test fun theSelectionNeverChangesTheChipsCall() {

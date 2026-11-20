@@ -17,13 +17,18 @@ import androidx.compose.material3.SliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.bydmate.app.ui.theme.SkinPalette
 import com.bydmate.app.ui.theme.SkinState
 import androidx.compose.material3.Slider as M3Slider
 
@@ -31,7 +36,8 @@ import androidx.compose.material3.Slider as M3Slider
 // passes every argument straight to M3, with M3's own thumb and track. THIN and SEGMENTED go
 // through the same M3 thumb and track slots, so the value, steps, callbacks, gestures,
 // semantics and touch target stay M3's own; only the drawing changes. Colours are the caller's
-// SliderColors.
+// SliderColors; GRADIENT and GLOW (Telemetry, Volt) take theirs from the skin palette, like the
+// styled switches, and dim to the disabled alpha.
 
 private val ThinTrackHeight = 2.dp
 private val ThinThumbSize = 14.dp
@@ -63,10 +69,11 @@ fun Slider(
         onValueChangeFinished = onValueChangeFinished, colors = colors, interactionSource = interactionSource,
         steps = steps,
         thumb = {
-            if (style == SliderStyle.THIN) {
-                ThinThumb(interactionSource, colors, enabled)
-            } else {
-                SliderDefaults.Thumb(interactionSource = interactionSource, colors = colors, enabled = enabled)
+            when (style) {
+                SliderStyle.THIN -> ThinThumb(interactionSource, colors, enabled)
+                SliderStyle.GRADIENT, SliderStyle.GLOW -> LitThumb(style, interactionSource, enabled)
+                SliderStyle.MATERIAL, SliderStyle.SEGMENTED ->
+                    SliderDefaults.Thumb(interactionSource = interactionSource, colors = colors, enabled = enabled)
             }
         },
         track = { state ->
@@ -74,6 +81,7 @@ fun Slider(
                 SliderStyle.MATERIAL -> SliderDefaults.Track(colors = colors, enabled = enabled, sliderState = state)
                 SliderStyle.THIN -> ThinTrack(state, colors, enabled)
                 SliderStyle.SEGMENTED -> SegmentedTrack(state, colors, enabled)
+                SliderStyle.GRADIENT, SliderStyle.GLOW -> LitTrack(style, state, enabled)
             }
         },
         valueRange = valueRange,
@@ -136,6 +144,84 @@ private fun SegmentedTrack(state: SliderState, colors: SliderColors, enabled: Bo
         for (i in 0 until SLIDER_SEGMENTS) {
             val x = if (rtl) size.width - (i + 1) * w - i * gap else i * (w + gap)
             drawRoundRect(if (i < lit) active else inactive, Offset(x, 0f), segment, radius)
+        }
+    }
+}
+
+private val GradientTrackHeight = 6.dp
+private val GradientThumbSize = 22.dp
+private val GradientThumbRing = 3.dp
+private val GlowTrackHeight = 4.dp
+private val GlowThumbSize = 20.dp
+private val SliderGlowSpread = 10.dp
+private const val SLIDER_GLOW_ALPHA = 0.5f
+
+/** The thumb of GRADIENT (a white disc in an accent ring, 22 dp) or GLOW (an accent disc with a glow, 20 dp). */
+@Composable
+private fun LitThumb(style: SliderStyle, interactionSource: MutableInteractionSource, enabled: Boolean) {
+    val p = SkinState.palette
+    val gradient = style == SliderStyle.GRADIENT
+    val size = if (gradient) GradientThumbSize else GlowThumbSize
+    Spacer(
+        Modifier
+            .size(size)
+            .hoverable(interactionSource = interactionSource)
+            .then(if (enabled) Modifier else Modifier.alpha(SWITCH_DISABLED_ALPHA))
+            .then(remember(p, gradient) { litThumbDraw(p, gradient) }),
+    )
+}
+
+private fun litThumbDraw(p: SkinPalette, gradient: Boolean): Modifier = Modifier.drawWithCache {
+    val r = size.minDimension / 2f
+    val ring = GradientThumbRing.toPx()
+    val spread = SliderGlowSpread.toPx()
+    val glow = if (gradient) null else Brush.radialGradient(listOf(p.accentGreen.copy(alpha = SLIDER_GLOW_ALPHA), Color.Transparent), Offset(size.width / 2f, size.height / 2f), r + spread)
+    onDrawBehind {
+        if (gradient) {
+            drawCircle(p.accentGreen, r)
+            drawCircle(Color.White, r - ring)
+        } else {
+            drawCircle(glow!!, r + spread)
+            drawCircle(p.accentGreen, r)
+        }
+    }
+}
+
+/** GRADIENT: 6 dp, round ends, accentOrange to accentGreen up to the value. GLOW: 4 dp, accentGreen with a glow. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LitTrack(style: SliderStyle, state: SliderState, enabled: Boolean) {
+    val p = SkinState.palette
+    val gradient = style == SliderStyle.GRADIENT
+    val height = if (gradient) GradientTrackHeight else GlowTrackHeight
+    Canvas(
+        Modifier
+            .fillMaxWidth()
+            .height(height)
+            .then(if (enabled) Modifier else Modifier.alpha(SWITCH_DISABLED_ALPHA)),
+    ) {
+        val f = sliderFraction(state.value, state.valueRange)
+        val y = size.height / 2f
+        val rtl = layoutDirection == LayoutDirection.Rtl
+        val split = if (rtl) size.width * (1f - f) else size.width * f
+        drawLine(p.cardBorder, Offset(0f, y), Offset(size.width, y), size.height, StrokeCap.Round)
+        if (f > 0f) {
+            val from = if (rtl) split else 0f
+            val to = if (rtl) size.width else split
+            if (gradient) {
+                val colors = listOf(p.accentOrange, p.accentGreen)
+                val brush = Brush.horizontalGradient(
+                    if (rtl) colors.reversed() else colors, startX = from, endX = to,
+                )
+                drawLine(brush, Offset(from, y), Offset(to, y), size.height, StrokeCap.Round)
+            } else {
+                // the glow follows the lit part, a round-ended bar of the track's height
+                drawRectGlow(
+                    Offset(from, 0f), Size(to - from, size.height), size.height / 2f,
+                    p.accentGreen.copy(alpha = SLIDER_GLOW_ALPHA), SliderGlowSpread.toPx(),
+                )
+                drawLine(p.accentGreen, Offset(from, y), Offset(to, y), size.height, StrokeCap.Round)
+            }
         }
     }
 }

@@ -119,7 +119,7 @@ object Skins {
             chartGrid = Color(0xFF141B23),
             navBarBackground = Color(0xFF05070A),
         ),
-        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f), SkinControls(SwitchStyle.SQUARE, CardStyle.BRACKETS, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
+        SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f), SkinControls(SwitchStyle.HUD, CardStyle.BRACKETS, SliderStyle.THIN, NavStyle.CUT, CheckStyle.SQUARE), BackgroundStyle.GRID),
     )
 
     /** 2 · Graphite Pro: neutral graphite, periwinkle accent. */
@@ -143,7 +143,7 @@ object Skins {
             navBarBackground = Color(0xFF0F1013),
             navIndicator = Color(0xFF2A2C33),
         ),
-        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.MATERIAL, CardStyle.OUTLINED, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
+        SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f), SkinControls(SwitchStyle.IOS, CardStyle.OUTLINED, SliderStyle.MATERIAL), BackgroundStyle.AUTHOR),
     )
 
     /** 3 · Volt: deep navy, electric green with fuel amber. */
@@ -166,7 +166,7 @@ object Skins {
             chartGrid = Color(0xFF141C33),
             navBarBackground = Color(0xFF0A0F1E),
         ),
-        SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f), SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL), BackgroundStyle.NEON),
+        SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f), SkinControls(SwitchStyle.GLOW, CardStyle.GLASS, SliderStyle.GLOW), BackgroundStyle.NEON),
     )
 
     /** 4 · Telemetry: race-telemetry black, signal orange. */
@@ -189,7 +189,7 @@ object Skins {
             chartGrid = Color(0xFF1C1C1C),
             navBarBackground = Color(0xFF0B0B0B),
         ),
-        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f, SkinFont.RAJDHANI), SkinCorners(CornerStyle.ROUNDED, 0.5f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.CARBON),
+        SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f, SkinFont.RAJDHANI), SkinCorners(CornerStyle.ROUNDED, 0.5f), SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.GRADIENT, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.CARBON),
     )
 
     /** 5 · OLED: pure black, lime accent. */

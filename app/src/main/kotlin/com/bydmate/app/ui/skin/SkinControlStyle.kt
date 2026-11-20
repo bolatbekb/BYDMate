@@ -1,9 +1,9 @@
 package com.bydmate.app.ui.skin
 
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.isSpecified
 import com.bydmate.app.ui.theme.SkinPalette
 import kotlin.math.roundToInt
 
@@ -155,7 +155,20 @@ data class SwitchLook(
     val thumbCorner: Dp,
     val thumbInset: Dp,
     val alpha: Float,
-)
+    /** The thumb's width when it is not square (HUD's block); unspecified: [thumbSize]. */
+    val thumbWidth: Dp = Dp.Unspecified,
+    /** A fill inside a stroked track (HUD, on). */
+    val trackFill: Color = Color.Unspecified,
+    /** A soft glow, [glowSpread] wide: around the thumb ([glowOnThumb], HUD) or around the track (GLOW). */
+    val glow: Color = Color.Unspecified,
+    val glowSpread: Dp = 0.dp,
+    val glowOnThumb: Boolean = false,
+    /** A dark shadow under a round thumb (IOS), 1 dp low. */
+    val thumbShadow: Color = Color.Unspecified,
+) {
+    /** The thumb's width in dp. */
+    val thumbW: Dp get() = if (thumbWidth.isSpecified) thumbWidth else thumbSize
+}
 
 val SwitchWidth: Dp = 52.dp
 val SwitchHeight: Dp = 32.dp
@@ -174,19 +187,15 @@ fun switchLook(style: SwitchStyle, checked: Boolean, enabled: Boolean, palette: 
     val alpha = if (enabled) 1f else SWITCH_DISABLED_ALPHA
     return when (style) {
         SwitchStyle.MATERIAL -> null
-        SwitchStyle.SQUARE -> {
-            val thumb = if (checked) palette.navyMid else palette.textSecondary
-            SwitchLook(
-                stateColor = state, trackFilled = true, trackStroke = 0.dp, trackHeight = SwitchHeight,
-                trackCorner = 2.dp, thumbColor = thumb, thumbFill = thumb, thumbRing = 0.dp,
-                thumbSize = 24.dp, thumbCorner = 2.dp, thumbInset = 4.dp, alpha = alpha,
-            )
-        }
+        SwitchStyle.SQUARE -> squareSwitch(state, checked, alpha, palette)
         SwitchStyle.PILL -> SwitchLook(
             stateColor = state, trackFilled = true, trackStroke = 0.dp, trackHeight = 4.dp,
             trackCorner = 2.dp, thumbColor = mark, thumbFill = palette.navyMid, thumbRing = 2.dp,
             thumbSize = 20.dp, thumbCorner = 10.dp, thumbInset = 0.dp, alpha = alpha,
         )
+        SwitchStyle.HUD -> hudSwitch(checked, alpha, palette)
+        SwitchStyle.IOS -> iosSwitch(checked, alpha, palette)
+        SwitchStyle.GLOW -> glowSwitch(checked, alpha, palette)
         SwitchStyle.OUTLINE -> SwitchLook(
             stateColor = state, trackFilled = false, trackStroke = 2.dp, trackHeight = SwitchHeight,
             trackCorner = 16.dp, thumbColor = mark, thumbFill = Color.Transparent, thumbRing = 2.dp,
@@ -194,15 +203,7 @@ fun switchLook(style: SwitchStyle, checked: Boolean, enabled: Boolean, palette: 
         )
         // a sunken groove (Inset) lit by the accent when on, a raised round thumb; the Graphite
         // rims and relief over them are drawn by GraphiteSwitchFace
-        SwitchStyle.GRAPHITE -> {
-            val thumb = if (checked) palette.accentGreen else palette.textMuted
-            SwitchLook(
-                stateColor = if (checked) lerp(palette.navyMid, palette.accentGreen, GRAPHITE_GROOVE_LIT) else palette.navyMid,
-                trackFilled = true, trackStroke = 0.dp, trackHeight = SwitchHeight, trackCorner = 16.dp,
-                thumbColor = thumb, thumbFill = thumb, thumbRing = 0.dp,
-                thumbSize = 24.dp, thumbCorner = 12.dp, thumbInset = 4.dp, alpha = alpha,
-            )
-        }
+        SwitchStyle.GRAPHITE -> graphiteSwitch(checked, alpha, palette)
     }
 }
 

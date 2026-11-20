@@ -1,6 +1,7 @@
 package com.bydmate.app.ui.skin
 
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.unit.dp
 import com.bydmate.app.ui.home.graphite.GrScheme
@@ -210,6 +211,97 @@ class SkinControlStyleTest {
         assertEquals(Color.Transparent, on.thumbFill)
         assertTrue(on.thumbRing > 0.dp)
         assertEquals(p.accentGreen, on.thumbColor)
+    }
+
+    @Test fun hudIsASquareOutlineWithABlockThumbAndAGlow() {
+        val on = switchLook(SwitchStyle.HUD, true, true, p)!!
+        assertFalse(on.trackFilled)
+        assertEquals(1.dp, on.trackStroke)
+        assertEquals(28.dp, on.trackHeight)
+        assertEquals(0.dp, on.trackCorner)
+        assertEquals(p.accentGreen, on.stateColor)
+        assertEquals(p.accentGreen.copy(alpha = 0.12f), on.trackFill)
+        assertEquals(22.dp, on.thumbW)
+        assertEquals(20.dp, on.thumbSize)
+        assertEquals(0.dp, on.thumbCorner)
+        assertEquals(3.dp, on.thumbInset)
+        assertEquals(p.accentGreen, on.thumbColor)
+        assertTrue(on.glowOnThumb)
+        assertEquals(p.accentGreen.copy(alpha = 0.5f), on.glow)
+        assertEquals(16.dp, on.glowSpread)
+        val off = switchLook(SwitchStyle.HUD, false, true, p)!!
+        assertEquals(p.textMuted, off.stateColor)
+        assertEquals(p.textMuted, off.thumbColor)
+        assertEquals(0f, off.trackFill.alpha)
+        assertFalse(off.glow.isSpecified)
+        assertEquals(0.38f, switchLook(SwitchStyle.HUD, true, false, p)!!.alpha)
+    }
+
+    @Test fun iosIsAFilledPillWithAShadowedWhiteThumb() {
+        val on = switchLook(SwitchStyle.IOS, true, true, p)!!
+        assertTrue(on.trackFilled)
+        assertEquals(32.dp, on.trackHeight)
+        assertEquals(p.accentGreen, on.stateColor)
+        assertEquals(26.dp, on.thumbSize)
+        assertEquals(13.dp, on.thumbCorner)
+        assertEquals(3.dp, on.thumbInset)
+        assertEquals(Color.White, on.thumbColor)
+        assertEquals(Color.Black.copy(alpha = 0.35f), on.thumbShadow)
+        assertFalse(on.glow.isSpecified)
+        val off = switchLook(SwitchStyle.IOS, false, true, p)!!
+        assertEquals(p.cardBorder, off.stateColor)
+        assertEquals(Color(0xFF9AA0A8), off.thumbColor)
+    }
+
+    @Test fun glowIsAFilledPillWithAGlowWhenOn() {
+        val on = switchLook(SwitchStyle.GLOW, true, true, p)!!
+        assertEquals(p.accentGreen, on.stateColor)
+        assertEquals(p.navyDark, on.thumbColor)
+        assertEquals(26.dp, on.thumbSize)
+        assertEquals(3.dp, on.thumbInset)
+        assertEquals(p.accentGreen.copy(alpha = 0.45f), on.glow)
+        assertEquals(14.dp, on.glowSpread)
+        assertFalse(on.glowOnThumb)
+        val off = switchLook(SwitchStyle.GLOW, false, true, p)!!
+        assertEquals(p.cardSurfaceElevated, off.stateColor)
+        assertEquals(p.textSecondary, off.thumbColor)
+        assertFalse(off.glow.isSpecified)
+    }
+
+    @Test fun everySwitchStyleFitsTheBoxAndDimsWhenDisabled() {
+        SwitchStyle.entries.filter { it != SwitchStyle.MATERIAL }.forEach { style ->
+            for (checked in listOf(true, false)) {
+                val look = switchLook(style, checked, true, p)!!
+                assertTrue(style.name, look.trackHeight <= 32.dp)
+                assertTrue(style.name, look.thumbW + look.thumbInset * 2 <= 52.dp)
+                assertTrue(style.name, look.thumbSize <= 32.dp)
+                assertEquals(style.name, SWITCH_DISABLED_ALPHA, switchLook(style, checked, false, p)!!.alpha)
+            }
+        }
+    }
+
+    /** An exhaustive `when` (no else): a new style must be handled here, and in the faces. */
+    private fun handled(style: SwitchStyle): Boolean = when (style) {
+        SwitchStyle.MATERIAL -> switchLook(style, true, true, p) == null
+        SwitchStyle.SQUARE, SwitchStyle.PILL, SwitchStyle.OUTLINE, SwitchStyle.GRAPHITE,
+        SwitchStyle.HUD, SwitchStyle.IOS, SwitchStyle.GLOW,
+        -> switchLook(style, true, true, p) != null
+    }
+
+    private fun handled(style: SliderStyle): Boolean = when (style) {
+        SliderStyle.MATERIAL, SliderStyle.THIN, SliderStyle.SEGMENTED, SliderStyle.GRADIENT, SliderStyle.GLOW -> true
+    }
+
+    @Test fun everySwitchAndSliderStyleIsHandled() {
+        SwitchStyle.entries.forEach { assertTrue(it.name, handled(it)) }
+        SliderStyle.entries.forEach { assertTrue(it.name, handled(it)) }
+    }
+
+    @Test fun theFinalKitsUseTheirSwitchesAndSliders() {
+        assertEquals(SwitchStyle.HUD to SliderStyle.THIN, Skins.COCKPIT.kit.controls.let { it.switch to it.slider })
+        assertEquals(SwitchStyle.IOS to SliderStyle.MATERIAL, Skins.GRAPHITE.kit.controls.let { it.switch to it.slider })
+        assertEquals(SwitchStyle.GLOW to SliderStyle.GLOW, Skins.VOLT.kit.controls.let { it.switch to it.slider })
+        assertEquals(SwitchStyle.SQUARE to SliderStyle.GRADIENT, Skins.TELEMETRY.kit.controls.let { it.switch to it.slider })
     }
 
     @Test fun thumbTravelsAcrossTheTrackAndMirrorsInRtl() {

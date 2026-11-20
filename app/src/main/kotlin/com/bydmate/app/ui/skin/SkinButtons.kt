@@ -66,15 +66,22 @@ fun Button(
     val look = activeButtonLook(ButtonKind.FILLED, fill)
     val face = skinButtonShape(shape, ButtonDefaults.shape, SkinState.current.kit.corners)
     val styled = skinBorder(look.border, look.borderColor, look.borderFadeColor)
-    ProvidePillFrame(look.pill) { touch ->
+    ProvidePillFrame(look.pill, look.underlay) { touch ->
         M3Button(
             onClick = onClick,
-            modifier = if (look.pill) modifier.skinPill(touch, fill, GraphiteLookState.scheme.palette.tabActiveEdge, face) else modifier,
+            modifier = when {
+                look.pill -> modifier.skinPill(touch, fill, GraphiteLookState.scheme.palette.tabActiveEdge, face)
+                look.gradient -> modifier.skinGlow(
+                    touch, if (enabled) look.glow else Color.Unspecified, look.glowSpread, face,
+                    look.gradientStart.fade(fill.alpha), look.gradientEnd.fade(fill.alpha),
+                )
+                else -> modifier
+            },
             enabled = enabled,
             shape = face,
             colors = colors.withLook(look, isDefault = false),
             elevation = flatButtonElevation(look.flat, elevation),
-            border = styledBorder(border, null, styled, drop = look.pill),
+            border = styledBorder(border, null, styled, drop = look.underlay),
             contentPadding = contentPadding,
             interactionSource = interactionSource,
             content = content,
@@ -188,13 +195,14 @@ private fun flatButtonElevation(flat: Boolean, elevation: ButtonElevation?): But
  * One provider around a skinned button's or chip's M3 call, whatever the style. Under a Graphite
  * [pill]: the live Graphite look (grPill reads its relief) and M3's touch target padding turned
  * off, as skinPill pads outside the pill instead with the [Dp] it is handed (the value in effect
- * here). Otherwise both locals keep the values in effect.
+ * here). A glow or a gradient ([framed] without a pill) turns the padding off the same way, for
+ * skinGlow, and leaves the Graphite look alone. Otherwise both locals keep the values in effect.
  */
 @Composable
-internal fun ProvidePillFrame(pill: Boolean, content: @Composable (touch: Dp) -> Unit) {
+internal fun ProvidePillFrame(pill: Boolean, framed: Boolean = pill, content: @Composable (touch: Dp) -> Unit) {
     val touch = LocalMinimumInteractiveComponentSize.current
     CompositionLocalProvider(
-        LocalMinimumInteractiveComponentSize provides if (pill) Dp.Unspecified else touch,
+        LocalMinimumInteractiveComponentSize provides if (framed) Dp.Unspecified else touch,
         LocalGrLook provides graphiteLookFor(pill),
     ) {
         content(touch)
@@ -216,7 +224,7 @@ internal fun Modifier.skinPill(touch: Dp, fill: Color, edge: Color, shape: Shape
  * measures the content as it is and grows to [size] at least, the content centred; an unspecified
  * or zero size does nothing, as in M3.
  */
-private data class SkinTouchTargetElement(val size: Dp) : ModifierNodeElement<SkinTouchTargetNode>() {
+internal data class SkinTouchTargetElement(val size: Dp) : ModifierNodeElement<SkinTouchTargetNode>() {
     override fun create(): SkinTouchTargetNode = SkinTouchTargetNode(size)
 
     override fun update(node: SkinTouchTargetNode) {
@@ -224,7 +232,7 @@ private data class SkinTouchTargetElement(val size: Dp) : ModifierNodeElement<Sk
     }
 }
 
-private class SkinTouchTargetNode(var size: Dp) : Modifier.Node(), LayoutModifierNode {
+internal class SkinTouchTargetNode(var size: Dp) : Modifier.Node(), LayoutModifierNode {
     override fun MeasureScope.measure(measurable: Measurable, constraints: Constraints): MeasureResult {
         val placeable = measurable.measure(constraints)
         val min = if (size.isSpecified && size > 0.dp) size.roundToPx() else 0

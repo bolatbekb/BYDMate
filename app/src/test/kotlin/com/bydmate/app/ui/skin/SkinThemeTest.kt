@@ -24,19 +24,19 @@ class SkinThemeTest {
     @Test fun everyOtherSkinHasTheSpecKit() {
         assertEquals(
             SkinKit(SkinFonts(SkinFont.EXO2, 0.95f, SkinFont.EXO2), SkinCorners(CornerStyle.ROUNDED, 0f),
-                SkinControls(SwitchStyle.SQUARE, CardStyle.BRACKETS, SliderStyle.THIN, NavStyle.CUT), BackgroundStyle.GRID),
+                SkinControls(SwitchStyle.HUD, CardStyle.BRACKETS, SliderStyle.THIN, NavStyle.CUT, CheckStyle.SQUARE), BackgroundStyle.GRID),
             Skins.COCKPIT.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f),
-                SkinControls(SwitchStyle.MATERIAL, CardStyle.OUTLINED, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.AUTHOR),
+                SkinControls(SwitchStyle.IOS, CardStyle.OUTLINED, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.AUTHOR),
             Skins.GRAPHITE.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.MANROPE, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1.5f),
-                SkinControls(SwitchStyle.PILL, CardStyle.GLASS, SliderStyle.MATERIAL, NavStyle.MATERIAL), BackgroundStyle.NEON),
+                SkinControls(SwitchStyle.GLOW, CardStyle.GLASS, SliderStyle.GLOW, NavStyle.MATERIAL), BackgroundStyle.NEON),
             Skins.VOLT.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.ROBOTO_CONDENSED, 1f, SkinFont.RAJDHANI), SkinCorners(CornerStyle.ROUNDED, 0.5f),
-                SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.SEGMENTED, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.CARBON),
+                SkinControls(SwitchStyle.SQUARE, CardStyle.STRIPE, SliderStyle.GRADIENT, NavStyle.UNDERLINE, CheckStyle.SQUARE), BackgroundStyle.CARBON),
             Skins.TELEMETRY.kit)
         assertEquals(
             SkinKit(SkinFonts(SkinFont.INTER, 0.97f), SkinCorners(CornerStyle.ROUNDED, 1f),

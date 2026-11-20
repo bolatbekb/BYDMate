@@ -6,9 +6,9 @@ enum class SkinFont { SYSTEM, INTER, EXO2, MANROPE, ROBOTO_CONDENSED, RAJDHANI }
 enum class CornerStyle { ROUNDED, CUT }
 
 /** GRAPHITE, here and in the card and background styles, is the Graphite home's own look (GraphiteSkin.kt). */
-enum class SwitchStyle { MATERIAL, SQUARE, PILL, OUTLINE, GRAPHITE }
+enum class SwitchStyle { MATERIAL, SQUARE, PILL, OUTLINE, GRAPHITE, HUD, IOS, GLOW }
 enum class CardStyle { MATERIAL, OUTLINED, FLAT, GLASS, STRIPE, BORDER_ONLY, GRAPHITE, BRACKETS }
-enum class SliderStyle { MATERIAL, THIN, SEGMENTED }
+enum class SliderStyle { MATERIAL, THIN, SEGMENTED, GRADIENT, GLOW }
 enum class BackgroundStyle { AUTHOR, GRID, GLOW, SCANLINES, NEON, CARBON, GRAPHITE }
 
 /**

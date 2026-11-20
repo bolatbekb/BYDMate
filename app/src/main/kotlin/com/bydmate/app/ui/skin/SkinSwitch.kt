@@ -21,8 +21,11 @@ import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -31,7 +34,7 @@ import com.bydmate.app.ui.theme.SkinState
 import androidx.compose.material3.Switch as M3Switch
 
 // fork: drop-in for the M3 Switch (same name, parameters and defaults as M3 1.3.1). MATERIAL
-// passes every argument straight to M3. SQUARE, PILL and OUTLINE draw their own face in the M3
+// passes every argument straight to M3. SQUARE, PILL, OUTLINE, HUD, IOS and GLOW draw their own face in the M3
 // box of 52 x 32 dp, with the same toggleable (Role.Switch, 48 dp touch target, enabled) and the
 // same `onCheckedChange == null` behaviour: then the switch is a picture, not a control.
 // The styled faces take their colours from the skin palette (switchLook), not from `colors`.
@@ -135,6 +138,7 @@ private fun SwitchFace(look: SwitchLook, checked: Boolean, pressed: State<Boolea
                 val half = trackStrokePx / 2f
                 val trackOutlineRadius = CornerRadius((trackRadius.x - half).coerceAtLeast(0f))
                 val thumb = look.thumbSize.toPx()
+                val thumbW = look.thumbW.toPx()
                 val thumbTop = (size.height - thumb) / 2f
                 val inset = look.thumbInset.toPx()
                 val thumbRadius = CornerRadius(look.thumbCorner.toPx())
@@ -142,30 +146,50 @@ private fun SwitchFace(look: SwitchLook, checked: Boolean, pressed: State<Boolea
                 val ringStroke = Stroke(ringPx)
                 val ringRadius = CornerRadius((thumbRadius.x - ringPx / 2f).coerceAtLeast(0f))
                 val halo = PressHaloRadius.toPx()
+                val glowSpread = look.glowSpread.toPx()
+                val thumbGlow = if (look.glowOnThumb && look.glow.isSpecified) {
+                    val r = maxOf(thumbW, thumb) / 2f + glowSpread
+                    Brush.radialGradient(listOf(look.glow, Color.Transparent), Offset.Zero, r) to r
+                } else {
+                    null
+                }
+                val shadowDy = 1.dp.toPx()
                 val rtl = layoutDirection == LayoutDirection.Rtl
                 onDrawBehind {
+                    if (look.glow.isSpecified && !look.glowOnThumb) {
+                        drawRectGlow(Offset(0f, trackTop), Size(size.width, trackH), trackRadius.x, look.glow, glowSpread)
+                    }
                     if (look.trackFilled) {
                         drawRoundRect(look.stateColor, Offset(0f, trackTop), Size(size.width, trackH), trackRadius)
                     } else {
+                        if (look.trackFill.alpha > 0f) {
+                            drawRoundRect(look.trackFill, Offset(0f, trackTop), Size(size.width, trackH), trackRadius)
+                        }
                         drawRoundRect(
                             look.stateColor, Offset(half, trackTop + half),
                             Size(size.width - trackStrokePx, trackH - trackStrokePx), trackOutlineRadius, trackStroke,
                         )
                     }
-                    val x = switchThumbX(size.width, thumb, inset, fraction.value, rtl)
+                    val x = switchThumbX(size.width, thumbW, inset, fraction.value, rtl)
+                    thumbGlow?.let { (brush, r) ->
+                        translate(x + thumbW / 2f, size.height / 2f) { drawCircle(brush, r, Offset.Zero) }
+                    }
+                    if (look.thumbShadow.isSpecified) {
+                        drawRoundRect(look.thumbShadow, Offset(x, thumbTop + shadowDy), Size(thumbW, thumb), thumbRadius)
+                    }
                     if (pressed?.value == true) {
                         drawCircle(
                             look.thumbColor.copy(alpha = PRESS_HALO_ALPHA), halo,
-                            Offset(x + thumb / 2f, size.height / 2f),
+                            Offset(x + thumbW / 2f, size.height / 2f),
                         )
                     }
                     if (look.thumbFill.alpha > 0f) {
-                        drawRoundRect(look.thumbFill, Offset(x, thumbTop), Size(thumb, thumb), thumbRadius)
+                        drawRoundRect(look.thumbFill, Offset(x, thumbTop), Size(thumbW, thumb), thumbRadius)
                     }
                     if (ringPx > 0f) {
                         drawRoundRect(
                             look.thumbColor, Offset(x + ringPx / 2f, thumbTop + ringPx / 2f),
-                            Size(thumb - ringPx, thumb - ringPx), ringRadius, ringStroke,
+                            Size(thumbW - ringPx, thumb - ringPx), ringRadius, ringStroke,
                         )
                     }
                 }
