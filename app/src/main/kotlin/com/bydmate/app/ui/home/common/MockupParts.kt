@@ -23,6 +23,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -79,8 +80,13 @@ private val DesignW = px(2560)
 internal fun MockupFrame(
     designH: Int = 1208,
     letterbox: Color = MockupInk.Letterbox,
+    fillHeight: Boolean = false, // fork: fluid height, 1208..1440 design px, scaled by width
     content: @Composable BoxScope.() -> Unit,
 ) {
+    if (fillHeight) { // fork: the fluid frame; the default path below is untouched
+        FluidMockupFrame(letterbox, content)
+        return
+    }
     val designHDp = px(designH)
     BoxWithConstraints(Modifier.fillMaxSize().background(letterbox), contentAlignment = Alignment.Center) {
         val sw = if (constraints.hasBoundedWidth) maxWidth / DesignW else 1f
@@ -89,6 +95,43 @@ internal fun MockupFrame(
         val base = LocalDensity.current
         CompositionLocalProvider(LocalDensity provides Density(base.density * scale, 1f)) {
             Box(Modifier.size(DesignW, designHDp), content = content)
+        }
+    }
+}
+
+// fork: fluid frame. The mockup grows from 2560 x 1208 up to 2560 x 1440 design px with the height.
+
+private const val DesignWPx = 2560f
+private const val DesignHMinPx = 1208f
+private const val DesignHMaxPx = 1440f
+
+/** The fluid frame: [scale] by width, [heightPx] design px of content, [extraPx] = heightPx - 1208. */
+internal data class FluidFrame(val scale: Float, val heightPx: Float, val extraPx: Float)
+
+/** The frame for an area of [maxWidthDp] x [maxHeightDp]: too short keeps today's min scale. */
+internal fun fluidFrame(maxWidthDp: Float, maxHeightDp: Float): FluidFrame {
+    val sw = maxWidthDp / (DesignWPx * K)
+    val sh = maxHeightDp / (DesignHMinPx * K)
+    if (sh < sw) return FluidFrame(sh, DesignHMinPx, 0f)
+    val h = (maxHeightDp / sw / K).coerceIn(DesignHMinPx, DesignHMaxPx)
+    return FluidFrame(sw, h, h - DesignHMinPx)
+}
+
+/** The extra design px of height the fluid frame gives (0 in the fixed frame). */
+internal val LocalMockupExtra = staticCompositionLocalOf { 0f }
+
+@Composable
+private fun FluidMockupFrame(letterbox: Color, content: @Composable BoxScope.() -> Unit) {
+    BoxWithConstraints(Modifier.fillMaxSize().background(letterbox), contentAlignment = Alignment.Center) {
+        val w = if (constraints.hasBoundedWidth) maxWidth.value else DesignWPx * K
+        val h = if (constraints.hasBoundedHeight) maxHeight.value else DesignHMinPx * K
+        val frame = fluidFrame(w, h)
+        val base = LocalDensity.current
+        CompositionLocalProvider(
+            LocalDensity provides Density(base.density * frame.scale, 1f),
+            LocalMockupExtra provides frame.extraPx,
+        ) {
+            Box(Modifier.size(DesignW, px(frame.heightPx)), content = content)
         }
     }
 }
