@@ -50,6 +50,7 @@ internal val YAMUSIC_CAR_COMMANDS: List<YamusicCarCommand> = listOf(
     YamusicCarCommand("stop", R.string.yamusic_car_cmd_stop, "yamusiccar://control/stop"),
     YamusicCarCommand("next", R.string.yamusic_car_cmd_next, "yamusiccar://control/next"),
     YamusicCarCommand("prev", R.string.yamusic_car_cmd_prev, "yamusiccar://control/prev"),
+    YamusicCarCommand("like", R.string.yamusic_car_cmd_like, "yamusiccar://control/like"),
     YamusicCarCommand("shuffle_on", R.string.yamusic_car_cmd_shuffle_on, "yamusiccar://control/shuffle?on=1"),
     YamusicCarCommand("shuffle_off", R.string.yamusic_car_cmd_shuffle_off, "yamusiccar://control/shuffle?on=0"),
     YamusicCarCommand("repeat_off", R.string.yamusic_car_cmd_repeat_off, "yamusiccar://control/repeat?mode=off"),

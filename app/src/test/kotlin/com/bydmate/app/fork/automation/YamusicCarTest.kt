@@ -26,6 +26,7 @@ class YamusicCarTest {
             "stop" to "yamusiccar://control/stop",
             "next" to "yamusiccar://control/next",
             "prev" to "yamusiccar://control/prev",
+            "like" to "yamusiccar://control/like",
             "shuffle_on" to "yamusiccar://control/shuffle?on=1",
             "shuffle_off" to "yamusiccar://control/shuffle?on=0",
             "repeat_off" to "yamusiccar://control/repeat?mode=off",
@@ -45,7 +46,7 @@ class YamusicCarTest {
             val id = when (c.id) { "wave_playlist" -> "1_2"; else -> if (c.idKind == YamusicCarId.NONE) null else "abc" }
             assertNotNull(c.id, yamusicCarUri(c.id, id, false))
         }
-        assertEquals(21, YAMUSIC_CAR_COMMANDS.size)
+        assertEquals(22, YAMUSIC_CAR_COMMANDS.size)
     }
 
     @Test fun `show appends ui=show with the right separator and never to open`() {

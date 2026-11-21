@@ -17,6 +17,7 @@
     <string name="yamusic_car_cmd_stop">Stop</string>
     <string name="yamusic_car_cmd_next">Następny</string>
     <string name="yamusic_car_cmd_prev">Poprzedni</string>
+    <string name="yamusic_car_cmd_like">Polub bieżący utwór</string>
     <string name="yamusic_car_cmd_shuffle_on">Losowo włączone</string>
     <string name="yamusic_car_cmd_shuffle_off">Losowo wyłączone</string>
     <string name="yamusic_car_cmd_repeat_off">Powtarzanie: wył.</string>

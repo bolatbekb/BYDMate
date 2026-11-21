@@ -17,6 +17,7 @@
     <string name="yamusic_car_cmd_stop">Стоп</string>
     <string name="yamusic_car_cmd_next">Следующий</string>
     <string name="yamusic_car_cmd_prev">Предыдущий</string>
+    <string name="yamusic_car_cmd_like">Поставить лайк текущему треку</string>
     <string name="yamusic_car_cmd_shuffle_on">Перемешивание вкл</string>
     <string name="yamusic_car_cmd_shuffle_off">Перемешивание выкл</string>
     <string name="yamusic_car_cmd_repeat_off">Повтор: выкл</string>

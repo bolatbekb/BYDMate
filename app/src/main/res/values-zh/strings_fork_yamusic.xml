@@ -17,6 +17,7 @@
     <string name="yamusic_car_cmd_stop">停止</string>
     <string name="yamusic_car_cmd_next">下一首</string>
     <string name="yamusic_car_cmd_prev">上一首</string>
+    <string name="yamusic_car_cmd_like">喜欢当前歌曲</string>
     <string name="yamusic_car_cmd_shuffle_on">随机播放开</string>
     <string name="yamusic_car_cmd_shuffle_off">随机播放关</string>
     <string name="yamusic_car_cmd_repeat_off">循环：关</string>
