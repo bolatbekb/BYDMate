@@ -4,9 +4,12 @@ package com.bydmate.app.fork.fidscan
 import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
+import android.content.Intent
 import android.os.Environment
+import android.os.StatFs
 import android.os.SystemClock
 import android.util.Log
+import androidx.core.content.FileProvider
 import com.bydmate.app.R
 import com.bydmate.app.data.vehicle.BatchReadItem
 import com.bydmate.app.data.vehicle.DumpFidsResult
@@ -29,6 +32,7 @@ import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
@@ -40,6 +44,7 @@ import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -74,6 +79,8 @@ data class FidScanStatus(
     val sweeps: Int = 0,
     val pushRunning: Boolean = false,
     val error: String? = null,
+    val packing: Boolean = false,
+    val lastZip: String? = null,
 )
 
 @EntryPoint
@@ -97,6 +104,7 @@ internal class FileScanSink(private val out: OutputStream) : ScanSink {
 
     override val bytes: Long get() = written
 
+    @Synchronized
     override fun write(line: String) {
         val data = (line + "\n").toByteArray(Charsets.UTF_8)
         try {
@@ -109,6 +117,7 @@ internal class FileScanSink(private val out: OutputStream) : ScanSink {
         if (line.startsWith("E ")) lastError = line.substring(2)
     }
 
+    @Synchronized
     fun flush() {
         try { out.flush() } catch (e: IOException) { fail(e) }
     }
@@ -118,6 +127,7 @@ internal class FileScanSink(private val out: OutputStream) : ScanSink {
         Log.w(TAG, "write failed", e)
     }
 
+    @Synchronized
     override fun close() {
         try { out.close() } catch (e: Exception) { /* nothing left to do */ }
     }
@@ -140,6 +150,8 @@ private class HelperScanIo(private val helper: HelperClient) : ScanIo {
     }
 }
 
+// why: one object owns the session, the status and the zip button; they share the scope and the status flow
+@Suppress("TooManyFunctions")
 object FidScan {
     private val _status = MutableStateFlow(FidScanStatus())
     val status: StateFlow<FidScanStatus> = _status
@@ -149,6 +161,13 @@ object FidScan {
             CoroutineExceptionHandler { _, e -> Log.w(TAG, "uncaught", e) },
     )
     private val mutex = Mutex()
+    private val packBusy = AtomicBoolean(false)
+    @Volatile private var currentSink: FileScanSink? = null
+
+    /** Replaces the session part of the status and keeps what the zip button owns. */
+    private fun setStatus(base: FidScanStatus) {
+        _status.update { base.copy(packing = it.packing, lastZip = it.lastZip) }
+    }
     private var job: Job? = null
     private var resumeJob: Job? = null
     private var app: Application? = null
@@ -160,7 +179,7 @@ object FidScan {
             this.app = app
             val saved = persistedState(prefs(app))
             if (!saved.active) return
-            _status.value = FidScanStatus(active = true, usedBytes = saved.usedBytes)
+            setStatus(FidScanStatus(active = true, usedBytes = saved.usedBytes))
             // The service and the helper need a moment after a cold start.
             resumeJob = scope.launch {
                 delay(RESUME_DELAY_MS)
@@ -201,7 +220,7 @@ object FidScan {
                         job = null
                     }
                     app?.let { savePersisted(prefs(it), active = false, usedBytes = 0L) }
-                    _status.value = FidScanStatus(error = _status.value.error.takeIf { running == null })
+                    setStatus(FidScanStatus(error = _status.value.error.takeIf { running == null }))
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -227,29 +246,55 @@ object FidScan {
             val opened = try { openSink(ctx) } catch (e: CancellationException) { throw e } catch (e: Throwable) { null }
             if (opened == null) {
                 savePersisted(prefs(ctx), active = false, usedBytes = 0L)
-                _status.value = FidScanStatus(error = lc.getString(R.string.fork_fidscan_error_no_access))
+                setStatus(FidScanStatus(error = lc.getString(R.string.fork_fidscan_error_no_access)))
                 return
             }
             val (file, sink) = opened
+            val free = freeBytes(file.parentFile)
+            if (free != null && !hasRoom(free)) {
+                // Nothing was recorded yet: no empty fidscan-*.txt may stay in Download.
+                sink.close()
+                file.delete()
+                savePersisted(prefs(ctx), active = false, usedBytes = 0L)
+                setStatus(FidScanStatus(error = lc.getString(R.string.fork_fidscan_error_space_start, gbText(free))))
+                return
+            }
             savePersisted(prefs(ctx), active = true, usedBytes = usedBefore)
             val session = FidScanSession(HelperScanIo(entry.helperClient()), sink, usedBefore)
-            _status.value = FidScanStatus(active = true, fileName = file.name, usedBytes = usedBefore)
-            job = scope.launch { runLoop(ctx, session, sink, file.name) }
+            setStatus(FidScanStatus(active = true, fileName = file.name, usedBytes = usedBefore))
+            currentSink = sink
+            job = scope.launch { runLoop(ctx, session, sink, file) }
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {
             Log.w(TAG, "launchSession", e)
             try { savePersisted(prefs(ctx), active = false, usedBytes = 0L) } catch (_: Throwable) { }
-            _status.value = FidScanStatus(error = e.message ?: e::class.java.simpleName)
+            setStatus(FidScanStatus(error = e.message ?: e::class.java.simpleName))
         }
     }
 
+    /** The folder of the logs: Download, else the app's external files. Never creates a file. */
+    private fun logDir(ctx: Context): File? = listOfNotNull(
+        Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+        File("/storage/emulated/0/Download"),
+        ctx.getExternalFilesDir(null),
+    ).firstOrNull { (it.isDirectory || it.mkdirs()) && it.canWrite() }
+
+    /** Free bytes of the volume of [dir]; null when unknown (a StatFs throw never stops a session). */
+    private fun freeBytes(dir: File?): Long? {
+        if (dir == null) return null
+        return try {
+            StatFs(dir.path).availableBytes
+        } catch (e: Throwable) {
+            Log.w(TAG, "StatFs", e)
+            null
+        }
+    }
+
+    private fun gbText(bytes: Long): String = String.format(Locale.US, "%.1f", bytes / (1024.0 * 1024 * 1024))
+
     private fun openSink(ctx: Context): Pair<File, FileScanSink>? {
-        val dir = listOfNotNull(
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            File("/storage/emulated/0/Download"),
-            ctx.getExternalFilesDir(null),
-        ).firstOrNull { (it.isDirectory || it.mkdirs()) && it.canWrite() } ?: return null
+        val dir = logDir(ctx) ?: return null
         val now = Date()
         val file = File(dir, "fidscan-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(now) + ".txt")
         val sink = FileScanSink(file)
@@ -265,7 +310,8 @@ object FidScan {
         return file to sink
     }
 
-    private suspend fun runLoop(ctx: Context, session: FidScanSession, sink: FileScanSink, fileName: String) {
+    private suspend fun runLoop(ctx: Context, session: FidScanSession, sink: FileScanSink, file: File) {
+        val fileName = file.name
         var reason = "stop"
         var savedSweeps = 0
         try {
@@ -281,6 +327,11 @@ object FidScan {
                         savedSweeps = session.sweeps
                         savePersisted(prefs(ctx), active = true, usedBytes = session.usedBytes)
                     }
+                    val free = freeBytes(file.parentFile)
+                    if (free != null && !hasRoom(free)) {
+                        reason = "low disk"
+                        return
+                    }
                     publish(session, fileName, sink.ioError?.message ?: sink.lastError)
                     if (r == TickResult.BUDGET_REACHED) {
                         reason = "budget"
@@ -294,39 +345,126 @@ object FidScan {
                 delay(TICK_MS)
             }
         } finally {
-            withContext(NonCancellable) {
-                try {
-                    session.finish(reason)
-                } catch (e: Throwable) {
-                    Log.w(TAG, "finish", e)
-                }
-                try {
-                    savePersisted(prefs(ctx), active = false, usedBytes = 0L)
-                } catch (e: Throwable) {
-                    Log.w(TAG, "save", e)
-                }
-                if (reason == "budget") {
-                    _status.value = FidScanStatus(fileName = fileName, usedBytes = session.usedBytes, sweeps = session.sweeps)
-                } else if (reason == "write error") {
-                    val why = sink.ioError?.let { it.message ?: it::class.java.simpleName } ?: "?"
-                    val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
-                    _status.value = FidScanStatus(
-                        fileName = fileName, usedBytes = session.usedBytes, sweeps = session.sweeps,
-                        error = lc.getString(R.string.fork_fidscan_error_write, why),
-                    )
-                }
+            withContext(NonCancellable) { endSession(ctx, session, sink, fileName, reason) }
+        }
+    }
+
+    /** The one end path: budget, write error, low disk and a plain stop all pass here. */
+    private suspend fun endSession(ctx: Context, session: FidScanSession, sink: FileScanSink, fileName: String, reason: String) {
+        if (currentSink === sink) currentSink = null
+        try {
+            session.finish(reason)
+        } catch (e: Throwable) {
+            Log.w(TAG, "finish", e)
+        }
+        try {
+            savePersisted(prefs(ctx), active = false, usedBytes = 0L)
+        } catch (e: Throwable) {
+            Log.w(TAG, "save", e)
+        }
+        if (reason == "budget") {
+            setStatus(FidScanStatus(fileName = fileName, usedBytes = session.usedBytes, sweeps = session.sweeps))
+        } else if (reason == "write error" || reason == "low disk") {
+            val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
+            val text = if (reason == "low disk") {
+                lc.getString(R.string.fork_fidscan_error_space_run)
+            } else {
+                val why = sink.ioError?.let { it.message ?: it::class.java.simpleName } ?: "?"
+                lc.getString(R.string.fork_fidscan_error_write, why)
             }
+            setStatus(
+                FidScanStatus(
+                    fileName = fileName, usedBytes = session.usedBytes, sweeps = session.sweeps,
+                    error = text,
+                ),
+            )
         }
     }
 
     private fun publish(session: FidScanSession, fileName: String, error: String?) {
-        _status.value = FidScanStatus(
-            active = true,
-            fileName = fileName,
-            usedBytes = session.usedBytes,
-            sweeps = session.sweeps,
-            pushRunning = session.pushRunning,
-            error = error,
+        setStatus(
+            FidScanStatus(
+                active = true,
+                fileName = fileName,
+                usedBytes = session.usedBytes,
+                sweeps = session.sweeps,
+                pushRunning = session.pushRunning,
+                error = error,
+            ),
         )
+    }
+
+    /** «Упаковать и отправить»: zips every recording log in the folder and opens the share sheet.
+     *  Own flag, not the session mutex: packing never blocks start/stop and the other way round. */
+    fun pack(context: Context) {
+        val ctx = try { context.applicationContext } catch (e: Throwable) { return }
+        if (!packBusy.compareAndSet(false, true)) return
+        _status.update { it.copy(packing = true, error = null) }
+        try {
+            scope.launch {
+                try {
+                    doPack(ctx)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    Log.w(TAG, "pack", e)
+                    packFailed(ctx, R.string.fork_fidscan_error_pack, e.message ?: e::class.java.simpleName)
+                } finally {
+                    packBusy.set(false)
+                    _status.update { it.copy(packing = false) }
+                }
+            }
+        } catch (e: Throwable) {
+            Log.w(TAG, "pack launch", e)
+            packBusy.set(false)
+            _status.update { it.copy(packing = false) }
+        }
+    }
+
+    private fun packFailed(ctx: Context, res: Int, vararg args: Any) {
+        val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
+        _status.update { it.copy(error = lc.getString(res, *args)) }
+    }
+
+    private suspend fun doPack(ctx: Context) {
+        val dir = logDir(ctx)
+        if (dir == null) {
+            packFailed(ctx, R.string.fork_fidscan_error_no_access)
+            return
+        }
+        val files = dir.listFiles()?.filter { it.isFile && isScanLog(it.name) }?.sortedBy { it.name }.orEmpty()
+        if (files.isEmpty()) {
+            packFailed(ctx, R.string.fork_fidscan_error_no_files)
+            return
+        }
+        val free = freeBytes(dir)
+        if (free != null && !hasRoom(free)) {
+            packFailed(ctx, R.string.fork_fidscan_error_space_pack, gbText(free))
+            return
+        }
+        // A running recording: push the buffered tail to the file first (flush stores IO errors itself).
+        try { currentSink?.flush() } catch (e: Throwable) { Log.w(TAG, "flush", e) }
+        val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date())
+        val zip = File(dir, zipName(stamp))
+        val size = zipLogs(files, zip)
+        val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
+        val mb = String.format(Locale.US, "%.1f", size / (1024.0 * 1024))
+        _status.update { it.copy(lastZip = lc.getString(R.string.fork_fidscan_zip_done, zip.name, mb)) }
+        withContext(Dispatchers.Main) {
+            try {
+                val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.fileprovider", zip)
+                val send = Intent(Intent.ACTION_SEND).apply {
+                    type = "application/zip"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+                ctx.startActivity(Intent.createChooser(send, null).apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) })
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Throwable) {
+                Log.w(TAG, "share", e)
+                packFailed(ctx, R.string.fork_fidscan_error_share, e.message ?: e::class.java.simpleName)
+            }
+        }
     }
 }

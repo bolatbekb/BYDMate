@@ -7,6 +7,16 @@
     <string name="fork_fidscan_push_on">работает</string>
     <string name="fork_fidscan_push_off">остановлена</string>
     <string name="fork_fidscan_error_no_access">нет доступа к папке Download</string>
-    <string name="fork_fidscan_help">Раз в 5 минут (и при смене режима: парковка, поездка, зарядка) приложение читает все параметры машины и записывает в файл только то, что изменилось. Рядом работает запись событий. Только чтение: ничего в машине не меняется. Файлы fidscan-….txt и файлы записи событий лежат в папке Download. Всего пишется не больше 400 МБ, потом запись останавливается сама. Если выключить и снова включить машину, запись продолжится в новом файле. Чтобы отправить: выключите переключатель и перешлите файлы из Download разработчику.</string>
+    <string name="fork_fidscan_help">Раз в 5 минут (и при смене режима: парковка, поездка, зарядка) приложение читает все параметры машины и записывает в файл только то, что изменилось. Рядом работает запись событий. Только чтение: ничего в машине не меняется. Файлы fidscan-….txt и файлы записи событий лежат в папке Download. Всего пишется не больше 400 МБ, потом запись останавливается сама. Если выключить и снова включить машину, запись продолжится в новом файле. Запись начинается, только если свободно не меньше 5 ГБ, и останавливается, если места стало меньше. Чтобы отправить: нажмите «Упаковать в zip и отправить» — приложение соберёт все файлы записи в один архив и откроет окно отправки.</string>
     <string name="fork_fidscan_error_write">Запись остановлена: не получается писать в файл (%1$s)</string>
+    <string name="fork_fidscan_error_space_start">Свободно меньше 5 ГБ — запись не начата (свободно %1$s ГБ)</string>
+    <string name="fork_fidscan_error_space_run">Запись остановлена: свободно меньше 5 ГБ</string>
+    <string name="fork_fidscan_error_space_pack">Свободно меньше 5 ГБ — архив не создан (свободно %1$s ГБ)</string>
+    <string name="fork_fidscan_error_no_files">Нет файлов записи</string>
+    <string name="fork_fidscan_error_pack">Не удалось упаковать: %1$s</string>
+    <string name="fork_fidscan_error_share">Не удалось открыть отправку: %1$s</string>
+    <string name="fork_fidscan_zip_button">Упаковать в zip и отправить</string>
+    <string name="fork_fidscan_zip_packing">Упаковка…</string>
+    <string name="fork_fidscan_zip_done">Архив: %1$s, %2$s МБ</string>
+    <string name="fork_fidscan_zip_label">Упаковать и отправить</string>
 </resources>

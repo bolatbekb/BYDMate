@@ -7,6 +7,16 @@
     <string name="fork_fidscan_push_on">运行中</string>
     <string name="fork_fidscan_push_off">已停止</string>
     <string name="fork_fidscan_error_no_access">无法访问 Download 文件夹</string>
-    <string name="fork_fidscan_help">每 5 分钟（以及模式变化时：停车、行驶、充电）应用会读取车辆的所有参数，并只把发生变化的内容写入文件。事件记录器同时运行。仅读取：不会更改车辆的任何设置。fidscan-….txt 文件和事件记录文件位于 Download 文件夹。总共最多写入 400 MB，之后记录会自动停止。如果关闭后再次启动车辆，记录会在新文件中继续。发送方式：关闭开关，然后把 Download 中的文件转发给开发者。</string>
+    <string name="fork_fidscan_help">每 5 分钟（以及模式变化时：停车、行驶、充电）应用会读取车辆的所有参数，并只把发生变化的内容写入文件。事件记录器同时运行。仅读取：不会更改车辆的任何设置。fidscan-….txt 文件和事件记录文件位于 Download 文件夹。总共最多写入 400 MB，之后记录会自动停止。如果关闭后再次启动车辆，记录会在新文件中继续。仅当可用空间不少于 5 GB 时才开始记录，空间不足时记录会停止。发送方式：点击“打包为 zip 并发送”——应用会把所有记录文件打包成一个压缩包并打开分享窗口。</string>
     <string name="fork_fidscan_error_write">记录已停止：无法写入文件（%1$s）</string>
+    <string name="fork_fidscan_error_space_start">可用空间不足 5 GB——未开始记录（可用 %1$s GB）</string>
+    <string name="fork_fidscan_error_space_run">记录已停止：可用空间不足 5 GB</string>
+    <string name="fork_fidscan_error_space_pack">可用空间不足 5 GB——未创建压缩包（可用 %1$s GB）</string>
+    <string name="fork_fidscan_error_no_files">没有记录文件</string>
+    <string name="fork_fidscan_error_pack">打包失败：%1$s</string>
+    <string name="fork_fidscan_error_share">无法打开分享：%1$s</string>
+    <string name="fork_fidscan_zip_button">打包为 zip 并发送</string>
+    <string name="fork_fidscan_zip_packing">正在打包…</string>
+    <string name="fork_fidscan_zip_done">压缩包：%1$s，%2$s MB</string>
+    <string name="fork_fidscan_zip_label">打包并发送</string>
 </resources>

@@ -7,6 +7,16 @@
     <string name="fork_fidscan_push_on">працуе</string>
     <string name="fork_fidscan_push_off">спынена</string>
     <string name="fork_fidscan_error_no_access">няма доступу да тэчкі Download</string>
-    <string name="fork_fidscan_help">Раз на 5 хвілін (і пры змене рэжыму: паркоўка, язда, зарадка) праграма чытае ўсе параметры машыны і запісвае ў файл толькі тое, што змянілася. Побач працуе запіс падзей. Толькі чытанне: нічога ў машыне не змяняецца. Файлы fidscan-….txt і файлы запісу падзей ляжаць у тэчцы Download. Усяго пішацца не больш за 400 МБ, потым запіс спыняецца сам. Калі выключыць і зноў уключыць машыну, запіс працягнецца ў новым файле. Каб адправіць: выключыце пераключальнік і перашліце файлы з Download распрацоўшчыку.</string>
+    <string name="fork_fidscan_help">Раз на 5 хвілін (і пры змене рэжыму: паркоўка, язда, зарадка) праграма чытае ўсе параметры машыны і запісвае ў файл толькі тое, што змянілася. Побач працуе запіс падзей. Толькі чытанне: нічога ў машыне не змяняецца. Файлы fidscan-….txt і файлы запісу падзей ляжаць у тэчцы Download. Усяго пішацца не больш за 400 МБ, потым запіс спыняецца сам. Калі выключыць і зноў уключыць машыну, запіс працягнецца ў новым файле. Запіс пачынаецца, толькі калі вольна не менш за 5 ГБ, і спыняецца, калі месца стала менш. Каб адправіць: націсніце «Спакаваць у zip і адправіць» — праграма збярэ ўсе файлы запісу ў адзін архіў і адкрые акно адпраўкі.</string>
     <string name="fork_fidscan_error_write">Запіс спынены: не атрымліваецца пісаць у файл (%1$s)</string>
+    <string name="fork_fidscan_error_space_start">Вольна менш за 5 ГБ — запіс не пачаты (вольна %1$s ГБ)</string>
+    <string name="fork_fidscan_error_space_run">Запіс спынены: вольна менш за 5 ГБ</string>
+    <string name="fork_fidscan_error_space_pack">Вольна менш за 5 ГБ — архіў не створаны (вольна %1$s ГБ)</string>
+    <string name="fork_fidscan_error_no_files">Няма файлаў запісу</string>
+    <string name="fork_fidscan_error_pack">Не атрымалася спакаваць: %1$s</string>
+    <string name="fork_fidscan_error_share">Не атрымалася адкрыць адпраўку: %1$s</string>
+    <string name="fork_fidscan_zip_button">Спакаваць у zip і адправіць</string>
+    <string name="fork_fidscan_zip_packing">Пакаванне…</string>
+    <string name="fork_fidscan_zip_done">Архіў: %1$s, %2$s МБ</string>
+    <string name="fork_fidscan_zip_label">Спакаваць і адправіць</string>
 </resources>

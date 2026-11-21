@@ -73,5 +73,17 @@ internal fun FidScanBlock() {
             ),
         )
     }
+    SettingDivider()
+    SettingActionRow(
+        title = stringResource(R.string.fork_fidscan_zip_button),
+        buttonLabel = stringResource(R.string.fork_fidscan_zip_label),
+        onClick = { FidScan.pack(context) },
+        enabled = !status.packing,
+    )
+    if (status.packing) {
+        SettingHint(text = stringResource(R.string.fork_fidscan_zip_packing))
+    } else {
+        status.lastZip?.let { SettingHint(text = it) }
+    }
     status.error?.let { SettingHint(text = it) }
 }

@@ -7,6 +7,16 @@
     <string name="fork_fidscan_push_on">działa</string>
     <string name="fork_fidscan_push_off">zatrzymana</string>
     <string name="fork_fidscan_error_no_access">brak dostępu do folderu Download</string>
-    <string name="fork_fidscan_help">Co 5 minut (oraz przy zmianie trybu: postój, jazda, ładowanie) aplikacja odczytuje wszystkie parametry auta i zapisuje do pliku tylko to, co się zmieniło. Obok działa rejestrator zdarzeń. Tylko odczyt: nic w aucie nie jest zmieniane. Pliki fidscan-….txt i pliki rejestratora zdarzeń leżą w folderze Download. Łącznie zapisuje się najwyżej 400 MB, potem zapis zatrzymuje się sam. Jeśli wyłączysz i ponownie włączysz auto, zapis będzie kontynuowany w nowym pliku. Aby wysłać: wyłącz przełącznik i przekaż pliki z folderu Download deweloperowi.</string>
+    <string name="fork_fidscan_help">Co 5 minut (oraz przy zmianie trybu: postój, jazda, ładowanie) aplikacja odczytuje wszystkie parametry auta i zapisuje do pliku tylko to, co się zmieniło. Obok działa rejestrator zdarzeń. Tylko odczyt: nic w aucie nie jest zmieniane. Pliki fidscan-….txt i pliki rejestratora zdarzeń leżą w folderze Download. Łącznie zapisuje się najwyżej 400 MB, potem zapis zatrzymuje się sam. Jeśli wyłączysz i ponownie włączysz auto, zapis będzie kontynuowany w nowym pliku. Zapis rozpoczyna się tylko wtedy, gdy wolne jest co najmniej 5 GB, i zatrzymuje się, gdy miejsca zrobi się mniej. Aby wysłać: dotknij „Spakuj do zip i wyślij” — aplikacja zbierze wszystkie pliki zapisu w jedno archiwum i otworzy okno udostępniania.</string>
     <string name="fork_fidscan_error_write">Zapis zatrzymany: nie można zapisać do pliku (%1$s)</string>
+    <string name="fork_fidscan_error_space_start">Wolne mniej niż 5 GB — zapis nie rozpoczęty (wolne %1$s GB)</string>
+    <string name="fork_fidscan_error_space_run">Zapis zatrzymany: wolne mniej niż 5 GB</string>
+    <string name="fork_fidscan_error_space_pack">Wolne mniej niż 5 GB — archiwum nie utworzone (wolne %1$s GB)</string>
+    <string name="fork_fidscan_error_no_files">Brak plików zapisu</string>
+    <string name="fork_fidscan_error_pack">Nie udało się spakować: %1$s</string>
+    <string name="fork_fidscan_error_share">Nie udało się otworzyć udostępniania: %1$s</string>
+    <string name="fork_fidscan_zip_button">Spakuj do zip i wyślij</string>
+    <string name="fork_fidscan_zip_packing">Pakowanie…</string>
+    <string name="fork_fidscan_zip_done">Archiwum: %1$s, %2$s MB</string>
+    <string name="fork_fidscan_zip_label">Spakuj i wyślij</string>
 </resources>
