@@ -76,4 +76,21 @@ class FidScanFilesTest {
         }
         assertFalse(target.exists())
     }
+
+    @Test fun `listCandidate is txt but not a scan log`() {
+        assertTrue(isListCandidate("battery.txt"))
+        assertTrue(isListCandidate("B.TXT"))
+        assertFalse(isListCandidate("fidscan-20261121-000000.txt"))
+        assertFalse(isListCandidate("bydmate_fidrec_x.txt"))
+        assertFalse(isListCandidate("a.zip"))
+    }
+
+    @Test fun `readListFile refuses missing and too big files`() {
+        val missing = assertThrows(java.io.IOException::class.java) { readListFile(File(tmp.root, "no.txt")) }
+        assertEquals("file not found: no.txt", missing.message)
+        val big = tmp.newFile("big.txt").apply { writeBytes(ByteArray(MAX_LIST_BYTES + 1)) }
+        assertEquals("file too big: big.txt", assertThrows(java.io.IOException::class.java) { readListFile(big) }.message)
+        val ok = tmp.newFile("ok.txt").apply { writeText("Gb.X=1\n") }
+        assertEquals(ScanListFile(ok.absolutePath, "Gb.X=1\n"), readListFile(ok))
+    }
 }

@@ -19,4 +19,6 @@
     <string name="fork_fidscan_zip_packing">Compactando…</string>
     <string name="fork_fidscan_zip_done">Arquivo: %1$s, %2$s MB</string>
     <string name="fork_fidscan_zip_label">Compactar e enviar</string>
+    <string name="fork_fidscan_error_no_list">Escolha primeiro uma lista de parâmetros</string>
+    <string name="fork_fidscan_error_list_missing">Arquivo da lista não encontrado: %1$s</string>
 </resources>

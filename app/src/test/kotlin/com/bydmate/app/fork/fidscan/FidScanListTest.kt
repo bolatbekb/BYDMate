@@ -151,4 +151,114 @@ class FidScanListTest {
             listSkipLines(plan),
         )
     }
+
+    private val serviceCatalog = """
+        BYDAutoConstants.BYDAUTO_DEVICE_ADAS=1038
+        BYDAutoConstants.BYDAUTO_DEVICE_LOCATION=1017
+        BYDAutoConstants.BYDAUTO_DEVICE_OTA=1032
+        BYDAutoConstants.BYDAUTO_DEVICE_POWER=1005
+        BYDAutoConstants.BYDAUTO_DEVICE_STATISTIC=1014
+        BYDAutoConstants.BYDAUTO_DEVICE_SETTING=1023
+        Adas.ADAS_CMD_ADAS_ESP_KEY=1250951194
+        Location.LOCATION_LATITUDE_VALUE=311087
+        Ota.OTA_CMD_ECU_VER=157571
+        Ota.OTA_RECOVERY_STATE_RESET=-1442840302
+        Ota.OTA_RECOVERY_STATE_QUERY=-1442840303
+        Power.POWER_FREESCALE_RESET=775583
+        Statistic.STATISTICS_MCU_LAST_REBOOT_REASON=-1728052709
+        Setting.SET_RESTART_STATE=4660
+        Setting.SET_STARTUP_SOUND=4661
+    """.trimIndent()
+
+    private fun listAll(dump: String) = planFromList(
+        dump.lines().filterNot { it.startsWith("BYDAutoConstants.") || it.isBlank() }.joinToString("\n"),
+        dump,
+    )
+
+    @Test
+    fun commandClassAndActionNamedServiceFidsAreSkippedAsCommand() {
+        val plan = listAll(serviceCatalog)
+        assertEquals(
+            listOf(
+                "Ota.OTA_CMD_ECU_VER",
+                "Ota.OTA_RECOVERY_STATE_RESET",
+                "Ota.OTA_RECOVERY_STATE_QUERY",
+                "Power.POWER_FREESCALE_RESET",
+                "Statistic.STATISTICS_MCU_LAST_REBOOT_REASON",
+            ).sorted(),
+            plan.skipped.filter { it.reason == ListSkip.COMMAND }.map { it.text }.sorted(),
+        )
+    }
+
+    @Test
+    fun canSignalsAndPlainServiceFidsAreStillRead() {
+        val read = listAll(serviceCatalog).items.map { it.symbol }
+        assertEquals(
+            listOf(true, true, true, false),
+            listOf(
+                "Location.LOCATION_LATITUDE_VALUE",
+                "Adas.ADAS_CMD_ADAS_ESP_KEY", // a CAN signal: its name does not matter
+                "Setting.SET_STARTUP_SOUND", // STARTUP is not the word START
+                "Power.POWER_FREESCALE_RESET",
+            ).map { it in read },
+        )
+        assertEquals(true, "Setting.SET_RESTART_STATE" in read) // RESTART is not the word RESET
+    }
+
+    @Test
+    fun setterVariantsAreNotReadAndGetVariantsAre() {
+        val dump = """
+            BYDAutoConstants.BYDAUTO_DEVICE_AC=1000
+            BYDAutoConstants.BYDAUTO_DEVICE_AUDIO=1002
+            Ac.AC_COMPRESSOR_MODE_SET_lrse_hal_only=357568570
+            Ac.AC_COOL_HOT_SIGNAL_SET_hal_only=411074582
+            Ac.AC_SEAT_SET_TV_SCREEN_hal_only=411074583
+            Ac.AC_COMPRESSOR_MODE=1077936137
+            Ac.AC_LF_SEAT_HEATING_CONFIG_2E4_hal_only=411074584
+            Audio.AUDIO_CURRENT_VOLUME_MIN_SET_GET=1078984712
+        """.trimIndent()
+        val plan = listAll(dump)
+        assertEquals(
+            listOf("Ac.AC_COMPRESSOR_MODE", "Ac.AC_LF_SEAT_HEATING_CONFIG_2E4_hal_only", "Audio.AUDIO_CURRENT_VOLUME_MIN_SET_GET"),
+            plan.items.map { it.symbol },
+        )
+        assertEquals(
+            listOf("Ac.AC_COMPRESSOR_MODE_SET_lrse_hal_only", "Ac.AC_COOL_HOT_SIGNAL_SET_hal_only", "Ac.AC_SEAT_SET_TV_SCREEN_hal_only"),
+            plan.skipped.filter { it.reason == ListSkip.SETTER }.map { it.text },
+        )
+    }
+
+    @Test
+    fun anUnsafeAliasLeavesTheFidOutEvenForASafeName() {
+        val dump = """
+            BYDAutoConstants.BYDAUTO_DEVICE_OTA=1032
+            Ota.OTA_ECU_VERSION_TEXT=157571
+            Ota.OTA_CMD_ECU_VER=157571
+            BYDAutoFeatureIds.OTA_CMD_ECU_VER=157571
+            Ota.OTA_PROGRESS=157572
+        """.trimIndent()
+        val plan = planFromList("Ota.OTA_ECU_VERSION_TEXT=157571\nOta.OTA_PROGRESS=157572", dump)
+        assertEquals(listOf(ScanItem(1032, 157572, "Ota.OTA_PROGRESS")), plan.items)
+        assertEquals(listOf(Triple(1, "Ota.OTA_ECU_VERSION_TEXT", ListSkip.COMMAND)), skipped(plan))
+    }
+
+    @Test
+    fun deviceConstantsAreNotFids() {
+        val dump = "BYDAutoConstants.BYDAUTO_DEVICE_OTA=1032\nBYDAutoConstants.SOME_START=157572\nOta.OTA_PROGRESS=157572"
+        val plan = planFromList("BYDAutoConstants.SOME_START=157572\nOta.OTA_PROGRESS=157572", dump)
+        assertEquals(listOf(ScanItem(1032, 157572, "Ota.OTA_PROGRESS")), plan.items)
+        assertEquals(listOf(Triple(1, "BYDAutoConstants.SOME_START", ListSkip.UNKNOWN_GROUP)), skipped(plan))
+    }
+
+    @Test
+    fun setterAliasDoesNotHideItsGetter() {
+        val dump = """
+            BYDAutoConstants.BYDAUTO_DEVICE_ENGINE=1012
+            Engine.ENGINE_X_SET=9
+            Engine.ENGINE_X=9
+        """.trimIndent()
+        val plan = planFromList("Engine.ENGINE_X_SET=9\nEngine.ENGINE_X=9", dump)
+        assertEquals(listOf(ScanItem(1012, 9, "Engine.ENGINE_X")), plan.items)
+        assertEquals(listOf(Triple(1, "Engine.ENGINE_X_SET", ListSkip.SETTER)), skipped(plan))
+    }
 }

@@ -19,4 +19,6 @@
     <string name="fork_fidscan_zip_packing">Pakowanie…</string>
     <string name="fork_fidscan_zip_done">Archiwum: %1$s, %2$s MB</string>
     <string name="fork_fidscan_zip_label">Spakuj i wyślij</string>
+    <string name="fork_fidscan_error_no_list">Najpierw wybierz listę parametrów</string>
+    <string name="fork_fidscan_error_list_missing">Nie znaleziono pliku listy: %1$s</string>
 </resources>

@@ -39,6 +39,10 @@ private class FakeIo : ScanIo {
         Statistic.STATISTIC_C=3
     """.trimIndent()
     var catalogThrows: Throwable? = null
+    var listText: String? = DEFAULT_LIST
+    var listThrows: Throwable? = null
+    var listCalls = 0
+    val recDevices = mutableListOf<List<Int>>()
     var readThrows: Throwable? = null
     var readNull = false
     /** Milliseconds one batch call takes on the fake clock. */
@@ -66,7 +70,16 @@ private class FakeIo : ScanIo {
         if (readNull || failBatch(items)) return null
         return items.map { if (it.tx == TX_INT) 0 to (values[it.fid] ?: 10 * it.fid) else 0 to 0 }
     }
-    override suspend fun recStart(): FidRecStart? { recStartCalls++; return startResult }
+    override suspend fun listFile(): ScanListFile? {
+        listCalls++
+        listThrows?.let { throw it }
+        return listText?.let { ScanListFile("/d/list.txt", it) }
+    }
+    override suspend fun recStart(devices: IntArray): FidRecStart? {
+        recStartCalls++
+        recDevices += devices.toList()
+        return startResult
+    }
     override suspend fun recStatus(): FidRecStatus? = status
     override suspend fun recStop() { stopCalls++ }
     override fun live(): DiParsData? = liveData
@@ -76,6 +89,9 @@ private class FakeIo : ScanIo {
 
 private fun recStatus(running: Boolean, path: String, bytes: Long) =
     FidRecStatus(running, emptyList(), 0, emptyList(), path, bytes)
+
+private const val DEFAULT_LIST = "Engine.ENGINE_A=1\nEngine.ENGINE_B=2\nStatistic.STATISTIC_C=3"
+private val BIG_LIST = (1..130).joinToString("\n") { "Engine.ENGINE_X$it=$it" }
 
 private val BIG_CATALOG = "BYDAutoConstants.BYDAUTO_DEVICE_ENGINE=1012\n" +
     (1..130).joinToString("\n") { "Engine.ENGINE_X$it=$it" }
@@ -111,6 +127,7 @@ class FidScanSessionTest {
     fun largeScanListIsReadInBatchesOf128Triples() = runTest {
         io.catalogText = "BYDAutoConstants.BYDAUTO_DEVICE_ENGINE=1012\n" +
             (1..130).joinToString("\n") { "Engine.ENGINE_X$it=$it" }
+        io.listText = BIG_LIST
         session().tick()
         assertEquals(listOf(128, 128, 4), io.batches.map { it.size })
         assertEquals(130, vLines().size)
@@ -315,7 +332,7 @@ class FidScanSessionTest {
     @Test
     fun recStartThrowIsLogged() = runTest {
         val s = object : ScanIo by io {
-            override suspend fun recStart(): FidRecStart? = throw IllegalStateException("no daemon")
+            override suspend fun recStart(devices: IntArray): FidRecStart? = throw IllegalStateException("no daemon")
         }
         val session = FidScanSession(s, sink, 0L)
         assertEquals(TickResult.RUNNING, session.tick())
@@ -352,7 +369,7 @@ class FidScanSessionTest {
     fun recStartThrowBacksOffForAMinute() = runTest {
         var calls = 0
         val thrower = object : ScanIo by io {
-            override suspend fun recStart(): FidRecStart? { calls++; throw IllegalStateException("no daemon") }
+            override suspend fun recStart(devices: IntArray): FidRecStart? { calls++; throw IllegalStateException("no daemon") }
         }
         val session = FidScanSession(thrower, sink, 0L)
         session.tick()
@@ -402,6 +419,7 @@ class FidScanSessionTest {
     @Test
     fun slowBatchHalvesTheNextCallSizeForTheSession() = runTest {
         io.catalogText = BIG_CATALOG
+        io.listText = BIG_LIST
         var first = true
         io.readCostMs = { if (first) 1500L.also { first = false } else 0L }
         val s = session()
@@ -420,6 +438,7 @@ class FidScanSessionTest {
     @Test
     fun aBatchOfExactlyTheLimitIsNotSlow() = runTest {
         io.catalogText = BIG_CATALOG
+        io.listText = BIG_LIST
         io.readCostMs = { SLOW_BATCH_MS }
         session().tick()
         assertEquals(listOf(128, 128, 4), io.batches.map { it.size })
@@ -429,6 +448,7 @@ class FidScanSessionTest {
     @Test
     fun batchSizeNeverGoesBelowEight() = runTest {
         io.catalogText = BIG_CATALOG
+        io.listText = BIG_LIST
         io.readCostMs = { 1500L }
         val s = session()
         s.tick()
@@ -444,6 +464,7 @@ class FidScanSessionTest {
     @Test
     fun chunkFailingInTwoSweepsIsSkippedInTheThird() = runTest {
         io.catalogText = BIG_CATALOG
+        io.listText = BIG_LIST
         io.failBatch = { batch -> batch.any { it.fid == 1 } }
         val s = session()
         s.tick()
@@ -523,7 +544,7 @@ class FidScanSessionTest {
     @Test
     fun pushStartWritesAPLineAfterEveryAttempt() = runTest {
         val slow = object : ScanIo by io {
-            override suspend fun recStart(): FidRecStart? {
+            override suspend fun recStart(devices: IntArray): FidRecStart? {
                 io.recStartCalls++
                 io.now += 15_000L
                 return io.startResult
@@ -550,7 +571,7 @@ class FidScanSessionTest {
         io.startResult = null
         val calls = mutableListOf<Long>()
         val rec = object : ScanIo by io {
-            override suspend fun recStart(): FidRecStart? {
+            override suspend fun recStart(devices: IntArray): FidRecStart? {
                 calls += io.now
                 return io.startResult
             }
@@ -610,19 +631,94 @@ class FidScanSessionTest {
     }
 
     @Test
-    fun catalogWithNothingReadableIsLoggedAsEmpty() = runTest {
-        io.catalogText = """
-            BYDAutoConstants.BYDAUTO_DEVICE_ENGINE=1012
-            BYDAutoConstants.BYDAUTO_DEVICE_MQTT=1033
-            Engine.ENGINE_X_SET=9
-            Mqtt.MQTT_X=7
-        """.trimIndent()
+    fun sweepReadsOnlyTheListedItems() = runTest {
+        io.listText = "Engine.ENGINE_B=2"
+        session().tick()
+        assertEquals(listOf("V 1012 Engine.ENGINE_B i=20 d=0.0"), vLines())
+        assertEquals(listOf(5, 7), io.batches.flatten().map { it.tx })
+        assertTrue(io.batches.flatten().all { it.fid == 2 })
+    }
+
+    @Test
+    fun listHeaderAndSkipLinesAreWrittenOnce() = runTest {
+        io.listText = "Engine.ENGINE_A=1\nStatistic.STATISTIC_C=3\nEngine.ENGINE_GONE=99"
         val s = session()
         s.tick()
-        assertEquals("E t${io.now} catalog: empty", eLines().single())
+        io.now += 5 * MIN
+        s.tick()
+        assertEquals(1, sink.lines.count { it.startsWith("# list:") })
+        assertTrue("# list: /d/list.txt lines=3 read=2 devices=1012,1014" in sink.lines)
+        assertEquals(listOf("# list skipped not_in_car: 1 Engine.ENGINE_GONE"), sink.lines.filter { it.startsWith("# list skipped") })
+        assertEquals(s.listPlan?.items?.size, 2)
+    }
+
+    @Test
+    fun noListLogsNotChosenAndNeverPolls() = runTest {
+        io.listText = null
+        val s = session()
+        s.tick()
+        assertEquals("E t${io.now} list: not chosen", eLines().single())
+        assertTrue(io.batches.isEmpty() && io.recStartCalls == 0)
         io.now += 61_000L
         s.tick()
-        assertEquals(2, io.catalogCalls)
+        assertEquals(2, eLines().size)
+        assertTrue(io.batches.isEmpty() && io.recStartCalls == 0 && s.listPlan == null)
+    }
+
+    @Test
+    fun listThrowsLogsTheReasonAndRetriesAfterRetryMs() = runTest {
+        io.listThrows = java.io.IOException("file not found: list.txt")
+        val s = session()
+        s.tick()
+        assertEquals("E t${io.now} list: file not found: list.txt", eLines().single())
+        io.now += 30_000L
+        s.tick()
+        assertEquals(1, io.listCalls)
+        io.listThrows = null
+        io.now += 31_000L
+        s.tick()
+        assertEquals(2, io.listCalls)
+        assertEquals(3, vLines().size)
+    }
+
+    @Test
+    fun emptyPlanLogsNothingToReadAndRetries() = runTest {
+        io.listText = "Engine.ENGINE_A_SET=1\nbad"
+        val s = session()
+        s.tick()
+        assertEquals("E t${io.now} list: nothing to read", eLines().single())
+        assertEquals(2, sink.lines.count { it.startsWith("# list skipped") })
+        assertTrue(io.recStartCalls == 0 && io.batches.isEmpty())
+        io.now += 30_000L
+        s.tick()
+        assertEquals(1, io.listCalls)
+        io.now += 31_000L
+        s.tick()
+        assertEquals(2, io.listCalls)
+        assertEquals(2, eLines().size)
+        assertEquals(2, sink.lines.count { it.startsWith("# list skipped") })
+        io.listText = DEFAULT_LIST
+        io.now += 61_000L
+        s.tick()
+        assertEquals(3, vLines().size)
+    }
+
+    @Test
+    fun pushStartsOnlyAfterTheListWithItsDevices() = runTest {
+        io.listText = null
+        val s = session()
+        s.tick()
+        assertEquals(0, io.recStartCalls)
+        io.listText = "Power.POWER_X=1005\nGb.GB_X=1\nPower.POWER_Y=2"
+        io.catalogText = ""
+        io.now += 61_000L
+        s.tick()
+        assertEquals(0, io.recStartCalls)
+        io.catalogText = "BYDAutoConstants.BYDAUTO_DEVICE_POWER=1005\nBYDAutoConstants.BYDAUTO_DEVICE_GB=1039\n" +
+            "Power.POWER_X=1005\nGb.GB_X=1\nPower.POWER_Y=2"
+        io.now += 61_000L
+        s.tick()
+        assertEquals(listOf(listOf(1005, 1039)), io.recDevices)
     }
 
     @Test

@@ -9,7 +9,7 @@ import com.bydmate.app.helper.push.FidRecStatus
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
-// fork: session loop of the fid scan. Polls every readable autoservice parameter on a schedule,
+// fork: session loop of the fid scan. Polls the parameters of the chosen list file on a schedule,
 // keeps the author's push recorder running next to it and stops when the byte budget is spent.
 // Nothing here may throw out of tick()/finish() except CancellationException: every failure is
 // written to the log as an E line and the session carries on.
@@ -18,7 +18,9 @@ import kotlinx.coroutines.delay
 internal interface ScanIo {
     suspend fun catalog(): String?
     suspend fun readBatch(items: List<BatchReadItem>): List<Pair<Int, Int>>?
-    suspend fun recStart(): FidRecStart?
+    /** The chosen list file; null when none is chosen. Throws [java.io.IOException] with a short reason when it cannot be read. */
+    suspend fun listFile(): ScanListFile?
+    suspend fun recStart(devices: IntArray): FidRecStart?
     suspend fun recStatus(): FidRecStatus?
     suspend fun recStop()
     fun live(): DiParsData?
@@ -33,6 +35,9 @@ internal interface ScanSink {
     fun close()
 }
 
+/** The text of the chosen list file and its path. */
+internal data class ScanListFile(val path: String, val text: String)
+
 internal enum class TickResult { RUNNING, BUDGET_REACHED }
 
 /** [usedBefore] is the size of the earlier files of this recording. */
@@ -42,6 +47,7 @@ internal class FidScanSession(
     private val usedBefore: Long,
 ) {
     private var items: List<ScanItem>? = null
+    private var emptyPlanLogged = false
     private var nextCatalogAt = 0L
     private var lastMode: ScanMode? = null
     private var lastEngine: Boolean? = null
@@ -61,6 +67,14 @@ internal class FidScanSession(
     private var finishedPushBytes = 0L
     private var currentPushPath = ""
     private var currentPushBytes = 0L
+
+    /** The plan of the chosen list, set once it is loaded (null until then). */
+    var listPlan: ListPlan? = null
+        private set
+
+    /** Path of the list file the plan came from. */
+    var listPath: String? = null
+        private set
 
     /** Completed sweeps only: a sweep ended by a failed batch or by the budget is not counted. */
     var sweeps = 0
@@ -114,27 +128,47 @@ internal class FidScanSession(
     }
 
     private suspend fun loadCatalog(now: Long) {
-        if (items != null || now < nextCatalogAt) return
-        // Also after a throw or an empty list: a failed dump is retried only after RETRY_MS.
+        if (listPlan != null || now < nextCatalogAt) return
+        // Also after a throw or an empty plan: a failed list or dump is retried only after RETRY_MS.
         nextCatalogAt = now + RETRY_MS
+        val file = readList(now) ?: return
         val dump = io.catalog()
         if (dump == null) {
             safeWrite("E ${timeOf(now)} catalog: no answer")
             return
         }
-        val plan = scanPlan(dump)
-        val list = plan.items
-        if (list.isEmpty()) {
+        if (dump.isBlank()) {
             safeWrite("E ${timeOf(now)} catalog: empty")
             return
         }
-        items = list
-        if (plan.unsafe.isNotEmpty()) {
-            safeWrite(
-                "# not read, command-like (push only): ${plan.unsafe.size} " +
-                    plan.unsafe.joinToString(",") { "${it.dev}:${it.symbol}" }
-            )
+        val plan = planFromList(file.text, dump)
+        if (plan.items.isEmpty()) {
+            safeWrite("E ${timeOf(now)} list: nothing to read")
+            if (!emptyPlanLogged) listSkipLines(plan).forEach { safeWrite(it) }
+            emptyPlanLogged = true
+            return
         }
+        items = plan.items
+        listPlan = plan
+        listPath = file.path
+        safeWrite(
+            "# list: ${file.path} lines=${plan.lines} read=${plan.items.size} devices=${plan.devices.joinToString(",")}",
+        )
+        listSkipLines(plan).forEach { safeWrite(it) }
+    }
+
+    /** The list file, or null after an E line (not chosen, or unreadable). */
+    private suspend fun readList(now: Long): ScanListFile? {
+        val file = try {
+            io.listFile()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            logError("list", e, now)
+            return null
+        }
+        if (file == null) safeWrite("E ${timeOf(now)} list: not chosen")
+        return file
     }
 
     /** An S line when the car mode changes or the engine starts or stops, one per tick at most;
@@ -154,6 +188,7 @@ internal class FidScanSession(
     }
 
     private suspend fun checkPush(now: Long) {
+        if (listPlan == null) return
         var restart = !pushStarted
         if (pushStarted) {
             val st = io.recStatus()
@@ -173,17 +208,17 @@ internal class FidScanSession(
         moveCurrentPush()
         // Set before the call: whatever throws below, the next start waits at least the backoff.
         nextPushAt = now + pushBackoffMs
-        startPush(now)
+        startPush(now, listPlan?.devices.orEmpty())
     }
 
     /** One recStart (it holds the helper's mutex for up to 15 s): a P line after every attempt, a
      *  growing backoff after a failure, a minute's rest after a good start. */
-    private suspend fun startPush(now: Long) {
+    private suspend fun startPush(now: Long, devices: List<Int>) {
         val t0 = io.nowMs()
         var r: FidRecStart? = null
         var thrown: String? = null
         try {
-            r = io.recStart()
+            r = io.recStart(devices.toIntArray())
         } catch (e: CancellationException) {
             throw e
         } catch (e: Throwable) {

@@ -52,6 +52,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 // fork: Android side of the fid scan (test-build feature, branch feat/fid-scan): the switch in
 // «Сервис и данные» starts a FidScanSession on a background scope; the saved state lets a session
@@ -61,6 +62,8 @@ import kotlinx.coroutines.withContext
 internal const val FID_SCAN_PREFS = "bydmate_fidscan"
 private const val KEY_ACTIVE = "active"
 private const val KEY_USED = "used_bytes"
+private const val KEY_LIST = "list_path"
+private const val CATALOG_TIMEOUT_MS = 10_000L
 private const val TAG = "FidScan"
 private const val RESUME_DELAY_MS = 30_000L
 
@@ -85,6 +88,19 @@ data class FidScanStatus(
     /** The zip button's own error: the session never clears it, and [FidScan.pack] clears only this. */
     val packError: String? = null,
 )
+
+/** What the list picker shows about the chosen list: [read] items of [lines] lines are polled. */
+data class FidScanListStatus(
+    val name: String,
+    val lines: Int,
+    val read: Int,
+    val skipped: List<ListSkipped>,
+    val withCatalog: Boolean,
+    val error: String? = null,
+)
+
+internal fun listStatus(name: String, plan: ListPlan) =
+    FidScanListStatus(name, plan.lines, plan.items.size, plan.skipped, plan.withCatalog)
 
 /** A new session status [base] with the fields the zip button owns taken over from [old]. */
 internal fun keepPackFields(old: FidScanStatus, base: FidScanStatus): FidScanStatus =
@@ -152,12 +168,14 @@ internal class FileScanSink(private val out: OutputStream) : ScanSink {
     }
 }
 
-private class HelperScanIo(private val helper: HelperClient) : ScanIo {
+private class HelperScanIo(private val helper: HelperClient, private val listPath: () -> String?) : ScanIo {
     override suspend fun catalog(): String? = catalogDump(helper.dumpFids())
     override suspend fun readBatch(items: List<BatchReadItem>): List<Pair<Int, Int>>? = helper.readBatch(items)
 
-    // Every known device but 1033 (Mqtt, the diagnostic channel): an empty array would mean all of them.
-    override suspend fun recStart(): FidRecStart? = helper.recStart(pushDevices())
+    override suspend fun listFile(): ScanListFile? = listPath()?.let { readListFile(File(it)) }
+
+    // The devices of the list only (never 1033): an empty array would mean all of them.
+    override suspend fun recStart(devices: IntArray): FidRecStart? = helper.recStart(devices)
     override suspend fun recStatus(): FidRecStatus? = helper.recStatus()
     override suspend fun recStop() { helper.recStop() }
     override fun live(): DiParsData? = TrackingService.lastData.value
@@ -179,6 +197,11 @@ object FidScan {
         SupervisorJob() + Dispatchers.IO +
             CoroutineExceptionHandler { _, e -> Log.w(TAG, "uncaught", e) },
     )
+    private val _list = MutableStateFlow<FidScanListStatus?>(null)
+
+    /** The chosen list: a preview after choosing, the session's plan once it has loaded one. */
+    val list: StateFlow<FidScanListStatus?> = _list
+    @Volatile private var publishedPlan: ListPlan? = null
     private val mutex = Mutex()
     private val packBusy = AtomicBoolean(false)
     @Volatile private var currentSink: FileScanSink? = null
@@ -196,6 +219,7 @@ object FidScan {
     fun init(app: Application) {
         try {
             this.app = app
+            prefs(app).getString(KEY_LIST, null)?.let { path -> scope.launch { publishPreview(app, path, withCatalog = false) } }
             val saved = persistedState(prefs(app))
             if (!saved.active) return
             setStatus(FidScanStatus(active = true, usedBytes = saved.usedBytes))
@@ -217,6 +241,11 @@ object FidScan {
             try {
                 mutex.withLock {
                     if (job?.isActive == true || resumeJob?.isActive == true) return@withLock
+                    val problem = listProblem(ctx)
+                    if (problem != null) {
+                        setStatus(FidScanStatus(error = problem))
+                        return@withLock
+                    }
                     launchSession(ctx, 0L, resumed = false)
                 }
             } catch (e: CancellationException) {
@@ -225,6 +254,70 @@ object FidScan {
                 Log.w(TAG, "start", e)
             }
         }
+    }
+
+    /** Why a manual start cannot begin: no list chosen, or the chosen file is gone. Null when it can. */
+    private fun listProblem(ctx: Context): String? {
+        val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
+        val path = prefs(ctx).getString(KEY_LIST, null) ?: return lc.getString(R.string.fork_fidscan_error_no_list)
+        val file = File(path)
+        return if (file.isFile) null else lc.getString(R.string.fork_fidscan_error_list_missing, file.name)
+    }
+
+    /** The files of the log folder the owner may pick as the list, newest first. */
+    fun listCandidates(context: Context): List<File> = try {
+        logDir(context.applicationContext)?.listFiles()
+            ?.filter { it.isFile && isListCandidate(it.name) }
+            ?.sortedByDescending { it.lastModified() }
+            .orEmpty()
+    } catch (e: Throwable) {
+        Log.w(TAG, "listCandidates", e)
+        emptyList()
+    }
+
+    /** Saves [file] as the list and publishes its preview (checked against the car's catalog when
+     *  the helper answers). Ignored while a recording runs or a resume is pending. */
+    fun chooseList(context: Context, file: File) {
+        try {
+            if (job?.isActive == true || resumeJob?.isActive == true) return
+            val ctx = context.applicationContext
+            prefs(ctx).edit().putString(KEY_LIST, file.absolutePath).apply()
+            scope.launch { publishPreview(ctx, file.absolutePath, withCatalog = true) }
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Log.w(TAG, "chooseList", e)
+        }
+    }
+
+    // No session mutex here: the helper call may take seconds.
+    private suspend fun publishPreview(ctx: Context, path: String, withCatalog: Boolean) {
+        try {
+            val file = File(path)
+            val text = try {
+                readListFile(file).text
+            } catch (e: IOException) {
+                _list.value = FidScanListStatus(file.name, 0, 0, emptyList(), false, error = e.message ?: e::class.java.simpleName)
+                return
+            }
+            val dump = if (withCatalog) previewCatalog(ctx) else null
+            _list.value = listStatus(file.name, planFromList(text, dump))
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Log.w(TAG, "preview", e)
+        }
+    }
+
+    /** The car's catalog for the preview; null on any failure or after 10 s. */
+    private suspend fun previewCatalog(ctx: Context): String? = try {
+        val helper = EntryPointAccessors.fromApplication(ctx, FidScanEntryPoint::class.java).helperClient()
+        withTimeoutOrNull(CATALOG_TIMEOUT_MS) { catalogDump(helper.dumpFids()) }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Throwable) {
+        Log.w(TAG, "preview catalog", e)
+        null
     }
 
     fun stop() {
@@ -291,7 +384,7 @@ object FidScan {
                 return
             }
             savePersisted(prefs(ctx), active = true, usedBytes = usedBefore)
-            val session = FidScanSession(HelperScanIo(entry.helperClient()), sink, usedBefore)
+            val session = FidScanSession(HelperScanIo(entry.helperClient()) { prefs(ctx).getString(KEY_LIST, null) }, sink, usedBefore)
             setStatus(FidScanStatus(active = true, fileName = file.name, usedBytes = usedBefore))
             currentSink = sink
             job = scope.launch { runLoop(ctx, session, sink, file) }
@@ -445,6 +538,11 @@ object FidScan {
     }
 
     private fun publish(session: FidScanSession, fileName: String, error: String?) {
+        val plan = session.listPlan
+        if (plan != null && plan !== publishedPlan) {
+            publishedPlan = plan
+            _list.value = listStatus(File(session.listPath ?: "").name, plan)
+        }
         setStatus(
             FidScanStatus(
                 active = true,

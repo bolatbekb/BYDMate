@@ -19,4 +19,6 @@
     <string name="fork_fidscan_zip_packing">正在打包…</string>
     <string name="fork_fidscan_zip_done">压缩包：%1$s，%2$s MB</string>
     <string name="fork_fidscan_zip_label">打包并发送</string>
+    <string name="fork_fidscan_error_no_list">请先选择参数列表</string>
+    <string name="fork_fidscan_error_list_missing">未找到列表文件：%1$s</string>
 </resources>

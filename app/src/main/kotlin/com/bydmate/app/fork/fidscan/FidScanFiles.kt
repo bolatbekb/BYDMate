@@ -4,6 +4,7 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -27,6 +28,16 @@ fun hasRoom(availableBytes: Long): Boolean = availableBytes >= MIN_FREE_BYTES
 fun isScanLog(name: String): Boolean =
     (name.startsWith("fidscan-") && name.endsWith(".txt")) ||
         (name.startsWith("bydmate_fidrec_") && name.endsWith(".txt"))
+
+/** A file the owner may pick as the parameter list: any `.txt` that is not a recording log. */
+fun isListCandidate(name: String): Boolean = name.endsWith(".txt", ignoreCase = true) && !isScanLog(name)
+
+/** The list file's text; an [IOException] with a short reason when it is missing or too big. */
+internal fun readListFile(file: File): ScanListFile {
+    if (!file.isFile) throw IOException("file not found: ${file.name}")
+    if (file.length() > MAX_LIST_BYTES) throw IOException("file too big: ${file.name}")
+    return ScanListFile(file.absolutePath, file.readText(Charsets.UTF_8))
+}
 
 fun zipName(stamp: String): String = "fidscan-logs-$stamp.zip"
 

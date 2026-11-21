@@ -13,10 +13,10 @@ private const val BAD_LINE_TEXT_MAX = 80
 private const val DEVICE_LINE = "BYDAutoConstants.BYDAUTO_DEVICE_"
 private val LIST_NAME = Regex("^[A-Za-z][A-Za-z0-9]*\\.[A-Za-z0-9_]+$")
 
-internal enum class ListSkip { BAD_LINE, SETTER, UNKNOWN_GROUP, DIAG_DEVICE, COMMAND, NOT_IN_CAR }
+enum class ListSkip { BAD_LINE, SETTER, UNKNOWN_GROUP, DIAG_DEVICE, COMMAND, NOT_IN_CAR }
 
 /** [line] is 1-based; [text] is `Group.NAME` (a bad line: the trimmed raw line, cut to 80 chars). */
-internal data class ListSkipped(val line: Int, val text: String, val reason: ListSkip)
+data class ListSkipped(val line: Int, val text: String, val reason: ListSkip)
 
 internal data class ListPlan(
     val items: List<ScanItem>,
