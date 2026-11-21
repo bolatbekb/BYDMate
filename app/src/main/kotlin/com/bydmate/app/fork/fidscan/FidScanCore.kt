@@ -32,18 +32,31 @@ internal const val MAX_PUSH_BACKOFF_MS = 30 * 60_000L
 
 internal data class ScanItem(val dev: Int, val fid: Int, val symbol: String)
 
-/** Readable symbols per device: devices ascending, catalog order inside; no `_SET`, no Mqtt device.
- *  The `_SET` lines are dropped before the author's per-fid dedup, which keeps the first symbol of a
- *  fid: a setter alias listed first must not hide the getter that shares its fid. */
-internal fun scanList(catalogDump: String): List<ScanItem> {
+/** What a sweep reads, and what it leaves out on purpose (see [isUnsafeRead]). */
+internal data class ScanPlan(val items: List<ScanItem>, val unsafe: List<ScanItem>)
+
+/** Readable symbols per device: devices ascending, catalog order inside; no setter ([isSetterName]),
+ *  no Mqtt device, no unsafe read ([isUnsafeRead]). */
+internal fun scanList(catalogDump: String): List<ScanItem> = scanPlan(catalogDump).items
+
+/**
+ * The `_SET` lines are dropped before the author's per-fid dedup, which keeps the first symbol of a
+ * fid: a setter alias listed first must not hide the getter that shares its fid. A fid is left out
+ * as unsafe when ANY of its names (the flat `BYDAutoFeatureIds` aliases included) is unsafe: the
+ * dedup may have kept a harmless alias of a command-like fid.
+ */
+internal fun scanPlan(catalogDump: String): ScanPlan {
     val readable = catalogDump.lineSequence().filterNot { raw ->
         val eq = raw.lastIndexOf('=')
-        eq > 0 && raw.substring(0, eq).trim().endsWith("_SET")
+        eq > 0 && isSetterName(raw.substring(0, eq).trim())
     }.joinToString("\n")
-    return groupCatalogByDevice(readable).toSortedMap().flatMap { (dev, symbols) ->
+    val all = groupCatalogByDevice(readable).toSortedMap().flatMap { (dev, symbols) ->
         if (dev == EXCLUDED_DEVICE) emptyList()
-        else symbols.filterNot { it.symbol.endsWith("_SET") }.map { ScanItem(dev, it.fid, it.symbol) }
+        else symbols.filterNot { isSetterName(it.symbol) }.map { ScanItem(dev, it.fid, it.symbol) }
     }
+    val unsafe = unsafeFids(catalogDump)
+    val (left, kept) = all.partition { it.fid in unsafe }
+    return ScanPlan(kept, left)
 }
 
 /** The devices the push recorder subscribes to: every known one but the Mqtt diagnostic channel. */

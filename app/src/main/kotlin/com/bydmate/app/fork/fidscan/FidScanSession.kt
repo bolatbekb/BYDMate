@@ -122,12 +122,19 @@ internal class FidScanSession(
             safeWrite("E ${timeOf(now)} catalog: no answer")
             return
         }
-        val list = scanList(dump)
+        val plan = scanPlan(dump)
+        val list = plan.items
         if (list.isEmpty()) {
             safeWrite("E ${timeOf(now)} catalog: empty")
             return
         }
         items = list
+        if (plan.unsafe.isNotEmpty()) {
+            safeWrite(
+                "# not read, command-like (push only): ${plan.unsafe.size} " +
+                    plan.unsafe.joinToString(",") { "${it.dev}:${it.symbol}" }
+            )
+        }
     }
 
     /** An S line when the car mode changes or the engine starts or stops, one per tick at most;
