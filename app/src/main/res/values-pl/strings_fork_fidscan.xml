@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="fork_fidscan_title">Zapis wszystkich parametrów auta</string>
+    <string name="fork_fidscan_desc">Do analizy: co 5 minut odczytuje wszystkie parametry auta i zapisuje zmiany w folderze Download. Do 400 MB.</string>
+    <string name="fork_fidscan_status">Plik: %1$s · %2$d MB z %3$d · odczyty: %4$d · subskrypcja: %5$s</string>
+    <string name="fork_fidscan_push_on">działa</string>
+    <string name="fork_fidscan_push_off">zatrzymana</string>
+    <string name="fork_fidscan_error_no_access">brak dostępu do folderu Download</string>
+    <string name="fork_fidscan_help">Co 5 minut (oraz przy zmianie trybu: postój, jazda, ładowanie) aplikacja odczytuje wszystkie parametry auta i zapisuje do pliku tylko to, co się zmieniło. Obok działa rejestrator zdarzeń. Tylko odczyt: nic w aucie nie jest zmieniane. Pliki fidscan-….txt i pliki rejestratora zdarzeń leżą w folderze Download. Łącznie zapisuje się najwyżej 400 MB, potem zapis zatrzymuje się sam. Jeśli wyłączysz i ponownie włączysz auto, zapis będzie kontynuowany w nowym pliku. Aby wysłać: wyłącz przełącznik i przekaż pliki z folderu Download deweloperowi.</string>
+</resources>

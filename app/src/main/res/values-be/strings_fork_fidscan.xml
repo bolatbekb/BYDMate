@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="fork_fidscan_title">Запіс усіх параметраў машыны</string>
+    <string name="fork_fidscan_desc">Для аналізу: раз на 5 хвілін чытае ўсе параметры машыны і запісвае змены ў тэчку Download. Да 400 МБ.</string>
+    <string name="fork_fidscan_status">Файл: %1$s · %2$d МБ з %3$d · праходаў: %4$d · падпіска: %5$s</string>
+    <string name="fork_fidscan_push_on">працуе</string>
+    <string name="fork_fidscan_push_off">спынена</string>
+    <string name="fork_fidscan_error_no_access">няма доступу да тэчкі Download</string>
+    <string name="fork_fidscan_help">Раз на 5 хвілін (і пры змене рэжыму: паркоўка, язда, зарадка) праграма чытае ўсе параметры машыны і запісвае ў файл толькі тое, што змянілася. Побач працуе запіс падзей. Толькі чытанне: нічога ў машыне не змяняецца. Файлы fidscan-….txt і файлы запісу падзей ляжаць у тэчцы Download. Усяго пішацца не больш за 400 МБ, потым запіс спыняецца сам. Калі выключыць і зноў уключыць машыну, запіс працягнецца ў новым файле. Каб адправіць: выключыце пераключальнік і перашліце файлы з Download распрацоўшчыку.</string>
+</resources>

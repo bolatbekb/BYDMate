@@ -1,3 +1,4 @@
+@file:Suppress("UseCheckOrError") // why: the fakes throw on purpose
 package com.bydmate.app.fork.fidscan
 
 import com.bydmate.app.data.remote.DiParsData

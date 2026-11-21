@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="fork_fidscan_title">Gravar todos os parâmetros do carro</string>
+    <string name="fork_fidscan_desc">Para análise: lê todos os parâmetros do carro a cada 5 minutos e grava as alterações na pasta Download. Até 400 MB.</string>
+    <string name="fork_fidscan_status">Arquivo: %1$s · %2$d MB de %3$d · leituras: %4$d · assinatura: %5$s</string>
+    <string name="fork_fidscan_push_on">ativa</string>
+    <string name="fork_fidscan_push_off">parada</string>
+    <string name="fork_fidscan_error_no_access">sem acesso à pasta Download</string>
+    <string name="fork_fidscan_help">A cada 5 minutos (e quando o modo muda: estacionado, em movimento, carregando) o app lê todos os parâmetros do carro e grava no arquivo apenas o que mudou. O gravador de eventos funciona em paralelo. Somente leitura: nada no carro é alterado. Os arquivos fidscan-….txt e os arquivos do gravador de eventos ficam na pasta Download. No total são gravados no máximo 400 MB; depois a gravação para sozinha. Se você desligar e ligar o carro de novo, a gravação continua em um novo arquivo. Para enviar: desligue o interruptor e encaminhe os arquivos da pasta Download ao desenvolvedor.</string>
+</resources>

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="fork_fidscan_title">记录车辆所有参数</string>
+    <string name="fork_fidscan_desc">用于分析：每 5 分钟读取车辆所有参数，并把变化写入 Download 文件夹。最多 400 MB。</string>
+    <string name="fork_fidscan_status">文件：%1$s · %2$d MB / %3$d MB · 读取次数：%4$d · 订阅：%5$s</string>
+    <string name="fork_fidscan_push_on">运行中</string>
+    <string name="fork_fidscan_push_off">已停止</string>
+    <string name="fork_fidscan_error_no_access">无法访问 Download 文件夹</string>
+    <string name="fork_fidscan_help">每 5 分钟（以及模式变化时：停车、行驶、充电）应用会读取车辆的所有参数，并只把发生变化的内容写入文件。事件记录器同时运行。仅读取：不会更改车辆的任何设置。fidscan-….txt 文件和事件记录文件位于 Download 文件夹。总共最多写入 400 MB，之后记录会自动停止。如果关闭后再次启动车辆，记录会在新文件中继续。发送方式：关闭开关，然后把 Download 中的文件转发给开发者。</string>
+</resources>

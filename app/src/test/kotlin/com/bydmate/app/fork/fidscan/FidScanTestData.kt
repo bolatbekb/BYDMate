@@ -1,3 +1,4 @@
+@file:Suppress("LongParameterList") // why: a test builder with one default per field
 package com.bydmate.app.fork.fidscan
 
 import com.bydmate.app.data.remote.DiParsData

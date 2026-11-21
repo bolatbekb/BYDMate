@@ -629,6 +629,7 @@ private fun DiagnosticsRows(state: SettingsUiState, viewModel: SettingsViewModel
             )
         }
     }
+    FidScanBlock() // fork: fid scan
     SettingDivider()
     SettingActionRow(
         title = stringResource(R.string.settings_fid_dump_button),

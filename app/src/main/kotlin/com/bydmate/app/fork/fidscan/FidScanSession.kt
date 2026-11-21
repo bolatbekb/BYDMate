@@ -1,3 +1,4 @@
+@file:Suppress("TooGenericExceptionCaught", "SwallowedException", "CyclomaticComplexMethod", "NestedBlockDepth", "TooManyFunctions") // why: every failure ends as an E line and the session carries on; the schedule steps are flat chains of guards
 package com.bydmate.app.fork.fidscan
 
 import com.bydmate.app.data.remote.DiParsData
