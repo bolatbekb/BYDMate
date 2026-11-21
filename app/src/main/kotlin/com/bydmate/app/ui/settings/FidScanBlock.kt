@@ -37,7 +37,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-// fork: «Запись всех параметров машины» (test build, branch feat/fid-scan): one switch under the
+// fork: «Запись параметров по списку» (test build, branch feat/fid-scan): one switch under the
 // author's fid recorder. The session runs in FidScan; this block only shows its status.
 
 private const val BUDGET_MB = 400

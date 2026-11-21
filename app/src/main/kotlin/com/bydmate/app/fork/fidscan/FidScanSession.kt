@@ -24,6 +24,8 @@ internal interface ScanIo {
     suspend fun recStart(devices: IntArray): FidRecStart?
     suspend fun recStatus(): FidRecStatus?
     suspend fun recStop()
+    /** The first bytes (at most 4096, UTF-8) of the recorder file; null when it cannot be read. */
+    suspend fun recHead(path: String): String?
     fun live(): DiParsData?
     fun nowMs(): Long
     fun timeText(ms: Long): String
@@ -69,6 +71,8 @@ internal class FidScanSession(
     private var finishedPushBytes = 0L
     private var currentPushPath = ""
     private var currentPushBytes = 0L
+    private val headChecked = HashSet<String>()
+    private var headCandidate: String? = null
 
     /** The plan of the chosen list, set once it is loaded (null until then). */
     var listPlan: ListPlan? = null
@@ -154,7 +158,7 @@ internal class FidScanSession(
         listPlan = plan
         listPath = file.path
         safeWrite(
-            "# list: ${file.path} lines=${plan.lines} read=${plan.items.size} devices=${plan.devices.joinToString(",")}",
+            "# list: ${file.path} lines=${plan.lines} read=${plan.items.size} devices=${plan.devices.joinToString(",")} sha=${sha8(file.text)}",
         )
         listSkipLines(plan).forEach { safeWrite(it) }
     }
@@ -208,6 +212,7 @@ internal class FidScanSession(
                     if (currentPushPath.isNotEmpty() && st.filePath != currentPushPath) moveCurrentPush()
                     currentPushPath = st.filePath
                     currentPushBytes = st.fileBytes
+                    checkRawTap(now, st.filePath, st.fileBytes)
                 } else {
                     if (st.filePath == currentPushPath && st.fileBytes > currentPushBytes) currentPushBytes = st.fileBytes
                     restart = true
@@ -219,6 +224,22 @@ internal class FidScanSession(
         // Set before the call: whatever throws below, the next start waits at least the backoff.
         nextPushAt = now + pushBackoffMs
         startPush(now, devices)
+    }
+
+    /** Once per recorder file: does its head carry the tap's `fidscan raw:` header? An old helper
+     *  daemon (same versionCode, still alive) has no tap. Done on the second tick that sees bytes in
+     *  the file, so the author's 2 s flush has put the head on disk; an unreadable head says nothing. */
+    private suspend fun checkRawTap(now: Long, path: String, bytes: Long) {
+        if (path.isEmpty() || bytes <= 0L || path in headChecked) return
+        if (headCandidate != path) {
+            headCandidate = path
+            return
+        }
+        headChecked += path
+        val head = io.recHead(path) ?: return
+        if (RAW_MARKER !in head) {
+            safeWrite("E ${timeOf(now)} push: helper from an older build, no raw capture - reboot the head unit")
+        }
     }
 
     /** One recStart (it holds the helper's mutex for up to 15 s): a P line after every attempt, a

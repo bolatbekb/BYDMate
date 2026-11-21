@@ -1,5 +1,6 @@
 package com.bydmate.app.fork.fidscan
 
+import android.hardware.bydauto.BYDAutoEventValue
 import android.util.Log
 import com.bydmate.app.helper.push.FidRecLog
 import java.text.SimpleDateFormat
@@ -35,6 +36,11 @@ internal object FidRawTap {
         runCatching { current.onBuffer(fid, bytes) }.onFailure { warn("buffer fid=$fid", it) }
     }
 
+    /** Vendor binder thread: the event's byte buffer is read inside the guard too. */
+    fun onEvent(fid: Int, value: BYDAutoEventValue?) {
+        runCatching { onBuffer(fid, value?.bufferDataValue) }.onFailure { warn("event fid=$fid", it) }
+    }
+
     /** Tests only: forget the tap. */
     internal fun reset() {
         tap = null
@@ -63,8 +69,11 @@ internal fun parseEnvelope(fid: Int, b: ByteArray): RawRecord? {
     return RawRecord(can, u(b[4]), u(b[5]), b.size - ENVELOPE_BYTES)
 }
 
-/** BMS frames: each page (payload byte 0) gets its own line on every change. */
+/** BMS frames: at most one line per FAST_GAP_MS and key; the paged frames (0x43C, 0x43D) per page. */
 internal fun isBatteryFrame(can: Int): Boolean = can in BATTERY_CAN_FIRST..BATTERY_CAN_LAST
+
+/** The BMS frames known to carry a page number in payload byte 0 (probes 0x43C, cells 0x43D). */
+internal fun isPagedFrame(can: Int): Boolean = can == 0x43C || can == 0x43D
 
 /** Upper-case hex of at most [MAX_HEX_BYTES] bytes, `+` marking a cut. */
 internal fun hexOf(b: ByteArray): String {
@@ -81,7 +90,7 @@ internal fun hexOf(b: ByteArray): String {
 /**
  * Decides which buffers earn a line. Three kinds of lines:
  * - `buf`: first sighting of a key, then every change of its content (the stream's counter
- *   bytes ignored). Key = fid + CAN id + sub + channel, plus the page byte for BMS frames.
+ *   bytes ignored). Key = fid + CAN id + sub + channel, plus the page byte for the paged frames 0x43C / 0x43D.
  *   BMS keys: at most one line per [FAST_GAP_MS]; others: per [SLOW_GAP_MS]. A change is
  *   compared with the last WRITTEN content, so the last value of a burst still lands with the
  *   next cyclic frame.
@@ -114,7 +123,7 @@ internal class RawTap(
         write(
             "fidscan raw: buffers of stream callbacks (fid 0x99xxxxxx: envelope can 4B BE, sub, ch, " +
                 "counter 4B BE, then payload) and of any other fid. buf = first sighting or change " +
-                "(counter ignored), BMS frames 0x%X-0x%X per page every change (>= %d ms), others >= %d s; "
+                "(counter ignored), BMS frames 0x%X-0x%X every change (>= %d ms; 0x43C/0x43D per page), others >= %d s; "
                     .format(BATTERY_CAN_FIRST, BATTERY_CAN_LAST, FAST_GAP_MS, SLOW_GAP_MS / 1000) +
                 "win = every buffer for %d s every %d min; bufstat = per route counts every %d min"
                     .format(WINDOW_MS / 1000, PERIOD_MS / 60_000, PERIOD_MS / 60_000)
@@ -159,7 +168,7 @@ internal class RawTap(
 
     private fun keyOf(fid: Int, rec: RawRecord?, bytes: ByteArray): Key = when {
         rec == null -> Key(fid, -1, -1, -1, -1)
-        isBatteryFrame(rec.can) && rec.payloadLen > 0 -> Key(fid, rec.can, rec.sub, rec.ch, u(bytes[ENVELOPE_BYTES]))
+        isPagedFrame(rec.can) && rec.payloadLen > 0 -> Key(fid, rec.can, rec.sub, rec.ch, u(bytes[ENVELOPE_BYTES]))
         else -> Key(fid, rec.can, rec.sub, rec.ch, -1)
     }
 
@@ -214,7 +223,7 @@ private const val MAX_CAN_ID = 0x1FFFFFFF
 internal const val BATTERY_CAN_FIRST = 0x438
 internal const val BATTERY_CAN_LAST = 0x44F
 
-internal const val FAST_GAP_MS = 250L
+internal const val FAST_GAP_MS = 2000L
 internal const val SLOW_GAP_MS = 10_000L
 internal const val WINDOW_MS = 15_000L
 internal const val PERIOD_MS = 10 * 60_000L

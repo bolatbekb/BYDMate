@@ -56,6 +56,10 @@ private class ListRules(private val catalogDump: String?) {
     private val deviceLines = catalogDump?.lineSequence()?.map { it.trim() }?.filter { it.startsWith(DEVICE_LINE) }
         ?.joinToString("\n") ?: builtInDeviceLines()
     private val inCar = catalogDump?.let { dump ->
+        // Setter lines dropped: a fid that exists only under setter names is not readable under another name.
+        groupCatalogByDevice(withoutSetters(dump)).mapValues { e -> e.value.map { it.fid }.toSet() }
+    }
+    private val inCarAny = catalogDump?.let { dump ->
         groupCatalogByDevice(dump).mapValues { e -> e.value.map { it.fid }.toSet() }
     }
     private val unsafe = catalogDump?.let(::unsafeFids).orEmpty()
@@ -69,10 +73,20 @@ private class ListRules(private val catalogDump: String?) {
         dev == null -> ListSkip.UNKNOWN_GROUP
         dev == EXCLUDED_DEVICE -> ListSkip.DIAG_DEVICE
         isUnsafeRead(fid, name.substringAfter('.')) || fid in unsafe -> ListSkip.COMMAND
-        inCar != null && fid !in inCar[dev].orEmpty() -> ListSkip.NOT_IN_CAR
+        inCar != null && fid !in inCar[dev].orEmpty() ->
+            if (fid in inCarAny?.get(dev).orEmpty()) ListSkip.SETTER else ListSkip.NOT_IN_CAR
         else -> null
     }
 }
+
+/** The dump without the setter lines (device lines stay): groupCatalogByDevice keeps the first name of a fid. */
+private fun withoutSetters(dump: String): String =
+    dump.lineSequence().filterNot { isSetterName(it.substringBeforeLast('=').trim()) }.joinToString("\n")
+
+/** First 8 hex chars of the SHA-1 of the list text: which version of the list was read. */
+internal fun sha8(text: String): String =
+    java.security.MessageDigest.getInstance("SHA-1").digest(text.toByteArray(Charsets.UTF_8))
+        .joinToString("") { "%02x".format(it) }.take(8)
 
 /** The device of [group] by the author's rule (groupCatalogByDevice), or null for an unknown group. */
 private fun resolveDevice(group: String, deviceLines: String): Int? =

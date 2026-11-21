@@ -57,6 +57,8 @@ private class FakeIo : ScanIo {
     var startResult: FidRecStart? = FidRecStart(2, 5)
     var status: FidRecStatus? = null
     var stopCalls = 0
+    var head: String? = null
+    var headCalls = 0
     var liveData: DiParsData? = null
 
     override suspend fun catalog(): String? {
@@ -83,6 +85,7 @@ private class FakeIo : ScanIo {
     }
     override suspend fun recStatus(): FidRecStatus? = status
     override suspend fun recStop() { stopCalls++ }
+    override suspend fun recHead(path: String): String? { headCalls++; return head }
     override fun live(): DiParsData? = liveData
     override fun nowMs(): Long = now
     override fun timeText(ms: Long): String = "t$ms"
@@ -649,9 +652,53 @@ class FidScanSessionTest {
         io.now += 5 * MIN
         s.tick()
         assertEquals(1, sink.lines.count { it.startsWith("# list:") })
-        assertTrue("# list: /d/list.txt lines=3 read=2 devices=1012,1014" in sink.lines)
+        assertTrue("# list: /d/list.txt lines=3 read=2 devices=1012,1014 sha=${sha8(io.listText!!)}" in sink.lines)
         assertEquals(listOf("# list skipped not_in_car: 1 Engine.ENGINE_GONE"), sink.lines.filter { it.startsWith("# list skipped") })
         assertEquals(s.listPlan?.items?.size, 2)
+    }
+
+    private suspend fun tickRaw(s: FidScanSession, times: Int) = repeat(times) {
+        s.tick()
+        io.now += 10_000L
+    }
+
+    private val noRawLine = "push: helper from an older build, no raw capture - reboot the head unit"
+
+    @Test
+    fun headWithoutTheRawMarkerWritesOneErrorPerFile() = runTest {
+        io.head = "# header\n"
+        val s = session()
+        s.tick()
+        io.status = recStatus(true, "/a", 100)
+        tickRaw(s, 5)
+        assertEquals(1, eLines().count { noRawLine in it })
+        assertEquals(1, io.headCalls)
+        io.status = recStatus(true, "/b", 100)
+        tickRaw(s, 4)
+        assertEquals(2, eLines().count { noRawLine in it })
+    }
+
+    @Test
+    fun headWithTheRawMarkerOrUnreadableWritesNothing() = runTest {
+        io.head = "# header\nfidscan raw: buffers\n"
+        val s = session()
+        s.tick()
+        io.status = recStatus(true, "/a", 100)
+        tickRaw(s, 4)
+        io.head = null
+        io.status = recStatus(true, "/b", 100)
+        tickRaw(s, 4)
+        assertEquals(0, eLines().count { noRawLine in it })
+        assertTrue(io.headCalls >= 2)
+    }
+
+    @Test
+    fun emptyRecorderFileIsNotChecked() = runTest {
+        val s = session()
+        s.tick()
+        io.status = recStatus(true, "/a", 0)
+        tickRaw(s, 4)
+        assertEquals(0, io.headCalls)
     }
 
     @Test

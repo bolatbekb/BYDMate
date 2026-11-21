@@ -86,6 +86,23 @@ class FidRawTapTest {
     }
 
     @Test
+    fun unpagedBatteryFrameIsKeyedWithoutThePage() {
+        val t = quietTap()
+        t.onBuffer(gb, rec(0x446, 0, 2, 1, 1, 50))
+        now += 100
+        t.onBuffer(gb, rec(0x446, 0, 2, 2, 2, 51))
+        assertEquals(1, buf().size)
+        now += FAST_GAP_MS
+        t.onBuffer(gb, rec(0x446, 0, 2, 3, 2, 51))
+        assertEquals(2, buf().size)
+    }
+
+    @Test
+    fun onEventNeverThrows() {
+        FidRawTap.onEvent(gb, null)
+    }
+
+    @Test
     fun otherFramesGetALineAtMostEverySlowGapAndKeepTheLastValue() {
         val t = quietTap()
         t.onBuffer(gb, rec(0x324, 0, 1, 1, 80))

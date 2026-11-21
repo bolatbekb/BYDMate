@@ -63,6 +63,7 @@ internal const val FID_SCAN_PREFS = "bydmate_fidscan"
 private const val KEY_ACTIVE = "active"
 private const val KEY_USED = "used_bytes"
 private const val KEY_LIST = "list_path"
+private const val REC_HEAD_BYTES = 4096
 private const val CATALOG_TIMEOUT_MS = 10_000L
 private const val TAG = "FidScan"
 private const val RESUME_DELAY_MS = 30_000L
@@ -178,6 +179,21 @@ private class HelperScanIo(private val helper: HelperClient, private val listPat
     override suspend fun recStart(devices: IntArray): FidRecStart? = helper.recStart(devices)
     override suspend fun recStatus(): FidRecStatus? = helper.recStatus()
     override suspend fun recStop() { helper.recStop() }
+
+    override suspend fun recHead(path: String): String? = try {
+        File(path).inputStream().use { input ->
+            val buf = ByteArray(REC_HEAD_BYTES)
+            var n = 0
+            while (n < buf.size) {
+                val r = input.read(buf, n, buf.size - n)
+                if (r < 0) break
+                n += r
+            }
+            String(buf, 0, n, Charsets.UTF_8)
+        }
+    } catch (e: Exception) {
+        null
+    }
     override fun live(): DiParsData? = TrackingService.lastData.value
 
     // Monotonic: the head unit's wall clock can jump after a quickboot.
@@ -210,8 +226,8 @@ object FidScan {
     private fun setStatus(base: FidScanStatus) {
         _status.update { keepPackFields(it, base) }
     }
-    private var job: Job? = null
-    private var resumeJob: Job? = null
+    @Volatile private var job: Job? = null
+    @Volatile private var resumeJob: Job? = null
     private var app: Application? = null
 
     private fun prefs(ctx: Context) = ctx.getSharedPreferences(FID_SCAN_PREFS, Context.MODE_PRIVATE)
@@ -350,6 +366,10 @@ object FidScan {
     private suspend fun launchSession(ctx: Context, usedBefore: Long, resumed: Boolean) {
         try {
             if (job?.isActive == true) return
+            if (resumed && prefs(ctx).getString(KEY_LIST, null) == null) {
+                abandonResumeWithoutList(ctx)
+                return
+            }
             val entry = EntryPointAccessors.fromApplication(ctx, FidScanEntryPoint::class.java)
             // Only a start from the switch brings the helper up: after a cold start TrackingService's
             // watchdog owns the daemon, and a second bootstrap would hold the helper for seconds.
@@ -402,6 +422,14 @@ object FidScan {
             }
             setStatus(FidScanStatus(error = e.message ?: e::class.java.simpleName))
         }
+    }
+
+    /** A resume with no list chosen: an endless resume would only log "not chosen" and block the picker. */
+    private suspend fun abandonResumeWithoutList(ctx: Context) {
+        stopOrphanRecorder(ctx)
+        savePersisted(prefs(ctx), active = false, usedBytes = 0L)
+        val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
+        setStatus(FidScanStatus(error = lc.getString(R.string.fork_fidscan_error_no_list)))
     }
 
     private suspend fun bringHelperUp(entry: FidScanEntryPoint) {

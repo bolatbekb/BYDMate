@@ -72,3 +72,6 @@ internal fun sweepDue(nowMs: Long, lastSweepMs: Long?, modeChanged: Boolean): Bo
 
 /** A message inside one log line: line breaks would start a line the format does not know. */
 internal fun oneLine(text: String): String = text.replace('\r', ' ').replace('\n', ' ')
+
+/** The tap's header line in the recorder file (FidRawTap.describe). */
+internal const val RAW_MARKER = "fidscan raw:"

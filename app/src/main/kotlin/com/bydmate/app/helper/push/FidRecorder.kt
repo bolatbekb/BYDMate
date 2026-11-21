@@ -376,7 +376,7 @@ internal fun FidPushSink.onRecorderEvent(eventType: Int, value: BYDAutoEventValu
     runCatching {
         onEvent(eventType, value?.intValue ?: 0, value?.doubleValue ?: 0.0, SystemClock.elapsedRealtime())
     }.onFailure { Log.w("FidRec", "sink failed for fid=$eventType: $it") }
-    com.bydmate.app.fork.fidscan.FidRawTap.onBuffer(eventType, value?.bufferDataValue) // fork: fid scan — keep the byte buffer (never throws)
+    com.bydmate.app.fork.fidscan.FidRawTap.onEvent(eventType, value) // fork: fid scan — keep the byte buffer (never throws)
 }
 
 /** Same Context rule as the push registry: without it the firmware never enables delivery. */

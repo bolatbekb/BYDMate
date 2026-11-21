@@ -80,7 +80,9 @@ class FidScanFilesTest {
     @Test fun `listCandidate is txt but not a scan log`() {
         assertTrue(isListCandidate("battery.txt"))
         assertTrue(isListCandidate("B.TXT"))
-        assertFalse(isListCandidate("fidscan-20261121-000000.txt"))
+        assertTrue(isListCandidate("fidscan-battery.txt"))
+        assertFalse(isListCandidate("fidscan-20261121-232858.txt"))
+        assertFalse(isListCandidate("bydmate_fidrec_20261121_120000.txt"))
         assertFalse(isListCandidate("bydmate_fidrec_x.txt"))
         assertFalse(isListCandidate("a.zip"))
     }

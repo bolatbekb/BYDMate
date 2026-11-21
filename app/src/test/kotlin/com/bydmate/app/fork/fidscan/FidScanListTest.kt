@@ -261,4 +261,20 @@ class FidScanListTest {
         assertEquals(listOf(ScanItem(1012, 9, "Engine.ENGINE_X")), plan.items)
         assertEquals(listOf(Triple(1, "Engine.ENGINE_X_SET", ListSkip.SETTER)), skipped(plan))
     }
+
+    @Test
+    fun aSetterOnlyFidUnderAnotherNameIsSetter() {
+        val dump = "BYDAutoConstants.BYDAUTO_DEVICE_AC=1001\nAc.AC_COMPRESSOR_MODE_SET_lrse_hal_only=357568570"
+        val plan = planFromList("Ac.AC_COMPRESSOR_X=357568570", dump)
+        assertEquals(emptyList<ScanItem>(), plan.items)
+        assertEquals(listOf(Triple(1, "Ac.AC_COMPRESSOR_X", ListSkip.SETTER)), skipped(plan))
+    }
+
+    @Test
+    fun aGetterSharingTheFidWithASetterIsRead() {
+        val dump = "BYDAutoConstants.BYDAUTO_DEVICE_AC=1001\n" +
+            "Ac.AC_COMPRESSOR_MODE_SET_lrse_hal_only=357568570\nAc.AC_COMPRESSOR_MODE=357568570"
+        val plan = planFromList("Ac.AC_COMPRESSOR_X=357568570", dump)
+        assertEquals(listOf(ScanItem(1001, 357568570, "Ac.AC_COMPRESSOR_X")), plan.items)
+    }
 }

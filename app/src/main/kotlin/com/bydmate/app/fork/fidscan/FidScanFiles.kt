@@ -29,8 +29,13 @@ fun isScanLog(name: String): Boolean =
     (name.startsWith("fidscan-") && name.endsWith(".txt")) ||
         (name.startsWith("bydmate_fidrec_") && name.endsWith(".txt"))
 
-/** A file the owner may pick as the parameter list: any `.txt` that is not a recording log. */
-fun isListCandidate(name: String): Boolean = name.endsWith(".txt", ignoreCase = true) && !isScanLog(name)
+private val POLL_LOG_NAME = Regex("^fidscan-\\d{8}-\\d{6}\\.txt$")
+
+/** A file the owner may pick as the parameter list: any `.txt` that is not a real recording log
+ *  (a poll log `fidscan-<date>-<time>.txt` or a recorder file); `fidscan-battery.txt` is a list. */
+fun isListCandidate(name: String): Boolean =
+    name.endsWith(".txt", ignoreCase = true) && !POLL_LOG_NAME.matches(name) &&
+        !(name.startsWith("bydmate_fidrec_") && name.endsWith(".txt"))
 
 /** The list file's text; an [IOException] with a short reason when it is missing or too big. */
 internal fun readListFile(file: File): ScanListFile {
