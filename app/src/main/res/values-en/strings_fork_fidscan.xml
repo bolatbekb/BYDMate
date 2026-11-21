@@ -8,4 +8,5 @@
     <string name="fork_fidscan_push_off">stopped</string>
     <string name="fork_fidscan_error_no_access">no access to the Download folder</string>
     <string name="fork_fidscan_help">Every 5 minutes (and when the mode changes: parked, driving, charging) the app reads all car parameters and writes only what changed to a file. The event recorder runs alongside. Read only: nothing in the car is changed. The fidscan-….txt files and the event recorder files are in the Download folder. No more than 400 MB is written in total, then recording stops by itself. If you switch the car off and on again, recording continues in a new file. To send them: turn the switch off and forward the files from Download to the developer.</string>
+    <string name="fork_fidscan_error_write">Recording stopped: cannot write to the file (%1$s)</string>
 </resources>

@@ -1,4 +1,4 @@
-@file:Suppress("TooGenericExceptionCaught", "SwallowedException", "NestedBlockDepth", "ThrowsCount") // why: a diagnostic recorder must never crash the app; every step catches Throwable and rethrows CancellationException
+@file:Suppress("TooGenericExceptionCaught", "SwallowedException", "NestedBlockDepth", "ThrowsCount", "CyclomaticComplexMethod") // why: a diagnostic recorder must never crash the app; every step catches Throwable and rethrows CancellationException
 package com.bydmate.app.fork.fidscan
 
 import android.app.Application
@@ -24,6 +24,8 @@ import dagger.hilt.components.SingletonComponent
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.io.IOException
+import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -82,23 +84,38 @@ interface FidScanEntryPoint {
 }
 
 /** The poll log: buffered, counts its bytes, remembers the last `E` line for the status. */
-internal class FileScanSink(file: File) : ScanSink {
-    private val out = BufferedOutputStream(FileOutputStream(file), 64 * 1024)
+internal class FileScanSink(private val out: OutputStream) : ScanSink {
+    constructor(file: File) : this(BufferedOutputStream(FileOutputStream(file), 64 * 1024))
+
     private var written = 0L
     @Volatile var lastError: String? = null
+        private set
+
+    /** The first write or flush failure (full disk, lost folder). Never cleared: the session ends on it. */
+    @Volatile var ioError: IOException? = null
         private set
 
     override val bytes: Long get() = written
 
     override fun write(line: String) {
         val data = (line + "\n").toByteArray(Charsets.UTF_8)
-        out.write(data)
+        try {
+            out.write(data)
+        } catch (e: IOException) {
+            fail(e)
+            throw e
+        }
         written += data.size
         if (line.startsWith("E ")) lastError = line.substring(2)
     }
 
     fun flush() {
-        try { out.flush() } catch (e: Exception) { /* the next write reports it */ }
+        try { out.flush() } catch (e: IOException) { fail(e) }
+    }
+
+    private fun fail(e: IOException) {
+        if (ioError == null) ioError = e
+        Log.w(TAG, "write failed", e)
     }
 
     override fun close() {
@@ -256,11 +273,15 @@ object FidScan {
                 try {
                     val r = session.tick()
                     sink.flush()
+                    if (sink.ioError != null) {
+                        reason = "write error"
+                        return
+                    }
                     if (session.sweeps > savedSweeps) {
                         savedSweeps = session.sweeps
                         savePersisted(prefs(ctx), active = true, usedBytes = session.usedBytes)
                     }
-                    publish(session, fileName, sink.lastError)
+                    publish(session, fileName, sink.ioError?.message ?: sink.lastError)
                     if (r == TickResult.BUDGET_REACHED) {
                         reason = "budget"
                         return
@@ -286,6 +307,13 @@ object FidScan {
                 }
                 if (reason == "budget") {
                     _status.value = FidScanStatus(fileName = fileName, usedBytes = session.usedBytes, sweeps = session.sweeps)
+                } else if (reason == "write error") {
+                    val why = sink.ioError?.let { it.message ?: it::class.java.simpleName } ?: "?"
+                    val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
+                    _status.value = FidScanStatus(
+                        fileName = fileName, usedBytes = session.usedBytes, sweeps = session.sweeps,
+                        error = lc.getString(R.string.fork_fidscan_error_write, why),
+                    )
                 }
             }
         }
