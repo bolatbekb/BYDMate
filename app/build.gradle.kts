@@ -31,7 +31,7 @@ android {
         // targetSdk 30+ would break listFiles() on /storage/emulated/0/energydata/
         targetSdk = 29
         versionCode = 5271  // fork: author's code * 10 + fork build, never below an official build
-        versionName = "4.5.0.1"  // fork: author's version + fork build number
+        versionName = "4.5.0.1-fidscan"  // fork: author's version + fork build number
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
