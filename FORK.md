@@ -192,6 +192,7 @@ git grep -n "fork" -- app/src/main/kotlin | grep -v "/fork/\|/demo/\|/ui/home/"
 
 | Файл | Что изменено | Строк | Коммиты |
 |---|---|---|---|
+| `gradle.properties` | ускорение сборки только для этого проекта: `org.gradle.caching`, `org.gradle.parallel`, `org.gradle.configuration-cache` (в `~/.gradle/gradle.properties` они ломали другие проекты на той же машине) | +5/−0 | 2026-11-21 |
 | `app/build.gradle.kts` | `versionCode` и `versionName` форка: **конфликт при каждом релизе автора**, см. «Версии»; строка `// fork` в `testOptions.unitTests.all`: юнит-тесты идут в UTC (`user.timezone`), как на GitHub Actions | +3/−2 | `baceba15` (2026-11-15) → `335a377d` (2026-11-20); версии меняются в каждом релизе |
 | `BYDMateApp.kt` | `SkinState.init`, `HomeStyleState.init`, `DisplayInfo.init`, `HudCustomIcons.init` в `onCreate`; `LedgerBackup.provider` и запуск `ledgerLiveWatcher` (оба пропускаются в демо-режиме) | +8/−0 | `23c2e82c` (2026-11-15) → `c1d3ccc2` (2026-11-19) |
 | `ui/theme/Color.kt` | цвета стали геттерами из `SkinState`, чтобы скин менялся на лету; вручную: `SocGreen` (шкала заряда) берёт акцент скина (`// fork: skin`) | +25/−22 | `23c2e82c` (2026-11-15) → `aca3dd77` (2026-11-19) |
