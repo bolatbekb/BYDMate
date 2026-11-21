@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="fork_fidscan_title">Запіс усіх параметраў машыны</string>
-    <string name="fork_fidscan_desc">Для аналізу: раз на 5 хвілін чытае ўсе параметры машыны і запісвае змены ў тэчку Download. Да 400 МБ.</string>
+    <string name="fork_fidscan_title">Запіс параметраў па спісе</string>
+    <string name="fork_fidscan_desc">Для аналізу: раз у 5 хвілін чытае параметры з абранага спісу і запісвае змены ў папку Download. Да 400 МБ.</string>
     <string name="fork_fidscan_status">Файл: %1$s · %2$d МБ з %3$d · праходаў: %4$d · падпіска: %5$s</string>
     <string name="fork_fidscan_push_on">працуе</string>
     <string name="fork_fidscan_push_off">спынена</string>
     <string name="fork_fidscan_error_no_access">няма доступу да тэчкі Download</string>
-    <string name="fork_fidscan_help">Раз на 5 хвілін (і пры змене рэжыму: паркоўка, язда, зарадка) праграма чытае ўсе параметры машыны і запісвае ў файл толькі тое, што змянілася. Побач працуе запіс падзей. Толькі чытанне: нічога ў машыне не змяняецца. Файлы fidscan-….txt і файлы запісу падзей ляжаць у тэчцы Download. Усяго пішацца не больш за 400 МБ, потым запіс спыняецца сам. Калі выключыць і зноў уключыць машыну, запіс працягнецца ў новым файле. Запіс пачынаецца, толькі калі вольна не менш за 5 ГБ, і спыняецца, калі месца стала менш. Каб адправіць: націсніце «Спакаваць у zip і адправіць» — праграма збярэ ўсе файлы запісу ў адзін архіў і адкрые акно адпраўкі.</string>
+    <string name="fork_fidscan_help">Спіс — тэкставы файл у папцы Download з радкамі выгляду Група.НАЗВА=нумар (як у выгрузцы каталога); радкі з # — каментарыі. Абярыце файл кнопкай «Абраць»: праграма чытае яго там, дзе ён ляжыць, і не капіруе. Спіс можна змяняць толькі пры выключаным запісе. Раз у 5 хвілін (і пры змене рэжыму: паркоўка, паездка, зарадка) праграма чытае параметры са спісу і запісвае ў файл толькі тое, што змянілася. Каманды запісу і камандныя параметры праграма не чытае ніколі, нават калі яны ёсць у спісе, — яны паказваюцца як адмененыя. Побач працуе запіс падзей. Толькі чытанне: у машыне нічога не змяняецца. Файлы fidscan-….txt і файлы запісу падзей ляжаць у папцы Download. Усяго запісваецца не больш за 400 МБ, потым запіс спыняецца сам. Калі выключыць і зноў уключыць машыну, запіс працягнецца ў новым файле. Запіс пачынаецца, толькі калі вольна не менш за 5 ГБ, і спыняецца, калі месца стала менш. Каб адправіць: націсніце «Спакаваць і адправіць» — праграма збярэ ўсе файлы запісу ў адзін архіў і адкрые акно адпраўкі.</string>
     <string name="fork_fidscan_error_write">Запіс спынены: не атрымліваецца пісаць у файл (%1$s)</string>
     <string name="fork_fidscan_error_space_start">Вольна менш за 5 ГБ — запіс не пачаты (вольна %1$s ГБ)</string>
     <string name="fork_fidscan_error_space_run">Запіс спынены: вольна менш за 5 ГБ</string>
@@ -21,4 +21,22 @@
     <string name="fork_fidscan_zip_label">Спакаваць і адправіць</string>
     <string name="fork_fidscan_error_no_list">Спачатку выберыце спіс параметраў</string>
     <string name="fork_fidscan_error_list_missing">Файл спісу не знойдзены: %1$s</string>
+    <string name="fork_fidscan_list_title">Спіс параметраў</string>
+    <string name="fork_fidscan_list_button">Абраць</string>
+    <string name="fork_fidscan_list_pick_title">Абярыце спіс параметраў</string>
+    <string name="fork_fidscan_list_empty">У папцы Download няма .txt-файлаў</string>
+    <string name="fork_fidscan_list_close">Закрыць</string>
+    <string name="fork_fidscan_list_summary">Спіс: %1$s · радкоў %2$d · будзе чытацца %3$d · адменена %4$d</string>
+    <string name="fork_fidscan_list_checked">правярана па каталогу машыны</string>
+    <string name="fork_fidscan_list_check_at_start">поўная праверка — пры старце запісу</string>
+    <string name="fork_fidscan_list_skipped_counts">Адменены: каманды запісу %1$d, камандныя %2$d, дыягностыка (1033) %3$d, невядомая група %4$d, няма ў машыне %5$d, памылкі ў радках %6$d</string>
+    <string name="fork_fidscan_list_show_skipped">Паказаць адмененыя</string>
+    <string name="fork_fidscan_list_skipped_title">Адмененыя параметры</string>
+    <string name="fork_fidscan_list_skipped_line">радок %1$d: %2$s — %3$s</string>
+    <string name="fork_fidscan_skip_setter">каманда запісу</string>
+    <string name="fork_fidscan_skip_command">камандны параметр</string>
+    <string name="fork_fidscan_skip_diag">дыягностыка (1033)</string>
+    <string name="fork_fidscan_skip_unknown_group">невядомая група</string>
+    <string name="fork_fidscan_skip_not_in_car">няма ў машыне</string>
+    <string name="fork_fidscan_skip_bad_line">памылка ў радку</string>
 </resources>

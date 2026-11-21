@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="fork_fidscan_title">Запись всех параметров машины</string>
-    <string name="fork_fidscan_desc">Для анализа: раз в 5 минут читает все параметры машины и записывает изменения в папку Download. До 400 МБ.</string>
+    <string name="fork_fidscan_title">Запись параметров по списку</string>
+    <string name="fork_fidscan_desc">Для анализа: раз в 5 минут читает параметры из выбранного списка и записывает изменения в папку Download. До 400 МБ.</string>
     <string name="fork_fidscan_status">Файл: %1$s · %2$d МБ из %3$d · проходов: %4$d · подписка: %5$s</string>
     <string name="fork_fidscan_push_on">работает</string>
     <string name="fork_fidscan_push_off">остановлена</string>
     <string name="fork_fidscan_error_no_access">нет доступа к папке Download</string>
-    <string name="fork_fidscan_help">Раз в 5 минут (и при смене режима: парковка, поездка, зарядка) приложение читает все параметры машины и записывает в файл только то, что изменилось. Рядом работает запись событий. Только чтение: ничего в машине не меняется. Файлы fidscan-….txt и файлы записи событий лежат в папке Download. Всего пишется не больше 400 МБ, потом запись останавливается сама. Если выключить и снова включить машину, запись продолжится в новом файле. Запись начинается, только если свободно не меньше 5 ГБ, и останавливается, если места стало меньше. Чтобы отправить: нажмите «Упаковать в zip и отправить» — приложение соберёт все файлы записи в один архив и откроет окно отправки.</string>
+    <string name="fork_fidscan_help">Список — текстовый файл в папке Download со строками вида Группа.ИМЯ=номер (как в выгрузке каталога); строки с # — комментарии. Выберите файл кнопкой «Выбрать»: приложение читает его там, где он лежит, и не копирует. Список можно менять только при выключенной записи. Раз в 5 минут (и при смене режима: парковка, поездка, зарядка) приложение читает параметры из списка и записывает в файл только то, что изменилось. Команды записи и командные параметры приложение не читает никогда, даже если они есть в списке, — они показываются как отменённые. Рядом работает запись событий. Только чтение: ничего в машине не меняется. Файлы fidscan-….txt и файлы записи событий лежат в папке Download. Всего пишется не больше 400 МБ, потом запись останавливается сама. Если выключить и снова включить машину, запись продолжится в новом файле. Запись начинается, только если свободно не меньше 5 ГБ, и останавливается, если места стало меньше. Чтобы отправить: нажмите «Упаковать в zip и отправить» — приложение соберёт все файлы записи в один архив и откроет окно отправки.</string>
     <string name="fork_fidscan_error_write">Запись остановлена: не получается писать в файл (%1$s)</string>
     <string name="fork_fidscan_error_space_start">Свободно меньше 5 ГБ — запись не начата (свободно %1$s ГБ)</string>
     <string name="fork_fidscan_error_space_run">Запись остановлена: свободно меньше 5 ГБ</string>
@@ -21,4 +21,22 @@
     <string name="fork_fidscan_zip_label">Упаковать и отправить</string>
     <string name="fork_fidscan_error_no_list">Сначала выберите список параметров</string>
     <string name="fork_fidscan_error_list_missing">Файл списка не найден: %1$s</string>
+    <string name="fork_fidscan_list_title">Список параметров</string>
+    <string name="fork_fidscan_list_button">Выбрать</string>
+    <string name="fork_fidscan_list_pick_title">Выберите список параметров</string>
+    <string name="fork_fidscan_list_empty">В папке Download нет .txt-файлов</string>
+    <string name="fork_fidscan_list_close">Закрыть</string>
+    <string name="fork_fidscan_list_summary">Список: %1$s · строк %2$d · будет читаться %3$d · отменено %4$d</string>
+    <string name="fork_fidscan_list_checked">проверено по каталогу машины</string>
+    <string name="fork_fidscan_list_check_at_start">полная проверка — при старте записи</string>
+    <string name="fork_fidscan_list_skipped_counts">Отменены: команды записи %1$d, командные %2$d, диагностика (1033) %3$d, неизвестная группа %4$d, нет в машине %5$d, ошибки в строках %6$d</string>
+    <string name="fork_fidscan_list_show_skipped">Показать отменённые</string>
+    <string name="fork_fidscan_list_skipped_title">Отменённые параметры</string>
+    <string name="fork_fidscan_list_skipped_line">строка %1$d: %2$s — %3$s</string>
+    <string name="fork_fidscan_skip_setter">команда записи</string>
+    <string name="fork_fidscan_skip_command">командный параметр</string>
+    <string name="fork_fidscan_skip_diag">диагностика (1033)</string>
+    <string name="fork_fidscan_skip_unknown_group">неизвестная группа</string>
+    <string name="fork_fidscan_skip_not_in_car">нет в машине</string>
+    <string name="fork_fidscan_skip_bad_line">ошибка в строке</string>
 </resources>

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="fork_fidscan_title">Record all car parameters</string>
-    <string name="fork_fidscan_desc">For analysis: reads all car parameters every 5 minutes and writes the changes to the Download folder. Up to 400 MB.</string>
+    <string name="fork_fidscan_title">Record parameters from a list</string>
+    <string name="fork_fidscan_desc">For analysis: every 5 minutes reads the parameters from the chosen list and writes the changes to the Download folder. Up to 400 MB.</string>
     <string name="fork_fidscan_status">File: %1$s · %2$d MB of %3$d · sweeps: %4$d · subscription: %5$s</string>
     <string name="fork_fidscan_push_on">running</string>
     <string name="fork_fidscan_push_off">stopped</string>
     <string name="fork_fidscan_error_no_access">no access to the Download folder</string>
-    <string name="fork_fidscan_help">Every 5 minutes (and when the mode changes: parked, driving, charging) the app reads all car parameters and writes only what changed to a file. The event recorder runs alongside. Read only: nothing in the car is changed. The fidscan-….txt files and the event recorder files are in the Download folder. No more than 400 MB is written in total, then recording stops by itself. If you switch the car off and on again, recording continues in a new file. Recording starts only if at least 5 GB is free, and stops if less space is left. To send: tap “Pack to zip and send” — the app puts all recording files into one archive and opens the share sheet.</string>
+    <string name="fork_fidscan_help">The list is a text file in the Download folder with lines like Group.NAME=number (as in the catalog dump); lines starting with # are comments. Choose the file with the “Choose” button: the app reads it where it is and never copies it. The list can be changed only while recording is off. Every 5 minutes (and when the mode changes: parked, driving, charging) the app reads the parameters from the list and writes only what changed to a file. Write commands and command-like parameters are never read, even if they are in the list — they are shown as cancelled. The event recorder runs alongside. Read only: nothing in the car is changed. The fidscan-….txt files and the event recorder files are in the Download folder. No more than 400 MB is written in total, then recording stops by itself. If you switch the car off and on again, recording continues in a new file. Recording starts only if at least 5 GB is free, and stops if less space is left. To send: tap “Pack to zip and send” — the app puts all recording files into one archive and opens the share sheet.</string>
     <string name="fork_fidscan_error_write">Recording stopped: cannot write to the file (%1$s)</string>
     <string name="fork_fidscan_error_space_start">Less than 5 GB free — recording not started (%1$s GB free)</string>
     <string name="fork_fidscan_error_space_run">Recording stopped: less than 5 GB free</string>
@@ -21,4 +21,22 @@
     <string name="fork_fidscan_zip_label">Pack and send</string>
     <string name="fork_fidscan_error_no_list">Choose a parameter list first</string>
     <string name="fork_fidscan_error_list_missing">List file not found: %1$s</string>
+    <string name="fork_fidscan_list_title">Parameter list</string>
+    <string name="fork_fidscan_list_button">Choose</string>
+    <string name="fork_fidscan_list_pick_title">Choose a parameter list</string>
+    <string name="fork_fidscan_list_empty">There are no .txt files in the Download folder</string>
+    <string name="fork_fidscan_list_close">Close</string>
+    <string name="fork_fidscan_list_summary">List: %1$s · lines %2$d · will be read %3$d · cancelled %4$d</string>
+    <string name="fork_fidscan_list_checked">checked against the car catalog</string>
+    <string name="fork_fidscan_list_check_at_start">full check at the start of recording</string>
+    <string name="fork_fidscan_list_skipped_counts">Cancelled: write commands %1$d, command-like %2$d, diagnostics (1033) %3$d, unknown group %4$d, not in the car %5$d, line errors %6$d</string>
+    <string name="fork_fidscan_list_show_skipped">Show cancelled</string>
+    <string name="fork_fidscan_list_skipped_title">Cancelled parameters</string>
+    <string name="fork_fidscan_list_skipped_line">line %1$d: %2$s — %3$s</string>
+    <string name="fork_fidscan_skip_setter">write command</string>
+    <string name="fork_fidscan_skip_command">command-like parameter</string>
+    <string name="fork_fidscan_skip_diag">diagnostics (1033)</string>
+    <string name="fork_fidscan_skip_unknown_group">unknown group</string>
+    <string name="fork_fidscan_skip_not_in_car">not in the car</string>
+    <string name="fork_fidscan_skip_bad_line">line error</string>
 </resources>

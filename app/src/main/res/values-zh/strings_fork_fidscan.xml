@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="fork_fidscan_title">记录车辆所有参数</string>
-    <string name="fork_fidscan_desc">用于分析：每 5 分钟读取车辆所有参数，并把变化写入 Download 文件夹。最多 400 MB。</string>
+    <string name="fork_fidscan_title">按列表记录参数</string>
+    <string name="fork_fidscan_desc">用于分析：每 5 分钟读取所选列表中的参数，并将变化写入 Download 文件夹。最多 400 MB。</string>
     <string name="fork_fidscan_status">文件：%1$s · %2$d MB / %3$d MB · 读取次数：%4$d · 订阅：%5$s</string>
     <string name="fork_fidscan_push_on">运行中</string>
     <string name="fork_fidscan_push_off">已停止</string>
     <string name="fork_fidscan_error_no_access">无法访问 Download 文件夹</string>
-    <string name="fork_fidscan_help">每 5 分钟（以及模式变化时：停车、行驶、充电）应用会读取车辆的所有参数，并只把发生变化的内容写入文件。事件记录器同时运行。仅读取：不会更改车辆的任何设置。fidscan-….txt 文件和事件记录文件位于 Download 文件夹。总共最多写入 400 MB，之后记录会自动停止。如果关闭后再次启动车辆，记录会在新文件中继续。仅当可用空间不少于 5 GB 时才开始记录，空间不足时记录会停止。发送方式：点击“打包为 zip 并发送”——应用会把所有记录文件打包成一个压缩包并打开分享窗口。</string>
+    <string name="fork_fidscan_help">列表是 Download 文件夹中的文本文件，每行格式为 组.名称=编号（与目录导出相同）；以 # 开头的行为注释。点击“选择”按钮选择文件：应用直接在原位置读取，不会复制。只有在记录关闭时才能更改列表。每 5 分钟（以及模式变化时：停车、行驶、充电）应用读取列表中的参数，只把有变化的内容写入文件。写入命令和类似命令的参数永远不会被读取，即使列表中有它们——它们会显示为已取消。事件记录同时运行。只读：不会更改车辆中的任何内容。fidscan-….txt 文件和事件记录文件都在 Download 文件夹中。总共最多写入 400 MB，之后记录会自动停止。如果关闭车辆后再次开启，记录会在新文件中继续。只有可用空间不少于 5 GB 时才会开始记录，空间不足时会停止。发送方法：点击“打包为 zip 并发送”——应用会把所有记录文件打包成一个压缩包并打开分享窗口。</string>
     <string name="fork_fidscan_error_write">记录已停止：无法写入文件（%1$s）</string>
     <string name="fork_fidscan_error_space_start">可用空间不足 5 GB——未开始记录（可用 %1$s GB）</string>
     <string name="fork_fidscan_error_space_run">记录已停止：可用空间不足 5 GB</string>
@@ -21,4 +21,22 @@
     <string name="fork_fidscan_zip_label">打包并发送</string>
     <string name="fork_fidscan_error_no_list">请先选择参数列表</string>
     <string name="fork_fidscan_error_list_missing">未找到列表文件：%1$s</string>
+    <string name="fork_fidscan_list_title">参数列表</string>
+    <string name="fork_fidscan_list_button">选择</string>
+    <string name="fork_fidscan_list_pick_title">选择参数列表</string>
+    <string name="fork_fidscan_list_empty">Download 文件夹中没有 .txt 文件</string>
+    <string name="fork_fidscan_list_close">关闭</string>
+    <string name="fork_fidscan_list_summary">列表：%1$s · 行数 %2$d · 将读取 %3$d · 已取消 %4$d</string>
+    <string name="fork_fidscan_list_checked">已按车辆目录核对</string>
+    <string name="fork_fidscan_list_check_at_start">记录开始时进行完整核对</string>
+    <string name="fork_fidscan_list_skipped_counts">已取消：写入命令 %1$d，类命令 %2$d，诊断 (1033) %3$d，未知组 %4$d，车辆中不存在 %5$d，行错误 %6$d</string>
+    <string name="fork_fidscan_list_show_skipped">显示已取消项</string>
+    <string name="fork_fidscan_list_skipped_title">已取消的参数</string>
+    <string name="fork_fidscan_list_skipped_line">第 %1$d 行：%2$s — %3$s</string>
+    <string name="fork_fidscan_skip_setter">写入命令</string>
+    <string name="fork_fidscan_skip_command">类命令参数</string>
+    <string name="fork_fidscan_skip_diag">诊断 (1033)</string>
+    <string name="fork_fidscan_skip_unknown_group">未知组</string>
+    <string name="fork_fidscan_skip_not_in_car">车辆中不存在</string>
+    <string name="fork_fidscan_skip_bad_line">行错误</string>
 </resources>

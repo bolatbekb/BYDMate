@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="fork_fidscan_title">Zapis wszystkich parametrów auta</string>
-    <string name="fork_fidscan_desc">Do analizy: co 5 minut odczytuje wszystkie parametry auta i zapisuje zmiany w folderze Download. Do 400 MB.</string>
+    <string name="fork_fidscan_title">Zapis parametrów z listy</string>
+    <string name="fork_fidscan_desc">Do analizy: co 5 minut odczytuje parametry z wybranej listy i zapisuje zmiany w folderze Download. Do 400 MB.</string>
     <string name="fork_fidscan_status">Plik: %1$s · %2$d MB z %3$d · odczyty: %4$d · subskrypcja: %5$s</string>
     <string name="fork_fidscan_push_on">działa</string>
     <string name="fork_fidscan_push_off">zatrzymana</string>
     <string name="fork_fidscan_error_no_access">brak dostępu do folderu Download</string>
-    <string name="fork_fidscan_help">Co 5 minut (oraz przy zmianie trybu: postój, jazda, ładowanie) aplikacja odczytuje wszystkie parametry auta i zapisuje do pliku tylko to, co się zmieniło. Obok działa rejestrator zdarzeń. Tylko odczyt: nic w aucie nie jest zmieniane. Pliki fidscan-….txt i pliki rejestratora zdarzeń leżą w folderze Download. Łącznie zapisuje się najwyżej 400 MB, potem zapis zatrzymuje się sam. Jeśli wyłączysz i ponownie włączysz auto, zapis będzie kontynuowany w nowym pliku. Zapis rozpoczyna się tylko wtedy, gdy wolne jest co najmniej 5 GB, i zatrzymuje się, gdy miejsca zrobi się mniej. Aby wysłać: dotknij „Spakuj do zip i wyślij” — aplikacja zbierze wszystkie pliki zapisu w jedno archiwum i otworzy okno udostępniania.</string>
+    <string name="fork_fidscan_help">Lista to plik tekstowy w folderze Download z wierszami w postaci Grupa.NAZWA=numer (jak w zrzucie katalogu); wiersze z # to komentarze. Wybierz plik przyciskiem „Wybierz”: aplikacja czyta go z miejsca, w którym leży, i nigdy go nie kopiuje. Listę można zmieniać tylko przy wyłączonym zapisie. Co 5 minut (oraz przy zmianie trybu: postój, jazda, ładowanie) aplikacja odczytuje parametry z listy i zapisuje do pliku tylko to, co się zmieniło. Poleceń zapisu i parametrów podobnych do poleceń aplikacja nigdy nie czyta, nawet jeśli są na liście — są pokazywane jako anulowane. Obok działa zapis zdarzeń. Tylko odczyt: w samochodzie nic się nie zmienia. Pliki fidscan-….txt i pliki zapisu zdarzeń leżą w folderze Download. Łącznie zapisuje się najwyżej 400 MB, potem zapis zatrzymuje się sam. Jeśli wyłączysz i ponownie włączysz samochód, zapis będzie kontynuowany w nowym pliku. Zapis zaczyna się tylko wtedy, gdy wolne jest co najmniej 5 GB, i zatrzymuje się, gdy miejsca zostanie mniej. Aby wysłać: dotknij „Spakuj i wyślij” — aplikacja zbierze wszystkie pliki zapisu w jedno archiwum i otworzy okno udostępniania.</string>
     <string name="fork_fidscan_error_write">Zapis zatrzymany: nie można zapisać do pliku (%1$s)</string>
     <string name="fork_fidscan_error_space_start">Wolne mniej niż 5 GB — zapis nie rozpoczęty (wolne %1$s GB)</string>
     <string name="fork_fidscan_error_space_run">Zapis zatrzymany: wolne mniej niż 5 GB</string>
@@ -21,4 +21,22 @@
     <string name="fork_fidscan_zip_label">Spakuj i wyślij</string>
     <string name="fork_fidscan_error_no_list">Najpierw wybierz listę parametrów</string>
     <string name="fork_fidscan_error_list_missing">Nie znaleziono pliku listy: %1$s</string>
+    <string name="fork_fidscan_list_title">Lista parametrów</string>
+    <string name="fork_fidscan_list_button">Wybierz</string>
+    <string name="fork_fidscan_list_pick_title">Wybierz listę parametrów</string>
+    <string name="fork_fidscan_list_empty">W folderze Download nie ma plików .txt</string>
+    <string name="fork_fidscan_list_close">Zamknij</string>
+    <string name="fork_fidscan_list_summary">Lista: %1$s · wierszy %2$d · będzie odczytanych %3$d · anulowanych %4$d</string>
+    <string name="fork_fidscan_list_checked">sprawdzona z katalogiem samochodu</string>
+    <string name="fork_fidscan_list_check_at_start">pełne sprawdzenie przy starcie zapisu</string>
+    <string name="fork_fidscan_list_skipped_counts">Anulowane: polecenia zapisu %1$d, podobne do poleceń %2$d, diagnostyka (1033) %3$d, nieznana grupa %4$d, brak w samochodzie %5$d, błędy w wierszach %6$d</string>
+    <string name="fork_fidscan_list_show_skipped">Pokaż anulowane</string>
+    <string name="fork_fidscan_list_skipped_title">Anulowane parametry</string>
+    <string name="fork_fidscan_list_skipped_line">wiersz %1$d: %2$s — %3$s</string>
+    <string name="fork_fidscan_skip_setter">polecenie zapisu</string>
+    <string name="fork_fidscan_skip_command">parametr podobny do polecenia</string>
+    <string name="fork_fidscan_skip_diag">diagnostyka (1033)</string>
+    <string name="fork_fidscan_skip_unknown_group">nieznana grupa</string>
+    <string name="fork_fidscan_skip_not_in_car">brak w samochodzie</string>
+    <string name="fork_fidscan_skip_bad_line">błąd w wierszu</string>
 </resources>

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- fork-local strings: kept out of strings.xml so upstream merges do not conflict. -->
 <resources>
-    <string name="fork_fidscan_title">Gravar todos os parâmetros do carro</string>
-    <string name="fork_fidscan_desc">Para análise: lê todos os parâmetros do carro a cada 5 minutos e grava as alterações na pasta Download. Até 400 MB.</string>
+    <string name="fork_fidscan_title">Gravação de parâmetros por lista</string>
+    <string name="fork_fidscan_desc">Para análise: a cada 5 minutos lê os parâmetros da lista escolhida e grava as alterações na pasta Download. Até 400 MB.</string>
     <string name="fork_fidscan_status">Arquivo: %1$s · %2$d MB de %3$d · leituras: %4$d · assinatura: %5$s</string>
     <string name="fork_fidscan_push_on">ativa</string>
     <string name="fork_fidscan_push_off">parada</string>
     <string name="fork_fidscan_error_no_access">sem acesso à pasta Download</string>
-    <string name="fork_fidscan_help">A cada 5 minutos (e quando o modo muda: estacionado, em movimento, carregando) o app lê todos os parâmetros do carro e grava no arquivo apenas o que mudou. O gravador de eventos funciona em paralelo. Somente leitura: nada no carro é alterado. Os arquivos fidscan-….txt e os arquivos do gravador de eventos ficam na pasta Download. No total são gravados no máximo 400 MB; depois a gravação para sozinha. Se você desligar e ligar o carro de novo, a gravação continua em um novo arquivo. A gravação só começa se houver pelo menos 5 GB livres e para se o espaço ficar menor. Para enviar: toque em “Compactar em zip e enviar” — o app reúne todos os arquivos de gravação em um arquivo e abre a janela de compartilhamento.</string>
+    <string name="fork_fidscan_help">A lista é um arquivo de texto na pasta Download com linhas no formato Grupo.NOME=número (como no despejo do catálogo); linhas com # são comentários. Escolha o arquivo com o botão “Escolher”: o app o lê onde ele está e nunca o copia. A lista só pode ser alterada com a gravação desligada. A cada 5 minutos (e quando o modo muda: estacionado, em viagem, carregando) o app lê os parâmetros da lista e grava no arquivo só o que mudou. Comandos de escrita e parâmetros parecidos com comandos nunca são lidos, mesmo que estejam na lista — eles aparecem como cancelados. O registro de eventos funciona ao lado. Somente leitura: nada no carro é alterado. Os arquivos fidscan-….txt e os do registro de eventos ficam na pasta Download. No total são gravados no máximo 400 MB; depois a gravação para sozinha. Se você desligar e ligar o carro de novo, a gravação continua em um novo arquivo. A gravação só começa se houver pelo menos 5 GB livres e para se sobrar menos espaço. Para enviar: toque em “Compactar em zip e enviar” — o app reúne todos os arquivos de gravação em um só arquivo e abre a janela de compartilhamento.</string>
     <string name="fork_fidscan_error_write">Gravação interrompida: não é possível gravar no arquivo (%1$s)</string>
     <string name="fork_fidscan_error_space_start">Menos de 5 GB livres — gravação não iniciada (%1$s GB livres)</string>
     <string name="fork_fidscan_error_space_run">Gravação interrompida: menos de 5 GB livres</string>
@@ -21,4 +21,22 @@
     <string name="fork_fidscan_zip_label">Compactar e enviar</string>
     <string name="fork_fidscan_error_no_list">Escolha primeiro uma lista de parâmetros</string>
     <string name="fork_fidscan_error_list_missing">Arquivo da lista não encontrado: %1$s</string>
+    <string name="fork_fidscan_list_title">Lista de parâmetros</string>
+    <string name="fork_fidscan_list_button">Escolher</string>
+    <string name="fork_fidscan_list_pick_title">Escolha uma lista de parâmetros</string>
+    <string name="fork_fidscan_list_empty">Não há arquivos .txt na pasta Download</string>
+    <string name="fork_fidscan_list_close">Fechar</string>
+    <string name="fork_fidscan_list_summary">Lista: %1$s · linhas %2$d · serão lidos %3$d · cancelados %4$d</string>
+    <string name="fork_fidscan_list_checked">verificada pelo catálogo do carro</string>
+    <string name="fork_fidscan_list_check_at_start">verificação completa ao iniciar a gravação</string>
+    <string name="fork_fidscan_list_skipped_counts">Cancelados: comandos de escrita %1$d, parecidos com comandos %2$d, diagnóstico (1033) %3$d, grupo desconhecido %4$d, não existem no carro %5$d, erros de linha %6$d</string>
+    <string name="fork_fidscan_list_show_skipped">Mostrar cancelados</string>
+    <string name="fork_fidscan_list_skipped_title">Parâmetros cancelados</string>
+    <string name="fork_fidscan_list_skipped_line">linha %1$d: %2$s — %3$s</string>
+    <string name="fork_fidscan_skip_setter">comando de escrita</string>
+    <string name="fork_fidscan_skip_command">parâmetro parecido com comando</string>
+    <string name="fork_fidscan_skip_diag">diagnóstico (1033)</string>
+    <string name="fork_fidscan_skip_unknown_group">grupo desconhecido</string>
+    <string name="fork_fidscan_skip_not_in_car">não existe no carro</string>
+    <string name="fork_fidscan_skip_bad_line">erro de linha</string>
 </resources>
