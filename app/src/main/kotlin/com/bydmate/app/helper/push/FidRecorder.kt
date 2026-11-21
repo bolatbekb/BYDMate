@@ -117,6 +117,7 @@ internal object FidRecorder {
                 "devices=${targets.joinToString(",")}",
             )
         )
+        com.bydmate.app.fork.fidscan.FidRawTap.attach(file) // fork: fid scan — raw stream buffers go into the same file
         val round = Round(file)
         try {
             for (dev in targets) startDevice(dev, catalog[dev].orEmpty(), round)
@@ -375,6 +376,7 @@ internal fun FidPushSink.onRecorderEvent(eventType: Int, value: BYDAutoEventValu
     runCatching {
         onEvent(eventType, value?.intValue ?: 0, value?.doubleValue ?: 0.0, SystemClock.elapsedRealtime())
     }.onFailure { Log.w("FidRec", "sink failed for fid=$eventType: $it") }
+    com.bydmate.app.fork.fidscan.FidRawTap.onBuffer(eventType, value?.bufferDataValue) // fork: fid scan — keep the byte buffer (never throws)
 }
 
 /** Same Context rule as the push registry: without it the firmware never enables delivery. */
