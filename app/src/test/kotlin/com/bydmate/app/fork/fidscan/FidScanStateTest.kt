@@ -2,9 +2,12 @@ package com.bydmate.app.fork.fidscan
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.bydmate.app.data.vehicle.DumpFidsResult
+import java.io.IOException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -39,5 +42,30 @@ class FidScanStateTest {
         assertEquals(0, s.sweeps)
         assertFalse(s.pushRunning)
         assertTrue(FID_SCAN_PREFS.isNotEmpty())
+    }
+
+    @Test fun `a session status keeps what the zip button owns`() {
+        val old = FidScanStatus(active = true, error = "old", packing = true, lastZip = "zip", packError = "pack")
+        val merged = keepPackFields(old, FidScanStatus(fileName = "f", error = "new"))
+        assertEquals(
+            FidScanStatus(fileName = "f", error = "new", packing = true, lastZip = "zip", packError = "pack"),
+            merged,
+        )
+    }
+
+    @Test fun `withReason appends a message only when there is one`() {
+        assertEquals("no access (EACCES)", withReason("no access", "EACCES"))
+        assertEquals("no access", withReason("no access", null))
+        assertEquals("no access", withReason("no access", " "))
+        assertEquals("no access (a b)", withReason("no access", "a\nb"))
+    }
+
+    @Test fun `a dump read error carries its detail to the log`() {
+        val e = assertThrows(IOException::class.java) {
+            catalogDump(DumpFidsResult.ReadError("status=-1 at chunk 0"))
+        }
+        assertTrue(e.message.orEmpty().contains("status=-1 at chunk 0"))
+        assertEquals("dump", catalogDump(DumpFidsResult.Success("dump")))
+        assertNull(catalogDump(DumpFidsResult.BinderAbsent))
     }
 }

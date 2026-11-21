@@ -1,6 +1,7 @@
 package com.bydmate.app.fork.fidscan
 
 import com.bydmate.app.data.remote.DiParsData
+import com.bydmate.app.helper.push.FID_PUSH_DEVICE_CLASSES
 import com.bydmate.app.helper.push.groupCatalogByDevice
 
 // fork: pure core of the fid scan (diagnostic recorder of every autoservice parameter): scan list,
@@ -17,14 +18,37 @@ internal const val TX_INT = 5
 internal const val TX_DOUBLE = 7
 internal const val EXCLUDED_DEVICE = 1033
 
+/** A batch call longer than this holds the helper's one mutex too long (its watchdog ping has 2 s). */
+internal const val SLOW_BATCH_MS = 1000L
+
+/** A slow batch halves the session's batch size, never below this many symbols. */
+internal const val MIN_BATCH_SYMBOLS = 8
+
+/** An item whose batch failed in this many sweeps is not read again in the session. */
+internal const val SKIP_AFTER_FAILURES = 2
+
+/** Failed push starts back off 60 s, 120 s, 240 s … up to this. */
+internal const val MAX_PUSH_BACKOFF_MS = 30 * 60_000L
+
 internal data class ScanItem(val dev: Int, val fid: Int, val symbol: String)
 
-/** Readable symbols per device: devices ascending, catalog order inside; no `_SET`, no Mqtt device. */
-internal fun scanList(catalogDump: String): List<ScanItem> =
-    groupCatalogByDevice(catalogDump).toSortedMap().flatMap { (dev, symbols) ->
+/** Readable symbols per device: devices ascending, catalog order inside; no `_SET`, no Mqtt device.
+ *  The `_SET` lines are dropped before the author's per-fid dedup, which keeps the first symbol of a
+ *  fid: a setter alias listed first must not hide the getter that shares its fid. */
+internal fun scanList(catalogDump: String): List<ScanItem> {
+    val readable = catalogDump.lineSequence().filterNot { raw ->
+        val eq = raw.lastIndexOf('=')
+        eq > 0 && raw.substring(0, eq).trim().endsWith("_SET")
+    }.joinToString("\n")
+    return groupCatalogByDevice(readable).toSortedMap().flatMap { (dev, symbols) ->
         if (dev == EXCLUDED_DEVICE) emptyList()
         else symbols.filterNot { it.symbol.endsWith("_SET") }.map { ScanItem(dev, it.fid, it.symbol) }
     }
+}
+
+/** The devices the push recorder subscribes to: every known one but the Mqtt diagnostic channel. */
+internal fun pushDevices(): IntArray =
+    FID_PUSH_DEVICE_CLASSES.keys.filter { it != EXCLUDED_DEVICE }.sorted().toIntArray()
 
 internal enum class ScanMode { UNKNOWN, OFF, PARK, DRIVE, CHARGE_AC, CHARGE_DC, V2L }
 
@@ -40,6 +64,9 @@ internal fun scanMode(d: DiParsData?): ScanMode {
     return ScanMode.PARK
 }
 
+/** True while the engine turns, false when it stands, null when the rpm is unknown. */
+internal fun engineRunning(d: DiParsData?): Boolean? = d?.engineRpm?.let { it > 0 }
+
 internal data class Reading(val intStatus: Int, val intValue: Int, val dblStatus: Int, val dblBits: Int)
 
 internal fun readingText(r: Reading): String {
@@ -53,7 +80,8 @@ internal fun valueLine(item: ScanItem, r: Reading): String = "V ${item.dev} ${it
 internal fun stateLine(timeText: String, mode: ScanMode, d: DiParsData?): String {
     fun v(x: Any?) = x?.toString() ?: "-"
     return "S $timeText mode=${mode.name} gear=${v(d?.gear)} speed=${v(d?.speed)} soc=${v(d?.soc)} " +
-        "gun=${v(d?.chargeGunState)} power=${v(d?.powerState)} odo=${v(d?.mileage)}"
+        "gun=${v(d?.chargeGunState)} rpm=${v(d?.engineRpm)} chg=${v(d?.chargingStatus)} bms=${v(d?.bmsState)} " +
+        "power=${v(d?.powerState)} odo=${v(d?.mileage)}"
 }
 
 internal fun sweepDue(nowMs: Long, lastSweepMs: Long?, modeChanged: Boolean): Boolean {
@@ -61,3 +89,6 @@ internal fun sweepDue(nowMs: Long, lastSweepMs: Long?, modeChanged: Boolean): Bo
     val gap = nowMs - lastSweepMs
     return gap >= SWEEP_INTERVAL_MS || (modeChanged && gap >= MODE_SWEEP_MIN_GAP_MS)
 }
+
+/** A message inside one log line: line breaks would start a line the format does not know. */
+internal fun oneLine(text: String): String = text.replace('\r', ' ').replace('\n', ' ')

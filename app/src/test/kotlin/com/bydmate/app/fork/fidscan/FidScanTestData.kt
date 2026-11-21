@@ -12,6 +12,9 @@ internal fun di(
     chargeGunState: Int? = null,
     gear: Int? = null,
     powerState: Int? = null,
+    engineRpm: Int? = null,
+    chargingStatus: Int? = null,
+    bmsState: Int? = null,
 ) = DiParsData(
     soc = soc,
     speed = speed,
@@ -21,7 +24,7 @@ internal fun di(
     maxBatTemp = null,
     avgBatTemp = null,
     minBatTemp = null,
-    chargingStatus = null,
+    chargingStatus = chargingStatus,
     batteryCapacityKwh = null,
     totalElecConsumption = null,
     voltage12v = null,
@@ -58,4 +61,6 @@ internal fun di(
     rain = null,
     lightLow = null,
     drl = null,
+    bmsState = bmsState,
+    engineRpm = engineRpm,
 )

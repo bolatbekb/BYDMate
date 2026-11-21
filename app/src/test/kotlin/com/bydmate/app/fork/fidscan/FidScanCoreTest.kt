@@ -1,6 +1,7 @@
 package com.bydmate.app.fork.fidscan
 
-import com.bydmate.app.data.remote.DiParsData
+import com.bydmate.app.helper.push.FID_PUSH_DEVICE_CLASSES
+import com.bydmate.app.helper.push.MAX_REC_DEVICES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -28,6 +29,30 @@ class FidScanCoreTest {
             ),
             scanList(catalog),
         )
+    }
+
+    @Test
+    fun setAliasListedBeforeTheGetterDoesNotHideIt() {
+        val dump = """
+            BYDAutoConstants.BYDAUTO_DEVICE_ENGINE=1012
+            Engine.ENGINE_X_SET=9
+            Engine.ENGINE_X=9
+        """.trimIndent()
+        assertEquals(listOf(ScanItem(1012, 9, "Engine.ENGINE_X")), scanList(dump))
+    }
+
+    @Test
+    fun pushDevicesAreTheKnownDevicesWithoutMqtt() {
+        val devs = pushDevices().toList()
+        assertFalse(EXCLUDED_DEVICE in devs)
+        assertEquals(FID_PUSH_DEVICE_CLASSES.keys.filter { it != EXCLUDED_DEVICE }.sorted(), devs)
+        assertTrue(devs.isNotEmpty() && devs.size <= MAX_REC_DEVICES)
+    }
+
+    @Test
+    fun oneLineReplacesLineBreaksWithSpaces() {
+        assertEquals("a b  c d", oneLine("a\nb\r\nc\rd"))
+        assertEquals("plain", oneLine("plain"))
     }
 
     @Test
@@ -64,16 +89,19 @@ class FidScanCoreTest {
     @Test
     fun stateLineDashesForMissingData() {
         assertEquals(
-            "S 15:00:00 mode=PARK gear=- speed=- soc=- gun=- power=- odo=-",
+            "S 15:00:00 mode=PARK gear=- speed=- soc=- gun=- rpm=- chg=- bms=- power=- odo=-",
             stateLine("15:00:00", ScanMode.PARK, null),
         )
     }
 
     @Test
     fun stateLineWithData() {
-        val d = di(soc = 55, speed = 3, mileage = 1234.5, chargeGunState = 1, gear = 4, powerState = 2)
+        val d = di(
+            soc = 55, speed = 3, mileage = 1234.5, chargeGunState = 1, gear = 4, powerState = 2,
+            engineRpm = 1500, chargingStatus = 0, bmsState = 2,
+        )
         assertEquals(
-            "S 15:00:00 mode=DRIVE gear=4 speed=3 soc=55 gun=1 power=2 odo=1234.5",
+            "S 15:00:00 mode=DRIVE gear=4 speed=3 soc=55 gun=1 rpm=1500 chg=0 bms=2 power=2 odo=1234.5",
             stateLine("15:00:00", ScanMode.DRIVE, d),
         )
     }

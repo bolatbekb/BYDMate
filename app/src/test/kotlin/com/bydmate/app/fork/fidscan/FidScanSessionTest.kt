@@ -41,6 +41,10 @@ private class FakeIo : ScanIo {
     var catalogThrows: Throwable? = null
     var readThrows: Throwable? = null
     var readNull = false
+    /** Milliseconds one batch call takes on the fake clock. */
+    var readCostMs: (List<BatchReadItem>) -> Long = { 0L }
+    /** A batch for which this is true answers null. */
+    var failBatch: (List<BatchReadItem>) -> Boolean = { false }
     val values = HashMap<Int, Int>()
     val batches = mutableListOf<List<BatchReadItem>>()
     var catalogCalls = 0
@@ -58,7 +62,8 @@ private class FakeIo : ScanIo {
     override suspend fun readBatch(items: List<BatchReadItem>): List<Pair<Int, Int>>? {
         readThrows?.let { throw it }
         batches += items
-        if (readNull) return null
+        now += readCostMs(items)
+        if (readNull || failBatch(items)) return null
         return items.map { if (it.tx == TX_INT) 0 to (values[it.fid] ?: 10 * it.fid) else 0 to 0 }
     }
     override suspend fun recStart(): FidRecStart? { recStartCalls++; return startResult }
@@ -72,6 +77,9 @@ private class FakeIo : ScanIo {
 private fun recStatus(running: Boolean, path: String, bytes: Long) =
     FidRecStatus(running, emptyList(), 0, emptyList(), path, bytes)
 
+private val BIG_CATALOG = "BYDAutoConstants.BYDAUTO_DEVICE_ENGINE=1012\n" +
+    (1..130).joinToString("\n") { "Engine.ENGINE_X$it=$it" }
+
 @OptIn(ExperimentalCoroutinesApi::class)
 class FidScanSessionTest {
     private val io = FakeIo()
@@ -80,15 +88,18 @@ class FidScanSessionTest {
     private fun vLines() = sink.lines.filter { it.startsWith("V ") }
     private fun fLines() = sink.lines.filter { it.startsWith("F ") }
     private fun eLines() = sink.lines.filter { it.startsWith("E ") }
+    private fun sLines() = sink.lines.filter { it.startsWith("S ") }
+    private fun pLines() = sink.lines.filter { it.startsWith("P ") }
 
     @Test
     fun firstSweepWritesEveryItemTwiceRead() = runTest {
         val s = session()
         assertEquals(TickResult.RUNNING, s.tick())
         assertEquals(3, vLines().size)
-        assertTrue(fLines().single().endsWith("sweep=1 items=3"))
-        val fIdx = sink.lines.indexOfFirst { it.startsWith("F ") }
-        assertTrue(sink.lines.subList(fIdx + 1, sink.lines.size).all { it.startsWith("V ") })
+        // The F line closes the pass, as for later sweeps, so it can carry the duration.
+        assertEquals("F t${io.now} sweep=1 items=3 ms=0", fLines().single())
+        assertEquals(sink.lines.last(), fLines().single())
+        assertTrue(sink.lines.indexOfFirst { it.startsWith("V ") } < sink.lines.indexOf(fLines().single()))
         val triples = io.batches.flatten()
         assertEquals(6, triples.size)
         assertEquals(3, triples.count { it.tx == 5 })
@@ -165,7 +176,7 @@ class FidScanSessionTest {
         assertEquals(1, io.recStartCalls)
         assertEquals(1000L, s.usedBytes - sink.bytes)
         io.status = recStatus(false, "/a", 1000)
-        io.now += 10_000L
+        io.now += 50_000L // 60 s after the good start: the minimum restart interval is over
         s.tick()
         assertEquals(2, io.recStartCalls)
         assertEquals(1000L, s.usedBytes - sink.bytes)
@@ -264,12 +275,13 @@ class FidScanSessionTest {
         val s = session()
         io.readThrows = java.io.IOException("binder died")
         assertEquals(TickResult.RUNNING, s.tick())
-        assertTrue(eLines().any { it.contains("sweep: binder died") })
+        assertEquals("E t${io.now} batch failed dev=1012 from=Engine.ENGINE_A size=3 ms=0: binder died", eLines().single())
+        assertEquals(0, s.sweeps)
         io.readThrows = null
         io.now += 5 * MIN
         s.tick()
         assertEquals(3, vLines().size)
-        assertEquals(2, s.sweeps)
+        assertEquals(1, s.sweeps)
     }
 
     @Test
@@ -277,7 +289,7 @@ class FidScanSessionTest {
         io.readNull = true
         val s = session()
         assertEquals(TickResult.RUNNING, s.tick())
-        assertTrue(eLines().any { it.contains("readBatch") })
+        assertEquals("E t${io.now} batch failed dev=1012 from=Engine.ENGINE_A size=3 ms=0: no answer", eLines().single())
         assertEquals(0, vLines().size)
     }
 
@@ -307,7 +319,8 @@ class FidScanSessionTest {
         }
         val session = FidScanSession(s, sink, 0L)
         assertEquals(TickResult.RUNNING, session.tick())
-        assertTrue(eLines().any { it.contains("push: no daemon") })
+        assertEquals("E t${io.now} recStart: no daemon", eLines().single())
+        assertEquals("P t${io.now} push start ms=0 devices=- registered=- error=no daemon", pLines().single())
         assertEquals(3, vLines().size)
     }
 
@@ -369,12 +382,289 @@ class FidScanSessionTest {
     }
 
     @Test
-    fun stoppedRecorderRestartsWithoutWaitingAfterAGoodStart() = runTest {
+    fun stoppedRecorderWaitsAMinuteAfterAGoodStart() = runTest {
         val s = session()
         s.tick()
         io.status = recStatus(false, "/a", 5)
         io.now += 10_000L
         s.tick()
+        assertEquals(1, io.recStartCalls)
+        io.now += 40_000L
+        s.tick()
+        assertEquals(1, io.recStartCalls)
+        io.now += 10_000L
+        s.tick()
         assertEquals(2, io.recStartCalls)
+    }
+
+    // --- I1: per-batch time guard, failing chunks ---
+
+    @Test
+    fun slowBatchHalvesTheNextCallSizeForTheSession() = runTest {
+        io.catalogText = BIG_CATALOG
+        var first = true
+        io.readCostMs = { if (first) 1500L.also { first = false } else 0L }
+        val s = session()
+        val t0 = io.now
+        s.tick()
+        assertEquals(listOf(128, 64, 64, 4), io.batches.map { it.size })
+        assertEquals(130, vLines().size)
+        assertEquals("E t$t0 slow batch 1500 ms dev=1012 from=Engine.ENGINE_X1 size=64", eLines().single())
+        assertEquals(1, s.sweeps)
+        io.batches.clear()
+        io.now += 5 * MIN
+        s.tick()
+        assertEquals(listOf(64, 64, 64, 64, 4), io.batches.map { it.size })
+    }
+
+    @Test
+    fun aBatchOfExactlyTheLimitIsNotSlow() = runTest {
+        io.catalogText = BIG_CATALOG
+        io.readCostMs = { SLOW_BATCH_MS }
+        session().tick()
+        assertEquals(listOf(128, 128, 4), io.batches.map { it.size })
+        assertTrue(eLines().isEmpty())
+    }
+
+    @Test
+    fun batchSizeNeverGoesBelowEight() = runTest {
+        io.catalogText = BIG_CATALOG
+        io.readCostMs = { 1500L }
+        val s = session()
+        s.tick()
+        assertEquals(listOf(128, 64, 32, 16, 16, 4), io.batches.map { it.size })
+        assertEquals(130, vLines().size)
+        io.batches.clear()
+        io.now += 5 * MIN
+        s.tick()
+        assertTrue(io.batches.all { it.size <= 2 * MIN_BATCH_SYMBOLS })
+        assertEquals(16, io.batches.count { it.size == 2 * MIN_BATCH_SYMBOLS })
+    }
+
+    @Test
+    fun chunkFailingInTwoSweepsIsSkippedInTheThird() = runTest {
+        io.catalogText = BIG_CATALOG
+        io.failBatch = { batch -> batch.any { it.fid == 1 } }
+        val s = session()
+        s.tick()
+        assertEquals("E t${io.now} batch failed dev=1012 from=Engine.ENGINE_X1 size=64 ms=0: no answer", eLines().single())
+        io.now += 5 * MIN
+        s.tick()
+        assertEquals(
+            listOf(
+                "E t${io.now} batch failed dev=1012 from=Engine.ENGINE_X1 size=64 ms=0: no answer",
+                "E t${io.now} skipping 64 symbols from dev=1012 Engine.ENGINE_X1 (failed twice)",
+            ),
+            eLines().drop(1),
+        )
+        assertEquals(0, vLines().size)
+        assertEquals(0, s.sweeps)
+        io.batches.clear()
+        io.now += 5 * MIN
+        s.tick()
+        assertEquals(listOf(128, 4), io.batches.map { it.size })
+        assertTrue(io.batches.flatten().all { it.fid > 64 })
+        assertEquals(66, vLines().size)
+        assertEquals(1, s.sweeps)
+        assertEquals(3, eLines().size)
+    }
+
+    @Test
+    fun aSuccessfulReadResetsTheFailureCount() = runTest {
+        var failing = true
+        io.failBatch = { failing }
+        val s = session()
+        s.tick()
+        failing = false
+        io.now += 5 * MIN
+        s.tick()
+        failing = true
+        io.now += 5 * MIN
+        s.tick()
+        failing = false
+        io.batches.clear()
+        io.now += 5 * MIN
+        s.tick()
+        assertEquals(6, io.batches.single().size)
+        assertTrue(eLines().none { it.contains("skipping") })
+        assertEquals(2, s.sweeps)
+    }
+
+    @Test
+    fun budgetCrossedInALaterSweepStopsWritingAtOnce() = runTest {
+        val s = session()
+        s.tick()
+        assertEquals(3, vLines().size)
+        io.values[1] = 91
+        io.values[2] = 92
+        io.values[3] = 93
+        io.status = recStatus(true, "/a", BUDGET_BYTES - sink.bytes - 1)
+        io.now += 5 * MIN
+        assertEquals(TickResult.BUDGET_REACHED, s.tick())
+        assertEquals(4, vLines().size)
+        assertTrue(fLines().none { it.contains("changed=") })
+        assertEquals(1, s.sweeps)
+    }
+
+    @Test
+    fun failedSweepIsNotCounted() = runTest {
+        io.readNull = true
+        val s = session()
+        s.tick()
+        assertEquals(0, s.sweeps)
+        io.readNull = false
+        io.now += 5 * MIN
+        s.tick()
+        assertEquals(1, s.sweeps)
+    }
+
+    // --- I2: push start line, backoff, minimum restart interval ---
+
+    @Test
+    fun pushStartWritesAPLineAfterEveryAttempt() = runTest {
+        val slow = object : ScanIo by io {
+            override suspend fun recStart(): FidRecStart? {
+                io.recStartCalls++
+                io.now += 15_000L
+                return io.startResult
+            }
+        }
+        io.startResult = FidRecStart(48, 1234)
+        val t0 = io.now
+        FidScanSession(slow, sink, 0L).tick()
+        assertEquals("P t$t0 push start ms=15000 devices=48 registered=1234 error=-", pLines().single())
+        assertTrue(eLines().isEmpty())
+
+        val other = FakeSink()
+        io.startResult = null
+        val t1 = io.now
+        FidScanSession(slow, other, 0L).tick()
+        assertEquals(
+            listOf("P t$t1 push start ms=15000 devices=- registered=- error=no answer", "E t$t1 recStart: no answer"),
+            other.lines.filter { it.startsWith("P ") || it.startsWith("E ") },
+        )
+    }
+
+    @Test
+    fun pushStartFailuresBackOffUpToThirtyMinutes() = runTest {
+        io.startResult = null
+        val calls = mutableListOf<Long>()
+        val rec = object : ScanIo by io {
+            override suspend fun recStart(): FidRecStart? {
+                calls += io.now
+                return io.startResult
+            }
+        }
+        val s = FidScanSession(rec, sink, 0L)
+        repeat(3 * 60 * 6) {
+            s.tick()
+            io.now += 10_000L
+        }
+        val gaps = calls.zipWithNext { a, b -> (b - a) / 1000 }
+        assertEquals(listOf(60L, 120L, 240L, 480L, 960L, 1800L, 1800L), gaps.take(7))
+        assertTrue(gaps.all { it <= MAX_PUSH_BACKOFF_MS / 1000 })
+    }
+
+    @Test
+    fun pushBackoffResetsAfterAGoodStart() = runTest {
+        io.startResult = null
+        val s = session()
+        s.tick() // fails: next try in 60 s
+        io.now += 60_000L
+        s.tick() // fails: next try in 120 s
+        assertEquals(2, io.recStartCalls)
+        io.startResult = FidRecStart(2, 5)
+        io.now += 120_000L
+        s.tick() // good start
+        assertEquals(3, io.recStartCalls)
+        io.startResult = null
+        io.status = recStatus(false, "/a", 0)
+        io.now += 60_000L
+        s.tick() // the recorder stopped; the restart fails: next try in 60 s again, not 240 s
+        assertEquals(4, io.recStartCalls)
+        io.now += 50_000L
+        s.tick()
+        assertEquals(4, io.recStartCalls)
+        io.now += 10_000L
+        s.tick()
+        assertEquals(5, io.recStartCalls)
+    }
+
+    // --- minors ---
+
+    @Test
+    fun emptyCatalogIsLoggedAndRetried() = runTest {
+        val good = io.catalogText
+        io.catalogText = ""
+        val s = session()
+        s.tick()
+        assertEquals("E t${io.now} catalog: empty", eLines().single())
+        io.now += 30_000L
+        s.tick()
+        assertEquals(1, io.catalogCalls)
+        io.catalogText = good
+        io.now += 31_000L
+        s.tick()
+        assertEquals(2, io.catalogCalls)
+        assertEquals(3, vLines().size)
+    }
+
+    @Test
+    fun catalogWithNothingReadableIsLoggedAsEmpty() = runTest {
+        io.catalogText = """
+            BYDAutoConstants.BYDAUTO_DEVICE_ENGINE=1012
+            BYDAutoConstants.BYDAUTO_DEVICE_MQTT=1033
+            Engine.ENGINE_X_SET=9
+            Mqtt.MQTT_X=7
+        """.trimIndent()
+        val s = session()
+        s.tick()
+        assertEquals("E t${io.now} catalog: empty", eLines().single())
+        io.now += 61_000L
+        s.tick()
+        assertEquals(2, io.catalogCalls)
+    }
+
+    @Test
+    fun lineBreaksInMessagesBecomeSpaces() = runTest {
+        io.readThrows = java.io.IOException("binder\ndied")
+        io.startResult = FidRecStart(0, 0, "no\r\nfile")
+        val s = session()
+        s.tick()
+        s.finish("stop\nnow")
+        val thrower = FakeSink()
+        io.catalogThrows = IllegalStateException("a\nb")
+        FidScanSession(io, thrower, 0L).tick()
+        val all = sink.lines + thrower.lines
+        assertTrue(all.none { '\n' in it || '\r' in it })
+        assertTrue(eLines().any { it.endsWith("ms=0: binder died") })
+        assertTrue(eLines().any { it.endsWith("recStart: no  file") })
+        assertTrue(pLines().single().endsWith("error=no  file"))
+        assertTrue(sink.lines.last().endsWith(" stop now"))
+        assertTrue(thrower.lines.any { it.endsWith("catalog: a b") })
+    }
+
+    @Test
+    fun engineStartAndStopWriteAStateLineWithoutASweep() = runTest {
+        io.liveData = di(gear = 1, powerState = 1, engineRpm = 0)
+        val s = session()
+        s.tick()
+        assertEquals(1, sLines().size)
+        io.liveData = di(gear = 1, powerState = 1, engineRpm = 1200)
+        io.now += 10_000L
+        s.tick()
+        assertEquals(2, sLines().size)
+        assertTrue(sLines().last().contains(" rpm=1200 "))
+        io.liveData = di(gear = 1, powerState = 1, engineRpm = 1300)
+        io.now += 10_000L
+        s.tick()
+        assertEquals(2, sLines().size)
+        // The engine stops in the same tick as the mode changes: still one S line.
+        io.liveData = di(gear = 4, powerState = 1, engineRpm = 0)
+        io.now += 10_000L
+        s.tick()
+        assertEquals(3, sLines().size)
+        assertEquals(1, s.sweeps)
+        assertEquals(1, fLines().size)
     }
 }

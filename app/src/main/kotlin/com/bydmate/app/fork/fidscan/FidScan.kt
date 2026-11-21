@@ -5,6 +5,7 @@ import android.app.Application
 import android.content.Context
 import android.content.SharedPreferences
 import android.content.Intent
+import android.os.Build
 import android.os.Environment
 import android.os.StatFs
 import android.os.SystemClock
@@ -81,7 +82,25 @@ data class FidScanStatus(
     val error: String? = null,
     val packing: Boolean = false,
     val lastZip: String? = null,
+    /** The zip button's own error: the session never clears it, and [FidScan.pack] clears only this. */
+    val packError: String? = null,
 )
+
+/** A new session status [base] with the fields the zip button owns taken over from [old]. */
+internal fun keepPackFields(old: FidScanStatus, base: FidScanStatus): FidScanStatus =
+    base.copy(packing = old.packing, lastZip = old.lastZip, packError = old.packError)
+
+/** `base (reason)` when there is a reason to show, else just [base]. */
+internal fun withReason(base: String, reason: String?): String =
+    if (reason.isNullOrBlank()) base else "$base (${oneLine(reason)})"
+
+/** The catalog text; null when the helper is unreachable. A read error throws with its detail, so
+ *  the session's `E … catalog:` line names it (and the dump is retried after RETRY_MS). */
+internal fun catalogDump(r: DumpFidsResult): String? = when (r) {
+    is DumpFidsResult.Success -> r.dump
+    is DumpFidsResult.ReadError -> throw IOException("read error: ${r.detail}")
+    DumpFidsResult.BinderAbsent -> null
+}
 
 @EntryPoint
 @InstallIn(SingletonComponent::class)
@@ -134,9 +153,11 @@ internal class FileScanSink(private val out: OutputStream) : ScanSink {
 }
 
 private class HelperScanIo(private val helper: HelperClient) : ScanIo {
-    override suspend fun catalog(): String? = (helper.dumpFids() as? DumpFidsResult.Success)?.dump
+    override suspend fun catalog(): String? = catalogDump(helper.dumpFids())
     override suspend fun readBatch(items: List<BatchReadItem>): List<Pair<Int, Int>>? = helper.readBatch(items)
-    override suspend fun recStart(): FidRecStart? = helper.recStart(IntArray(0))
+
+    // Every known device but 1033 (Mqtt, the diagnostic channel): an empty array would mean all of them.
+    override suspend fun recStart(): FidRecStart? = helper.recStart(pushDevices())
     override suspend fun recStatus(): FidRecStatus? = helper.recStatus()
     override suspend fun recStop() { helper.recStop() }
     override fun live(): DiParsData? = TrackingService.lastData.value
@@ -144,10 +165,8 @@ private class HelperScanIo(private val helper: HelperClient) : ScanIo {
     // Monotonic: the head unit's wall clock can jump after a quickboot.
     override fun nowMs(): Long = SystemClock.elapsedRealtime()
 
-    override fun timeText(ms: Long): String {
-        val wall = System.currentTimeMillis() - SystemClock.elapsedRealtime() + ms
-        return SimpleDateFormat("HH:mm:ss", Locale.US).format(Date(wall))
-    }
+    override fun timeText(ms: Long): String =
+        wallTimeText(System.currentTimeMillis() - SystemClock.elapsedRealtime() + ms)
 }
 
 // why: one object owns the session, the status and the zip button; they share the scope and the status flow
@@ -166,7 +185,7 @@ object FidScan {
 
     /** Replaces the session part of the status and keeps what the zip button owns. */
     private fun setStatus(base: FidScanStatus) {
-        _status.update { base.copy(packing = it.packing, lastZip = it.lastZip) }
+        _status.update { keepPackFields(it, base) }
     }
     private var job: Job? = null
     private var resumeJob: Job? = null
@@ -183,7 +202,7 @@ object FidScan {
             // The service and the helper need a moment after a cold start.
             resumeJob = scope.launch {
                 delay(RESUME_DELAY_MS)
-                mutex.withLock { launchSession(app, saved.usedBytes) }
+                mutex.withLock { launchSession(app, saved.usedBytes, resumed = true) }
             }
         } catch (e: CancellationException) {
             throw e
@@ -198,7 +217,7 @@ object FidScan {
             try {
                 mutex.withLock {
                     if (job?.isActive == true || resumeJob?.isActive == true) return@withLock
-                    launchSession(ctx, 0L)
+                    launchSession(ctx, 0L, resumed = false)
                 }
             } catch (e: CancellationException) {
                 throw e
@@ -212,6 +231,7 @@ object FidScan {
         scope.launch {
             try {
                 mutex.withLock {
+                    val pendingResume = resumeJob?.isActive == true
                     resumeJob?.cancelAndJoin()
                     resumeJob = null
                     val running = job
@@ -219,6 +239,8 @@ object FidScan {
                         running.cancelAndJoin() // the loop's finally closes the session
                         job = null
                     }
+                    // A resume cancelled in its delay: the killed process's push recorder may still run.
+                    if (pendingResume && running == null) app?.let { stopOrphanRecorder(it) }
                     app?.let { savePersisted(prefs(it), active = false, usedBytes = 0L) }
                     setStatus(FidScanStatus(error = _status.value.error.takeIf { running == null }))
                 }
@@ -230,23 +252,31 @@ object FidScan {
         }
     }
 
-    /** Called under [mutex]. Opens the file, saves the state and starts the loop. */
-    private suspend fun launchSession(ctx: Context, usedBefore: Long) {
+    /** Called under [mutex]. Opens the file, saves the state and starts the loop. [resumed]: the
+     *  automatic start after an app restart, with [usedBefore] bytes of the recording already used. */
+    private suspend fun launchSession(ctx: Context, usedBefore: Long, resumed: Boolean) {
         try {
             if (job?.isActive == true) return
             val entry = EntryPointAccessors.fromApplication(ctx, FidScanEntryPoint::class.java)
-            try {
-                entry.helperBootstrap().ensureRunning()
+            // Only a start from the switch brings the helper up: after a cold start TrackingService's
+            // watchdog owns the daemon, and a second bootstrap would hold the helper for seconds.
+            if (!resumed) bringHelperUp(entry)
+            val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
+            var openFailure: Throwable? = null
+            val opened = try {
+                openSink(ctx, resumed, usedBefore)
             } catch (e: CancellationException) {
                 throw e
             } catch (e: Throwable) {
-                Log.w(TAG, "ensureRunning", e)
+                Log.w(TAG, "openSink", e)
+                openFailure = e
+                null
             }
-            val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
-            val opened = try { openSink(ctx) } catch (e: CancellationException) { throw e } catch (e: Throwable) { null }
             if (opened == null) {
+                if (resumed) stopOrphanRecorder(ctx)
                 savePersisted(prefs(ctx), active = false, usedBytes = 0L)
-                setStatus(FidScanStatus(error = lc.getString(R.string.fork_fidscan_error_no_access)))
+                val noAccess = lc.getString(R.string.fork_fidscan_error_no_access)
+                setStatus(FidScanStatus(error = withReason(noAccess, openFailure?.message)))
                 return
             }
             val (file, sink) = opened
@@ -255,6 +285,7 @@ object FidScan {
                 // Nothing was recorded yet: no empty fidscan-*.txt may stay in Download.
                 sink.close()
                 file.delete()
+                if (resumed) stopOrphanRecorder(ctx)
                 savePersisted(prefs(ctx), active = false, usedBytes = 0L)
                 setStatus(FidScanStatus(error = lc.getString(R.string.fork_fidscan_error_space_start, gbText(free))))
                 return
@@ -268,8 +299,37 @@ object FidScan {
             throw e
         } catch (e: Throwable) {
             Log.w(TAG, "launchSession", e)
-            try { savePersisted(prefs(ctx), active = false, usedBytes = 0L) } catch (_: Throwable) { }
+            if (resumed) stopOrphanRecorder(ctx)
+            try {
+                savePersisted(prefs(ctx), active = false, usedBytes = 0L)
+            } catch (s: CancellationException) {
+                throw s
+            } catch (s: Throwable) {
+                Log.w(TAG, "save", s)
+            }
             setStatus(FidScanStatus(error = e.message ?: e::class.java.simpleName))
+        }
+    }
+
+    private suspend fun bringHelperUp(entry: FidScanEntryPoint) {
+        try {
+            entry.helperBootstrap().ensureRunning()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Log.w(TAG, "ensureRunning", e)
+        }
+    }
+
+    /** Best effort: a resume that starts no session must not leave the killed process's push
+     *  recorder writing. Only resumes call it: after a manual start failure the recorder is not ours. */
+    private suspend fun stopOrphanRecorder(ctx: Context) {
+        try {
+            EntryPointAccessors.fromApplication(ctx, FidScanEntryPoint::class.java).helperClient().recStop()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            Log.w(TAG, "recStop", e)
         }
     }
 
@@ -293,15 +353,14 @@ object FidScan {
 
     private fun gbText(bytes: Long): String = String.format(Locale.US, "%.1f", bytes / (1024.0 * 1024 * 1024))
 
-    private fun openSink(ctx: Context): Pair<File, FileScanSink>? {
+    private fun openSink(ctx: Context, resumed: Boolean, usedBefore: Long): Pair<File, FileScanSink>? {
         val dir = logDir(ctx) ?: return null
         val now = Date()
         val file = File(dir, "fidscan-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(now) + ".txt")
         val sink = FileScanSink(file)
         try {
             val vName = ctx.packageManager.getPackageInfo(ctx.packageName, 0).versionName ?: "?"
-            sink.write("# bydmate fid scan versionName=$vName started=" +
-                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(now))
+            sink.write(headerLine(vName, wallTimeText(now.time), Build.FINGERPRINT ?: "?", resumed, usedBefore))
             sink.flush()
         } catch (e: Throwable) {
             sink.close()
@@ -313,7 +372,6 @@ object FidScan {
     private suspend fun runLoop(ctx: Context, session: FidScanSession, sink: FileScanSink, file: File) {
         val fileName = file.name
         var reason = "stop"
-        var savedSweeps = 0
         try {
             while (currentCoroutineContext().isActive) {
                 try {
@@ -323,9 +381,14 @@ object FidScan {
                         reason = "write error"
                         return
                     }
-                    if (session.sweeps > savedSweeps) {
-                        savedSweeps = session.sweeps
+                    // Every tick, not every sweep: a kill (each quickboot) loses at most one tick of
+                    // push file growth from the 400 MB count.
+                    try {
                         savePersisted(prefs(ctx), active = true, usedBytes = session.usedBytes)
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Throwable) {
+                        Log.w(TAG, "save", e)
                     }
                     val free = freeBytes(file.parentFile)
                     if (free != null && !hasRoom(free)) {
@@ -399,7 +462,7 @@ object FidScan {
     fun pack(context: Context) {
         val ctx = try { context.applicationContext } catch (e: Throwable) { return }
         if (!packBusy.compareAndSet(false, true)) return
-        _status.update { it.copy(packing = true, error = null) }
+        _status.update { it.copy(packing = true, packError = null) }
         try {
             scope.launch {
                 try {
@@ -423,7 +486,7 @@ object FidScan {
 
     private fun packFailed(ctx: Context, res: Int, vararg args: Any) {
         val lc = try { ctx.appLocalizedContext() } catch (e: Throwable) { ctx }
-        _status.update { it.copy(error = lc.getString(res, *args)) }
+        _status.update { it.copy(packError = lc.getString(res, *args)) }
     }
 
     private suspend fun doPack(ctx: Context) {

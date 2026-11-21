@@ -11,7 +11,7 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 
-// fork: the free-space rule, the log file filter and the zip of the logs.
+// fork: the free-space rule, the log file filter, the header and time stamps, and the zip of the logs.
 class FidScanFilesTest {
     @get:Rule val tmp = TemporaryFolder()
 
@@ -30,6 +30,22 @@ class FidScanFilesTest {
 
     @Test fun `zipName carries the stamp`() {
         assertEquals("fidscan-logs-20261121-150000.zip", zipName("20261121-150000"))
+    }
+
+    @Test fun `wallTimeText carries the date`() {
+        // Unit tests run in UTC (app/build.gradle.kts).
+        assertEquals("1970-01-02 03:04:05", wallTimeText(((24 + 3) * 3600 + 4 * 60 + 5) * 1000L))
+    }
+
+    @Test fun `headerLine of a fresh and of a resumed file`() {
+        assertEquals(
+            "# bydmate fid scan versionName=4.5.0.1-fidscan started=2026-11-21 15:00:00 fingerprint=BYD/a:12/x",
+            headerLine("4.5.0.1-fidscan", "2026-11-21 15:00:00", "BYD/a:12/x", resumed = false, usedBefore = 0L),
+        )
+        assertEquals(
+            "# bydmate fid scan versionName=v started=s fingerprint=f resumed=true used_before=1234",
+            headerLine("v", "s", "f", resumed = true, usedBefore = 1234L),
+        )
     }
 
     @Test fun `zipLogs keeps order and content and compresses`() {

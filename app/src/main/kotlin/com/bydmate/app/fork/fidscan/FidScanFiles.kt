@@ -4,12 +4,16 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import java.util.zip.Deflater
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 // fork: pure file rules of the fid scan (no Android): the free-space minimum, which files are
-// recording logs, and the zip of them that is sent to the developer.
+// recording logs, the poll file's header and time stamps, and the zip of them that is sent to
+// the developer.
 
 /** A recording is not started, and a running one ends, below this much free space. */
 const val MIN_FREE_BYTES = 5L * 1024 * 1024 * 1024
@@ -25,6 +29,16 @@ fun isScanLog(name: String): Boolean =
         (name.startsWith("bydmate_fidrec_") && name.endsWith(".txt"))
 
 fun zipName(stamp: String): String = "fidscan-logs-$stamp.zip"
+
+/** Wall time of a log line: the date too, a recording spans days. */
+internal fun wallTimeText(wallMs: Long): String =
+    SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US).format(Date(wallMs))
+
+/** First line of a poll file; a resumed file says so and how many bytes the recording had used. */
+internal fun headerLine(versionName: String, started: String, fingerprint: String, resumed: Boolean, usedBefore: Long): String {
+    val head = "# bydmate fid scan versionName=$versionName started=$started fingerprint=$fingerprint"
+    return if (resumed) "$head resumed=true used_before=$usedBefore" else head
+}
 
 /** One entry per file, named by the file name, in the given order. Returns the zip size.
  *  A throw removes the partial [target] and is rethrown. */

@@ -73,6 +73,7 @@ internal fun FidScanBlock() {
             ),
         )
     }
+    status.error?.let { SettingHint(text = it) }
     SettingDivider()
     SettingActionRow(
         title = stringResource(R.string.fork_fidscan_zip_button),
@@ -84,6 +85,6 @@ internal fun FidScanBlock() {
         SettingHint(text = stringResource(R.string.fork_fidscan_zip_packing))
     } else {
         status.lastZip?.let { SettingHint(text = it) }
+        status.packError?.let { SettingHint(text = it) }
     }
-    status.error?.let { SettingHint(text = it) }
 }
