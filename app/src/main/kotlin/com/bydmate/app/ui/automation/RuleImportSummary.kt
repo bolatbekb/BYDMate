@@ -43,6 +43,7 @@ internal object RuleImportSummary {
         "yamusic_car" to R.string.yamusic_car_name, // fork: yamusic_car
         "youtube" to R.string.widget_button_icon_youtube,
         "go_home" to R.string.widget_button_icon_home,
+        "go_back" to R.string.automation_action_go_back,
         "delay" to R.string.automation_action_delay,
         "media_volume" to R.string.automation_action_media_volume,
         "sentry" to R.string.automation_action_sentry,

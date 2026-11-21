@@ -554,6 +554,22 @@ fun main(args: Array<String>) {
                     true
                 }.getOrElse { reply?.writeInt(-1); true }
 
+                HelperBinderProtocol.TX_PRESS_BACK -> runCatching {
+                    // Fixed key code (KEYCODE_BACK), nothing from the caller.
+                    val result = shExec("input keyevent 4")
+                    android.util.Log.i("bydmate_helper", "TX_PRESS_BACK code=${result.code}")
+                    reply?.writeInt(if (result.code == 0) 0 else -1); reply?.writeInt(0)
+                    true
+                }.getOrElse { reply?.writeInt(-1); reply?.writeInt(0); true }
+
+                HelperBinderProtocol.TX_PRESS_HOME -> runCatching {
+                    // Fixed key code (KEYCODE_HOME), nothing from the caller.
+                    val result = shExec("input keyevent 3")
+                    android.util.Log.i("bydmate_helper", "TX_PRESS_HOME code=${result.code}")
+                    reply?.writeInt(if (result.code == 0) 0 else -1); reply?.writeInt(0)
+                    true
+                }.getOrElse { reply?.writeInt(-1); reply?.writeInt(0); true }
+
                 HelperBinderProtocol.TX_SET_APP_HIDDEN -> runCatching {
                     val pkg = data.readString() ?: ""
                     val hidden = data.readInt()    // 1 = disable, 0 = enable
@@ -932,7 +948,11 @@ fun main(args: Array<String>) {
 
                 HelperBinderProtocol.TX_DTC_SCAN_START,
                 HelperBinderProtocol.TX_DTC_SCAN_STATUS,
-                HelperBinderProtocol.TX_DTC_ERASE_START -> handleDtcScanTransact(code, data, reply, svc, autoIface)
+                HelperBinderProtocol.TX_DTC_ERASE_START,
+                HelperBinderProtocol.TX_TPMS_READ_START,
+                HelperBinderProtocol.TX_TPMS_WRITE_START,
+                HelperBinderProtocol.TX_FW_READ_START,
+                HelperBinderProtocol.TX_DIAG_JOB_STATUS -> handleDtcScanTransact(code, data, reply, svc, autoIface)
 
                 else -> super.onTransact(code, data, reply, flags)
             }
