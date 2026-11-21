@@ -61,10 +61,12 @@ app/src/main/kotlin/com/bydmate/app/ui/restore/PostRestoreDialog.kt             
 app/src/main/kotlin/com/bydmate/app/ui/tech/DtcEraseDialog.kt                   # Text
 app/src/main/kotlin/com/bydmate/app/ui/tech/DtcScanDialog.kt                    # Card, OutlinedButton, Text, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/tech/DtcSupportLine.kt                   # OutlinedButton, Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/tech/EcuFirmwareDialog.kt               # Card, Text, RoundedCornerShape (4.5.0)
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechDtcCard.kt                      # Text
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelCards.kt                   # Text
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelScreen.kt                  # Card, Text, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechTyres.kt                        # Text, RoundedCornerShape
+app/src/main/kotlin/com/bydmate/app/ui/tech/TyreIdsDialog.kt                    # Card, Checkbox, OutlinedButton, Text, RoundedCornerShape (4.5.0)
 # trips
 app/src/main/kotlin/com/bydmate/app/ui/trips/TripDetailDialog.kt                # Card, HorizontalDivider, Text, RoundedCornerShape
 app/src/main/kotlin/com/bydmate/app/ui/trips/TripScrubUi.kt                     # Text, RoundedCornerShape

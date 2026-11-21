@@ -33,6 +33,7 @@ app/src/main/kotlin/com/bydmate/app/camera/BlindSpotBackoff.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotController.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotCrop.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotDecision.kt
+app/src/main/kotlin/com/bydmate/app/camera/BlindSpotLateLuma.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotPositionOverlay.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotPreferences.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotShowLog.kt
@@ -124,6 +125,9 @@ app/src/main/kotlin/com/bydmate/app/data/dtc/DtcErase.kt
 app/src/main/kotlin/com/bydmate/app/data/dtc/DtcParser.kt
 app/src/main/kotlin/com/bydmate/app/data/dtc/DtcScanRepository.kt
 app/src/main/kotlin/com/bydmate/app/data/dtc/DtcTelegramText.kt
+app/src/main/kotlin/com/bydmate/app/data/dtc/EcuFirmwareDiff.kt
+app/src/main/kotlin/com/bydmate/app/data/dtc/EcuFirmwareRepository.kt
+app/src/main/kotlin/com/bydmate/app/data/dtc/EcuFirmwareText.kt
 app/src/main/kotlin/com/bydmate/app/data/local/DataThinningWorker.kt
 app/src/main/kotlin/com/bydmate/app/data/local/EnergyDataDeadDetector.kt
 app/src/main/kotlin/com/bydmate/app/data/local/EnergyDataLivenessStore.kt
@@ -168,6 +172,7 @@ app/src/main/kotlin/com/bydmate/app/data/local/entity/VehicleWriteLogEntity.kt
 app/src/main/kotlin/com/bydmate/app/data/loop/LoopState.kt
 app/src/main/kotlin/com/bydmate/app/data/loop/SharedAdaptiveLoop.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/BatchReadGate.kt
+app/src/main/kotlin/com/bydmate/app/data/nativestack/BatteryCurrentProbe.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FidAddresses.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FidCatalog.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FidCatalogManager.kt
@@ -175,6 +180,7 @@ app/src/main/kotlin/com/bydmate/app/data/nativestack/FidMap.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FidResolveDiagnostics.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FidResolver.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FieldGuards.kt
+app/src/main/kotlin/com/bydmate/app/data/nativestack/MotorPresence.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/MotorSplit.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/NativeParsReader.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/ParamDecoder.kt
@@ -218,6 +224,8 @@ app/src/main/kotlin/com/bydmate/app/data/telegram/ReportField.kt
 app/src/main/kotlin/com/bydmate/app/data/telegram/TelegramReportAction.kt
 app/src/main/kotlin/com/bydmate/app/data/telegram/TelegramReportBuilder.kt
 app/src/main/kotlin/com/bydmate/app/data/telegram/TelegramReporter.kt
+app/src/main/kotlin/com/bydmate/app/data/tpms/TpmsRepository.kt
+app/src/main/kotlin/com/bydmate/app/data/tpms/TyreSets.kt
 app/src/main/kotlin/com/bydmate/app/data/trips/CounterSnapshotWriter.kt
 app/src/main/kotlin/com/bydmate/app/data/trips/HybridIgnitionEdge.kt
 app/src/main/kotlin/com/bydmate/app/data/trips/ReadableOnTick.kt
@@ -296,9 +304,15 @@ app/src/main/kotlin/com/bydmate/app/helper/ScreenBacklight.kt
 app/src/main/kotlin/com/bydmate/app/helper/SettingsDaemon.kt
 app/src/main/kotlin/com/bydmate/app/helper/ShellExec.kt
 app/src/main/kotlin/com/bydmate/app/helper/Split37Daemon.kt
+app/src/main/kotlin/com/bydmate/app/helper/dtc/DiagLink.kt
 app/src/main/kotlin/com/bydmate/app/helper/dtc/DtcScanner.kt
 app/src/main/kotlin/com/bydmate/app/helper/dtc/DtcVendorDevice.kt
 app/src/main/kotlin/com/bydmate/app/helper/dtc/DtcWire.kt
+app/src/main/kotlin/com/bydmate/app/helper/dtc/EcuFirmwareWire.kt
+app/src/main/kotlin/com/bydmate/app/helper/dtc/FirmwareJob.kt
+app/src/main/kotlin/com/bydmate/app/helper/dtc/TpmsJobs.kt
+app/src/main/kotlin/com/bydmate/app/helper/dtc/TpmsSecurity.kt
+app/src/main/kotlin/com/bydmate/app/helper/dtc/TpmsWire.kt
 app/src/main/kotlin/com/bydmate/app/helper/offreport/OffReport.kt
 app/src/main/kotlin/com/bydmate/app/helper/offreport/OffReportRetry.kt
 app/src/main/kotlin/com/bydmate/app/helper/offreport/OffReportWire.kt
@@ -465,6 +479,8 @@ app/src/main/kotlin/com/bydmate/app/ui/tech/DtcNoRowsText.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/DtcScanDialog.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/DtcScanText.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/DtcSupportLine.kt
+app/src/main/kotlin/com/bydmate/app/ui/tech/EcuFirmwareDialog.kt
+app/src/main/kotlin/com/bydmate/app/ui/tech/EcuFirmwareViewModel.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechCardOrder.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechColors.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechDtcCard.kt
@@ -474,6 +490,8 @@ app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelState.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelViewModel.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelVisuals.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechTyres.kt
+app/src/main/kotlin/com/bydmate/app/ui/tech/TyreIdsDialog.kt
+app/src/main/kotlin/com/bydmate/app/ui/tech/TyreIdsViewModel.kt
 app/src/main/kotlin/com/bydmate/app/ui/theme/Color.kt
 app/src/main/kotlin/com/bydmate/app/ui/theme/Theme.kt
 app/src/main/kotlin/com/bydmate/app/ui/theme/Type.kt
@@ -508,6 +526,7 @@ app/src/main/kotlin/com/bydmate/app/util/LocaleContext.kt
 app/src/main/kotlin/com/bydmate/app/util/SystemProperty.kt
 app/src/main/kotlin/com/bydmate/app/voice/AgentNameMatcher.kt
 app/src/main/kotlin/com/bydmate/app/voice/AgentPersona.kt
+app/src/main/kotlin/com/bydmate/app/voice/AsrGuardRecovery.kt
 app/src/main/kotlin/com/bydmate/app/voice/AsrLoadGuard.kt
 app/src/main/kotlin/com/bydmate/app/voice/AudioCapture.kt
 app/src/main/kotlin/com/bydmate/app/voice/AutoVoiceDuck.kt
@@ -518,6 +537,7 @@ app/src/main/kotlin/com/bydmate/app/voice/GigaAmModelManager.kt
 app/src/main/kotlin/com/bydmate/app/voice/ModelArchive.kt
 app/src/main/kotlin/com/bydmate/app/voice/NluOutcome.kt
 app/src/main/kotlin/com/bydmate/app/voice/NluParser.kt
+app/src/main/kotlin/com/bydmate/app/voice/NoiseEndpointer.kt
 app/src/main/kotlin/com/bydmate/app/voice/RuStressMarker.kt
 app/src/main/kotlin/com/bydmate/app/voice/SelfEchoFilter.kt
 app/src/main/kotlin/com/bydmate/app/voice/SherpaTtsEngine.kt
@@ -546,6 +566,7 @@ app/src/main/kotlin/com/bydmate/app/voice/VoiceUiState.kt
 app/src/main/kotlin/com/bydmate/app/voice/VoiceUserPhrases.kt
 app/src/main/kotlin/com/bydmate/app/voice/online/MiniMaxTtsBackend.kt
 app/src/main/kotlin/com/bydmate/app/voice/online/OnlineTtsBackend.kt
+app/src/main/kotlin/com/bydmate/app/voice/online/OnlineTtsFailure.kt
 app/src/main/kotlin/com/bydmate/app/voice/online/OpenRouterTtsBackend.kt
 app/src/main/kotlin/com/bydmate/app/voice/online/PhraseDiskCache.kt
 app/src/main/kotlin/com/bydmate/app/voice/online/TtsRouter.kt
