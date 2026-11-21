@@ -319,4 +319,61 @@ class FidScanSessionTest {
         assertEquals(1, io.stopCalls)
         assertTrue(sink.closed)
     }
+
+    @Test
+    fun catalogThrowBacksOffForAMinute() = runTest {
+        io.catalogThrows = IllegalStateException("boom")
+        val s = session()
+        s.tick()
+        io.now += 30_000L
+        s.tick()
+        assertEquals(1, io.catalogCalls)
+        assertEquals(1, eLines().count { it.contains("catalog") })
+        io.now += 31_000L
+        s.tick()
+        assertEquals(2, io.catalogCalls)
+    }
+
+    @Test
+    fun recStartThrowBacksOffForAMinute() = runTest {
+        var calls = 0
+        val thrower = object : ScanIo by io {
+            override suspend fun recStart(): FidRecStart? { calls++; throw IllegalStateException("no daemon") }
+        }
+        val session = FidScanSession(thrower, sink, 0L)
+        session.tick()
+        io.now += 30_000L
+        session.tick()
+        assertEquals(1, calls)
+        io.now += 31_000L
+        session.tick()
+        assertEquals(2, calls)
+    }
+
+    @Test
+    fun zeroRegistrationStartBacksOffAndIsLogged() = runTest {
+        io.startResult = FidRecStart(2, 0)
+        val s = session()
+        s.tick()
+        assertEquals(1, io.recStartCalls)
+        assertTrue(eLines().any { it.contains("no fid registered") })
+        assertFalse(s.pushRunning)
+        io.status = recStatus(false, "/a", 0)
+        io.now += 30_000L
+        s.tick()
+        assertEquals(1, io.recStartCalls)
+        io.now += 31_000L
+        s.tick()
+        assertEquals(2, io.recStartCalls)
+    }
+
+    @Test
+    fun stoppedRecorderRestartsWithoutWaitingAfterAGoodStart() = runTest {
+        val s = session()
+        s.tick()
+        io.status = recStatus(false, "/a", 5)
+        io.now += 10_000L
+        s.tick()
+        assertEquals(2, io.recStartCalls)
+    }
 }

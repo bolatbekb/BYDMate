@@ -106,9 +106,9 @@ internal class FidScanSession(
 
     private suspend fun loadCatalog(now: Long) {
         if (items != null || now < nextCatalogAt) return
+        nextCatalogAt = now + RETRY_MS // also after a throw: a failed dump is retried only after RETRY_MS
         val dump = io.catalog()
         if (dump == null) {
-            nextCatalogAt = now + RETRY_MS
             safeWrite("E ${timeOf(now)} catalog: no answer")
             return
         }
@@ -142,11 +142,14 @@ internal class FidScanSession(
         }
         if (!restart || now < nextPushAt || usedBytes >= BUDGET_BYTES) return
         moveCurrentPush()
+        nextPushAt = now + RETRY_MS // also after a throw: a failed start is retried only after RETRY_MS
         val r = io.recStart()
         when {
             r == null -> failPushStart(now, "no answer")
             r.error != FID_REC_NO_ERROR -> failPushStart(now, r.error)
+            r.registered == 0 -> failPushStart(now, "no fid registered")
             else -> {
+                nextPushAt = 0L
                 pushStarted = true
                 pushRunning = true
             }
@@ -154,7 +157,6 @@ internal class FidScanSession(
     }
 
     private fun failPushStart(now: Long, why: String) {
-        nextPushAt = now + RETRY_MS
         pushRunning = false
         safeWrite("E ${timeOf(now)} recStart: $why")
     }
