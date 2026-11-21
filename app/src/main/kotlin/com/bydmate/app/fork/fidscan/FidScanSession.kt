@@ -6,6 +6,7 @@ import com.bydmate.app.data.vehicle.BatchReadItem
 import com.bydmate.app.helper.push.FID_REC_NO_ERROR
 import com.bydmate.app.helper.push.FidRecStart
 import com.bydmate.app.helper.push.FidRecStatus
+import com.bydmate.app.helper.push.MAX_REC_DEVICES
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 
@@ -48,6 +49,7 @@ internal class FidScanSession(
 ) {
     private var items: List<ScanItem>? = null
     private var emptyPlanLogged = false
+    private var tooManyLogged = false
     private var nextCatalogAt = 0L
     private var lastMode: ScanMode? = null
     private var lastEngine: Boolean? = null
@@ -188,7 +190,15 @@ internal class FidScanSession(
     }
 
     private suspend fun checkPush(now: Long) {
-        if (listPlan == null) return
+        val devices = listPlan?.devices ?: return
+        // Above MAX_REC_DEVICES the wire reads "all devices", 1033 included: never ask for that.
+        if (devices.isEmpty() || devices.size > MAX_REC_DEVICES) {
+            if (!tooManyLogged && devices.isNotEmpty()) {
+                safeWrite("E ${timeOf(now)} push: too many devices (${devices.size})")
+            }
+            tooManyLogged = true
+            return
+        }
         var restart = !pushStarted
         if (pushStarted) {
             val st = io.recStatus()
@@ -208,7 +218,7 @@ internal class FidScanSession(
         moveCurrentPush()
         // Set before the call: whatever throws below, the next start waits at least the backoff.
         nextPushAt = now + pushBackoffMs
-        startPush(now, listPlan?.devices.orEmpty())
+        startPush(now, devices)
     }
 
     /** One recStart (it holds the helper's mutex for up to 15 s): a P line after every attempt, a

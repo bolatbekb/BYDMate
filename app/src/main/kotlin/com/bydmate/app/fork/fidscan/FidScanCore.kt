@@ -1,9 +1,8 @@
 package com.bydmate.app.fork.fidscan
 
 import com.bydmate.app.data.remote.DiParsData
-import com.bydmate.app.helper.push.FID_PUSH_DEVICE_CLASSES
 
-// fork: pure core of the fid scan (diagnostic recorder of every autoservice parameter): the
+// fork: pure core of the fid scan (diagnostic recorder of the autoservice parameters of a chosen list): the
 // car mode, log lines and the sweep schedule rule. No Android, no IO.
 
 internal const val SWEEP_INTERVAL_MS = 5 * 60_000L
@@ -30,10 +29,6 @@ internal const val SKIP_AFTER_FAILURES = 2
 internal const val MAX_PUSH_BACKOFF_MS = 30 * 60_000L
 
 internal data class ScanItem(val dev: Int, val fid: Int, val symbol: String)
-
-/** The devices the push recorder subscribes to: every known one but the Mqtt diagnostic channel. */
-internal fun pushDevices(): IntArray =
-    FID_PUSH_DEVICE_CLASSES.keys.filter { it != EXCLUDED_DEVICE }.sorted().toIntArray()
 
 internal enum class ScanMode { UNKNOWN, OFF, PARK, DRIVE, CHARGE_AC, CHARGE_DC, V2L }
 

@@ -5,6 +5,7 @@ import com.bydmate.app.data.remote.DiParsData
 import com.bydmate.app.data.vehicle.BatchReadItem
 import com.bydmate.app.helper.push.FidRecStart
 import com.bydmate.app.helper.push.FidRecStatus
+import com.bydmate.app.helper.push.MAX_REC_DEVICES
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.runTest
@@ -97,6 +98,7 @@ private val BIG_CATALOG = "BYDAutoConstants.BYDAUTO_DEVICE_ENGINE=1012\n" +
     (1..130).joinToString("\n") { "Engine.ENGINE_X$it=$it" }
 
 @OptIn(ExperimentalCoroutinesApi::class)
+@Suppress("LargeClass") // why: one session, one fake clock; the cases share the private fakes
 class FidScanSessionTest {
     private val io = FakeIo()
     private val sink = FakeSink()
@@ -719,6 +721,38 @@ class FidScanSessionTest {
         io.now += 61_000L
         s.tick()
         assertEquals(listOf(listOf(1005, 1039)), io.recDevices)
+    }
+
+    private fun devicesList(n: Int): Pair<String, String> {
+        val devs = (1000..1000 + n).filter { it != EXCLUDED_DEVICE }.take(n)
+        val cat = devs.joinToString("\n") { "BYDAutoConstants.BYDAUTO_DEVICE_D$it=$it" } + "\n" +
+            devs.joinToString("\n") { "D$it.X_NAME=$it" }
+        return devs.joinToString("\n") { "D$it.X_NAME=$it" } to cat
+    }
+
+    @Test
+    fun moreThanMaxDevicesNeverStartsThePushAndLogsOnce() = runTest {
+        val (list, cat) = devicesList(MAX_REC_DEVICES + 1)
+        io.listText = list
+        io.catalogText = cat
+        val s = session()
+        s.tick()
+        io.now += 61_000L
+        s.tick()
+        assertEquals(0, io.recStartCalls)
+        assertEquals(1, eLines().size)
+        assertTrue(eLines().single().endsWith(" push: too many devices (65)"))
+        assertTrue(vLines().isNotEmpty())
+    }
+
+    @Test
+    fun exactlyMaxDevicesStartsThePush() = runTest {
+        val (list, cat) = devicesList(MAX_REC_DEVICES)
+        io.listText = list
+        io.catalogText = cat
+        session().tick()
+        assertEquals(1, io.recStartCalls)
+        assertEquals(MAX_REC_DEVICES, io.recDevices.single().size)
     }
 
     @Test

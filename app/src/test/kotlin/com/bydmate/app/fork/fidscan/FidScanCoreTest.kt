@@ -1,7 +1,5 @@
 package com.bydmate.app.fork.fidscan
 
-import com.bydmate.app.helper.push.FID_PUSH_DEVICE_CLASSES
-import com.bydmate.app.helper.push.MAX_REC_DEVICES
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -27,14 +25,6 @@ class FidScanCoreTest {
     fun setterNameRule() {
         assertTrue(isSetterName("Ac.AC_X_SET"))
         assertFalse(isSetterName("Ac.AC_X_SETTING_hal_only"))
-    }
-
-    @Test
-    fun pushDevicesAreTheKnownDevicesWithoutMqtt() {
-        val devs = pushDevices().toList()
-        assertFalse(EXCLUDED_DEVICE in devs)
-        assertEquals(FID_PUSH_DEVICE_CLASSES.keys.filter { it != EXCLUDED_DEVICE }.sorted(), devs)
-        assertTrue(devs.isNotEmpty() && devs.size <= MAX_REC_DEVICES)
     }
 
     @Test
