@@ -223,7 +223,7 @@
     <string name="fork_cells_wtd_body_nothing">A bateria está em ótimo estado. Dirija como sempre. Uma verificação por mês — para ficar tranquilo.</string>
     <string name="fork_cells_wtd_body_watch">Há um desvio, mas ainda é cedo para a oficina. Verifique de novo em boas condições: «oficina» só é indicado quando o desvio se confirma.</string>
     <string name="fork_cells_wtd_body_service">O desvio se repetiu em medições diferentes — não é acaso. Mostre esta tela na oficina: nela se vê quais células ficam para trás.</string>
-    <string name="fork_cells_wtd_body_none">Esta medição não serve para avaliação. Uma medição confiável vem com o carro parado: corrente até 5 A por pelo menos 15 minutos e sem carregar.</string>
+    <string name="fork_cells_wtd_body_none">Esta medição não serve para avaliação. Uma medição confiável vem após estacionar: corrente até 5 A por pelo menos uma hora, sem carregar; menos de 15 minutos de repouso — sem avaliação.</string>
     <string name="fork_cells_wtd_body_wait">A bateria está descansando após a carga — a dispersão ainda está diminuindo. Uma medição uma hora após a carga dirá com certeza.</string>
     <string name="fork_cells_wtd_body_prelim">A dispersão está na norma, mas as condições da medição não eram exatas. A próxima medição após estacionar vai confirmar.</string>
     <string name="fork_cells_wtd_when">Quando verificar de novo</string>
@@ -248,7 +248,7 @@
     <string name="fork_cells_wtd_row_top">após carregar, células acima de 3,40 V</string>
     <string name="fork_cells_wtd_now">← agora</string>
     <string name="fork_cells_wtd_upto">≤ %1$d mV</string>
-    <string name="fork_cells_wtd_service_from">oficina a partir de %1$d (duas vezes)</string>
+    <string name="fork_cells_wtd_service_from">oficina a partir de %1$d</string>
     <string name="fork_cells_wtd_yours">A sua: %1$d mV — %2$s.</string>
     <string name="fork_cells_wtd_yours_ok">na norma</string>
     <string name="fork_cells_wtd_yours_above">acima da norma</string>
@@ -259,6 +259,7 @@
     <string name="fork_cells_wtd_svc_half">Uma célula abaixo do meio em mais da metade do limite «oficina»</string>
     <string name="fork_cells_wtd_yes">agora — sim</string>
     <string name="fork_cells_wtd_no">agora — não</string>
+    <string name="fork_cells_wtd_unknown">agora — sem avaliação</string>
     <string name="fork_cells_wtd_footnote">Uma condição não basta: «oficina» só é indicado quando a dispersão se confirma numa segunda medição em outro dia. Uma célula «acima de todas» geralmente indica um sensor impreciso, não um defeito.</string>
     <!-- Views: «Норма по заряду» -->
     <string name="fork_cells_norm_title">A norma depende da carga e de quando se mede</string>
@@ -292,6 +293,7 @@
     <string name="fork_cells_norm_cells">%1$d células</string>
     <string name="fork_cells_norm_strip">desvio em relação ao meio · sensores %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">desvio em relação ao meio</string>
+    <string name="fork_cells_norm_cold_note">frio: limites × 2</string>
     <!-- Views: «Линейка» -->
     <string name="fork_cells_ruler_caption">dispersão, mV</string>
     <string name="fork_cells_ruler_norm">norma</string>
@@ -331,11 +333,13 @@
     <string name="fork_cells_eq_axis_parkings">dias · uma medição por estacionamento</string>
     <string name="fork_cells_eq_text_charge">Após uma carga completa o BMS aproxima as células: as células «mais altas» descarregam levemente por resistores. Enquanto o carro está ativo após a carga, a dispersão no topo cai aos poucos — é um processo normal, não um defeito.</string>
     <string name="fork_cells_eq_text_ok">A dispersão em repouso se mantém na norma do platô — a bateria está parelha.</string>
-    <string name="fork_cells_eq_text_watch">A dispersão em repouso está acima da norma do platô. «Oficina» só é indicado se ela passar de 90 mV duas vezes em dias diferentes.</string>
+    <string name="fork_cells_eq_text_watch">A dispersão em repouso está acima da norma do platô. «Oficina» só é indicado se ela passar de %1$d mV duas vezes em dias diferentes.</string>
     <string name="fork_cells_eq_text_service">A dispersão cresce de estacionamento em estacionamento e passou do limite «oficina» duas vezes em dias diferentes — não é acaso, é preciso ir à oficina.</string>
     <string name="fork_cells_eq_text_none">Dispersão em repouso em duas semanas: um ponto — uma medição.</string>
+    <string name="fork_cells_eq_text_other">Esta medição está fora do platô (%1$s): dispersão %2$d mV com norma até %3$d mV — não aparece no gráfico do platô.</string>
     <string name="fork_cells_eq_empty_charge">Não há registros após esta carga — o gráfico aparece quando o carro fica ligado um tempo após carregar.</string>
     <string name="fork_cells_eq_empty_parkings">Ainda não há medições em repouso nas últimas duas semanas.</string>
+    <string name="fork_cells_eq_no_data">Sem dados para o gráfico.</string>
     <string name="fork_cells_eq_top_title">As que mais se equalizam</string>
     <string name="fork_cells_eq_top_sub">células acima do meio — o BMS as puxa para baixo</string>
     <string name="fork_cells_eq_low_title">As mais baixas</string>

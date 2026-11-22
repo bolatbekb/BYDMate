@@ -60,5 +60,5 @@ private fun DrawScope.valueLabel(g: EqGeom, c: Offset, r: Float, p: EqPoint, ink
     val t = l.measure("${p.mv}", 11.5f, if (p.current) ink.primary else ink.secondary, bold = p.current)
     val above = c.y - r - t.size.height - 4.dp.toPx()
     val y = if (above < g.top) c.y + r + 4.dp.toPx() else above
-    drawText(t, topLeft = Offset((c.x - t.size.width / 2f).coerceIn(g.left, g.right - t.size.width), y))
+    drawText(t, topLeft = Offset((c.x - t.size.width / 2f).within(g.left, g.right - t.size.width), y))
 }

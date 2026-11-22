@@ -93,7 +93,7 @@ private fun DrawScope.drawValue(barX: Float, barW: Float, vy: Float, value: Int,
     val u = l.measure(unit, 10.5f, ink.secondary)
     val right = back - 6.dp.toPx()
     val h = (num.size.height + u.size.height).toFloat()
-    val y0 = (vy - num.size.height * 0.7f).coerceIn(0f, size.height - h)
+    val y0 = (vy - num.size.height * 0.7f).within(0f, size.height - h)
     drawText(num, topLeft = Offset(right - num.size.width, y0))
     drawText(u, topLeft = Offset(right - u.size.width, y0 + num.size.height - 2.dp.toPx()))
 }

@@ -60,8 +60,8 @@ private data class WindowState(
     val soh: Float? = null,
     val loading: Boolean = false,
     val levels: Map<Long, Level> = emptyMap(),
-    /** What «Выравнивание» draws, with the id of the measurement it was read for. */
-    val eq: Pair<Long, EqualizationData>? = null,
+    /** What «Выравнивание» draws, with the id of the measurement it was read for; null data = the read failed. */
+    val eq: Pair<Long, EqualizationData?>? = null,
 )
 
 private fun WindowState.toUi(c: CellsConfig, s: StreamStatus, framesSeen: Boolean, d: DiParsData?) = BatteryCheckUi(
@@ -81,6 +81,7 @@ private fun WindowState.toUi(c: CellsConfig, s: StreamStatus, framesSeen: Boolea
     levels = levels,
     // data read for another measurement never shows: the selection may have changed while it loaded
     equalization = eq?.takeIf { it.first == selected?.input?.id }?.second,
+    equalizationFailed = eq?.let { it.first == selected?.input?.id && it.second == null } ?: false,
 )
 
 /**
@@ -124,9 +125,9 @@ class BatteryCheckViewModel @Inject constructor(
                 .distinctUntilChangedBy { e -> e?.input?.let { it.id to it.ts } }
                 .collectLatest { e ->
                     if (e == null) return@collectLatest
-                    // a failing read leaves the chart empty (it says so), never an exception
+                    // a failing read is remembered as such (the chart says there is no data), never an exception
                     val id = e.input.id
-                    val d = withContext(io) { cellsDb({ log("equalization", it) }) { eqLoader.load(e) } } ?: return@collectLatest
+                    val d = withContext(io) { cellsDb({ log("equalization", it) }) { eqLoader.load(e) } }
                     window.update { if (it.selected?.input?.id == id) it.copy(eq = id to d) else it }
                 }
         }

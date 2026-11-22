@@ -75,8 +75,37 @@ class CheckViewModelsTest {
         val w = whatToDoModel(e)
         assertEquals(Advice.WATCH, w.advice)
         assertTrue(Recheck.AFTER_FULL_AC in highlighted(w))
+        // the repeat is there, but the verdict is «следить»: the condition reads orange, not red
         assertTrue(w.service.twiceOnDifferentDays)
+        assertEquals(ConditionMark.MET, w.marks[0])
         assertEquals(listOf(ZoneRow.TOP), w.norms.filter { it.current }.map { it.row })
+    }
+
+    @Test fun `service conditions are red only under a service verdict and neutral without a verdict`() {
+        val service = whatToDoModel(eval(m(spread = 120), sp(2, NOON - 2 * DAY, 120)))
+        assertEquals(Advice.SERVICE, service.advice)
+        assertEquals(ConditionMark.MET_SERVICE, service.marks[0])
+        // a strongly low cell in a measurement without a verdict: nothing is claimed
+        val none = whatToDoModel(eval(m(spread = 60, rest = 5)))
+        assertTrue(none.service.cellBelowHalfService)
+        assertEquals(List(3) { ConditionMark.UNKNOWN }, none.marks)
+        assertEquals(List(3) { ConditionMark.NO }, whatToDoModel(eval(m(spread = 4))).marks)
+    }
+
+    @Test fun `the cold doubles the numbers of the current row and zone`() {
+        val e = eval(m(spread = 30, probe = 5))
+        assertTrue(e.limits.cold)
+        val w = whatToDoModel(e)
+        assertTrue(w.cold)
+        assertEquals(NormRow("plateau", ZoneRow.PLATEAU, 40, 180, true), w.norms.first { it.current })
+        assertEquals(NormRow("top", ZoneRow.TOP, 150, 300, false), w.norms.last())
+        val n = normChartModel(e)
+        assertTrue(n.cold)
+        assertEquals(2, n.lit)
+        assertEquals(NormZone(15, 85, 40, 180), n.zones[2])
+        assertEquals(NORM_ZONES[3], n.zones[3])
+        assertEquals(40 to 180, eqLines(e, EqMode.PARKINGS))
+        assertEquals(150 to 300, eqLines(e, EqMode.AFTER_CHARGE))
     }
 
     @Test fun `what to do without a measurement or a verdict`() {
@@ -132,6 +161,22 @@ class CheckViewModelsTest {
         assertEquals(Level.OK, rulerModel(eval(warm)).checks.first { it.kind == RulerCheckKind.PROBES }.level)
         val cold = m(spread = 4, probe = 9)
         assertEquals(Level.WATCH, rulerModel(eval(cold)).checks.first { it.kind == RulerCheckKind.PROBES }.level)
+    }
+
+    @Test fun `ruler checks never say more than the capped verdict`() {
+        // service twice at the top, capped to «следить» without a recent full charge: no red check
+        val before = sp(2, NOON - 2 * DAY, 320, row = ZoneRow.TOP)
+        val e = eval(m(spread = 320, soc = 100, vmax = 3450, kind = MeasureKind.AFTER_CHARGE, daysSinceFull = 20), before)
+        assertEquals(Level.WATCH, e.level)
+        assertTrue(Reason.SERVICE_TWICE in e.reasons)
+        val checks = rulerModel(e).checks.associate { it.kind to it.level }
+        assertEquals(Level.WATCH, checks[RulerCheckKind.SPREAD])
+        assertEquals(Level.WATCH, checks[RulerCheckKind.WEAK_CELLS])
+        assertTrue(checks.values.none { it == Level.SERVICE })
+        // without a verdict the health checks say nothing
+        val none = rulerModel(eval(m(spread = 60, rest = 5))).checks.associate { it.kind to it.level }
+        assertEquals(Level.NONE, none[RulerCheckKind.SPREAD])
+        assertEquals(Level.NONE, none[RulerCheckKind.WEAK_CELLS])
     }
 
     @Test fun `ruler spread check never says service on one measurement`() {
@@ -234,6 +279,16 @@ class CheckViewModelsTest {
         val q = equalizationModel(e, EqualizationData(EqMode.AFTER_CHARGE, emptyList(), null, emptyList(), null))
         assertEquals(listOf(159, 161, 167, 170, 156), q.cells.map { it.first })
         assertEquals(70.0, q.cells.first().second, 1e-6)
+    }
+
+    @Test fun `parkings leave a selected measurement outside the plateau off the chart`() {
+        val e = eval(m(spread = 30, soc = 12))
+        assertEquals(ZoneRow.LOW_10_15, e.row)
+        val rest = (1..5).map { d -> summary(100L + d, e.input.ts - d * DAY, 10, vmax = 3275, soc = 50, measure = "AFTER_PARKING", period = 100L + d) }
+        val q = equalizationModel(e, EqualizationData(EqMode.PARKINGS, rest.reversed(), null, emptyList(), null))
+        assertEquals(5, q.points.size)
+        assertTrue(q.points.none { it.current })
+        assertEquals(20 to 90, q.normMv to q.serviceMv)
     }
 
     @Test fun `equalization mode follows the selected measurement`() {

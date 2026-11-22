@@ -223,7 +223,7 @@
     <string name="fork_cells_wtd_body_nothing">Bateria jest w świetnym stanie. Jedź jak zwykle. Sprawdzenie raz w miesiącu — dla spokoju.</string>
     <string name="fork_cells_wtd_body_watch">Jest odchylenie, ale na serwis jeszcze za wcześnie. Sprawdź ponownie w dobrych warunkach: „do serwisu” pojawia się tylko, gdy odchylenie się potwierdzi.</string>
     <string name="fork_cells_wtd_body_service">Odchylenie powtórzyło się w różnych pomiarach — to nie przypadek. Pokaż ten ekran w serwisie: widać na nim, które ogniwa odstają.</string>
-    <string name="fork_cells_wtd_body_none">Ten pomiar nie nadaje się do oceny. Rzetelny pomiar jest wtedy, gdy auto postoi: prąd do 5 A przez co najmniej 15 minut i bez ładowania.</string>
+    <string name="fork_cells_wtd_body_none">Ten pomiar nie nadaje się do oceny. Rzetelny pomiar jest po postoju: prąd do 5 A przez co najmniej godzinę, bez ładowania; poniżej 15 minut spoczynku — bez oceny.</string>
     <string name="fork_cells_wtd_body_wait">Bateria odpoczywa po ładowaniu — rozrzut jeszcze maleje. Pomiar godzinę po ładowaniu powie to na pewno.</string>
     <string name="fork_cells_wtd_body_prelim">Rozrzut mieści się w normie, ale warunki pomiaru były niedokładne. Następny pomiar po postoju to potwierdzi.</string>
     <string name="fork_cells_wtd_when">Kiedy sprawdzić ponownie</string>
@@ -248,7 +248,7 @@
     <string name="fork_cells_wtd_row_top">po ładowaniu, ogniwa powyżej 3,40 V</string>
     <string name="fork_cells_wtd_now">← teraz</string>
     <string name="fork_cells_wtd_upto">≤ %1$d mV</string>
-    <string name="fork_cells_wtd_service_from">serwis od %1$d (dwukrotnie)</string>
+    <string name="fork_cells_wtd_service_from">serwis od %1$d</string>
     <string name="fork_cells_wtd_yours">U Ciebie: %1$d mV — %2$s.</string>
     <string name="fork_cells_wtd_yours_ok">w normie</string>
     <string name="fork_cells_wtd_yours_above">powyżej normy</string>
@@ -259,6 +259,7 @@
     <string name="fork_cells_wtd_svc_half">Ogniwo poniżej środka o więcej niż połowę progu „do serwisu”</string>
     <string name="fork_cells_wtd_yes">teraz — tak</string>
     <string name="fork_cells_wtd_no">teraz — nie</string>
+    <string name="fork_cells_wtd_unknown">teraz — bez oceny</string>
     <string name="fork_cells_wtd_footnote">Jeden warunek to za mało: „do serwisu” pojawia się tylko, gdy rozrzut potwierdził się w drugim pomiarze innego dnia. Ogniwo „najwyżej ze wszystkich” zwykle oznacza niedokładny czujnik, a nie usterkę.</string>
     <!-- Views: «Норма по заряду» -->
     <string name="fork_cells_norm_title">Norma zależy od naładowania i od tego, kiedy jest pomiar</string>
@@ -292,6 +293,7 @@
     <string name="fork_cells_norm_cells">%1$d ogniwa</string>
     <string name="fork_cells_norm_strip">odchylenie od środka · czujniki %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">odchylenie od środka</string>
+    <string name="fork_cells_norm_cold_note">zimno: progi × 2</string>
     <!-- Views: «Линейка» -->
     <string name="fork_cells_ruler_caption">rozrzut, mV</string>
     <string name="fork_cells_ruler_norm">norma</string>
@@ -331,11 +333,13 @@
     <string name="fork_cells_eq_axis_parkings">dni · jeden pomiar na postój</string>
     <string name="fork_cells_eq_text_charge">Po pełnym ładowaniu BMS zbliża ogniwa do siebie: „najwyższe” ogniwa lekko rozładowują się przez rezystory. Dopóki auto jest aktywne po ładowaniu, rozrzut u góry stopniowo spada — to normalny proces, a nie usterka.</string>
     <string name="fork_cells_eq_text_ok">Rozrzut w spoczynku mieści się w normie plateau — bateria jest równa.</string>
-    <string name="fork_cells_eq_text_watch">Rozrzut w spoczynku przekracza normę plateau. „Do serwisu” pojawia się tylko, gdy dwukrotnie w różne dni przekroczy 90 mV.</string>
+    <string name="fork_cells_eq_text_watch">Rozrzut w spoczynku przekracza normę plateau. „Do serwisu” pojawia się tylko, gdy dwukrotnie w różne dni przekroczy %1$d mV.</string>
     <string name="fork_cells_eq_text_service">Rozrzut rośnie z postoju na postój i dwukrotnie w różne dni przekroczył próg „do serwisu” — to nie przypadek, potrzebny jest serwis.</string>
     <string name="fork_cells_eq_text_none">Rozrzut w spoczynku z dwóch tygodni: jeden punkt — jeden pomiar.</string>
+    <string name="fork_cells_eq_text_other">Ten pomiar jest poza plateau (%1$s): rozrzut %2$d mV przy normie do %3$d mV — nie ma go na wykresie plateau.</string>
     <string name="fork_cells_eq_empty_charge">Brak zapisów po tym ładowaniu — wykres pojawi się, gdy auto pobędzie włączone po ładowaniu.</string>
     <string name="fork_cells_eq_empty_parkings">Brak jeszcze pomiarów w spoczynku z ostatnich dwóch tygodni.</string>
+    <string name="fork_cells_eq_no_data">Brak danych do wykresu.</string>
     <string name="fork_cells_eq_top_title">Wyrównują się najmocniej</string>
     <string name="fork_cells_eq_top_sub">ogniwa powyżej środka — BMS ściąga je w dół</string>
     <string name="fork_cells_eq_low_title">Najniżej ze wszystkich</string>

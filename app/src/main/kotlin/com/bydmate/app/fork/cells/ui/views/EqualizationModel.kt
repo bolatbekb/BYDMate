@@ -71,7 +71,15 @@ fun equalizationModel(e: Evaluation, d: EqualizationData, levels: Map<Long, Leve
     EqMode.PARKINGS -> parkingsModel(e, d, levels)
 }
 
-/** The top lines are the measurement's own when it is in the top zone (cold doubles them), else the top zone's. */
+/**
+ * The chart's norm and service lines: the measurement's own limits (cold doubles them) when it belongs to the drawn zone —
+ * the top after a charge, the plateau for the parkings — else that zone's research numbers.
+ */
+fun eqLines(e: Evaluation, mode: EqMode): Pair<Int, Int?> {
+    val zone = if (mode == EqMode.AFTER_CHARGE) ZoneRow.TOP else ZoneRow.PLATEAU
+    return if (e.row == zone) e.limits.normMv to e.limits.serviceMv else zone.normMv to zone.serviceMv
+}
+
 private fun afterChargeModel(e: Evaluation, d: EqualizationData): EqualizationModel {
     val me = e.input
     val sorted = d.points.sortedBy { it.ts }
@@ -81,11 +89,9 @@ private fun afterChargeModel(e: Evaluation, d: EqualizationData): EqualizationMo
     val mine = EqPoint(x, e.spreadMv, grey = !awake && x < 1.0, current = true)
     val before = curve(sorted.filter { it.id != me.id && it.ts <= me.ts }, origin, !awake, skip = bucketOf(x))
     val previous = d.previousAnchorTs?.let { curve(d.previous.sortedBy { it.ts }, it, greyFirstHour = false, skip = null) }.orEmpty()
-    val top = e.row == ZoneRow.TOP
+    val (norm, svc) = eqLines(e, EqMode.AFTER_CHARGE)
     return EqualizationModel(
-        EqMode.AFTER_CHARGE, awake, (before + mine).sortedBy { it.x }, previous,
-        if (top) e.limits.normMv else ZoneRow.TOP.normMv, if (top) e.limits.serviceMv else ZoneRow.TOP.serviceMv,
-        EQ_WINDOW_H.toDouble(), extremeCells(e, highest = true),
+        EqMode.AFTER_CHARGE, awake, (before + mine).sortedBy { it.x }, previous, norm, svc, EQ_WINDOW_H.toDouble(), extremeCells(e, highest = true),
     )
 }
 

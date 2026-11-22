@@ -36,7 +36,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.R
-import com.bydmate.app.fork.cells.verdict.CellClass
 import com.bydmate.app.fork.cells.verdict.Evaluation
 import com.bydmate.app.ui.skin.HorizontalDivider
 import com.bydmate.app.ui.skin.RoundedCornerShape
@@ -132,14 +131,14 @@ private fun DeviationsTab(e: Evaluation) {
             groups.forEach { g ->
                 item(key = g.cls.name) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)) {
-                        Swatch(classColor(g.cls))
+                        Swatch(cellColor(g.cls, e.level))
                         Spacer(Modifier.width(10.dp))
                         Text(stringResource(groupRes(g.cls)), color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         Text("  ·  ${g.cells.size}", color = TextMuted, fontSize = 15.sp, style = tnum())
                     }
                 }
                 items(g.cells, key = { "c$it" }) { cell ->
-                    DeviationRow(cell, e.input.cellsMv.getOrElse(cell - 1) { 0 }, e.deviationsMv.getOrElse(cell - 1) { 0.0 }, g.cls, locale)
+                    DeviationRow(cell, e.input.cellsMv.getOrElse(cell - 1) { 0 }, e.deviationsMv.getOrElse(cell - 1) { 0.0 }, cellColor(g.cls, e.level), locale)
                 }
             }
         }
@@ -147,14 +146,14 @@ private fun DeviationsTab(e: Evaluation) {
 }
 
 @Composable
-private fun DeviationRow(cell: Int, mv: Int, dev: Double, cls: CellClass, locale: java.util.Locale) {
+private fun DeviationRow(cell: Int, mv: Int, dev: Double, color: Color, locale: java.util.Locale) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().background(CardSurface, RoundedCornerShape(8.dp)).padding(horizontal = 14.dp, vertical = 9.dp),
     ) {
         Text(TextRes(R.string.fork_cells_cell_no, cell).text(), color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = tnum(), modifier = Modifier.width(72.dp))
         Text(TextRes(R.string.fork_cells_val_cell_v, cellVolts(mv, locale)).text(), color = TextSecondary, fontSize = 15.sp, style = tnum(), modifier = Modifier.weight(1f))
-        Text(TextRes(R.string.fork_cells_val_signed_mv, signedMv(dev)).text(), color = classColor(cls), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = tnum())
+        Text(TextRes(R.string.fork_cells_val_signed_mv, signedMv(dev)).text(), color = color, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = tnum())
     }
 }
 

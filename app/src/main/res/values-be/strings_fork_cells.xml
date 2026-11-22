@@ -223,7 +223,7 @@
     <string name="fork_cells_wtd_body_nothing">Батарэя ў выдатным стане. Ездзіце як звычайна. Праверка раз на месяц — для спакою.</string>
     <string name="fork_cells_wtd_body_watch">Ёсць адхіленне, але ў сэрвіс пакуль рана. Праверце зноў у добрых умовах: «у сэрвіс» ставіцца, толькі калі адхіленне пацвердзіцца.</string>
     <string name="fork_cells_wtd_body_service">Адхіленне паўтарылася ў розных замерах — гэта не выпадковасць. Пакажыце гэты экран у сэрвісе: па ім відаць, якія ячэйкі адстаюць.</string>
-    <string name="fork_cells_wtd_body_none">Гэты замер не падыходзіць для ацэнкі. Сумленны замер — калі машына пастаіць: ток да 5 А не менш за 15 хвілін і не на зарадцы.</string>
+    <string name="fork_cells_wtd_body_none">Гэты замер не падыходзіць для ацэнкі. Сумленны замер — пасля стаянкі: ток да 5 А не менш за гадзіну, не на зарадцы; менш за 15 хвілін спакою — без ацэнкі.</string>
     <string name="fork_cells_wtd_body_wait">Зараз батарэя адпачывае пасля зарадкі — разкід яшчэ памяншаецца. Замер праз гадзіну пасля зарадкі скажа дакладна.</string>
     <string name="fork_cells_wtd_body_prelim">Разкід у норме, але ўмовы замеру недакладныя. Наступны замер пасля стаянкі пацвердзіць.</string>
     <string name="fork_cells_wtd_when">Калі праверыць зноў</string>
@@ -248,7 +248,7 @@
     <string name="fork_cells_wtd_row_top">пасля зарадкі, ячэйкі вышэй за 3,40 В</string>
     <string name="fork_cells_wtd_now">← зараз</string>
     <string name="fork_cells_wtd_upto">≤ %1$d мВ</string>
-    <string name="fork_cells_wtd_service_from">у сэрвіс ад %1$d (двойчы)</string>
+    <string name="fork_cells_wtd_service_from">у сэрвіс ад %1$d</string>
     <string name="fork_cells_wtd_yours">У вас: %1$d мВ — %2$s.</string>
     <string name="fork_cells_wtd_yours_ok">у норме</string>
     <string name="fork_cells_wtd_yours_above">вышэй за норму</string>
@@ -259,6 +259,7 @@
     <string name="fork_cells_wtd_svc_half">Ячэйка ніжэй за сярэдзіну больш чым на палову парога «у сэрвіс»</string>
     <string name="fork_cells_wtd_yes">зараз — так</string>
     <string name="fork_cells_wtd_no">зараз — не</string>
+    <string name="fork_cells_wtd_unknown">зараз — без ацэнкі</string>
     <string name="fork_cells_wtd_footnote">Адной умовы мала: «у сэрвіс» ставіцца, толькі калі разкід пацвердзіўся ў другім замеры ў іншы дзень. Ячэйка «вышэй за ўсе» звычайна азначае недакладны датчык, а не паломку.</string>
     <!-- Views: «Норма по заряду» -->
     <string name="fork_cells_norm_title">Норма залежыць ад зараду і ад таго, калі замер</string>
@@ -292,6 +293,7 @@
     <string name="fork_cells_norm_cells">%1$d ячэйкі</string>
     <string name="fork_cells_norm_strip">адхіленне ад сярэдзіны · датчыкі %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">адхіленне ад сярэдзіны</string>
+    <string name="fork_cells_norm_cold_note">холад: парогі × 2</string>
     <!-- Views: «Линейка» -->
     <string name="fork_cells_ruler_caption">разкід, мВ</string>
     <string name="fork_cells_ruler_norm">норма</string>
@@ -331,11 +333,13 @@
     <string name="fork_cells_eq_axis_parkings">дні · адзін замер на стаянку</string>
     <string name="fork_cells_eq_text_charge">Пасля поўнай зарадкі BMS зводзіць ячэйкі разам: самыя «высокія» ячэйкі злёгку разраджаюцца праз рэзістары. Пакуль машына актыўная пасля зарадкі, разкід каля верху паступова падае — гэта нармальны працэс, а не няспраўнасць.</string>
     <string name="fork_cells_eq_text_ok">Разкід у спакоі трымаецца ў межах нормы плато — батарэя роўная.</string>
-    <string name="fork_cells_eq_text_watch">Разкід у спакоі вышэй за норму плато. «У сэрвіс» ставіцца, толькі калі ён двойчы ў розныя дні вышэй за 90 мВ.</string>
+    <string name="fork_cells_eq_text_watch">Разкід у спакоі вышэй за норму плато. «У сэрвіс» ставіцца, толькі калі ён двойчы ў розныя дні вышэй за %1$d мВ.</string>
     <string name="fork_cells_eq_text_service">Разкід расце ад стаянкі да стаянкі і двойчы ў розныя дні вышэй за парог «у сэрвіс» — гэта не выпадковасць, патрэбны сэрвіс.</string>
     <string name="fork_cells_eq_text_none">Разкід у спакоі за два тыдні: адна кропка — адзін замер.</string>
+    <string name="fork_cells_eq_text_other">Гэты замер па-за плато (%1$s): разкід %2$d мВ пры норме да %3$d мВ — на графіку плато яго няма.</string>
     <string name="fork_cells_eq_empty_charge">Здымкаў пасля гэтай зарадкі няма — графік з’явіцца, калі машына пабудзе ўключанай пасля зарадкі.</string>
     <string name="fork_cells_eq_empty_parkings">Замераў у спакоі за два тыдні пакуль няма.</string>
+    <string name="fork_cells_eq_no_data">Няма даных для графіка.</string>
     <string name="fork_cells_eq_top_title">Выраўноўваюцца мацней за ўсё</string>
     <string name="fork_cells_eq_top_sub">ячэйкі вышэй за сярэдзіну — BMS падцягвае іх уніз</string>
     <string name="fork_cells_eq_low_title">Ніжэй за ўсе</string>

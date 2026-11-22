@@ -9,7 +9,9 @@ import com.bydmate.app.fork.cells.data.CellSnapshotEntity
 import com.bydmate.app.fork.cells.data.CellsSettings
 import java.time.LocalDate
 import java.time.ZoneId
+import kotlin.math.exp
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.random.Random
 
 private const val DAYS = 90
@@ -22,7 +24,7 @@ private const val COMMUTE_SNAPSHOTS = 6
 private const val MIN_MS = 60_000L
 private const val BATCH = 100
 private val PARK_REST_MIN = 540..660
-private val CHARGE_REST_MIN = 240..420
+private val CHARGE_REST_MIN = 330..420 // the charge ends 5.5-7 h before the morning: a full equalization curve
 private const val WEAKNESS_EXPONENT = 1.5
 private const val PRESET_SOC_MIN = 40
 private const val PRESET_SOC_MAX = 80
@@ -75,6 +77,7 @@ private class DemoHistory(private val zone: ZoneId, private val nowWallMs: Long)
         val restMin = if (charged) rnd.nextInt(CHARGE_REST_MIN.first, CHARGE_REST_MIN.last + 1) else rnd.nextInt(PARK_REST_MIN.first, PARK_REST_MIN.last + 1)
         val kind = if (charged) MeasureKind.AFTER_CHARGE else MeasureKind.AFTER_PARKING
         val relax = if (charged) Relax.SETTLED else Relax.NOT_NEEDED
+        if (charged) night(morning, restMin, w, probes)
         add(morning, DemoCellModel.cellsMv(soc.toDouble(), 0.0, w), probes, soc, 0.0, kind, period, relax, restMin, if (charged) 0 else sinceFull)
         if (charged) lastFull = morning
         for (i in 0 until COMMUTE_SNAPSHOTS) {
@@ -90,15 +93,41 @@ private class DemoHistory(private val zone: ZoneId, private val nowWallMs: Long)
         }
     }
 
+    /**
+     * The night of a charge: the charge end (a charging snapshot, the wide spread of a fresh full charge, ~120 mV more with
+     * the weak cell) and a plain snapshot every 15 minutes until the morning measurement, while the BMS brings the top
+     * cells back down (an exponential decay, tau 1.5 h). No random draw: the rest of the history stays as it was.
+     */
+    private fun night(morning: Long, restMin: Int, w: Double, probes: IntArray) {
+        val end = morning - restMin * MIN_MS
+        val base = DemoCellModel.cellsMv(FULL_SOC.toDouble(), 0.0, w)
+        val extra = (CHARGE_END_SPREAD_MV * (1 + w) - (base.max() - base.min())).coerceAtLeast(0.0)
+        var t = end
+        while (t < morning) {
+            val h = (t - end) / HOUR_MS.toDouble()
+            val charging = t == end
+            add(t, balancing(base, extra * exp(-h / RELAX_TAU_H)), probes, FULL_SOC, if (charging) CHARGE_TAIL_A else 0.0, null, null, Relax.NOT_NEEDED, null, 0, charging)
+            t += NIGHT_STEP_MS
+        }
+    }
+
+    /** [base] with the cells above the median raised, the highest by [extraMv]: the top cells a balancing BMS discharges. */
+    private fun balancing(base: IntArray, extraMv: Double): IntArray {
+        val real = DemoCellModel.REAL_CELLS_MV
+        val med = real.sorted()[real.size / 2]
+        val top = (real.max() - med).coerceAtLeast(1)
+        return IntArray(base.size) { i -> base[i] + (extraMv * (real[i] - med).coerceAtLeast(0) / top).roundToInt() }
+    }
+
     @Suppress("LongParameterList") // why: one row builder, every column named at the call
     private fun add(
         ts: Long, cells: IntArray, probes: IntArray, soc: Int, amps: Double,
-        kind: MeasureKind?, period: Long?, relax: Relax, restMin: Int?, sinceFull: Int,
+        kind: MeasureKind?, period: Long?, relax: Relax, restMin: Int?, sinceFull: Int, charging: Boolean = false,
     ) {
         out += CellSnapshotEntity(
             ts = ts, elapsedMs = ts - ts % MIN_MS, profile = CarProfile.LEOPARD5_318.id, measure = kind?.name,
             restPeriod = period, relax = relax.name, relaxDropMv = null, soc = soc, currentA = amps,
-            packV = cells.sum() / MV_PER_V, charging = false, restMin = restMin, daysSinceFull = sinceFull,
+            packV = cells.sum() / MV_PER_V, charging = charging, restMin = restMin, daysSinceFull = sinceFull,
             vminMv = cells.min(), vmaxMv = cells.max(), spreadMv = cells.max() - cells.min(),
             probeMinC = probes.min(), probeMaxC = probes.max(), flagConsistency = null, flagTempDiff = null,
             flagUnbalanced = null, cells = CellBlob.encodeCells(cells), probes = CellBlob.encodeProbes(probes),
@@ -120,5 +149,10 @@ private class DemoHistory(private val zone: ZoneId, private val nowWallMs: Long)
         val LOAD_SOC = 50..70
         const val LOAD_H = 17
         const val MV_PER_V = 1000
+        const val HOUR_MS = 3_600_000L
+        const val NIGHT_STEP_MS = 15 * MIN_MS
+        const val CHARGE_END_SPREAD_MV = 120.0
+        const val RELAX_TAU_H = 1.5
+        const val CHARGE_TAIL_A = -3.0
     }
 }

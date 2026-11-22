@@ -223,7 +223,7 @@
     <string name="fork_cells_wtd_body_nothing">电池状态极佳。照常驾驶即可。每月检查一次，图个安心。</string>
     <string name="fork_cells_wtd_body_watch">有偏差，但现在去维修站还为时过早。请在良好条件下重新检查：只有偏差得到确认才会判定“维修”。</string>
     <string name="fork_cells_wtd_body_service">偏差在不同的测量中重复出现 — 这不是偶然。请在维修站出示此屏幕：从中可以看出哪些电芯落后。</string>
-    <string name="fork_cells_wtd_body_none">这次测量不适合评估。可靠的测量需要车辆静置：电流不超过 5 A 至少 15 分钟，且未在充电。</string>
+    <string name="fork_cells_wtd_body_none">这次测量不适合评估。可靠的测量在停车后：电流不超过 5 A 至少一小时，且未在充电；静置不足 15 分钟 — 无评估。</string>
     <string name="fork_cells_wtd_body_wait">电池正在充电后静置 — 压差仍在减小。充电一小时后的测量会给出准确结果。</string>
     <string name="fork_cells_wtd_body_prelim">压差在正常范围内，但测量条件不够准确。下次停车后的测量会确认。</string>
     <string name="fork_cells_wtd_when">何时重新检查</string>
@@ -248,7 +248,7 @@
     <string name="fork_cells_wtd_row_top">充电后，电芯高于 3.40 V</string>
     <string name="fork_cells_wtd_now">← 当前</string>
     <string name="fork_cells_wtd_upto">≤ %1$d mV</string>
-    <string name="fork_cells_wtd_service_from">维修：自 %1$d 起（两次）</string>
+    <string name="fork_cells_wtd_service_from">维修：自 %1$d 起</string>
     <string name="fork_cells_wtd_yours">您的：%1$d mV — %2$s。</string>
     <string name="fork_cells_wtd_yours_ok">正常</string>
     <string name="fork_cells_wtd_yours_above">高于正常</string>
@@ -259,6 +259,7 @@
     <string name="fork_cells_wtd_svc_half">某个电芯低于中位数超过“维修”阈值的一半</string>
     <string name="fork_cells_wtd_yes">当前 — 是</string>
     <string name="fork_cells_wtd_no">当前 — 否</string>
+    <string name="fork_cells_wtd_unknown">当前 — 无评估</string>
     <string name="fork_cells_wtd_footnote">仅满足一个条件还不够：只有当另一天的第二次测量确认了压差，才会判定“维修”。“最高”的电芯通常意味着传感器不准，而不是故障。</string>
     <!-- Views: «Норма по заряду» -->
     <string name="fork_cells_norm_title">正常值取决于电量以及测量时机</string>
@@ -292,6 +293,7 @@
     <string name="fork_cells_norm_cells">%1$d 个电芯</string>
     <string name="fork_cells_norm_strip">相对中位数的偏差 · 探头 %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">相对中位数的偏差</string>
+    <string name="fork_cells_norm_cold_note">低温：阈值 × 2</string>
     <!-- Views: «Линейка» -->
     <string name="fork_cells_ruler_caption">压差，mV</string>
     <string name="fork_cells_ruler_norm">正常</string>
@@ -331,11 +333,13 @@
     <string name="fork_cells_eq_axis_parkings">天 · 每次停车一次测量</string>
     <string name="fork_cells_eq_text_charge">充满电后 BMS 会让电芯趋于一致：“最高”的电芯通过电阻轻微放电。充电后车辆处于活动状态时，高电量时的压差会逐渐下降 — 这是正常过程，不是故障。</string>
     <string name="fork_cells_eq_text_ok">静置压差保持在平台区正常范围内 — 电池很均衡。</string>
-    <string name="fork_cells_eq_text_watch">静置压差高于平台区正常值。只有在不同日期两次超过 90 mV 时才判定“维修”。</string>
+    <string name="fork_cells_eq_text_watch">静置压差高于平台区正常值。只有在不同日期两次超过 %1$d mV 时才判定“维修”。</string>
     <string name="fork_cells_eq_text_service">压差在一次次停车中不断增长，并在不同日期两次超过“维修”阈值 — 这不是偶然，需要维修。</string>
     <string name="fork_cells_eq_text_none">两周内的静置压差：一个点 — 一次测量。</string>
+    <string name="fork_cells_eq_text_other">此次测量不在平台区（%1$s）：压差 %2$d mV，正常值不超过 %3$d mV — 平台区图表中不显示。</string>
     <string name="fork_cells_eq_empty_charge">这次充电后没有快照 — 充电后车辆保持开启一段时间，图表就会出现。</string>
     <string name="fork_cells_eq_empty_parkings">最近两周还没有静置测量。</string>
+    <string name="fork_cells_eq_no_data">没有可用于图表的数据。</string>
     <string name="fork_cells_eq_top_title">均衡幅度最大</string>
     <string name="fork_cells_eq_top_sub">高于中位数的电芯 — BMS 会把它们拉下来</string>
     <string name="fork_cells_eq_low_title">最低的电芯</string>

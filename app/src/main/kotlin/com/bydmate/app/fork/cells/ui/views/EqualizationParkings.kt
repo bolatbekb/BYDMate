@@ -15,8 +15,8 @@ private const val LIST_CELLS = 5
 
 /**
  * One dot per rest period (the latest measurement of it, R8) of the 14 days up to the measurement, x = 14 at the measurement.
- * Only plateau measurements: the lines are the plateau's 20 / 90 mV, a top or low spread would read wrong against them. The
- * selected measurement is always there when it is a rest one.
+ * Only plateau measurements: the lines are the plateau's (the measurement's own limits when it is a plateau one), a top or
+ * low spread would read wrong against them. A selected measurement outside the plateau is not drawn; the view says its value.
  */
 internal fun parkingsModel(e: Evaluation, d: EqualizationData, levels: Map<Long, Level>): EqualizationModel {
     val me = e.input
@@ -25,13 +25,13 @@ internal fun parkingsModel(e: Evaluation, d: EqualizationData, levels: Map<Long,
         .filter { it.ts in from..me.ts && it.restPeriod != null }
         .sortedByDescending { it.ts }
         .distinctBy { it.restPeriod }
-        .filter { it.id == me.id || it.toSpreadPoint().row == ZoneRow.PLATEAU }
+        .filter { it.id != me.id && it.toSpreadPoint().row == ZoneRow.PLATEAU }
         .toList()
-    val points = rows.map { s -> if (s.id == me.id) mine(e) else parking(s, me.ts, levels[s.id]) }.toMutableList()
-    if (me.atRest && rows.none { it.id == me.id }) points += mine(e)
+    val points = rows.map { parking(it, me.ts, levels[it.id]) }.toMutableList()
+    if (me.atRest && e.row == ZoneRow.PLATEAU) points += mine(e)
+    val (norm, svc) = eqLines(e, EqMode.PARKINGS)
     return EqualizationModel(
-        EqMode.PARKINGS, false, points.sortedBy { it.x }, emptyList(), ZoneRow.PLATEAU.normMv, ZoneRow.PLATEAU.serviceMv,
-        PARKING_DAYS.toDouble(), extremeCells(e, highest = false),
+        EqMode.PARKINGS, false, points.sortedBy { it.x }, emptyList(), norm, svc, PARKING_DAYS.toDouble(), extremeCells(e, highest = false),
     )
 }
 

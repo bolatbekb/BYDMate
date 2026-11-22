@@ -50,7 +50,8 @@ sealed interface ManualUi {
 /**
  * [framesSeen]: frames came since listening began (tells «stopped» from «never came»); [loading]: the first load of the window
  * runs; [levels]: the evaluated level of each measurement known so far, by id (picker and history); [equalization]: what
- * «Выравнивание» draws for the selected measurement, null until read (only while that view is chosen).
+ * «Выравнивание» draws for the selected measurement, null until read (only while that view is chosen);
+ * [equalizationFailed]: that read failed (the chart says there is no data, instead of waiting).
  */
 data class BatteryCheckUi(
     val config: CellsConfig,
@@ -68,6 +69,7 @@ data class BatteryCheckUi(
     val selectedId: Long? = null,
     val levels: Map<Long, Level> = emptyMap(),
     val equalization: EqualizationData? = null,
+    val equalizationFailed: Boolean = false,
 )
 
 /** What the window can ask of its view model. */

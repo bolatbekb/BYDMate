@@ -23,7 +23,6 @@ import com.bydmate.app.fork.cells.ui.dayMonth
 import com.bydmate.app.fork.cells.ui.levelColor
 import com.bydmate.app.fork.cells.ui.text
 import com.bydmate.app.fork.cells.verdict.Evaluation
-import com.bydmate.app.fork.cells.verdict.ZoneRow
 import com.bydmate.app.ui.skin.withTnum
 import com.bydmate.app.ui.theme.AccentOrange
 import com.bydmate.app.ui.theme.CardBorder
@@ -54,19 +53,15 @@ internal class EqGeom(val left: Float, val right: Float, val top: Float, val bot
     fun y(mv: Int): Float = bottom - (bottom - top) * (mv.coerceIn(0, topMv) / topMv.toFloat())
 }
 
-/** The lines before the data is read: the measurement's own top lines, or the plateau's for the parkings. */
-private fun defaultLines(e: Evaluation, mode: EqMode): Pair<Int, Int?> = when {
-    mode == EqMode.PARKINGS -> ZoneRow.PLATEAU.normMv to ZoneRow.PLATEAU.serviceMv
-    e.row == ZoneRow.TOP -> e.limits.normMv to e.limits.serviceMv
-    else -> ZoneRow.TOP.normMv to ZoneRow.TOP.serviceMv
-}
-
-/** [model] null while the data is read (or when it failed): the frame and the lines only, no «nothing to draw». */
+/**
+ * [model] null while the data is read: the frame and the lines only. [failed]: the read failed, the chart says there is no
+ * data; a model without points says there is nothing to draw yet.
+ */
 @Composable
-internal fun EqChart(e: Evaluation, mode: EqMode, model: EqualizationModel?, modifier: Modifier) {
+internal fun EqChart(e: Evaluation, mode: EqMode, model: EqualizationModel?, failed: Boolean, modifier: Modifier) {
     val measurer = rememberTextMeasurer()
     val base = LocalTextStyle.current.withTnum()
-    val (norm, svc) = model?.let { it.normMv to it.serviceMv } ?: defaultLines(e, mode)
+    val (norm, svc) = model?.let { it.normMv to it.serviceMv } ?: eqLines(e, mode)
     val charge = mode == EqMode.AFTER_CHARGE
     val ticks = if (charge) {
         HOUR_TICKS.map { it.toDouble() to TextRes(R.string.fork_cells_dur_h, it).text() }
@@ -79,7 +74,11 @@ internal fun EqChart(e: Evaluation, mode: EqMode, model: EqualizationModel?, mod
         svc?.let { TextRes(R.string.fork_cells_eq_service, it).text() },
         stringResource(R.string.fork_cells_eq_first_hour),
         model?.previous?.lastOrNull()?.let { TextRes(R.string.fork_cells_eq_previous, it.mv).text() },
-        model?.takeIf { it.points.isEmpty() }?.let { stringResource(if (charge) R.string.fork_cells_eq_empty_charge else R.string.fork_cells_eq_empty_parkings) },
+        when {
+            model == null && failed -> stringResource(R.string.fork_cells_eq_no_data)
+            model != null && model.points.isEmpty() -> stringResource(if (charge) R.string.fork_cells_eq_empty_charge else R.string.fork_cells_eq_empty_parkings)
+            else -> null
+        },
     )
     val ink = EqInk(ConsumptionGood, AccentOrange, SocRed, CardBorder, TextMuted, TextPrimary, TextSecondary, levelColor(e.level), CardSurfaceElevated)
     Canvas(modifier) {
@@ -92,7 +91,7 @@ internal fun EqChart(e: Evaluation, mode: EqMode, model: EqualizationModel?, mod
         if (g.bottom <= g.top || g.right <= g.left) return@Canvas
         val l = Labels(measurer, base)
         drawFrame(g, texts, ink, l)
-        drawLines(g, norm, svc, texts, ink, l)
+        drawLines(g, norm to svc, texts, ink, l, pts)
         if (charge && model != null && !model.awakeAxis) drawFirstHour(g, texts.firstHour, ink, l)
         drawPrevious(g, prev, texts.previous, ink, l)
         drawCurve(g, pts, charge, norm, ink, l)
@@ -138,22 +137,45 @@ private fun DrawScope.drawFrame(g: EqGeom, texts: EqTexts, ink: EqInk, l: Labels
     }
 }
 
-/** The norm (a soft green floor and a dashed line) and the service number (dashed red) when it is on the scale. */
-@Suppress("LongParameterList") // why: the two numbers and their labels, all needed at the call
-private fun DrawScope.drawLines(g: EqGeom, norm: Int, svc: Int?, texts: EqTexts, ink: EqInk, l: Labels) {
+/**
+ * The norm (a soft green floor and a dashed line) and the service number (dashed red) when it is on the scale; each label
+ * over its line at the right end, or at the left end when a dot or its value is in the way.
+ */
+@Suppress("LongParameterList") // why: the lines, their labels and the dots they must not cover
+private fun DrawScope.drawLines(g: EqGeom, lines: Pair<Int, Int?>, texts: EqTexts, ink: EqInk, l: Labels, pts: List<EqPoint>) {
+    val (norm, svc) = lines
     val dash = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx()))
     val ny = g.y(norm)
     drawRect(ink.ok.copy(alpha = NORM_FILL), Offset(g.left, ny), Size(g.right - g.left, g.bottom - ny))
     drawLine(ink.ok, Offset(g.left, ny), Offset(g.right, ny), 1.2.dp.toPx(), pathEffect = dash)
     val nt = l.measure(texts.norm, 11.5f, ink.ok)
-    drawText(nt, topLeft = Offset(g.right - nt.size.width, ny - nt.size.height - 2.dp.toPx()))
+    val nTop = ny - nt.size.height - 2.dp.toPx()
+    drawText(nt, topLeft = Offset(lineLabelX(g, nTop, nt.size.width, nt.size.height, pts), nTop))
     if (svc == null || svc > g.topMv) return
     val sy = g.y(svc)
     drawLine(ink.bad, Offset(g.left, sy), Offset(g.right, sy), 1.2.dp.toPx(), pathEffect = dash)
     texts.service?.let {
         val st = l.measure(it, 11.5f, ink.bad)
-        drawText(st, topLeft = Offset(g.right - st.size.width, sy - st.size.height - 2.dp.toPx()))
+        val sTop = sy - st.size.height - 2.dp.toPx()
+        drawText(st, topLeft = Offset(lineLabelX(g, sTop, st.size.width, st.size.height, pts), sTop))
     }
+}
+
+/** The right end when no dot (with its value above it) is under the label there, else the left end; the right end when both are taken. */
+private fun DrawScope.lineLabelX(g: EqGeom, top: Float, w: Int, h: Int, pts: List<EqPoint>): Float {
+    val reach = 24.dp.toPx()
+    val above = 32.dp.toPx()
+    val below = 10.dp.toPx()
+    fun free(x0: Float): Boolean = pts.none { p ->
+        val cx = g.x(p.x)
+        val cy = g.y(p.mv)
+        val acrossX = cx + reach > x0 && cx - reach < x0 + w
+        val acrossY = cy + below > top && cy - above < top + h
+        acrossX && acrossY
+    }
+    val right = g.right - w
+    val left = g.left + 6.dp.toPx()
+    return if (free(right) || !free(left)) right else left
 }
 
 /** The first hour after the charge end: grey, «< 1 ч — без оценки». */
@@ -179,7 +201,7 @@ private fun DrawScope.drawPrevious(g: EqGeom, prev: List<EqPoint>, label: String
     label?.let {
         val t = l.measure(it, 11f, ink.muted)
         val at = Offset(g.x(last.x), g.y(last.mv))
-        val x = (at.x - t.size.width / 2f).coerceIn(g.left, g.right - t.size.width)
+        val x = (at.x - t.size.width / 2f).within(g.left, g.right - t.size.width)
         val y = (at.y - t.size.height - 8.dp.toPx()).coerceAtLeast(g.top)
         drawText(t, topLeft = Offset(x, y))
     }

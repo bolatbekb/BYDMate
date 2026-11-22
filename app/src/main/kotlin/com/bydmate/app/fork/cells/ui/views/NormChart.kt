@@ -13,15 +13,9 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.TextMeasurer
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.bydmate.app.R
 import com.bydmate.app.fork.cells.ui.TextRes
 import com.bydmate.app.fork.cells.ui.levelColor
@@ -89,27 +83,12 @@ internal fun NormChart(model: NormChartModel, e: Evaluation, modifier: Modifier)
         if (size.width <= 0f || size.height <= 0f) return@Canvas
         val g = NormGeom(40.dp.toPx(), size.width - 6.dp.toPx(), 38.dp.toPx(), size.height - 20.dp.toPx())
         if (g.bottom <= g.top || g.right <= g.left) return@Canvas
-        val lit = model.here?.first?.let { soc -> model.zones.indexOfFirst { soc >= it.socFrom && (soc < it.socTo || it.socTo == 100) } } ?: -1
-        drawBands(g, model.zones, lit, ink)
+        drawBands(g, model.zones, model.lit, ink)
         val l = Labels(measurer, base)
         drawZoneLines(g, model.zones, texts, ink, l)
         drawAxes(g, texts, ink, l)
         drawHere(g, model, texts, ink, l)
     }
-}
-
-/** A text measurer and the base style of a chart's labels (tabular digits). */
-internal class Labels(val measurer: TextMeasurer, val base: TextStyle) {
-    fun measure(text: String, sp: Float, color: Color, bold: Boolean = false): TextLayoutResult =
-        measurer.measure(text, base.merge(TextStyle(fontSize = sp.sp, color = color, fontWeight = if (bold) FontWeight.SemiBold else null)))
-
-    /** Centred lines, wrapped at [maxWidth] px. */
-    fun centered(text: String, sp: Float, color: Color, maxWidth: Int): TextLayoutResult =
-        measurer.measure(
-            text,
-            base.merge(TextStyle(fontSize = sp.sp, color = color, textAlign = TextAlign.Center)),
-            constraints = Constraints(maxWidth = maxWidth.coerceAtLeast(1)),
-        )
 }
 
 /** Green up to the norm, orange to the service number (or the top), red above it; the zone of the measurement a bit brighter. */
@@ -128,26 +107,30 @@ private fun DrawScope.drawBands(g: NormGeom, zones: List<NormZone>, lit: Int, in
     }
 }
 
-/** The norm (solid green, «до N») and the service number (dashed red) of each band. */
+/**
+ * The norm (solid green, «до N») and the service number (dashed red) of each band. A wide band has both labels above their
+ * lines; a narrow band hangs both under their lines (the zone name is above the plot), and a service label that would touch
+ * the norm label is left out: the dashed red line still says it.
+ */
 private fun DrawScope.drawZoneLines(g: NormGeom, zones: List<NormZone>, texts: NormTexts, ink: NormInk, l: Labels) {
     val pad = 5.dp.toPx()
+    val gap = 2.dp.toPx()
     zones.forEachIndexed { i, z ->
         val x0 = g.x(z.socFrom)
         val x1 = g.x(z.socTo)
+        val wide = z.socTo - z.socFrom > WIDE_ZONE
         val ny = g.y(z.normMv)
         drawLine(ink.ok, Offset(x0, ny), Offset(x1, ny), 1.5.dp.toPx())
         val upto = l.measure(texts.upto[i], 11f, ink.ok, bold = true)
-        drawText(upto, topLeft = Offset(x0 + pad, ny - upto.size.height - 2.dp.toPx()))
+        val uptoTop = if (wide || z.serviceMv == null) ny - upto.size.height - gap else ny + gap
+        drawText(upto, topLeft = Offset(x0 + pad, uptoTop))
         val svc = z.serviceMv ?: return@forEachIndexed
         val sy = g.y(svc)
         drawLine(ink.bad, Offset(x0, sy), Offset(x1, sy), 1.dp.toPx(), pathEffect = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 3.dp.toPx())))
-        val label = texts.service[i] ?: return@forEachIndexed
-        val t = l.measure(label, 11f, ink.bad)
-        if (z.socTo - z.socFrom > WIDE_ZONE) {
-            drawText(t, topLeft = Offset(x0 + pad, sy - t.size.height - 2.dp.toPx()))
-        } else {
-            drawText(t, topLeft = Offset(x1 - pad - t.size.width, sy + 3.dp.toPx()))
-        }
+        val t = l.measure(texts.service[i] ?: return@forEachIndexed, 11f, ink.bad)
+        val top = if (wide) sy - t.size.height - gap else sy + gap
+        val clash = !wide && top + t.size.height > uptoTop - gap && top < uptoTop + upto.size.height
+        if (!clash) drawText(t, topLeft = Offset(if (wide) x0 + pad else x1 - pad - t.size.width, top))
     }
 }
 
@@ -193,7 +176,7 @@ private fun DrawScope.drawHere(g: NormGeom, model: NormChartModel, texts: NormTe
     drawCircle(ink.chip, 6.5.dp.toPx(), c, style = Stroke(1.5.dp.toPx()))
     val h = (title.size.height + value.size.height).toFloat()
     val x = if (toLeft) c.x - 16.dp.toPx() - w else c.x + 16.dp.toPx()
-    val y = (c.y - h / 2f).coerceIn(g.top, g.bottom - h)
+    val y = (c.y - h / 2f).within(g.top, g.bottom - h)
     val pad = 6.dp.toPx()
     drawRoundRect(ink.chip.copy(alpha = CHIP), Offset(x - pad, y - pad / 2f), Size(w + pad * 2, h + pad), CornerRadius(pad))
     drawText(title, topLeft = Offset(x, y))

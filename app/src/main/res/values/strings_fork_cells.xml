@@ -223,7 +223,7 @@
     <string name="fork_cells_wtd_body_nothing">Батарея в отличном состоянии. Ездите как обычно. Проверка раз в месяц — для спокойствия.</string>
     <string name="fork_cells_wtd_body_watch">Есть отклонение, но в сервис пока рано. Перепроверьте в хороших условиях: «в сервис» ставится, только когда отклонение подтвердится.</string>
     <string name="fork_cells_wtd_body_service">Отклонение повторилось в разных замерах — это не случайность. Покажите этот экран в сервисе: по нему видно, какие ячейки отстают.</string>
-    <string name="fork_cells_wtd_body_none">Этот замер не подходит для оценки. Честный замер — когда машина постоит: ток до 5 А не меньше 15 минут и не на зарядке.</string>
+    <string name="fork_cells_wtd_body_none">Этот замер не подходит для оценки. Честный замер — после стоянки: ток до 5 А не меньше часа, не на зарядке; меньше 15 минут покоя — без оценки.</string>
     <string name="fork_cells_wtd_body_wait">Сейчас батарея отдыхает после зарядки — разброс ещё уменьшается. Замер через час после зарядки скажет точно.</string>
     <string name="fork_cells_wtd_body_prelim">Разброс в норме, но условия замера неточные. Следующий замер после стоянки подтвердит.</string>
     <string name="fork_cells_wtd_when">Когда перепроверить</string>
@@ -248,7 +248,7 @@
     <string name="fork_cells_wtd_row_top">после зарядки, ячейки выше 3,40 В</string>
     <string name="fork_cells_wtd_now">← сейчас</string>
     <string name="fork_cells_wtd_upto">≤ %1$d мВ</string>
-    <string name="fork_cells_wtd_service_from">в сервис от %1$d (дважды)</string>
+    <string name="fork_cells_wtd_service_from">в сервис от %1$d</string>
     <string name="fork_cells_wtd_yours">У вас: %1$d мВ — %2$s.</string>
     <string name="fork_cells_wtd_yours_ok">в норме</string>
     <string name="fork_cells_wtd_yours_above">выше нормы</string>
@@ -259,6 +259,7 @@
     <string name="fork_cells_wtd_svc_half">Ячейка ниже середины больше чем на половину порога «в сервис»</string>
     <string name="fork_cells_wtd_yes">сейчас — да</string>
     <string name="fork_cells_wtd_no">сейчас — нет</string>
+    <string name="fork_cells_wtd_unknown">сейчас — нет оценки</string>
     <string name="fork_cells_wtd_footnote">Одного условия мало: «в сервис» ставится, только когда разброс подтвердился во втором замере в другой день. Ячейка «выше всех» обычно значит неточный датчик, а не поломку.</string>
     <!-- Views: «Норма по заряду» -->
     <string name="fork_cells_norm_title">Норма зависит от заряда и от того, когда замер</string>
@@ -292,6 +293,7 @@
     <string name="fork_cells_norm_cells">%1$d ячейки</string>
     <string name="fork_cells_norm_strip">отклонение от середины · датчики %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">отклонение от середины</string>
+    <string name="fork_cells_norm_cold_note">холод: пороги × 2</string>
     <!-- Views: «Линейка» -->
     <string name="fork_cells_ruler_caption">разброс, мВ</string>
     <string name="fork_cells_ruler_norm">норма</string>
@@ -331,11 +333,13 @@
     <string name="fork_cells_eq_axis_parkings">дни · один замер на стоянку</string>
     <string name="fork_cells_eq_text_charge">После полной зарядки BMS сводит ячейки вместе: самые «высокие» ячейки слегка разряжаются через резисторы. Пока машина активна после зарядки, разброс у верха постепенно падает — это нормальный процесс, а не неисправность.</string>
     <string name="fork_cells_eq_text_ok">Разброс в покое держится в пределах нормы плато — батарея ровная.</string>
-    <string name="fork_cells_eq_text_watch">Разброс в покое выше нормы плато. «В сервис» ставится, только если он дважды в разные дни выше 90 мВ.</string>
+    <string name="fork_cells_eq_text_watch">Разброс в покое выше нормы плато. «В сервис» ставится, только если он дважды в разные дни выше %1$d мВ.</string>
     <string name="fork_cells_eq_text_service">Разброс растёт от стоянки к стоянке и дважды в разные дни выше порога «в сервис» — это не случайность, нужен сервис.</string>
     <string name="fork_cells_eq_text_none">Разброс в покое за две недели: одна точка — один замер.</string>
+    <string name="fork_cells_eq_text_other">Этот замер вне плато (%1$s): разброс %2$d мВ при норме до %3$d мВ — на графике плато его нет.</string>
     <string name="fork_cells_eq_empty_charge">Снимков после этой зарядки нет — график появится, когда машина побудет включённой после зарядки.</string>
     <string name="fork_cells_eq_empty_parkings">Замеров в покое за две недели пока нет.</string>
+    <string name="fork_cells_eq_no_data">Нет данных для графика.</string>
     <string name="fork_cells_eq_top_title">Выравниваются сильнее всего</string>
     <string name="fork_cells_eq_top_sub">ячейки выше середины — их BMS подтягивает вниз</string>
     <string name="fork_cells_eq_low_title">Ниже всех</string>

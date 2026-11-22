@@ -18,7 +18,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,7 +32,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
@@ -52,6 +51,8 @@ import com.bydmate.app.ui.theme.TextMuted
 import com.bydmate.app.ui.theme.TextPrimary
 import com.bydmate.app.ui.theme.TextSecondary
 import kotlin.math.roundToInt
+
+private val MENU_WIDTH = 600.dp
 
 /** Row 2 of the window: the live chips, then «Замер: … ▾» with the measurement picker. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -160,37 +161,44 @@ private fun PickerMenu(items: List<PickerItem>, selectedId: Long, onPick: (Long)
     }
 }
 
+/**
+ * One line of about 48 dp: «● kind · dd.MM, HH:mm · N мВ» and, muted, «предварительно» or «без оценки». A row of its own
+ * (the menu item of Material stops at 280 dp and wrapped the date); the menu is 600 dp wide.
+ */
 @Composable
 private fun PickerMenuItem(item: PickerItem, selected: Boolean, onPick: (Long) -> Unit) {
-    DropdownMenuItem(
-        text = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                LevelDot(item.level)
-                Spacer(Modifier.width(14.dp))
-                Text(
-                    stringResource(kindRes(item.kind)),
-                    color = if (selected) TextPrimary else TextSecondary,
-                    fontSize = 15.sp,
-                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
-                    maxLines = 1,
-                    modifier = Modifier.width(190.dp),
-                )
-                Text(dayMonthTime(item.ts), color = TextSecondary, fontSize = 15.sp, style = tnum(), modifier = Modifier.width(120.dp))
-                Text(
-                    TextRes(R.string.fork_cells_val_mv, item.spreadMv).text(),
-                    color = TextPrimary,
-                    fontSize = 15.sp,
-                    textAlign = TextAlign.End,
-                    style = tnum(),
-                    modifier = Modifier.width(76.dp),
-                )
-                Spacer(Modifier.width(18.dp))
-                LevelLabel(item.level, item.preliminary, 13.sp, Modifier.width(220.dp))
-            }
-        },
-        onClick = { onPick(item.id) },
-        modifier = if (selected) Modifier.background(CardSurface) else Modifier,
-    )
+    val note = when {
+        item.level == Level.NONE -> stringResource(R.string.fork_cells_level_none)
+        item.preliminary && item.level != null -> stringResource(R.string.fork_cells_level_prelim)
+        else -> null
+    }
+    // 600 dp, or the screen less a margin in a split screen
+    val width = minOf(MENU_WIDTH, (LocalConfiguration.current.screenWidthDp - 48).coerceAtLeast(280).dp)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.width(width).heightIn(min = 48.dp)
+            .then(if (selected) Modifier.background(CardSurface) else Modifier)
+            .clickable { onPick(item.id) }
+            .padding(horizontal = 18.dp),
+    ) {
+        LevelDot(item.level)
+        Spacer(Modifier.width(14.dp))
+        Text(
+            stringResource(kindRes(item.kind)),
+            color = if (selected) TextPrimary else TextSecondary,
+            fontSize = 15.sp,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.width(170.dp),
+        )
+        Text(" · ", color = TextMuted, fontSize = 15.sp)
+        Text(dayMonthTime(item.ts), color = TextSecondary, fontSize = 15.sp, maxLines = 1, softWrap = false, style = tnum())
+        Text(" · ", color = TextMuted, fontSize = 15.sp)
+        Text(TextRes(R.string.fork_cells_val_mv, item.spreadMv).text(), color = TextPrimary, fontSize = 15.sp, maxLines = 1, softWrap = false, style = tnum())
+        Spacer(Modifier.width(14.dp))
+        Text(note.orEmpty(), color = TextMuted, fontSize = 13.sp, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
+    }
 }
 
 /** A filled dot in the level's colour; a thin ring while the level is not known yet. */

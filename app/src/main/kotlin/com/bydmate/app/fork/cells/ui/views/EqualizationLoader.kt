@@ -28,14 +28,17 @@ internal class EqualizationLoader(private val repo: CellRepository) {
     }
 
     /**
-     * The last earlier period that reached SOC 100: its after-charge measurement, the start of its curve found the same way,
-     * and its snapshots from there for 18 h, cut where the current curve begins.
+     * The last earlier period that reached SOC 100 (or a full charge that day): its after-charge measurement, the start of its
+     * curve found the same way, and its snapshots from there for 18 h, cut where the current curve begins or where a later
+     * charge starts (a partial charge after it is not part of its equalization).
      */
     private suspend fun previousFull(before: Long): Pair<Long, List<SnapshotSummary>>? {
-        val m = repo.measurementsBetweenLimit(FULL_KINDS, 0L, before - 1, FULL_LOOKUP).firstOrNull { (it.soc ?: 0) >= FULL_SOC } ?: return null
+        val m = repo.measurementsBetweenLimit(FULL_KINDS, 0L, before - 1, FULL_LOOKUP)
+            .firstOrNull { (it.soc ?: 0) >= FULL_SOC || it.daysSinceFull == 0 } ?: return null
         val window = repo.summariesBetween(m.ts - EQ_WINDOW_MS, m.ts)
         val origin = window.lastOrNull { it.charging }?.ts ?: wakeStart(window, m.ts)
-        return origin to repo.summariesBetween(origin, minOf(origin + EQ_WINDOW_MS, before - 1))
+        val rows = repo.summariesBetween(origin, minOf(origin + EQ_WINDOW_MS, before - 1))
+        return origin to rows.takeWhile { it.ts <= origin || !it.charging }
     }
 
     /** Rest measurements of the 14 days up to the measurement, oldest first; the model keeps one per rest period. */

@@ -223,7 +223,7 @@
     <string name="fork_cells_wtd_body_nothing">The battery is in great shape. Drive as usual. A check once a month — for peace of mind.</string>
     <string name="fork_cells_wtd_body_watch">There is a deviation, but it is too early for the service. Check again in good conditions: “service” is given only when the deviation is confirmed.</string>
     <string name="fork_cells_wtd_body_service">The deviation repeated in different measurements — this is not chance. Show this screen at the service: it shows which cells lag.</string>
-    <string name="fork_cells_wtd_body_none">This measurement is not fit for a verdict. An honest one comes when the car stands still: current up to 5 A for at least 15 minutes, not charging.</string>
+    <string name="fork_cells_wtd_body_none">This measurement is not fit for a verdict. An honest one comes after parking: current up to 5 A for at least an hour, not charging; under 15 minutes of rest — no verdict.</string>
     <string name="fork_cells_wtd_body_wait">The battery is resting after charging — the spread is still shrinking. A measurement an hour after charging will tell for sure.</string>
     <string name="fork_cells_wtd_body_prelim">The spread is within the norm, but the conditions were not exact. The next measurement after parking will confirm it.</string>
     <string name="fork_cells_wtd_when">When to check again</string>
@@ -248,7 +248,7 @@
     <string name="fork_cells_wtd_row_top">after charging, cells above 3.40 V</string>
     <string name="fork_cells_wtd_now">← now</string>
     <string name="fork_cells_wtd_upto">≤ %1$d mV</string>
-    <string name="fork_cells_wtd_service_from">service from %1$d (twice)</string>
+    <string name="fork_cells_wtd_service_from">service from %1$d</string>
     <string name="fork_cells_wtd_yours">Yours: %1$d mV — %2$s.</string>
     <string name="fork_cells_wtd_yours_ok">within the norm</string>
     <string name="fork_cells_wtd_yours_above">above the norm</string>
@@ -259,6 +259,7 @@
     <string name="fork_cells_wtd_svc_half">A cell below the middle by more than half the “service” threshold</string>
     <string name="fork_cells_wtd_yes">now — yes</string>
     <string name="fork_cells_wtd_no">now — no</string>
+    <string name="fork_cells_wtd_unknown">now — no verdict</string>
     <string name="fork_cells_wtd_footnote">One condition is not enough: “service” is given only when the spread is confirmed by a second measurement on another day. A cell “above all” usually means an inaccurate sensor, not a fault.</string>
     <!-- Views: «Норма по заряду» -->
     <string name="fork_cells_norm_title">The norm depends on the charge and on when you measure</string>
@@ -292,6 +293,7 @@
     <string name="fork_cells_norm_cells">%1$d cells</string>
     <string name="fork_cells_norm_strip">deviation from the middle · probes %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">deviation from the middle</string>
+    <string name="fork_cells_norm_cold_note">cold: thresholds × 2</string>
     <!-- Views: «Линейка» -->
     <string name="fork_cells_ruler_caption">spread, mV</string>
     <string name="fork_cells_ruler_norm">normal</string>
@@ -331,11 +333,13 @@
     <string name="fork_cells_eq_axis_parkings">days · one measurement per parking</string>
     <string name="fork_cells_eq_text_charge">After a full charge the BMS brings the cells together: the “highest” cells are slightly discharged through resistors. While the car is active after charging, the spread at the top gradually falls — this is a normal process, not a fault.</string>
     <string name="fork_cells_eq_text_ok">The spread at rest stays within the plateau norm — the battery is even.</string>
-    <string name="fork_cells_eq_text_watch">The spread at rest is above the plateau norm. “Service” is given only if it is above 90 mV twice on different days.</string>
+    <string name="fork_cells_eq_text_watch">The spread at rest is above the plateau norm. “Service” is given only if it is above %1$d mV twice on different days.</string>
     <string name="fork_cells_eq_text_service">The spread grows from parking to parking and was above the “service” threshold twice on different days — this is not chance, the battery needs service.</string>
     <string name="fork_cells_eq_text_none">Spread at rest over two weeks: one dot — one measurement.</string>
+    <string name="fork_cells_eq_text_other">This measurement is outside the plateau (%1$s): spread %2$d mV with the norm up to %3$d mV — it is not on the plateau chart.</string>
     <string name="fork_cells_eq_empty_charge">No snapshots after this charge — the chart appears when the car stays on for a while after charging.</string>
     <string name="fork_cells_eq_empty_parkings">No rest measurements in the last two weeks yet.</string>
+    <string name="fork_cells_eq_no_data">No data for the chart.</string>
     <string name="fork_cells_eq_top_title">Balancing the most</string>
     <string name="fork_cells_eq_top_sub">cells above the middle — the BMS pulls them down</string>
     <string name="fork_cells_eq_low_title">Lowest of all</string>

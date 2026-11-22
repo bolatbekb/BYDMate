@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,6 +16,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -28,7 +28,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.R
@@ -138,29 +137,32 @@ private fun DrawScope.drawGlyphBadge(glyph: Glyph, color: Color, ink: Color, out
 }
 
 /**
- * The verdict of a view: badge, title in the level's colour (plain without a verdict), «предварительно», then what the
- * measurement says in words (the norm against the spread when all is well, else the first reasons).
+ * The verdict of a view, compact (it shares a column with another card): badge, title in the level's colour (plain without a
+ * verdict), «предварительно», then what the measurement says in words (the norm against the spread when all is well, else
+ * the first reason).
  */
 @Composable
-internal fun VerdictSummary(e: Evaluation, modifier: Modifier, titleSize: TextUnit = 22.sp) {
+internal fun VerdictSummary(e: Evaluation, modifier: Modifier) {
     ViewCard(modifier) {
-        Row(Modifier.then(cardScroll()).padding(horizontal = 20.dp, vertical = 18.dp)) {
-            GlyphBadge(glyphOf(e.level), levelColor(e.level), 44.dp)
-            Spacer(Modifier.width(16.dp))
+        Row(Modifier.then(cardScroll()).padding(horizontal = 18.dp, vertical = 12.dp)) {
+            GlyphBadge(glyphOf(e.level), levelColor(e.level), 36.dp)
+            Spacer(Modifier.width(14.dp))
             Column {
-                Text(
-                    stringResource(titleRes(e)),
-                    color = if (e.level == Level.NONE) TextPrimary else levelColor(e.level),
-                    fontSize = titleSize,
-                    fontWeight = FontWeight.SemiBold,
-                    lineHeight = titleSize * 1.22f,
-                )
-                if (e.preliminary && e.level != Level.NONE) {
-                    Text(stringResource(R.string.fork_cells_level_prelim), color = TextMuted, fontSize = 13.sp)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        stringResource(titleRes(e)),
+                        color = if (e.level == Level.NONE) TextPrimary else levelColor(e.level),
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        lineHeight = 24.sp,
+                        modifier = Modifier.weight(1f, fill = false),
+                    )
+                    if (e.preliminary && e.level != Level.NONE) {
+                        Text(stringResource(R.string.fork_cells_level_prelim), color = TextMuted, fontSize = 13.sp, maxLines = 1, modifier = Modifier.padding(start = 10.dp))
+                    }
                 }
-                Spacer(Modifier.height(8.dp))
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                    summaryTexts(e).forEach { Text(it.text(), color = TextSecondary, fontSize = 14.sp, lineHeight = 20.sp, style = tnum()) }
+                summaryTexts(e).firstOrNull()?.let {
+                    Text(it.text(), color = TextSecondary, fontSize = 13.5.sp, lineHeight = 19.sp, style = tnum(), modifier = Modifier.padding(top = 4.dp))
                 }
             }
         }
@@ -170,6 +172,6 @@ internal fun VerdictSummary(e: Evaluation, modifier: Modifier, titleSize: TextUn
 /** The title of a card and its muted line under it. */
 @Composable
 internal fun CardHead(title: String, caption: String? = null) {
-    Text(title, color = TextPrimary, fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-    if (caption != null) Text(caption, color = TextMuted, fontSize = 13.sp, lineHeight = 18.sp, modifier = Modifier.padding(top = 2.dp))
+    Text(title, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, lineHeight = 19.sp)
+    if (caption != null) Text(caption, color = TextMuted, fontSize = 12.sp, lineHeight = 16.sp, style = tnum(), modifier = Modifier.padding(top = 1.dp))
 }

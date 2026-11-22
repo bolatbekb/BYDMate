@@ -109,9 +109,9 @@ private const val COLD_LIMIT_C = 10
 @Composable
 internal fun ChecksGrid(model: RulerModel, e: Evaluation, modifier: Modifier) {
     val perRow = if (LocalCheckNarrow.current) 1 else 2
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = modifier) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = modifier) {
         model.checks.chunked(perRow).forEach { row ->
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
                 row.forEach { CheckCard(it, e, Modifier.weight(1f)) }
             }
         }
@@ -123,17 +123,17 @@ internal fun ChecksGrid(model: RulerModel, e: Evaluation, modifier: Modifier) {
 private fun CheckCard(c: RulerCheck, e: Evaluation, modifier: Modifier) {
     val t = checkTexts(c.kind, e, LocalConfiguration.current.locales[0])
     ViewCard(modifier) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
-            GlyphBadge(glyphOf(c.level), levelColor(c.level), 34.dp)
-            Spacer(Modifier.width(14.dp))
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 14.dp, vertical = 9.dp)) {
+            GlyphBadge(glyphOf(c.level), levelColor(c.level), 30.dp)
+            Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
-                Text(t.title.text(), color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
-                Text(anyText(t.desc), color = TextMuted, fontSize = 12.5.sp, lineHeight = 17.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, style = tnum())
+                Text(t.title.text(), color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp)
+                Text(anyText(t.desc), color = TextMuted, fontSize = 12.sp, lineHeight = 15.5.sp, maxLines = 2, overflow = TextOverflow.Ellipsis, style = tnum())
             }
             Spacer(Modifier.width(10.dp))
             Column(horizontalAlignment = Alignment.End) {
-                Text(anyText(t.value), color = TextPrimary, fontSize = 20.sp, fontWeight = FontWeight.SemiBold, maxLines = 1, style = tnum())
-                Text(t.sub.text(), color = TextMuted, fontSize = 12.sp, lineHeight = 16.sp, textAlign = TextAlign.End, maxLines = 2, style = tnum())
+                Text(anyText(t.value), color = TextPrimary, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, lineHeight = 23.sp, maxLines = 1, style = tnum())
+                Text(t.sub.text(), color = TextMuted, fontSize = 11.5.sp, lineHeight = 15.sp, textAlign = TextAlign.End, maxLines = 2, style = tnum())
             }
         }
     }

@@ -7,6 +7,9 @@ import com.bydmate.app.fork.cells.collect.MeasureKind
 import com.bydmate.app.fork.cells.data.CellRepository
 import com.bydmate.app.fork.cells.data.CellsDatabase
 import com.bydmate.app.fork.cells.data.CellsSettings
+import com.bydmate.app.fork.cells.ui.views.EqMode
+import com.bydmate.app.fork.cells.ui.views.EqualizationLoader
+import com.bydmate.app.fork.cells.ui.views.equalizationModel
 import com.bydmate.app.fork.cells.verdict.CellHistoryLoader
 import com.bydmate.app.fork.cells.verdict.Laggard
 import com.bydmate.app.fork.cells.verdict.Level
@@ -14,6 +17,7 @@ import com.bydmate.app.fork.cells.verdict.Reason
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -55,6 +59,21 @@ class DemoCellsSeederTest {
         assertTrue(e.laggards.toString(), Laggard(92, 6, 6) in e.laggards)
         assertTrue(e.reasons.toString(), Reason.BASE_GROWTH in e.reasons)
         assertTrue(e.spreadMv.toString(), e.spreadMv in 40..50)
+    }
+
+    @Test fun `the latest after-charge measurement has an equalization curve with the previous charge`() = runBlocking {
+        DemoCellsSeeder.seedIfEmpty(repo, settings, now, utc)
+        val latest = repo.measurementsBetweenLimit(setOf(MeasureKind.AFTER_CHARGE), 0, now, 1).first()
+        val window = repo.summariesBetween(latest.ts - 18 * 3_600_000L, latest.ts)
+        assertTrue(window.count { it.charging } == 1)
+        val e = CellHistoryLoader(repo).evaluate(latest.id, now)!!
+        val q = equalizationModel(e, EqualizationLoader(repo).load(e))
+        assertEquals(EqMode.AFTER_CHARGE, q.mode)
+        assertFalse(q.awakeAxis)
+        assertTrue("${q.points.size}", q.points.size >= 20)
+        // the top cells come down after the charge end
+        assertTrue("${q.points.first().mv} -> ${q.points.last().mv}", q.points.first().mv > q.points.last().mv + 50)
+        assertTrue("${q.previous.size}", q.previous.size >= 20)
     }
 
     @Test fun `seeded history has an after-charge measurement at the top and loads`() = runBlocking {

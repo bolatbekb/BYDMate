@@ -33,6 +33,10 @@ fun classColor(c: CellClass): Color = when (c) {
     CellClass.STRONGLY_LOW, CellClass.STRONGLY_HIGH -> SocRed
 }
 
+/** A cell of a measurement with [verdict]: red needs a verdict, so without one a strong deviation stays orange. */
+fun cellColor(c: CellClass, verdict: Level): Color =
+    if (verdict == Level.NONE && (c == CellClass.STRONGLY_LOW || c == CellClass.STRONGLY_HIGH)) AccentOrange else classColor(c)
+
 /** The manual line: taking is neutral, good conditions green, rough ones orange, a failure red. */
 fun manualColor(m: ManualUi): Color = when (m) {
     ManualUi.Idle, ManualUi.Taking -> TextSecondary

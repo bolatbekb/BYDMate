@@ -13,16 +13,30 @@ enum class Advice { NOTHING_TO_DO, WATCH, SERVICE, NO_VERDICT, WAIT_RELAX, PRELI
 
 enum class Recheck { AFTER_CHARGE_HOUR, AFTER_PARKING_HOUR, ON_PLATEAU, AFTER_FULL_AC, WARM, MONTHLY }
 
-/** One row of «Что считается нормой»: [labelKey] names the charge band, the numbers are the research thresholds. */
+/**
+ * One row of «Что считается нормой»: [labelKey] names the charge band; the numbers are the research thresholds, the
+ * measurement's own limits on its [current] row (doubled in the cold).
+ */
 data class NormRow(val labelKey: String, val row: ZoneRow, val normMv: Int, val serviceMv: Int?, val current: Boolean)
 
-/** «Что делать»: the advice, the six recheck rows (true = lit), the norm table, the spread and the three service conditions. */
+/**
+ * How a service condition reads: [UNKNOWN] without a verdict (neutral), [NO], [MET] while the verdict is below «в сервис»
+ * (orange: a condition alone is not a service), [MET_SERVICE] when the verdict is «в сервис» (red).
+ */
+enum class ConditionMark { UNKNOWN, NO, MET, MET_SERVICE }
+
+/**
+ * «Что делать»: the advice, the six recheck rows (true = lit), the norm table, the spread and the three service conditions
+ * with their [marks] (twice, laggard, half the service number); [cold]: the current row's numbers are doubled.
+ */
 data class WhatToDoModel(
     val advice: Advice,
     val recheck: List<Pair<Recheck, Boolean>>,
     val norms: List<NormRow>,
     val yoursMv: Int?,
     val service: ServiceConditions,
+    val marks: List<ConditionMark> = List(3) { ConditionMark.UNKNOWN },
+    val cold: Boolean = false,
 )
 
 private val NORM_ROWS = listOf(
@@ -36,9 +50,20 @@ private val NORM_ROWS = listOf(
 private val NO_CONDITIONS = ServiceConditions(twiceOnDifferentDays = false, laggardRepeats = false, cellBelowHalfService = false)
 
 fun whatToDoModel(e: Evaluation?): WhatToDoModel {
-    val norms = NORM_ROWS.map { (key, row) -> NormRow(key, row, row.normMv, row.serviceMv, e?.row == row) }
+    val norms = NORM_ROWS.map { (key, row) ->
+        if (e?.row == row) NormRow(key, row, e.limits.normMv, e.limits.serviceMv, true) else NormRow(key, row, row.normMv, row.serviceMv, false)
+    }
     if (e == null) return WhatToDoModel(Advice.NO_VERDICT, Recheck.entries.map { it to false }, norms, null, NO_CONDITIONS)
-    return WhatToDoModel(adviceOf(e), Recheck.entries.map { it to lit(it, e) }, norms, e.spreadMv, e.service)
+    val met = listOf(e.service.twiceOnDifferentDays, e.service.laggardRepeats, e.service.cellBelowHalfService)
+    val marks = met.map { m ->
+        when {
+            e.level == Level.NONE -> ConditionMark.UNKNOWN
+            !m -> ConditionMark.NO
+            e.level == Level.SERVICE -> ConditionMark.MET_SERVICE
+            else -> ConditionMark.MET
+        }
+    }
+    return WhatToDoModel(adviceOf(e), Recheck.entries.map { it to lit(it, e) }, norms, e.spreadMv, e.service, marks, e.limits.cold)
 }
 
 /** Order matters: no verdict first, then a pack still settling after a charge, then the level. */
@@ -67,8 +92,18 @@ private fun lit(r: Recheck, e: Evaluation): Boolean {
 /** A charge band of the «Норма по заряду» chart: SOC from–to, the norm and the service number. */
 data class NormZone(val socFrom: Int, val socTo: Int, val normMv: Int, val serviceMv: Int?)
 
-/** [here] and [previous] are (SOC, spread); [previous] is the earlier measurement of the same zone (its SOC is not stored). */
-data class NormChartModel(val zones: List<NormZone>, val here: Pair<Int, Int>?, val level: Level?, val previous: Pair<Int, Int>?)
+/**
+ * [here] and [previous] are (SOC, spread); [previous] is the earlier measurement of the same zone (its SOC is not stored).
+ * [lit] is the index of the measurement's zone, which carries the measurement's own limits ([cold]: doubled); -1 for none.
+ */
+data class NormChartModel(
+    val zones: List<NormZone>,
+    val here: Pair<Int, Int>?,
+    val level: Level?,
+    val previous: Pair<Int, Int>?,
+    val lit: Int = -1,
+    val cold: Boolean = false,
+)
 
 val NORM_ZONES: List<NormZone> = listOf(NormZone(0, 10, 150, null), NormZone(10, 15, 50, null), NormZone(15, 85, 20, 90), NormZone(85, 100, 150, 300))
 
@@ -80,11 +115,22 @@ private fun socOf(e: Evaluation): Int = e.input.soc ?: when (e.row) {
     ZoneRow.PLATEAU, ZoneRow.LOAD -> 50
 }
 
-/** A load measurement has no point: the bands are rest norms. */
+/** The band of [NORM_ZONES] a zone row belongs to; -1 for a load. */
+private fun zoneIndex(z: ZoneRow): Int = when (z) {
+    ZoneRow.LOW_UNDER_10 -> 0
+    ZoneRow.LOW_10_15 -> 1
+    ZoneRow.PLATEAU -> 2
+    ZoneRow.TOP, ZoneRow.TOP_KNEE -> 3
+    ZoneRow.LOAD -> -1
+}
+
+/** The warm bands of [NORM_ZONES], the measurement's band with its own limits; a load measurement has no point (rest norms). */
 fun normChartModel(e: Evaluation?): NormChartModel {
     if (e == null || e.row == ZoneRow.LOAD) return NormChartModel(NORM_ZONES, null, e?.level, null)
     val soc = socOf(e).coerceIn(0, 100)
-    return NormChartModel(NORM_ZONES, soc to e.spreadMv, e.level, e.previousSpreadMv?.let { soc to it })
+    val lit = zoneIndex(e.row)
+    val zones = NORM_ZONES.mapIndexed { i, z -> if (i == lit) z.copy(normMv = e.limits.normMv, serviceMv = e.limits.serviceMv) else z }
+    return NormChartModel(zones, soc to e.spreadMv, e.level, e.previousSpreadMv?.let { soc to it }, lit, e.limits.cold)
 }
 
 private const val LOG_SHIFT = 6.0
