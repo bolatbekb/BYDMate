@@ -131,6 +131,25 @@ class CellScheduleTest {
         assertEquals(period, s.restPeriod)
     }
 
+    @Test fun `a known rest under 15 minutes is no parking`() {
+        val short = schedule()
+        short.startSession(sample(0, 0.0), anchor(14))
+        assertFalse(short.onSample(sample(0, 0.0)).due.afterParking)
+        val enough = schedule()
+        enough.startSession(sample(0, 0.0), anchor(15))
+        assertTrue(enough.onSample(sample(0, 0.0)).due.afterParking)
+        val unknown = schedule()
+        unknown.startSession(sample(0, 0.0), null)
+        assertTrue(unknown.onSample(sample(0, 0.0)).due.afterParking)
+    }
+
+    @Test fun `a session joined without a wake asks no after-parking measurement`() {
+        val s = schedule()
+        s.startSession(sample(0, 0.0), anchor(120), wake = false)
+        assertFalse(s.onSample(sample(0, 0.0)).due.afterParking)
+        assertEquals(120, s.restMinutes(el(0)))
+    }
+
     @Test fun `after parking is dropped when the car pulls away first`() {
         val s = schedule()
         s.begin(anchor(120))

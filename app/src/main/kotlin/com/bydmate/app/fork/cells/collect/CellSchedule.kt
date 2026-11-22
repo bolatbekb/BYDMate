@@ -55,10 +55,15 @@ class CellSchedule(oneCAmps: Double, private val intervalMs: () -> Long) {
     /** null = unknown and less than 60 known minutes. */
     fun restMinutes(nowElapsedMs: Long): Int? = clock.minutes(nowElapsedMs)
 
-    fun startSession(s: LiveSample, anchor: SessionAnchor?) {
-        clock.begin(restSince(anchor, s.wallMs, s.elapsedMs), anchor?.wallMs ?: s.wallMs, s.elapsedMs)
+    /**
+     * [wake] false: the collector became active with the car already on (collection switched on), which is no
+     * parking. A known rest under 15 min is none either (an app restart mid-session, a short stop): no wake measurement.
+     */
+    fun startSession(s: LiveSample, anchor: SessionAnchor?, wake: Boolean = true) {
+        val rest = restSince(anchor, s.wallMs, s.elapsedMs)
+        clock.begin(rest, anchor?.wallMs ?: s.wallMs, s.elapsedMs)
         load.clear()
-        wakePending = true
+        wakePending = wake && (rest == null || rest >= MIN_PARKING_MS)
         anchorSoc = anchor?.soc
         lastStored = null
         lastContact = s.elapsedMs
@@ -149,6 +154,7 @@ class CellSchedule(oneCAmps: Double, private val intervalMs: () -> Long) {
         const val RELAX_FROM_MS = 300_000L
         const val RELAX_UNTIL_MS = 480_000L
         const val KEEPALIVE_MS = 60_000L
+        const val MIN_PARKING_MS = 15 * 60_000L
         private const val RELAX_TOP_MV = 3400
         private const val RELAX_TOP_SOC = 85
         private const val RELAX_SOC_RISE = 2

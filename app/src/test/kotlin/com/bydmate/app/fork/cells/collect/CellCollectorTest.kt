@@ -101,6 +101,9 @@ class CellCollectorTest {
     private var flagsFail = false
     private var seq = 0
 
+    /** Time the head unit spent asleep (elapsedRealtime − uptime). */
+    private var sleptMs = 0L
+
     @Before fun setUp() {
         val ctx = ApplicationProvider.getApplicationContext<Context>()
         // Room runs inline, so the test scheduler alone drives every step.
@@ -117,7 +120,8 @@ class CellCollectorTest {
 
     private fun test(body: suspend TestScope.() -> Unit) = runTest(StandardTestDispatcher()) { body() }
 
-    private fun TestScope.collector(): CellCollector {
+    /** [fresh]: TrackingService polled just now (its data is fresh); else its last poll is unknown. */
+    private fun TestScope.collector(fresh: Boolean = false): CellCollector {
         source.clock = { EL0 + testScheduler.currentTime }
         val c = CellCollector(
             settings, source, repo, live,
@@ -125,6 +129,8 @@ class CellCollectorTest {
             scope = backgroundScope,
             wall = { WALL0 + testScheduler.currentTime },
             elapsed = { EL0 + testScheduler.currentTime },
+            uptime = { EL0 + testScheduler.currentTime - sleptMs },
+            liveAtMs = { if (fresh) WALL0 + testScheduler.currentTime else 0L },
         )
         c.start()
         c.start()
@@ -135,8 +141,11 @@ class CellCollectorTest {
     private fun el(sec: Long) = EL0 + sec * 1000
 
     /** One live sample at [sec] seconds of test time (every sample differs, so the state flow passes it on). */
-    private fun TestScope.sample(sec: Long, current: Double? = 0.0, soc: Int? = 56, power: Int = 1) {
-        val d = sec * 1000 - testScheduler.currentTime
+    private fun TestScope.sample(sec: Long, current: Double? = 0.0, soc: Int? = 56, power: Int = 1) =
+        sampleMs(sec * 1000, current, soc, power)
+
+    private fun TestScope.sampleMs(atMs: Long, current: Double? = 0.0, soc: Int? = 56, power: Int = 1) {
+        val d = atMs - testScheduler.currentTime
         if (d > 0) advanceTimeBy(d)
         runCurrent()
         live.value = base.copy(soc = soc, hvCurrent = current, hvVoltage = 601, powerState = power, mileage = (seq++).toDouble())
@@ -454,5 +463,131 @@ class CellCollectorTest {
         assertEquals(false, source.listens.last())
         assertEquals(StreamState.IDLE, c.stream.value.state)
         assertEquals(0L, c.lastFrameMs.value)
+    }
+
+    @Test fun `head-unit sleep while active is a wake`() = test {
+        on()
+        collector()
+        sample(0)
+        sample(10)
+        sample(20)
+        // Quickboot: the head unit sleeps 9 h with the session still open, no «off» seen.
+        sleptMs += 9 * HOUR
+        sample(20 + 9 * 3600L)
+        val rs = rows()
+        assertEquals(listOf("AFTER_PARKING", "AFTER_PARKING"), rs.map { it.measure })
+        assertEquals(540, rs.last().restMin)
+        assertEquals(rs.first().ts, rs.last().restPeriod)
+        assertEquals(listOf(true, false, true), source.listens)
+    }
+
+    @Test fun `sleep growth of 5 s or less is the same session`() = test {
+        on()
+        collector()
+        sample(0)
+        sleptMs += 5_000
+        sample(10)
+        sample(20)
+        assertEquals(listOf("AFTER_PARKING"), rows().map { it.measure })
+        assertEquals(listOf(true), source.listens)
+    }
+
+    @Test fun `a 0,6 s power dip keeps the session and the relax state`() = test {
+        repo.insert(row(2 * HOUR))
+        on()
+        source.reply = { now -> SourceReply.Ok(pass(now) { it[0] = if (now >= el(300)) 3415 else 3420 }) }
+        collector()
+        for (t in 0L..90L step 10) sample(t)
+        // The start button pressed on a car already on: powerState 0 for 0.6 s.
+        sampleMs(100_000, power = 0)
+        sampleMs(100_600)
+        for (t in 110L..300L step 10) sample(t)
+        val rs = rows()
+        assertEquals(1, rs.count { it.measure == "AFTER_CHARGE" || it.measure == "AFTER_PARKING" })
+        assertEquals("RELAXING", rs[1].relax)
+        assertEquals(listOf(true), source.listens)
+    }
+
+    @Test fun `a 6 s off then on with a short known rest gives no after-parking row`() = test {
+        repo.insert(row(2 * HOUR))
+        on()
+        collector()
+        sample(0)
+        sample(10, power = 0)
+        sample(16, power = 0)
+        sample(20)
+        sample(25)
+        // The new session's first snapshot is a plain one: 20 s of rest is no parking.
+        assertEquals(listOf(null, "AFTER_PARKING", null), rows().map { it.measure })
+        assertEquals(0, rows().last().restMin)
+        assertEquals(listOf(true, false, true), source.listens)
+    }
+
+    @Test fun `a 6 s off then on after an hour of known rest is measured`() = test {
+        repo.insert(row(HOUR))
+        on()
+        collector()
+        sample(0, power = 0)
+        sample(6, power = 0)
+        sample(7)
+        val r = rows().last()
+        assertEquals("AFTER_PARKING", r.measure)
+        assertEquals(60, r.restMin)
+    }
+
+    @Test fun `an app restart mid-session takes no after-parking measurement`() = test {
+        repo.insert(row(2 * MIN))
+        on()
+        collector()
+        sample(0)
+        assertEquals(listOf(null, null), rows().map { it.measure })
+    }
+
+    @Test fun `switching collection on with the car on is no wake`() = test {
+        settings.setProfile(CarProfile.LEOPARD5_318)
+        collector()
+        for (t in 0L..5L) sample(t)
+        settings.setCollect(true)
+        runCurrent()
+        sample(6)
+        assertEquals(listOf(null), rows().map { it.measure })
+        assertEquals(listOf(true), source.listens)
+    }
+
+    @Test fun `a manual snapshot with collection off is no anchor`() = test {
+        settings.setProfile(CarProfile.LEOPARD5_318)
+        val c = collector()
+        sample(0)
+        val manual = c.takeManual() as ManualResult.Stored
+        sample(20, power = 0)
+        // Driven and parked while nothing watched; then collection goes on with the car off.
+        advanceTimeBy(2 * HOUR)
+        settings.setCollect(true)
+        runCurrent()
+        sample(2 * 3600L + 60)
+        val wake = rows().last()
+        assertEquals("AFTER_PARKING", wake.measure)
+        assertNull(wake.restMin)
+        assertTrue(wake.restPeriod != repo.entity(manual.id)!!.ts)
+    }
+
+    @Test fun `an unchanged live value is re-fed every 30 s while it is fresh`() = test {
+        on()
+        collector(fresh = true)
+        sample(0)
+        // TrackingService keeps polling the same values: the state flow emits nothing new.
+        advanceTimeBy(HOUR + MIN)
+        runCurrent()
+        val rest = rows().single { it.measure == "REST_IN_SESSION" }
+        assertEquals(60, rest.restMin)
+    }
+
+    @Test fun `stale live data is not re-fed`() = test {
+        on()
+        collector(fresh = false)
+        sample(0)
+        advanceTimeBy(HOUR + MIN)
+        runCurrent()
+        assertEquals(listOf("AFTER_PARKING"), rows().map { it.measure })
     }
 }

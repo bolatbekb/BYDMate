@@ -61,5 +61,6 @@ object CellsModule {
         settings, source, repo, live,
         flags = { bmsFlagsOf(helper.readBatch(BMS_FLAG_ITEMS)) },
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
+        liveAtMs = { TrackingService.lastDataAtMs },
     )
 }
