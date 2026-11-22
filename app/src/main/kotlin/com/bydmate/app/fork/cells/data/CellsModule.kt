@@ -8,6 +8,7 @@ import com.bydmate.app.fork.cells.collect.BMS_FLAG_ITEMS
 import com.bydmate.app.fork.cells.collect.CellCollector
 import com.bydmate.app.fork.cells.collect.bmsFlagsOf
 import com.bydmate.app.fork.cells.demo.DemoCellSource
+import com.bydmate.app.fork.cells.verdict.CellHistoryLoader
 import com.bydmate.app.service.TrackingService
 import dagger.Module
 import dagger.Provides
@@ -43,6 +44,10 @@ object CellsModule {
         val name = if (DemoMode.isOn(ctx)) CellsDatabase.DEMO_FILE_NAME else CellsDatabase.FILE_NAME
         return CellRepository(db.dao()) { ctx.getDatabasePath(name) }
     }
+
+    /** The verdict's reads of one measurement's history; stateless, so a new one per window is fine. */
+    @Provides
+    fun provideCellHistoryLoader(repo: CellRepository): CellHistoryLoader = CellHistoryLoader(repo)
 
     @Provides @Named("cellsLive")
     fun provideCellsLive(): StateFlow<DiParsData?> = TrackingService.lastData

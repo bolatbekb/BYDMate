@@ -179,6 +179,7 @@ private fun ColumnScope.DtcScanBlock(state: TechPanelUiState, onScan: () -> Unit
     if (!scanning && state.dtcScan.firmwareHint) DtcNote(R.string.tech_dtc_firmware_hint)
     Box(modifier = Modifier.weight(1f))
     FirmwareRow(state.firmware, onOpenFirmware)
+    com.bydmate.app.fork.cells.ui.BatteryCheckRow() // fork: battery check — «Проверка батареи» row under the firmware row
     if (state.scanLabel == DtcScanLabel.ONLY_PARK) {
         Text(
             stringResource(R.string.tech_dtc_only_on_p),
