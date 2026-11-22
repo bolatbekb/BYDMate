@@ -35,6 +35,7 @@
     <string name="fork_cells_clear_text">将删除所有快照和测量（%1$s）。设置会保留。</string>
     <string name="fork_cells_clear_confirm">清除</string>
     <string name="fork_cells_clear_cancel">取消</string>
+    <string name="fork_cells_clear_failed">无法清除数据</string>
     <string name="fork_cells_export_done">已保存：%1$s</string>
     <string name="fork_cells_export_failed">无法保存文件</string>
 </resources>

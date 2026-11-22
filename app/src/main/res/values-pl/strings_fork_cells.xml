@@ -35,6 +35,7 @@
     <string name="fork_cells_clear_text">Wszystkie zapisy i pomiary zostaną usunięte (%1$s). Ustawienia zostaną.</string>
     <string name="fork_cells_clear_confirm">Wyczyść</string>
     <string name="fork_cells_clear_cancel">Anuluj</string>
+    <string name="fork_cells_clear_failed">Nie udało się wyczyścić danych</string>
     <string name="fork_cells_export_done">Zapisano: %1$s</string>
     <string name="fork_cells_export_failed">Nie udało się zapisać pliku</string>
 </resources>

@@ -35,6 +35,7 @@
     <string name="fork_cells_clear_text">Todos os registros e medições serão apagados (%1$s). As configurações permanecem.</string>
     <string name="fork_cells_clear_confirm">Limpar</string>
     <string name="fork_cells_clear_cancel">Cancelar</string>
+    <string name="fork_cells_clear_failed">Não foi possível limpar os dados</string>
     <string name="fork_cells_export_done">Salvo: %1$s</string>
     <string name="fork_cells_export_failed">Não foi possível salvar o arquivo</string>
 </resources>

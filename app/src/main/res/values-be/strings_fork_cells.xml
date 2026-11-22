@@ -35,6 +35,7 @@
     <string name="fork_cells_clear_text">Будуць выдалены ўсе здымкі і замеры (%1$s). Налады застануцца.</string>
     <string name="fork_cells_clear_confirm">Ачысціць</string>
     <string name="fork_cells_clear_cancel">Скасаваць</string>
+    <string name="fork_cells_clear_failed">Не ўдалося ачысціць даныя</string>
     <string name="fork_cells_export_done">Захавана: %1$s</string>
     <string name="fork_cells_export_failed">Не ўдалося захаваць файл</string>
 </resources>

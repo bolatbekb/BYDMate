@@ -4,8 +4,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -31,7 +29,12 @@ import com.bydmate.app.fork.cells.ui.visibleRows
 import com.bydmate.app.ui.skin.AlertDialog
 import com.bydmate.app.ui.skin.Card
 import com.bydmate.app.ui.skin.RoundedCornerShape
+import com.bydmate.app.ui.skin.Text
+import com.bydmate.app.ui.skin.TextButton
+import com.bydmate.app.ui.theme.AccentGreen
 import com.bydmate.app.ui.theme.CardSurfaceElevated
+import com.bydmate.app.ui.theme.TextPrimary
+import com.bydmate.app.ui.theme.TextSecondary
 import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -102,7 +105,7 @@ private fun StatsRow(stats: CellStats?, notice: String?, vm: CellsSettingsViewMo
     var confirm by remember { mutableStateOf(false) }
     val locale = Locale.getDefault()
     val empty = stats == null || stats.row.snapshots == 0
-    val line = if (stats == null || empty) {
+    val line = if (empty) {
         stringResource(R.string.fork_cells_stats_empty)
     } else {
         val first = stats.row.firstTs?.let { SimpleDateFormat("dd.MM.yyyy", locale).format(Date(it)) }.orEmpty()
@@ -126,16 +129,16 @@ private fun StatsRow(stats: CellStats?, notice: String?, vm: CellsSettingsViewMo
     if (confirm) {
         AlertDialog(
             onDismissRequest = { confirm = false },
-            title = { Text(stringResource(R.string.fork_cells_clear_title)) },
+            title = { Text(stringResource(R.string.fork_cells_clear_title), color = TextPrimary) },
             text = {
-                val size = stats?.let { sizeText(it.bytes, locale) }.orEmpty()
-                Text(stringResource(R.string.fork_cells_clear_text, size))
+                val size = stats?.let { sizeText(it.bytes, locale) } ?: sizeText(0L, locale)
+                Text(stringResource(R.string.fork_cells_clear_text, size), color = TextSecondary)
             },
             confirmButton = {
-                TextButton(onClick = { confirm = false; vm.clear() }) { Text(stringResource(R.string.fork_cells_clear_confirm)) }
+                TextButton(onClick = { confirm = false; vm.clear() }) { Text(stringResource(R.string.fork_cells_clear_confirm), color = AccentGreen) }
             },
             dismissButton = {
-                TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.fork_cells_clear_cancel)) }
+                TextButton(onClick = { confirm = false }) { Text(stringResource(R.string.fork_cells_clear_cancel), color = TextSecondary) }
             },
         )
     }

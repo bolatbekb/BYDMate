@@ -35,6 +35,7 @@
     <string name="fork_cells_clear_text">All snapshots and measurements will be deleted (%1$s). Settings stay.</string>
     <string name="fork_cells_clear_confirm">Clear</string>
     <string name="fork_cells_clear_cancel">Cancel</string>
+    <string name="fork_cells_clear_failed">Could not clear the data</string>
     <string name="fork_cells_export_done">Saved: %1$s</string>
     <string name="fork_cells_export_failed">Could not save the file</string>
 </resources>

@@ -57,7 +57,10 @@ class CellsSettingsViewModel @Inject constructor(
     }
 
     fun clear() {
-        viewModelScope.launch { withContext(Dispatchers.IO) { repo.clear() } }
+        viewModelScope.launch {
+            val ok = withContext(Dispatchers.IO) { repo.clear() }
+            noticeState.value = if (ok) null else ctx.getString(R.string.fork_cells_clear_failed)
+        }
     }
 
     private companion object {
