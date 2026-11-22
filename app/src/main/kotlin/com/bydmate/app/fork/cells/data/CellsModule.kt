@@ -7,6 +7,7 @@ import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.fork.cells.collect.BMS_FLAG_ITEMS
 import com.bydmate.app.fork.cells.collect.CellCollector
 import com.bydmate.app.fork.cells.collect.bmsFlagsOf
+import com.bydmate.app.fork.cells.demo.DemoCellSource
 import com.bydmate.app.service.TrackingService
 import dagger.Module
 import dagger.Provides
@@ -47,7 +48,8 @@ object CellsModule {
     fun provideCellsLive(): StateFlow<DiParsData?> = TrackingService.lastData
 
     @Provides @Singleton
-    fun provideCellSource(): CellSource = HelperCellSource()
+    fun provideCellSource(@ApplicationContext ctx: Context): CellSource =
+        if (DemoMode.isOn(ctx)) DemoCellSource(TrackingService.lastData) else HelperCellSource()
 
     /** The flags are getInt reads (tx 5) through the author's batch read, once per stored snapshot (R3). */
     @Provides @Singleton
@@ -59,7 +61,8 @@ object CellsModule {
         helper: HelperClient,
     ): CellCollector = CellCollector(
         settings, source, repo, live,
-        flags = { bmsFlagsOf(helper.readBatch(BMS_FLAG_ITEMS)) },
+        // the demo never touches the real helper: no BMS flags there
+        flags = { if (source is DemoCellSource) null else bmsFlagsOf(helper.readBatch(BMS_FLAG_ITEMS)) },
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         liveAtMs = { TrackingService.lastDataAtMs },
     )
