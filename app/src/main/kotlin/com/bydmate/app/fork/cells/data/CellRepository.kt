@@ -35,6 +35,10 @@ class CellRepository(private val dao: CellDao, private val dbFile: () -> File) {
     suspend fun measurementsBetween(kinds: Set<MeasureKind>, from: Long, to: Long): List<SnapshotSummary> =
         guard("measurementsBetween") { dao.measurementsBetween(kinds.map { it.name }, from, to) } ?: emptyList()
 
+    suspend fun latestRestId(): Long? = guard("latestRestId") { dao.latestRestId() }
+
+    suspend fun latestLoadId(): Long? = guard("latestLoadId") { dao.latestLoadId() }
+
     suspend fun summariesBetween(from: Long, to: Long): List<SnapshotSummary> =
         guard("summariesBetween") { dao.summariesBetween(from, to) } ?: emptyList()
 
