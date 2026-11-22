@@ -8,6 +8,7 @@ import com.bydmate.app.fork.cells.data.SnapshotSummary
 import com.bydmate.app.fork.cells.data.StreamState
 import com.bydmate.app.fork.cells.data.StreamStatus
 import com.bydmate.app.fork.cells.stream.NO_TEMP
+import com.bydmate.app.fork.cells.ui.views.EqualizationData
 import com.bydmate.app.fork.cells.verdict.CellClass
 import com.bydmate.app.fork.cells.verdict.Evaluation
 import com.bydmate.app.fork.cells.verdict.Level
@@ -48,7 +49,8 @@ sealed interface ManualUi {
 
 /**
  * [framesSeen]: frames came since listening began (tells «stopped» from «never came»); [loading]: the first load of the window
- * runs; [levels]: the evaluated level of each measurement known so far, by id (picker and history).
+ * runs; [levels]: the evaluated level of each measurement known so far, by id (picker and history); [equalization]: what
+ * «Выравнивание» draws for the selected measurement, null until read (only while that view is chosen).
  */
 data class BatteryCheckUi(
     val config: CellsConfig,
@@ -65,6 +67,7 @@ data class BatteryCheckUi(
     val loading: Boolean = false,
     val selectedId: Long? = null,
     val levels: Map<Long, Level> = emptyMap(),
+    val equalization: EqualizationData? = null,
 )
 
 /** What the window can ask of its view model. */

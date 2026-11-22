@@ -11,9 +11,12 @@ import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellRepository
 import com.bydmate.app.fork.cells.data.CellsConfig
 import com.bydmate.app.fork.cells.data.CellsSettings
+import com.bydmate.app.fork.cells.data.CheckView
 import com.bydmate.app.fork.cells.data.MeasureKey
 import com.bydmate.app.fork.cells.data.StreamStatus
 import com.bydmate.app.fork.cells.data.cellsDb
+import com.bydmate.app.fork.cells.ui.views.EqualizationData
+import com.bydmate.app.fork.cells.ui.views.EqualizationLoader
 import com.bydmate.app.fork.cells.verdict.CellHistoryLoader
 import com.bydmate.app.fork.cells.verdict.Evaluation
 import com.bydmate.app.fork.cells.verdict.Level
@@ -31,8 +34,10 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -55,6 +60,8 @@ private data class WindowState(
     val soh: Float? = null,
     val loading: Boolean = false,
     val levels: Map<Long, Level> = emptyMap(),
+    /** What «Выравнивание» draws, with the id of the measurement it was read for. */
+    val eq: Pair<Long, EqualizationData>? = null,
 )
 
 private fun WindowState.toUi(c: CellsConfig, s: StreamStatus, framesSeen: Boolean, d: DiParsData?) = BatteryCheckUi(
@@ -72,6 +79,8 @@ private fun WindowState.toUi(c: CellsConfig, s: StreamStatus, framesSeen: Boolea
     loading = loading,
     selectedId = selectedId,
     levels = levels,
+    // data read for another measurement never shows: the selection may have changed while it loaded
+    equalization = eq?.takeIf { it.first == selected?.input?.id }?.second,
 )
 
 /**
@@ -91,6 +100,7 @@ class BatteryCheckViewModel @Inject constructor(
     internal var io: CoroutineDispatcher = Dispatchers.IO
 
     private val data = BatteryCheckData(repo, loader)
+    private val eqLoader = EqualizationLoader(repo)
     private val openState = MutableStateFlow(false)
     private val window = MutableStateFlow(WindowState())
     private var loadJob: Job? = null
@@ -106,6 +116,21 @@ class BatteryCheckViewModel @Inject constructor(
     val entry: StateFlow<EntryRow> = combine(config, collector.stream, collector.lastFrameMs, latestEvaluation(config, repo, data) { io }) { c, s, f, e ->
         entryRow(c, s, e, f > 0L)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_MS), EntryRow(EntryKind.HIDDEN))
+
+    init {
+        // «Выравнивание» reads its bounded windows only while it is the chosen view, once per selected measurement.
+        viewModelScope.launch {
+            combine(config, window) { c, w -> w.selected?.takeIf { c.view == CheckView.EQUALIZATION } }
+                .distinctUntilChangedBy { e -> e?.input?.let { it.id to it.ts } }
+                .collectLatest { e ->
+                    if (e == null) return@collectLatest
+                    // a failing read leaves the chart empty (it says so), never an exception
+                    val id = e.input.id
+                    val d = withContext(io) { cellsDb({ log("equalization", it) }) { eqLoader.load(e) } } ?: return@collectLatest
+                    window.update { if (it.selected?.input?.id == id) it.copy(eq = id to d) else it }
+                }
+        }
+    }
 
     fun openWindow() {
         if (openState.value) return

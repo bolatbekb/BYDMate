@@ -27,6 +27,7 @@ import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.fork.cells.data.CarProfile
+import com.bydmate.app.fork.cells.ui.views.ChosenView
 import com.bydmate.app.fork.cells.verdict.Level
 import com.bydmate.app.ui.skin.Text
 import com.bydmate.app.ui.theme.AccentOrange
@@ -96,7 +97,7 @@ private fun OpenWindow(vm: BatteryCheckViewModel) {
             dismiss = { if (vm.ui.value.details != null) vm.showDetails(null) else vm.closeWindow() },
         )
     }
-    BatteryCheckWindow(ui, actions) { VerdictBody(it) }
+    BatteryCheckWindow(ui, actions) { ChosenView(it) }
 }
 
 @Composable

@@ -18,8 +18,10 @@ import com.bydmate.app.fork.cells.data.CellRepository
 import com.bydmate.app.fork.cells.data.CellSnapshotEntity
 import com.bydmate.app.fork.cells.data.CellsDatabase
 import com.bydmate.app.fork.cells.data.CellsSettings
+import com.bydmate.app.fork.cells.data.CheckView
 import com.bydmate.app.fork.cells.data.StreamState
 import com.bydmate.app.fork.cells.data.StreamStatus
+import com.bydmate.app.fork.cells.ui.views.EqMode
 import com.bydmate.app.fork.cells.verdict.CellHistoryLoader
 import com.bydmate.app.fork.cells.verdict.DAY
 import com.bydmate.app.fork.cells.verdict.NOON
@@ -274,6 +276,25 @@ class BatteryCheckViewModelTest {
         settings.setCollect(true)
         advanceUntilIdle()
         assertEquals(EntryKind.NO_MEASUREMENTS, vm.entry.value.kind)
+    }
+
+    @Test fun `equalization is read only for its view and the selected measurement`() = runTest(dispatcher) {
+        val ids = (1..3).map { repo.insert(row(NOON - (4 - it) * DAY, "AFTER_PARKING", it.toLong(), spread = 5 + it))!! }
+        repo.insert(row(NOON - 20 * DAY, "AFTER_PARKING", 99L, spread = 30))
+        val vm = vm()
+        watch(vm)
+        vm.openWindow()
+        advanceUntilIdle()
+        assertEquals(null, vm.ui.value.equalization)
+        settings.setView(CheckView.EQUALIZATION)
+        advanceUntilIdle()
+        val d = vm.ui.value.equalization!!
+        assertEquals(EqMode.PARKINGS, d.mode)
+        // two weeks up to the selected measurement, oldest first
+        assertEquals(ids, d.points.map { it.id })
+        vm.select(ids[0])
+        advanceUntilIdle()
+        assertEquals(listOf(ids[0]), vm.ui.value.equalization!!.points.map { it.id })
     }
 
     @Test fun `enable collection switches the setting on`() = runTest(dispatcher) {
