@@ -52,3 +52,16 @@ private fun catalogPair(raw: String): Pair<String, Int>? {
     val fid = raw.substring(eq + 1).trim().toIntOrNull() ?: return null
     return raw.substring(0, eq).trim() to fid
 }
+
+/** The recorder only listens: a setter or a command id (top byte 0xAA) is never handed to `registerListener`. */
+internal fun isSubscribable(symbol: String, fid: Int): Boolean =
+    !isSetterName(symbol) && fid ushr 24 != COMMAND_CLASS_TOP
+
+/** The transact codes of a read: getInt (5), getFloat (7) and the read 9 the author's callers know. Any other code of a batch item
+ *  could be a write, so the daemon answers [REJECTED_TX_STATUS] without transacting it. */
+internal val READ_TX: Set<Int> = setOf(5, 7, 9)
+
+internal fun isReadTx(tx: Int): Boolean = tx in READ_TX
+
+/** Status of a batch item whose transact is not a read code (-998 is a throwing transact). */
+internal const val REJECTED_TX_STATUS = -997

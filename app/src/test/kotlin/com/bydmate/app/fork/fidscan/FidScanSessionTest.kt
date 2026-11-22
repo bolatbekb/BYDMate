@@ -844,4 +844,51 @@ class FidScanSessionTest {
         assertEquals(1, s.sweeps)
         assertEquals(1, fLines().size)
     }
+
+    @Test
+    fun dueSweepWaitsInReverseAndRunsAfterLeavingIt() = runTest {
+        io.liveData = di(gear = 2)
+        val s = session()
+        s.tick()
+        assertTrue(io.batches.isEmpty())
+        assertEquals(0, s.sweeps)
+        io.liveData = di(gear = 4)
+        io.now += 10_000L
+        s.tick()
+        assertEquals(1, s.sweeps)
+        assertFalse(io.batches.isEmpty())
+    }
+
+    @Test
+    fun reverseEngagedMidSweepStopsAfterTheCurrentBatch() = runTest {
+        io.catalogText = BIG_CATALOG
+        io.listText = BIG_LIST
+        io.failBatch = { io.liveData = di(gear = 2); false }
+        val s = session()
+        s.tick()
+        assertEquals(1, io.batches.size)
+        assertEquals(0, s.sweeps)
+        // Leaving reverse: the unfinished sweep is due again at once and completes.
+        io.failBatch = { false }
+        io.liveData = di(gear = 4)
+        io.now += 10_000L
+        s.tick()
+        assertEquals(1, s.sweeps)
+        assertEquals(4, io.batches.size)
+    }
+
+    @Test
+    fun runningRecorderAfterANoAnswerStartIsAdoptedNotRestarted() = runTest {
+        io.startResult = null
+        val s = session()
+        s.tick()
+        assertEquals(1, io.recStartCalls)
+        io.status = recStatus(true, "/a", 500)
+        io.now += MIN
+        s.tick()
+        assertEquals(1, io.recStartCalls)
+        assertEquals(1, pLines().count { it.contains("push adopted") })
+        assertTrue(s.pushRunning)
+        assertEquals(500L, s.usedBytes - sink.bytes)
+    }
 }

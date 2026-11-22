@@ -66,6 +66,7 @@ internal class FidScanSession(
     private val failures = HashMap<Int, Int>()
 
     private var pushStarted = false
+    private var pushAttempted = false
     private var nextPushAt = 0L
     private var pushBackoffMs = RETRY_MS
     private var finishedPushBytes = 0L
@@ -221,6 +222,7 @@ internal class FidScanSession(
         }
         if (!restart || now < nextPushAt || usedBytes >= BUDGET_BYTES) return
         moveCurrentPush()
+        if (!pushStarted && pushAttempted && adoptRunningPush(now)) return
         // Set before the call: whatever throws below, the next start waits at least the backoff.
         nextPushAt = now + pushBackoffMs
         startPush(now, devices)
@@ -242,9 +244,31 @@ internal class FidScanSession(
         }
     }
 
+    /** After a start that got no answer the helper may still have started: a running recorder is
+     *  taken over instead of asking for a second one. False when it is not running or cannot say. */
+    private suspend fun adoptRunningPush(now: Long): Boolean {
+        val st = try {
+            io.recStatus()
+        } catch (e: CancellationException) {
+            throw e
+        } catch (e: Throwable) {
+            null
+        }
+        if (st == null || !st.running) return false
+        pushStarted = true
+        pushRunning = true
+        pushBackoffMs = RETRY_MS
+        nextPushAt = now + RETRY_MS
+        currentPushPath = st.filePath
+        currentPushBytes = st.fileBytes
+        safeWrite("P ${timeOf(now)} push adopted path=${oneLine(st.filePath)} bytes=${st.fileBytes}")
+        return true
+    }
+
     /** One recStart (it holds the helper's mutex for up to 15 s): a P line after every attempt, a
      *  growing backoff after a failure, a minute's rest after a good start. */
     private suspend fun startPush(now: Long, devices: List<Int>) {
+        pushAttempted = true
         val t0 = io.nowMs()
         var r: FidRecStart? = null
         var thrown: String? = null
@@ -291,7 +315,9 @@ internal class FidScanSession(
 
     private suspend fun sweepIfDue(now: Long) {
         val list = items ?: return
-        if (list.isEmpty() || !sweepDue(now, lastSweepMs, modeChangePending)) return
+        if (list.isEmpty() || inReverse(io.live()) || !sweepDue(now, lastSweepMs, modeChangePending)) return
+        val priorSweepMs = lastSweepMs
+        val priorModeChange = modeChangePending
         lastSweepMs = now
         modeChangePending = false
         val firstPass = !baselineDone
@@ -300,7 +326,15 @@ internal class FidScanSession(
         var changed = 0
         var pos = 0
         while (pos < keys.size) {
-            if (pos > 0) delay(BATCH_PAUSE_MS)
+            if (pos > 0) {
+                delay(BATCH_PAUSE_MS)
+                if (inReverse(io.live())) {
+                    // The rest waits: the sweep is due again on the first tick after reverse.
+                    lastSweepMs = priorSweepMs
+                    modeChangePending = priorModeChange
+                    return
+                }
+            }
             val chunk = keys.subList(pos, minOf(pos + batchSymbols, keys.size))
             val res = readChunk(list, chunk) ?: return
             for ((j, key) in chunk.withIndex()) {

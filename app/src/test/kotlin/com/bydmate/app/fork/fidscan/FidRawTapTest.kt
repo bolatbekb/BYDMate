@@ -224,4 +224,19 @@ class FidRawTapTest {
         assertEquals(1, text.count { " buf fid=9900001F n=18 " in it })
         assertEquals("end", text.last())
     }
+
+    @Test
+    fun tapDetachesWhenItsRecorderFileIsClosed() {
+        val file = tmp.newFile("rec.txt")
+        val log = FidRecLog(file)
+        FidRawTap.attach(log)
+        assertTrue(FidRawTap.attached)
+        log.close("end")
+        val size = file.length()
+        FidRawTap.onBuffer(gb, cells(0, 1))
+        assertTrue(!FidRawTap.attached)
+        FidRawTap.onBuffer(gb, cells(1, 2))
+        assertEquals(size, file.length())
+        FidRawTap.reset()
+    }
 }

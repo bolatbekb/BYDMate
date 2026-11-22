@@ -23,11 +23,25 @@ internal object FidRawTap {
     fun attach(log: FidRecLog) {
         tap = null
         runCatching {
-            val fresh = RawTap(write = { line -> log.header(listOf(line)) })
+            var self: RawTap? = null
+            var dead = false
+            val fresh = RawTap(write = { line ->
+                val before = log.bytes
+                log.header(listOf(line))
+                // A closed recorder file swallows the append: drop the tap, later events cost a null check.
+                if (log.bytes == before) {
+                    dead = true
+                    if (tap === self) tap = null
+                }
+            })
+            self = fresh
             fresh.describe()
-            tap = fresh
+            if (!dead) tap = fresh
         }.onFailure { warn("attach", it) }
     }
+
+    /** Tests only: is a tap attached. */
+    internal val attached: Boolean get() = tap != null
 
     /** Vendor binder thread. Never throws: a failure costs this buffer only. */
     fun onBuffer(fid: Int, bytes: ByteArray?) {

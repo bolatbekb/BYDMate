@@ -108,6 +108,7 @@ internal fun readBatchIntoReply(
     reply?.writeInt(n)
     for (i in 0 until n) {
         val (status, retInt) = runCatching {
+            if (!com.bydmate.app.fork.fidscan.isReadTx(triples[i * 3])) return@runCatching com.bydmate.app.fork.fidscan.REJECTED_TX_STATUS to 0 // fork: fid scan — a batch item can only be a read
             doTransact(triples[i * 3], triples[i * 3 + 1], triples[i * 3 + 2])
         }.getOrElse { -998 to 0 }
         reply?.writeInt(status)

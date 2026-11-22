@@ -76,6 +76,29 @@ class FidRecorderTest {
         assertEquals(FID_REC_NO_ERROR, row.error)
     }
 
+    @Test fun `setters and command ids are never subscribed`() { // fork: fid scan
+        val cat = """
+            BYDAutoConstants.BYDAUTO_DEVICE_BODYWORK=1001
+            Bodywork.BODYWORK_GET_X=2000001
+            Bodywork.BODYWORK_DOOR_SET=2000002
+            Bodywork.BODYWORK_LIGHT_SET_lrse_hal_only=2000003
+            Bodywork.BODYWORK_MONITOR_TABLE_SENT_MONITOR_TABLE_SET=${0xAA000001.toInt()}
+            Bodywork.BODYWORK_CMD_ID=${0xAA000002.toInt()}
+        """.trimIndent()
+        FidRecorder.catalogSource = { cat }
+        val known = setOf(2000001, 2000002, 2000003, 0xAA000001.toInt(), 0xAA000002.toInt())
+        val device = FakeDevice(known)
+        FidRecorder.deviceFactory = { device }
+        FidRecorder.featureIdsSource = { known }
+        FidRecorder.start(intArrayOf(1001))
+
+        assertEquals(listOf(2000001), device.registered)
+        val row = FidRecorder.status().devices.single()
+        assertEquals(1, row.registered)
+        assertEquals(5, row.total)
+        assertEquals(4, row.filtered)
+    }
+
     @Test fun `the run writes a file with a header and one line per change`() {
         val device = start(setOf(2000001))
         val listener = device.listener!!

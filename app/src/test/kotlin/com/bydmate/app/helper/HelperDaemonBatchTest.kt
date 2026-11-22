@@ -93,4 +93,25 @@ class HelperDaemonBatchTest {
             data.recycle(); reply.recycle()
         }
     }
+
+    @Test // fork: fid scan — batch items that are not reads
+    fun `an item whose tx is not a read code is never transacted and answers -997`() {
+        val data = request(Triple(5, 1, 1), Triple(6, 2, 2), Triple(14, 3, 3))
+        val reply = Parcel.obtain()
+        val called = mutableListOf<Int>()
+        try {
+            readBatchIntoReply(data, reply) { tx, _, _ -> called += tx; 0 to 42 }
+            reply.setDataPosition(0)
+            assertEquals(3, reply.readInt())
+            assertEquals(0, reply.readInt())
+            assertEquals(42, reply.readInt())
+            assertEquals(-997, reply.readInt())
+            assertEquals(0, reply.readInt())
+            assertEquals(-997, reply.readInt())
+            assertEquals(0, reply.readInt())
+            assertEquals(listOf(5), called)
+        } finally {
+            data.recycle(); reply.recycle()
+        }
+    }
 }

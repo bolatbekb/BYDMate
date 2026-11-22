@@ -247,7 +247,7 @@ internal object FidRecorder {
             return
         }
         val features = featureIdsSource(dev)
-        val wanted = if (features == null) symbols else symbols.filter { it.fid in features }
+        val wanted = symbols.filter { com.bydmate.app.fork.fidscan.isSubscribable(it.symbol, it.fid) && (features == null || it.fid in features) } // fork: fid scan — never subscribe setters or command ids
         val filtered = symbols.size - wanted.size
         if (wanted.isEmpty()) {
             out[dev] = FidRecDeviceRow(dev, 0, symbols.size, filtered, 0, FID_REC_NO_ERROR)

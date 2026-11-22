@@ -10,7 +10,7 @@ internal const val MODE_SWEEP_MIN_GAP_MS = 60_000L
 internal const val TICK_MS = 10_000L
 internal const val BUDGET_BYTES = 400L * 1024 * 1024
 internal const val BATCH_SYMBOLS = 64
-internal const val BATCH_PAUSE_MS = 20L
+internal const val BATCH_PAUSE_MS = 200L
 internal const val RETRY_MS = 60_000L
 internal const val TX_INT = 5
 internal const val TX_DOUBLE = 7
@@ -43,6 +43,9 @@ internal fun scanMode(d: DiParsData?): ScanMode {
     if (d.gear == 2 || d.gear == 4 || (d.speed ?: 0) > 0) return ScanMode.DRIVE
     return ScanMode.PARK
 }
+
+/** Reverse gear (2, as [scanMode] decodes it): the reverse camera runs, so the scan reads nothing. */
+internal fun inReverse(d: DiParsData?): Boolean = d?.gear == 2
 
 /** True while the engine turns, false when it stands, null when the rpm is unknown. */
 internal fun engineRunning(d: DiParsData?): Boolean? = d?.engineRpm?.let { it > 0 }
