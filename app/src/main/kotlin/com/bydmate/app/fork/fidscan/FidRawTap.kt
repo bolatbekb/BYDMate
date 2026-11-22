@@ -6,6 +6,7 @@ import com.bydmate.app.helper.push.FidRecLog
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.atomic.AtomicReference
 
 // fork: raw stream capture of the fid scan test build. Runs in the helper daemon, next to the
 // author's recorder: the recorder hands every event's byte buffer here (one hook line in
@@ -16,12 +17,12 @@ import java.util.Locale
 
 /** The daemon's single tap; [attach] replaces it with a fresh one for each recorder file. */
 internal object FidRawTap {
-    @Volatile private var tap: RawTap? = null
+    private val tap = AtomicReference<RawTap?>(null)
     @Volatile private var failureLogged = false
 
     /** The author's recorder opened a new file: start over, writing into [log]. */
     fun attach(log: FidRecLog) {
-        tap = null
+        tap.set(null)
         runCatching {
             var self: RawTap? = null
             var dead = false
@@ -31,22 +32,22 @@ internal object FidRawTap {
                 // A closed recorder file swallows the append: drop the tap, later events cost a null check.
                 if (log.bytes == before) {
                     dead = true
-                    if (tap === self) tap = null
+                    tap.compareAndSet(self, null) // a newer tap attached meanwhile stays
                 }
             })
             self = fresh
             fresh.describe()
-            if (!dead) tap = fresh
+            if (!dead) tap.set(fresh)
         }.onFailure { warn("attach", it) }
     }
 
     /** Tests only: is a tap attached. */
-    internal val attached: Boolean get() = tap != null
+    internal val attached: Boolean get() = tap.get() != null
 
     /** Vendor binder thread. Never throws: a failure costs this buffer only. */
     fun onBuffer(fid: Int, bytes: ByteArray?) {
         if (bytes == null || bytes.isEmpty()) return
-        val current = tap ?: return
+        val current = tap.get() ?: return
         runCatching { current.onBuffer(fid, bytes) }.onFailure { warn("buffer fid=$fid", it) }
     }
 
@@ -57,7 +58,7 @@ internal object FidRawTap {
 
     /** Tests only: forget the tap. */
     internal fun reset() {
-        tap = null
+        tap.set(null)
         failureLogged = false
     }
 

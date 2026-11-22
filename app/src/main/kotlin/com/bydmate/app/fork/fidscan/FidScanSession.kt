@@ -221,6 +221,9 @@ internal class FidScanSession(
             }
         }
         if (!restart || now < nextPushAt || usedBytes >= BUDGET_BYTES) return
+        // Reverse gear: a start registers dozens of listeners and holds the helper for seconds,
+        // which BYDMate's own camera and blind-spot features share — start it after leaving R.
+        if (inReverse(io.live())) return
         moveCurrentPush()
         if (!pushStarted && pushAttempted && adoptRunningPush(now)) return
         // Set before the call: whatever throws below, the next start waits at least the backoff.

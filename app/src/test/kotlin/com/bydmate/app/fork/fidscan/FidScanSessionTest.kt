@@ -860,6 +860,18 @@ class FidScanSessionTest {
     }
 
     @Test
+    fun pushStartWaitsInReverseAndStartsAfterLeavingIt() = runTest {
+        io.liveData = di(gear = 2)
+        val s = session()
+        s.tick()
+        assertEquals(0, io.recStartCalls)
+        io.liveData = di(gear = 4)
+        io.now += 10_000L
+        s.tick()
+        assertEquals(1, io.recStartCalls)
+    }
+
+    @Test
     fun reverseEngagedMidSweepStopsAfterTheCurrentBatch() = runTest {
         io.catalogText = BIG_CATALOG
         io.listText = BIG_LIST
