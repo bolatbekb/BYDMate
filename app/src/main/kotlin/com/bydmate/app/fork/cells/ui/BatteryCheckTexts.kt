@@ -59,6 +59,7 @@ fun streamText(s: StreamStatus, framesSeen: Boolean): TextRes? = when (s.state) 
 fun manualText(m: ManualUi): TextRes? = when (m) {
     ManualUi.Idle -> null
     ManualUi.Taking -> TextRes(R.string.fork_cells_manual_taking)
+    ManualUi.Error -> TextRes(R.string.fork_cells_manual_error)
     is ManualUi.Done -> when (val r = m.r) {
         is ManualResult.Stored ->
             if (r.conditionsOk || r.problems.isEmpty()) {

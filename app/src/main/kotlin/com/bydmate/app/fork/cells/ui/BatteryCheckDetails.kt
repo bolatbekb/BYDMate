@@ -152,7 +152,7 @@ private fun DeviationRow(cell: Int, mv: Int, dev: Double, cls: CellClass, locale
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.fillMaxWidth().background(CardSurface, RoundedCornerShape(8.dp)).padding(horizontal = 14.dp, vertical = 9.dp),
     ) {
-        Text("№$cell", color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = tnum(), modifier = Modifier.width(72.dp))
+        Text(TextRes(R.string.fork_cells_cell_no, cell).text(), color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = tnum(), modifier = Modifier.width(72.dp))
         Text(TextRes(R.string.fork_cells_val_cell_v, cellVolts(mv, locale)).text(), color = TextSecondary, fontSize = 15.sp, style = tnum(), modifier = Modifier.weight(1f))
         Text(TextRes(R.string.fork_cells_val_signed_mv, signedMv(dev)).text(), color = classColor(cls), fontSize = 15.sp, fontWeight = FontWeight.SemiBold, style = tnum())
     }

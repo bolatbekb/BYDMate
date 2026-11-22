@@ -10,10 +10,10 @@
     <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31.8 kWh</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">Collect battery cell data</string>
-    <string name="fork_cells_collect_desc">While the car is on, the app saves the voltages of all %1$d cells and the temperatures of %2$d probes once per chosen interval. These snapshots build the «at rest», «after charging» and «under load» measurements and the history. Read-only: nothing is written to the car. The data is stored apart from the trips and charges database.</string>
+    <string name="fork_cells_collect_desc">While the car is on, the app saves the voltages of all %1$d cells and the temperatures of %2$d probes once per chosen interval. These snapshots build the “at rest”, “after charging” and “under load” measurements and the history. Read-only: nothing is written to the car. The data is stored apart from the trips and charges database.</string>
     <!-- Interval -->
     <string name="fork_cells_interval_title">How often to take a snapshot</string>
-    <string name="fork_cells_interval_desc">A snapshot is also taken right after the car is switched on (cells have «rested» while parked), after an hour of rest and under load — these are the most honest measurements. ≈ 0.5 KB per snapshot · at 30 s and 2 hours a day ≈ 0.1 MB a day</string>
+    <string name="fork_cells_interval_desc">A snapshot is also taken right after the car is switched on (cells have “rested” while parked), after an hour of rest and under load — these are the most honest measurements. ≈ 0.5 KB per snapshot · at 30 s and 2 hours a day ≈ 0.1 MB a day</string>
     <string name="fork_cells_interval_10s">10 s</string>
     <string name="fork_cells_interval_30s">30 s</string>
     <string name="fork_cells_interval_1m">1 min</string>
@@ -38,7 +38,7 @@
     <string name="fork_cells_clear_failed">Could not clear the data</string>
     <string name="fork_cells_export_done">Saved: %1$s</string>
     <string name="fork_cells_export_failed">Could not save the file</string>
-    <!-- Window «Battery check» -->
+    <!-- Window “Battery check” -->
     <string name="fork_cells_title">Battery check</string>
     <string name="fork_cells_collect_on">Data collection: on · a snapshot every %1$s</string>
     <string name="fork_cells_collect_off">Data collection is off</string>
@@ -47,7 +47,7 @@
     <string name="fork_cells_btn_enable">Turn collection on</string>
     <string name="fork_cells_btn_close">Close</string>
     <string name="fork_cells_btn_help">Thresholds and how to read the verdict</string>
-    <string name="fork_cells_off_text">Cell data collection is off. Turn it on and the app will save snapshots while the car is on. The setting is in «Service &amp; Data» → «Battery check».</string>
+    <string name="fork_cells_off_text">Cell data collection is off. Turn it on and the app will save snapshots while the car is on. The setting is in “Service &amp; Data” → “Battery check”.</string>
     <string name="fork_cells_empty">No measurements yet. The first honest one comes after the car has been parked.</string>
     <string name="fork_cells_chip_soc">Charge %1$s</string>
     <string name="fork_cells_chip_pack">Battery %1$s</string>
@@ -105,7 +105,7 @@
     <string name="fork_cells_reason_relax_unknown">Could not check whether the cells settled after charging — the verdict is preliminary.</string>
     <string name="fork_cells_reason_cold">Cold (probes %1$d °C): thresholds doubled, measure again when warm.</string>
     <string name="fork_cells_reason_above_norm">Spread %1$d mV with the norm up to %2$d mV.</string>
-    <string name="fork_cells_reason_service_once">Spread above the «service» threshold — repeat the measurement on another day.</string>
+    <string name="fork_cells_reason_service_once">Spread above the “service” threshold — repeat the measurement on another day.</string>
     <string name="fork_cells_reason_service_twice">Spread above %1$d mV in a second measurement on another day (before — %2$d mV).</string>
     <string name="fork_cells_reason_service_repeat">Spread above %1$d mV repeated in another measurement on the same cell.</string>
     <string name="fork_cells_reason_top_no_full">Charge to 100%% on AC and repeat the measurement.</string>
@@ -126,6 +126,7 @@
     <string name="fork_cells_manual_ok">Measurement taken: good conditions.</string>
     <string name="fork_cells_manual_bad">Measurement taken, but the conditions are rough: %1$s.</string>
     <string name="fork_cells_manual_failed">Could not take a measurement: %1$s</string>
+    <string name="fork_cells_manual_error">Could not take a measurement — please try again.</string>
     <string name="fork_cells_problem_current">current is flowing</string>
     <string name="fork_cells_problem_short_rest">rest under an hour</string>
     <string name="fork_cells_problem_unknown_rest">parking time unknown</string>
@@ -134,7 +135,7 @@
     <string name="fork_cells_fail_helper">the helper does not respond</string>
     <string name="fork_cells_fail_outdated">the helper is outdated, restart the app</string>
     <string name="fork_cells_fail_listen">the car refused the data subscription</string>
-    <string name="fork_cells_fail_timeout">complete cell data did not arrive within 12 seconds</string>
+    <string name="fork_cells_fail_timeout">complete cell data did not arrive</string>
     <string name="fork_cells_fail_no_car">no car chosen</string>
     <!-- Row on the car screen -->
     <string name="fork_cells_entry_collect_off">turn data collection on</string>
@@ -155,6 +156,7 @@
     <string name="fork_cells_legend_noticeable">noticeably different</string>
     <string name="fork_cells_legend_strong">much different</string>
     <string name="fork_cells_dev_none">All cells are within the norm — no noticeable deviations.</string>
+    <string name="fork_cells_cell_no">No. %1$d</string>
     <string name="fork_cells_probe_label">P%1$d</string>
     <string name="fork_cells_probe_hottest">warmest</string>
     <string name="fork_cells_probe_coldest">coldest</string>
@@ -165,7 +167,7 @@
     <string name="fork_cells_history_empty">No measurements at rest yet.</string>
     <!-- Help -->
     <string name="fork_cells_help_title">Cell spread thresholds — where they come from</string>
-    <string name="fork_cells_help_intro">BYD publishes no norms in mV. The thresholds come from Chinese standards, measurements of healthy BYD batteries and practice; each shows its origin. «Service» is never given on a single measurement.</string>
+    <string name="fork_cells_help_intro">BYD publishes no norms in mV. The thresholds come from Chinese standards, measurements of healthy BYD batteries and practice; each shows its origin. “Service” is never given on a single measurement.</string>
     <string name="fork_cells_help_col_condition">Measuring condition</string>
     <string name="fork_cells_help_col_zone">Zone</string>
     <string name="fork_cells_help_col_norm">Norm</string>
@@ -187,16 +189,16 @@
     <string name="fork_cells_help_row_low_10_15_cond">Rest ≥ 1 h</string>
     <string name="fork_cells_help_row_low_10_15_norm">≤ 50 mV</string>
     <string name="fork_cells_help_row_low_10_15_watch">more than 50 mV</string>
-    <string name="fork_cells_help_row_low_10_15_service">only together with a «lagging» cell</string>
+    <string name="fork_cells_help_row_low_10_15_service">only together with a “lagging” cell</string>
     <string name="fork_cells_help_row_low_under_10_cond">Rest ≥ 1 h</string>
     <string name="fork_cells_help_row_low_under_10_norm">≤ 150 mV</string>
     <string name="fork_cells_help_row_low_under_10_watch">more than 150 mV</string>
-    <string name="fork_cells_help_row_low_under_10_service">only together with a «lagging» cell</string>
+    <string name="fork_cells_help_row_low_under_10_service">only together with a “lagging” cell</string>
     <string name="fork_cells_help_row_load_cond">Under load ≥ 1C</string>
     <string name="fork_cells_help_row_load_norm">≤ 50 mV</string>
     <string name="fork_cells_help_row_load_watch">more than 50 mV</string>
     <string name="fork_cells_help_row_load_service">≥ 200 mV repeatedly on the same cell (preliminary)</string>
-    <string name="fork_cells_help_row_bms_flag_cond">BMS flag «poor consistency»</string>
+    <string name="fork_cells_help_row_bms_flag_cond">BMS flag “poor consistency”</string>
     <string name="fork_cells_help_row_bms_flag_zone">any</string>
     <string name="fork_cells_help_row_bms_flag_norm">—</string>
     <string name="fork_cells_help_row_bms_flag_watch">—</string>
@@ -207,8 +209,8 @@
     <string name="fork_cells_origin_community">community</string>
     <string name="fork_cells_origin_inference">inference</string>
     <string name="fork_cells_help_rule_short">Rest under 15 minutes and charging in progress — no verdict.</string>
-    <string name="fork_cells_help_rule_prelim">Rest 15–60 minutes — a «preliminary» verdict, never red.</string>
+    <string name="fork_cells_help_rule_prelim">Rest 15–60 minutes — a “preliminary” verdict, never red.</string>
     <string name="fork_cells_help_rule_cold">Cold: battery below 10 °C — thresholds × 2, never red, measure again when warm.</string>
-    <string name="fork_cells_help_rule_once">«Service» — only when the spread is confirmed by a second measurement on another day.</string>
-    <string name="fork_cells_help_rule_median">The reference point is the median of the 184 cells: one weak cell does not move it. «Noticeably» — a deviation above half the zone norm, «much» — above half the «service» threshold.</string>
+    <string name="fork_cells_help_rule_once">“Service” — only when the spread is confirmed by a second measurement on another day.</string>
+    <string name="fork_cells_help_rule_median">The reference point is the median of the 184 cells: one weak cell does not move it. “Noticeably” — a deviation above half the zone norm, “much” — above half the “service” threshold.</string>
 </resources>

@@ -42,6 +42,8 @@ class CellRepository(private val dao: CellDao, private val dbFile: () -> File) {
 
     suspend fun latestLoadId(): Long? = guard("latestLoadId") { dao.latestLoadId() }
 
+    fun latestRestKey(): Flow<MeasureKey?> = dao.latestRestKey().catch { fail("latestRestKey", it); emit(null) }
+
     suspend fun summariesBetween(from: Long, to: Long): List<SnapshotSummary> =
         guard("summariesBetween") { dao.summariesBetween(from, to) } ?: emptyList()
 

@@ -11,11 +11,12 @@ import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellRepository
 import com.bydmate.app.fork.cells.data.CellsConfig
 import com.bydmate.app.fork.cells.data.CellsSettings
-import com.bydmate.app.fork.cells.data.StreamState
+import com.bydmate.app.fork.cells.data.MeasureKey
 import com.bydmate.app.fork.cells.data.StreamStatus
 import com.bydmate.app.fork.cells.data.cellsDb
 import com.bydmate.app.fork.cells.verdict.CellHistoryLoader
 import com.bydmate.app.fork.cells.verdict.Evaluation
+import com.bydmate.app.fork.cells.verdict.Level
 import com.bydmate.app.fork.cells.verdict.SpreadPoint
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -52,6 +54,7 @@ private data class WindowState(
     val helpOpen: Boolean = false,
     val soh: Float? = null,
     val loading: Boolean = false,
+    val levels: Map<Long, Level> = emptyMap(),
 )
 
 private fun WindowState.toUi(c: CellsConfig, s: StreamStatus, framesSeen: Boolean, d: DiParsData?) = BatteryCheckUi(
@@ -68,6 +71,7 @@ private fun WindowState.toUi(c: CellsConfig, s: StreamStatus, framesSeen: Boolea
     framesSeen = framesSeen,
     loading = loading,
     selectedId = selectedId,
+    levels = levels,
 )
 
 /**
@@ -90,6 +94,7 @@ class BatteryCheckViewModel @Inject constructor(
     private val openState = MutableStateFlow(false)
     private val window = MutableStateFlow(WindowState())
     private var loadJob: Job? = null
+    private var manualJob: Job? = null
 
     val config: StateFlow<CellsConfig> = settings.config
     val open: StateFlow<Boolean> = openState.asStateFlow()
@@ -106,7 +111,7 @@ class BatteryCheckViewModel @Inject constructor(
         if (openState.value) return
         openState.value = true
         collector.setWindowOpen(true)
-        window.value = WindowState(loading = true)
+        window.value = WindowState(loading = true, manual = manualNow)
         reload(null)
         viewModelScope.launch {
             // One read when the window opens; the vehicle API may be away.
@@ -120,7 +125,8 @@ class BatteryCheckViewModel @Inject constructor(
         openState.value = false
         collector.setWindowOpen(false)
         loadJob?.cancel()
-        window.value = WindowState()
+        // a snapshot still being taken keeps its line for the next opening
+        window.value = WindowState(manual = manualNow)
     }
 
     /** The screen under the window went away (app in the background) or came back: listen only while it is seen. */
@@ -136,14 +142,14 @@ class BatteryCheckViewModel @Inject constructor(
         }
     }
 
+    /** One snapshot at a time: a second tap while one is being taken does nothing. */
     fun takeManual() {
-        if (window.value.manual == ManualUi.Taking) return
+        if (manualJob?.isActive == true) return
         window.update { it.copy(manual = ManualUi.Taking) }
-        viewModelScope.launch {
-            val r = withContext(io) { cellsDb({ log("manual", it) }) { collector.takeManual() } } ?: ManualResult.Failed(StreamState.CONNECTING)
-            if (!openState.value) return@launch
-            window.update { it.copy(manual = ManualUi.Done(r)) }
-            if (r is ManualResult.Stored) reload(r.id)
+        manualJob = viewModelScope.launch {
+            val r = withContext(io) { cellsDb({ log("manual", it) }) { collector.takeManual() } }
+            window.update { it.copy(manual = r?.let { done -> ManualUi.Done(done) } ?: ManualUi.Error) }
+            if (r is ManualResult.Stored && openState.value) reload(r.id)
         }
     }
 
@@ -157,7 +163,7 @@ class BatteryCheckViewModel @Inject constructor(
         if (openState.value) collector.setWindowOpen(false)
     }
 
-    /** Picker, selection and history first, the picker's levels after them. */
+    /** Picker, selection and history first, the levels of the picker and the history after them (cached by measurement). */
     private fun reload(select: Long?) {
         loadJob?.cancel()
         loadJob = viewModelScope.launch {
@@ -165,17 +171,22 @@ class BatteryCheckViewModel @Inject constructor(
             window.update {
                 it.copy(picker = d.picker, selectedId = d.selectedId, selected = d.selected, latestLoad = d.latestLoad, history = d.history, loading = false)
             }
-            val levelled = withContext(io) { data.withLevels(d.picker, listOf(d.selected, d.latestLoad)) }
-            window.update { it.copy(picker = levelled) }
+            val levels = withContext(io) { data.levels(d) }
+            window.update { it.copy(picker = levels.picker, levels = levels.byId) }
         }
     }
+
+    private val manualNow: ManualUi get() = if (manualJob?.isActive == true) ManualUi.Taking else ManualUi.Idle
 
     private companion object {
         const val STOP_MS = 5_000L
     }
 }
 
-/** The «Машина» row's evaluation: nothing without a car; re-read when the newest measurement or its relax state changes. */
+/**
+ * The «Машина» row's evaluation: nothing without a car; the latest rest measurement, else the newest of any kind,
+ * re-read when that one or its relax state changes. A failing read gives no evaluation, never an exception.
+ */
 @OptIn(ExperimentalCoroutinesApi::class)
 private fun latestEvaluation(
     config: StateFlow<CellsConfig>,
@@ -187,9 +198,13 @@ private fun latestEvaluation(
         if (!car) {
             flowOf(null)
         } else {
-            repo.measurements(1).map { list -> list.firstOrNull()?.let { it.id to it.relax } }.distinctUntilChanged()
-                .mapLatest { newest -> newest?.let { withContext(io()) { data.latest(it.first) } } }
+            val newest = repo.measurements(1).map { list -> list.firstOrNull()?.let { MeasureKey(it.id, it.relax) } }
+            combine(repo.latestRestKey(), newest) { rest, any -> rest ?: any }.distinctUntilChanged()
+                .mapLatest { key -> key?.let { withContext(io()) { data.evaluate(it.id) } } }
         }
+    }.catch { t ->
+        log("row", t)
+        emit(null)
     }
 
 private fun log(op: String, t: Throwable) {

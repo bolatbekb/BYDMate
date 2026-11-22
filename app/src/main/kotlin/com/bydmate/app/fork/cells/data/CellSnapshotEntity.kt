@@ -55,6 +55,9 @@ data class SnapshotSummary(
 
 data class AnchorRow(val ts: Long, val elapsedMs: Long, val soc: Int?)
 
+/** A measurement and its relax state: what its verdict depends on besides the history before it. */
+data class MeasureKey(val id: Long, val relax: String)
+
 data class CellStatsRow(val snapshots: Int, val firstTs: Long?, val rest: Int, val afterCharge: Int, val load: Int)
 
 data class CellStats(val row: CellStatsRow, val bytes: Long)

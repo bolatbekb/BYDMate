@@ -126,6 +126,7 @@
     <string name="fork_cells_manual_ok">Medição feita: boas condições.</string>
     <string name="fork_cells_manual_bad">Medição feita, mas as condições não são precisas: %1$s.</string>
     <string name="fork_cells_manual_failed">Não foi possível fazer a medição: %1$s</string>
+    <string name="fork_cells_manual_error">Não foi possível fazer a medição — tente de novo.</string>
     <string name="fork_cells_problem_current">há corrente</string>
     <string name="fork_cells_problem_short_rest">repouso de menos de uma hora</string>
     <string name="fork_cells_problem_unknown_rest">tempo de estacionamento desconhecido</string>
@@ -134,7 +135,7 @@
     <string name="fork_cells_fail_helper">o auxiliar não responde</string>
     <string name="fork_cells_fail_outdated">o auxiliar está desatualizado, reinicie o app</string>
     <string name="fork_cells_fail_listen">o carro recusou a inscrição nos dados</string>
-    <string name="fork_cells_fail_timeout">os dados completos das células não chegaram em 12 segundos</string>
+    <string name="fork_cells_fail_timeout">os dados completos das células não chegaram</string>
     <string name="fork_cells_fail_no_car">nenhum carro escolhido</string>
     <!-- Row on the car screen -->
     <string name="fork_cells_entry_collect_off">ligue a coleta de dados</string>
@@ -155,6 +156,7 @@
     <string name="fork_cells_legend_noticeable">visivelmente diferente</string>
     <string name="fork_cells_legend_strong">muito diferente</string>
     <string name="fork_cells_dev_none">Todas as células estão dentro da norma — sem desvios visíveis.</string>
+    <string name="fork_cells_cell_no">nº %1$d</string>
     <string name="fork_cells_probe_label">S%1$d</string>
     <string name="fork_cells_probe_hottest">o mais quente</string>
     <string name="fork_cells_probe_coldest">o mais frio</string>

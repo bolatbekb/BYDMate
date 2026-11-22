@@ -34,15 +34,22 @@ data class PickerItem(
     val restMin: Int? = null,
     val probeMinC: Int? = null,
     val probeMaxC: Int? = null,
+    val relax: String = "",
 )
 
 sealed interface ManualUi {
     data object Idle : ManualUi
     data object Taking : ManualUi
     data class Done(val r: ManualResult) : ManualUi
+
+    /** The snapshot failed with an error of its own (not a stream state). */
+    data object Error : ManualUi
 }
 
-/** [framesSeen]: frames came since listening began (tells «stopped» from «never came»); [loading]: the first load of the window runs. */
+/**
+ * [framesSeen]: frames came since listening began (tells «stopped» from «never came»); [loading]: the first load of the window
+ * runs; [levels]: the evaluated level of each measurement known so far, by id (picker and history).
+ */
 data class BatteryCheckUi(
     val config: CellsConfig,
     val header: HeaderUi,
@@ -57,6 +64,7 @@ data class BatteryCheckUi(
     val framesSeen: Boolean = false,
     val loading: Boolean = false,
     val selectedId: Long? = null,
+    val levels: Map<Long, Level> = emptyMap(),
 )
 
 /** What the window can ask of its view model. */
@@ -146,16 +154,28 @@ fun conditionsLine(e: Evaluation): List<ConditionPart> = buildList {
 /** A picker row from a list projection; null for a plain snapshot or an unknown kind. */
 fun pickerItemOf(s: SnapshotSummary, level: Level? = null, preliminary: Boolean = false): PickerItem? {
     val kind = s.measure?.let { k -> MeasureKind.entries.firstOrNull { it.name == k } } ?: return null
-    return PickerItem(s.id, kind, s.ts, s.spreadMv, level, preliminary, s.soc, s.currentA, s.restMin, s.probeMinC, s.probeMaxC)
+    return PickerItem(s.id, kind, s.ts, s.spreadMv, level, preliminary, s.soc, s.currentA, s.restMin, s.probeMinC, s.probeMaxC, s.relax)
 }
 
-/** Colour of a history point by the thresholds of its own row; cold doubles them and never gives red. */
-fun pointLevel(p: SpreadPoint): Level {
+/** A picker row for an evaluated measurement. */
+fun pickerItemOf(e: Evaluation): PickerItem {
+    val m = e.input
+    val probes = m.probesC.filter { it != NO_TEMP }
+    return PickerItem(m.id, m.kind, m.ts, e.spreadMv, e.level, e.preliminary, m.soc, m.currentA, m.restMin, probes.minOrNull(), probes.maxOrNull(), m.relax.name)
+}
+
+/** The picker with the selected measurement in it even when it is not among the listed ones (newest first then). */
+fun pickerWithSelection(picker: List<PickerItem>, selected: Evaluation?): List<PickerItem> {
+    if (selected == null || picker.any { it.id == selected.input.id }) return picker
+    return (picker + pickerItemOf(selected)).sortedByDescending { it.ts }
+}
+
+/**
+ * Colour of a history point: its evaluated level when known; else only the norm of its own row (cold doubles it):
+ * within → ok, above → watch. Red needs the verdict («в сервис» is never given on one measurement).
+ */
+fun pointLevel(p: SpreadPoint, known: Level? = null): Level {
+    if (known != null) return known
     val k = if (p.cold) 2 else 1
-    val service = p.row.serviceMv?.times(k)
-    return when {
-        p.spreadMv <= p.row.normMv * k -> Level.OK
-        service != null && p.spreadMv >= service && !p.cold -> Level.SERVICE
-        else -> Level.WATCH
-    }
+    return if (p.spreadMv <= p.row.normMv * k) Level.OK else Level.WATCH
 }

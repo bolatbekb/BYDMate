@@ -126,6 +126,7 @@
     <string name="fork_cells_manual_ok">Замер снят: условия хорошие.</string>
     <string name="fork_cells_manual_bad">Замер снят, но условия неточные: %1$s.</string>
     <string name="fork_cells_manual_failed">Не удалось снять замер: %1$s</string>
+    <string name="fork_cells_manual_error">Не удалось снять замер — попробуйте ещё раз.</string>
     <string name="fork_cells_problem_current">идёт ток</string>
     <string name="fork_cells_problem_short_rest">покой меньше часа</string>
     <string name="fork_cells_problem_unknown_rest">время стоянки неизвестно</string>
@@ -134,7 +135,7 @@
     <string name="fork_cells_fail_helper">помощник не отвечает</string>
     <string name="fork_cells_fail_outdated">помощник устарел, перезапустите приложение</string>
     <string name="fork_cells_fail_listen">машина не дала подписаться на данные</string>
-    <string name="fork_cells_fail_timeout">полные данные ячеек не пришли за 12 секунд</string>
+    <string name="fork_cells_fail_timeout">полные данные ячеек не пришли</string>
     <string name="fork_cells_fail_no_car">автомобиль не выбран</string>
     <!-- Row on «Машина» -->
     <string name="fork_cells_entry_collect_off">включите сбор данных</string>
@@ -155,6 +156,7 @@
     <string name="fork_cells_legend_noticeable">заметно отличается</string>
     <string name="fork_cells_legend_strong">сильно отличается</string>
     <string name="fork_cells_dev_none">Все ячейки в пределах нормы — заметных отклонений нет.</string>
+    <string name="fork_cells_cell_no">№%1$d</string>
     <string name="fork_cells_probe_label">Д%1$d</string>
     <string name="fork_cells_probe_hottest">самый тёплый</string>
     <string name="fork_cells_probe_coldest">самый холодный</string>

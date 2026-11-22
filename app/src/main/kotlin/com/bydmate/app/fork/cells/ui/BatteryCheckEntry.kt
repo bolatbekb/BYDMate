@@ -1,5 +1,8 @@
 package com.bydmate.app.fork.cells.ui
 
+import android.app.Activity
+import android.content.Context
+import android.content.ContextWrapper
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -10,6 +13,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
@@ -60,11 +64,17 @@ fun batteryCheckClick(vm: BatteryCheckViewModel = hiltViewModel()): Modifier {
     return Modifier.clickable(onClickLabel = label) { vm.openWindow() }
 }
 
-/** The window while it is open. Leaving «Машина» closes it, so it never listens behind the driver's back. */
+/**
+ * The window while it is open. Leaving «Машина» closes it, so it never listens behind the driver's back; a
+ * configuration change (the head unit's automatic day/night theme) keeps it: the view model outlives the activity.
+ */
 @Composable
 fun BatteryCheckHost(vm: BatteryCheckViewModel = hiltViewModel()) {
     val open by vm.open.collectAsStateWithLifecycle()
-    DisposableEffect(vm) { onDispose { vm.closeWindow() } }
+    val activity = LocalContext.current.findActivity()
+    DisposableEffect(vm, activity) {
+        onDispose { if (activity?.isChangingConfigurations != true) vm.closeWindow() }
+    }
     if (open) OpenWindow(vm)
 }
 
@@ -112,4 +122,10 @@ private fun entryText(row: EntryRow): AnnotatedString {
         }
         append(" ›")
     }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }

@@ -49,7 +49,7 @@ internal fun HistoryTab(ui: BatteryCheckUi) {
         if (ui.history.isEmpty()) {
             Text(stringResource(R.string.fork_cells_history_empty), color = TextSecondary, fontSize = 15.sp)
         } else {
-            CellCanvas.SpreadHistory(ui.history, ui.selectedId, Modifier.fillMaxWidth().height(250.dp))
+            CellCanvas.SpreadHistory(ui.history, ui.selectedId, ui.levels, Modifier.fillMaxWidth().height(250.dp))
         }
         val laggards = ui.selected?.laggards.orEmpty()
         if (laggards.isNotEmpty()) {
@@ -75,7 +75,7 @@ private fun LaggardRow(l: Laggard) {
 /** «Замеры»: every measurement of the picker, newest first, with its conditions; a tap selects it. */
 @Composable
 internal fun MeasuresTab(ui: BatteryCheckUi, actions: BatteryCheckActions) {
-    val items = remember(ui.picker) { ui.picker.sortedByDescending { it.ts } }
+    val items = remember(ui.picker, ui.selected) { pickerWithSelection(ui.picker, ui.selected).sortedByDescending { it.ts } }
     if (items.isEmpty()) {
         Text(stringResource(R.string.fork_cells_empty), color = TextSecondary, fontSize = 15.sp)
         return

@@ -1,5 +1,6 @@
 package com.bydmate.app.fork.cells.ui
 
+import com.bydmate.app.R
 import com.bydmate.app.fork.cells.collect.MeasureKind
 import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellsConfig
@@ -146,14 +147,38 @@ class BatteryCheckUiTest {
         assertEquals(listOf<Any>(92, 3, 6), texts[Reason.entries.indexOf(Reason.LAGGARD)].args)
     }
 
-    @Test fun `history points take the level of their own row`() {
+    @Test fun `history points take the evaluated level and are never red without it`() {
+        // without a verdict only the norm band counts: one measurement never says «в сервис»
         assertEquals(Level.OK, pointLevel(sp(1, 0, 18)))
         assertEquals(Level.WATCH, pointLevel(sp(1, 0, 40)))
-        assertEquals(Level.SERVICE, pointLevel(sp(1, 0, 95)))
+        assertEquals(Level.WATCH, pointLevel(sp(1, 0, 95)))
+        assertEquals(Level.WATCH, pointLevel(sp(1, 0, 95, prelim = true)))
+        assertEquals(Level.WATCH, pointLevel(sp(1, 0, 320, row = ZoneRow.TOP)))
         assertEquals(Level.OK, pointLevel(sp(1, 0, 140, row = ZoneRow.TOP)))
-        // cold doubles the thresholds and never gives red
+        // cold doubles the norm
         assertEquals(Level.OK, pointLevel(sp(1, 0, 38, cold = true)))
         assertEquals(Level.WATCH, pointLevel(sp(1, 0, 200, cold = true)))
+        // the verdict wins: the second measurement over 90 mV on another day is red, a capped one is not
+        assertEquals(Level.SERVICE, pointLevel(sp(1, 0, 95), known = Level.SERVICE))
+        assertEquals(Level.WATCH, pointLevel(sp(1, 0, 320, row = ZoneRow.TOP), known = Level.WATCH))
+        assertEquals(Level.NONE, pointLevel(sp(1, 0, 95, prelim = true), known = Level.NONE))
+    }
+
+    @Test fun `the selected measurement stays in the picker`() {
+        val listed = PickerItem(5, MeasureKind.AFTER_PARKING, nov22, 4, Level.OK, false)
+        assertEquals(listOf(listed), pickerWithSelection(listOf(listed), null))
+        val e = eval(m(spread = 6, id = 9, ts = nov22 - 40 * 86_400_000L))
+        val withOld = pickerWithSelection(listOf(listed), e)
+        assertEquals(listOf(5L, 9L), withOld.map { it.id })
+        assertEquals(Level.OK, withOld[1].level)
+        assertEquals(6, withOld[1].spreadMv)
+        // already listed: unchanged
+        assertEquals(listOf(listed), pickerWithSelection(listOf(listed), eval(m(id = 5, ts = nov22))))
+    }
+
+    @Test fun `an error of the manual snapshot has its own text`() {
+        assertEquals(TextRes(R.string.fork_cells_manual_error), manualText(ManualUi.Error))
+        assertNull(manualText(ManualUi.Idle))
     }
 
     @Test fun `signed deviation uses a real minus`() {

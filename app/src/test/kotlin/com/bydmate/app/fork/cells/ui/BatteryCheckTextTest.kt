@@ -38,6 +38,9 @@ class BatteryCheckTextTest {
         val t = manualText(ManualUi.Done(ManualResult.Stored(1, false, listOf(ManualProblem.CURRENT, ManualProblem.COLD))))!!
         assertEquals("Замер снят, но условия неточные: идёт ток, холодно.", resolve(t, r))
         assertEquals("Не удалось снять замер: машина не передаёт данные", resolve(manualText(ManualUi.Done(ManualResult.Failed(StreamState.NO_STREAM)))!!, r))
+        assertEquals("Не удалось снять замер: полные данные ячеек не пришли", resolve(manualText(ManualUi.Done(ManualResult.Failed(StreamState.CONNECTING)))!!, r))
+        assertEquals("Не удалось снять замер — попробуйте ещё раз.", resolve(manualText(ManualUi.Error)!!, r))
+        assertEquals("№92", resolve(TextRes(R.string.fork_cells_cell_no, 92), r))
     }
 
     @Test fun `the footer reads as one sentence`() {

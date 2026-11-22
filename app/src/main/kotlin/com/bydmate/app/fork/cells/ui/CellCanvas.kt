@@ -24,7 +24,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.fork.cells.verdict.CellClass
 import com.bydmate.app.fork.cells.verdict.Evaluation
+import com.bydmate.app.fork.cells.verdict.Level
 import com.bydmate.app.fork.cells.verdict.SpreadPoint
+import com.bydmate.app.ui.skin.withTnum
 import com.bydmate.app.ui.theme.AccentOrange
 import com.bydmate.app.ui.theme.CardBorder
 import com.bydmate.app.ui.theme.CardSurfaceElevated
@@ -64,8 +66,8 @@ object CellCanvas {
         val strong = SocRed
         val tile = CardBorder.copy(alpha = TILE_ALPHA)
         val labels = remember(e, measurer, base, muted, dark) {
-            val num = base.merge(TextStyle(fontSize = 10.sp, fontFeatureSettings = "tnum"))
-            val dev = base.merge(TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = dark, fontFeatureSettings = "tnum"))
+            val num = base.merge(TextStyle(fontSize = 10.sp)).withTnum()
+            val dev = base.merge(TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = dark)).withTnum()
             List(e.classes.size) { i ->
                 val off = e.classes[i] != CellClass.NORMAL
                 TileText(
@@ -78,16 +80,19 @@ object CellCanvas {
         Canvas(modifier) { drawGrid(fills, labels, max(1, columns)) }
     }
 
-    /** Spread per rest period, oldest left: the line, a dashed norm per point's own zone, dots by level; hollow = preliminary. */
+    /**
+     * Spread per rest period, oldest left: the line, a dashed norm per point's own zone, dots by the evaluated level from
+     * [levels] (by id; without one, only the norm band, never red); hollow = preliminary.
+     */
     @Composable
-    fun SpreadHistory(points: List<SpreadPoint>, selectedId: Long?, modifier: Modifier) {
+    fun SpreadHistory(points: List<SpreadPoint>, selectedId: Long?, levels: Map<Long, Level>, modifier: Modifier) {
         val measurer = rememberTextMeasurer()
         val colors = ChartColors(TextMuted, ConsumptionGood, CardBorder, TextPrimary)
         val watch = AccentOrange
         val bad = SocRed
-        val dots = remember(points, colors.norm, watch, bad) { points.map { levelColor(pointLevel(it)) } }
+        val dots = remember(points, levels, colors.norm, watch, bad) { points.map { levelColor(pointLevel(it, levels[it.id])) } }
         val hole = CardSurfaceElevated
-        val label = LocalTextStyle.current.merge(TextStyle(fontSize = 11.sp, color = TextMuted, fontFeatureSettings = "tnum"))
+        val label = LocalTextStyle.current.merge(TextStyle(fontSize = 11.sp, color = TextMuted)).withTnum()
         Canvas(modifier) { drawHistory(HistoryInput(points, selectedId, dots, hole), colors, measurer, label) }
     }
 }

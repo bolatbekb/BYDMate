@@ -100,7 +100,9 @@ private fun InfoChip(label: Int, value: String) {
 
 @Composable
 private fun PickerChip(ui: BatteryCheckUi, actions: BatteryCheckActions) {
-    val item = ui.picker.firstOrNull { it.id == ui.selectedId } ?: return
+    // the chosen measurement always has its chip, also when it is not among the listed ones
+    val items = pickerWithSelection(ui.picker, ui.selected)
+    val item = items.firstOrNull { it.id == ui.selectedId } ?: ui.selected?.let { pickerItemOf(it) } ?: return
     var open by remember { mutableStateOf(false) }
     val kind = stringResource(kindRes(item.kind))
     val full = stringResource(R.string.fork_cells_pick, kind, dayMonthTime(item.ts))
@@ -131,7 +133,7 @@ private fun PickerChip(ui: BatteryCheckUi, actions: BatteryCheckActions) {
         ) {
             ScaledDialogContent {
                 Column {
-                    PickerMenu(ui) {
+                    PickerMenu(items, item.id) {
                         open = false
                         actions.select(it)
                     }
@@ -143,9 +145,9 @@ private fun PickerChip(ui: BatteryCheckUi, actions: BatteryCheckActions) {
 
 /** Up to 30 measurements in rest and the others, then «Под нагрузкой» with the latest loads. */
 @Composable
-private fun PickerMenu(ui: BatteryCheckUi, onPick: (Long) -> Unit) {
-    val (loads, rest) = ui.picker.partition { it.kind == MeasureKind.LOAD }
-    rest.forEach { PickerMenuItem(it, it.id == ui.selectedId, onPick) }
+private fun PickerMenu(items: List<PickerItem>, selectedId: Long, onPick: (Long) -> Unit) {
+    val (loads, rest) = items.partition { it.kind == MeasureKind.LOAD }
+    rest.forEach { PickerMenuItem(it, it.id == selectedId, onPick) }
     if (loads.isNotEmpty()) {
         Text(
             stringResource(R.string.fork_cells_pick_loads),
@@ -154,7 +156,7 @@ private fun PickerMenu(ui: BatteryCheckUi, onPick: (Long) -> Unit) {
             fontWeight = FontWeight.SemiBold,
             modifier = Modifier.padding(start = 20.dp, top = 14.dp, bottom = 4.dp),
         )
-        loads.forEach { PickerMenuItem(it, it.id == ui.selectedId, onPick) }
+        loads.forEach { PickerMenuItem(it, it.id == selectedId, onPick) }
     }
 }
 

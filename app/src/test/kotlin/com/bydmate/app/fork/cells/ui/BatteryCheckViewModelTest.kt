@@ -1,6 +1,7 @@
 package com.bydmate.app.fork.cells.ui
 
 import android.content.Context
+import android.database.sqlite.SQLiteException
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.bydmate.app.data.remote.DiParsData
@@ -9,6 +10,8 @@ import com.bydmate.app.domain.battery.BatteryStateRepository
 import com.bydmate.app.fork.cells.collect.CellCollector
 import com.bydmate.app.fork.cells.collect.ManualProblem
 import com.bydmate.app.fork.cells.collect.ManualResult
+import com.bydmate.app.fork.cells.collect.Relax
+import com.bydmate.app.fork.cells.collect.RelaxUpdate
 import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellBlob
 import com.bydmate.app.fork.cells.data.CellRepository
@@ -20,15 +23,19 @@ import com.bydmate.app.fork.cells.data.StreamStatus
 import com.bydmate.app.fork.cells.verdict.CellHistoryLoader
 import com.bydmate.app.fork.cells.verdict.DAY
 import com.bydmate.app.fork.cells.verdict.NOON
+import com.bydmate.app.fork.cells.verdict.Level
 import com.bydmate.app.fork.cells.verdict.cells
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -134,6 +141,7 @@ class BatteryCheckViewModelTest {
         assertEquals(listOf(6), ui.history.map { it.spreadMv })
         assertEquals(96f, ui.header.sohPercent)
         assertTrue(ui.picker.all { it.level != null })
+        assertEquals(mapOf(rest to Level.OK), ui.levels.filterKeys { it == rest })
         assertEquals(EntryKind.RESULT, vm.entry.value.kind)
         assertEquals(6, vm.entry.value.spreadMv)
     }
@@ -185,7 +193,87 @@ class BatteryCheckViewModelTest {
         vm.openWindow()
         vm.takeManual()
         advanceUntilIdle()
-        assertEquals(ManualUi.Done(ManualResult.Failed(StreamState.CONNECTING)), vm.ui.value.manual)
+        assertEquals(ManualUi.Error, vm.ui.value.manual)
+    }
+
+    @Test fun `one manual snapshot at a time`() = runTest(dispatcher) {
+        val stored = ManualResult.Stored(1, true, emptyList())
+        coEvery { collector.takeManual() } coAnswers {
+            delay(3_000)
+            stored
+        }
+        val vm = vm()
+        watch(vm)
+        vm.openWindow()
+        vm.takeManual()
+        runCurrent()
+        vm.takeManual()
+        vm.takeManual()
+        // closing while it runs keeps «Снимаем замер…» for the next opening
+        vm.closeWindow()
+        vm.openWindow()
+        runCurrent()
+        assertEquals(ManualUi.Taking, vm.ui.value.manual)
+        vm.takeManual()
+        advanceUntilIdle()
+        coVerify(exactly = 1) { collector.takeManual() }
+        assertEquals(ManualUi.Done(stored), vm.ui.value.manual)
+        // done: the next tap takes another one
+        vm.takeManual()
+        advanceUntilIdle()
+        coVerify(exactly = 2) { collector.takeManual() }
+    }
+
+    @Test fun `levels are cached by measurement and reopening evaluates only the shown ones`() = runTest(dispatcher) {
+        val ids = (1..4).map { repo.insert(row(NOON - (5 - it) * DAY, "AFTER_PARKING", it.toLong(), spread = 5 + it))!! }
+        val load = repo.insert(row(NOON, "LOAD", null, spread = 40))!!
+        val loader = spyk(CellHistoryLoader(repo))
+        val vm = BatteryCheckViewModel(settings, repo, collector, loader, battery, live).also { it.io = dispatcher }
+        backgroundScope.launch { vm.ui.collect {} }
+        vm.openWindow()
+        advanceUntilIdle()
+        // selected + latest load, then the three other rest measurements once
+        coVerify(exactly = 5) { loader.evaluate(any(), any()) }
+        assertEquals((ids + load).toSet(), vm.ui.value.levels.keys)
+        assertTrue(vm.ui.value.picker.all { it.level != null })
+        vm.closeWindow()
+        vm.openWindow()
+        advanceUntilIdle()
+        // only the selected one and the latest load again: the picker levels come from the cache
+        coVerify(exactly = 7) { loader.evaluate(any(), any()) }
+        assertTrue(vm.ui.value.picker.all { it.level != null })
+        // a relax update makes that measurement new to the cache
+        repo.updateRelax(RelaxUpdate(ids[0], Relax.RELAXING, 6))
+        vm.closeWindow()
+        vm.openWindow()
+        advanceUntilIdle()
+        coVerify(exactly = 10) { loader.evaluate(any(), any()) }
+    }
+
+    @Test fun `a failing database gives an empty window and a valid row`() = runTest(dispatcher) {
+        val boom = SQLiteException("disk I/O error")
+        val broken = mockk<CellRepository> {
+            every { measurements(any()) } returns flow { throw boom }
+            every { latestRestKey() } returns flow { throw boom }
+            coEvery { measurementsBetweenLimit(any(), any(), any(), any()) } throws boom
+            coEvery { measurementsBetween(any(), any(), any()) } throws boom
+            coEvery { latestRestId() } throws boom
+            coEvery { latestLoadId() } throws boom
+            coEvery { entity(any()) } throws boom
+            coEvery { entities(any()) } throws boom
+        }
+        val vm = BatteryCheckViewModel(settings, broken, collector, CellHistoryLoader(broken), battery, live).also { it.io = dispatcher }
+        watch(vm)
+        vm.openWindow()
+        advanceUntilIdle()
+        assertTrue(vm.ui.value.picker.isEmpty())
+        assertEquals(null, vm.ui.value.selected)
+        assertTrue(vm.ui.value.history.isEmpty())
+        assertFalse(vm.ui.value.loading)
+        assertEquals(EntryKind.COLLECT_OFF, vm.entry.value.kind)
+        settings.setCollect(true)
+        advanceUntilIdle()
+        assertEquals(EntryKind.NO_MEASUREMENTS, vm.entry.value.kind)
     }
 
     @Test fun `enable collection switches the setting on`() = runTest(dispatcher) {

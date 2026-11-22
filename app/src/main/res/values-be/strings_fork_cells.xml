@@ -126,6 +126,7 @@
     <string name="fork_cells_manual_ok">Замер зроблены: умовы добрыя.</string>
     <string name="fork_cells_manual_bad">Замер зроблены, але ўмовы недакладныя: %1$s.</string>
     <string name="fork_cells_manual_failed">Не ўдалося зрабіць замер: %1$s</string>
+    <string name="fork_cells_manual_error">Не ўдалося зрабіць замер — паспрабуйце яшчэ раз.</string>
     <string name="fork_cells_problem_current">ідзе ток</string>
     <string name="fork_cells_problem_short_rest">спакой менш за гадзіну</string>
     <string name="fork_cells_problem_unknown_rest">час стаянкі невядомы</string>
@@ -134,7 +135,7 @@
     <string name="fork_cells_fail_helper">памочнік не адказвае</string>
     <string name="fork_cells_fail_outdated">памочнік састарэў, перазапусціце праграму</string>
     <string name="fork_cells_fail_listen">машына не дала падпісацца на даныя</string>
-    <string name="fork_cells_fail_timeout">поўныя даныя ячэек не прыйшлі за 12 секунд</string>
+    <string name="fork_cells_fail_timeout">поўныя даныя ячэек не прыйшлі</string>
     <string name="fork_cells_fail_no_car">аўтамабіль не выбраны</string>
     <!-- Row on «Машына» -->
     <string name="fork_cells_entry_collect_off">уключыце збор даных</string>
@@ -155,6 +156,7 @@
     <string name="fork_cells_legend_noticeable">прыкметна адрозніваецца</string>
     <string name="fork_cells_legend_strong">моцна адрозніваецца</string>
     <string name="fork_cells_dev_none">Усе ячэйкі ў межах нормы — прыкметных адхіленняў няма.</string>
+    <string name="fork_cells_cell_no">№%1$d</string>
     <string name="fork_cells_probe_label">Д%1$d</string>
     <string name="fork_cells_probe_hottest">самы цёплы</string>
     <string name="fork_cells_probe_coldest">самы халодны</string>

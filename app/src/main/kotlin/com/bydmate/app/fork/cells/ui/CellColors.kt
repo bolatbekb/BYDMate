@@ -8,6 +8,7 @@ import androidx.compose.ui.text.TextStyle
 import com.bydmate.app.fork.cells.collect.ManualResult
 import com.bydmate.app.fork.cells.verdict.CellClass
 import com.bydmate.app.fork.cells.verdict.Level
+import com.bydmate.app.ui.skin.withTnum
 import com.bydmate.app.ui.theme.AccentOrange
 import com.bydmate.app.ui.theme.ConsumptionGood
 import com.bydmate.app.ui.theme.SocRed
@@ -39,11 +40,10 @@ fun manualColor(m: ManualUi): Color = when (m) {
         is ManualResult.Stored -> if (r.conditionsOk || r.problems.isEmpty()) ConsumptionGood else AccentOrange
         is ManualResult.Failed -> SocRed
     }
+    ManualUi.Error -> SocRed
 }
 
-private val TABULAR = TextStyle(fontFeatureSettings = "tnum")
-
-/** The current text style with tabular digits, so numbers in rows and chips stay in their columns. */
+/** The current text style with the skin's tabular digits, so numbers in rows and chips stay in their columns. */
 @Composable
 @ReadOnlyComposable
-fun tnum(): TextStyle = LocalTextStyle.current.merge(TABULAR)
+fun tnum(): TextStyle = LocalTextStyle.current.withTnum()

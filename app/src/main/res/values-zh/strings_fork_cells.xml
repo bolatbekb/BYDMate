@@ -126,6 +126,7 @@
     <string name="fork_cells_manual_ok">测量完成：条件良好。</string>
     <string name="fork_cells_manual_bad">测量完成，但条件不够准确：%1$s。</string>
     <string name="fork_cells_manual_failed">无法完成测量：%1$s</string>
+    <string name="fork_cells_manual_error">无法完成测量 — 请重试。</string>
     <string name="fork_cells_problem_current">有电流</string>
     <string name="fork_cells_problem_short_rest">静置不足一小时</string>
     <string name="fork_cells_problem_unknown_rest">停车时长未知</string>
@@ -134,7 +135,7 @@
     <string name="fork_cells_fail_helper">助手无响应</string>
     <string name="fork_cells_fail_outdated">助手版本过旧，请重启应用</string>
     <string name="fork_cells_fail_listen">车辆拒绝订阅数据</string>
-    <string name="fork_cells_fail_timeout">12 秒内未收到完整的电芯数据</string>
+    <string name="fork_cells_fail_timeout">未收到完整的电芯数据</string>
     <string name="fork_cells_fail_no_car">未选择车辆</string>
     <!-- Row on the car screen -->
     <string name="fork_cells_entry_collect_off">请开启数据采集</string>
@@ -155,6 +156,7 @@
     <string name="fork_cells_legend_noticeable">略有差异</string>
     <string name="fork_cells_legend_strong">差异明显</string>
     <string name="fork_cells_dev_none">所有电芯都在正常范围内 — 没有明显偏差。</string>
+    <string name="fork_cells_cell_no">第 %1$d 号</string>
     <string name="fork_cells_probe_label">T%1$d</string>
     <string name="fork_cells_probe_hottest">最热</string>
     <string name="fork_cells_probe_coldest">最冷</string>

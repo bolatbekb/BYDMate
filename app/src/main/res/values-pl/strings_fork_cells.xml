@@ -126,6 +126,7 @@
     <string name="fork_cells_manual_ok">Pomiar wykonany: warunki dobre.</string>
     <string name="fork_cells_manual_bad">Pomiar wykonany, ale warunki są niedokładne: %1$s.</string>
     <string name="fork_cells_manual_failed">Nie udało się wykonać pomiaru: %1$s</string>
+    <string name="fork_cells_manual_error">Nie udało się wykonać pomiaru — spróbuj ponownie.</string>
     <string name="fork_cells_problem_current">płynie prąd</string>
     <string name="fork_cells_problem_short_rest">spoczynek krótszy niż godzina</string>
     <string name="fork_cells_problem_unknown_rest">czas postoju nieznany</string>
@@ -134,7 +135,7 @@
     <string name="fork_cells_fail_helper">pomocnik nie odpowiada</string>
     <string name="fork_cells_fail_outdated">pomocnik jest nieaktualny, uruchom aplikację ponownie</string>
     <string name="fork_cells_fail_listen">auto nie pozwoliło zasubskrybować danych</string>
-    <string name="fork_cells_fail_timeout">pełne dane ogniw nie przyszły w ciągu 12 sekund</string>
+    <string name="fork_cells_fail_timeout">pełne dane ogniw nie dotarły</string>
     <string name="fork_cells_fail_no_car">nie wybrano samochodu</string>
     <!-- Row on the car screen -->
     <string name="fork_cells_entry_collect_off">włącz zbieranie danych</string>
@@ -155,6 +156,7 @@
     <string name="fork_cells_legend_noticeable">wyraźnie się różni</string>
     <string name="fork_cells_legend_strong">znacznie się różni</string>
     <string name="fork_cells_dev_none">Wszystkie ogniwa mieszczą się w normie — brak wyraźnych odchyleń.</string>
+    <string name="fork_cells_cell_no">nr %1$d</string>
     <string name="fork_cells_probe_label">C%1$d</string>
     <string name="fork_cells_probe_hottest">najcieplejszy</string>
     <string name="fork_cells_probe_coldest">najzimniejszy</string>
