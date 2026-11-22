@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: battery check. Kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <!-- Block -->
+    <string name="fork_cells_settings_header">电池检测</string>
+    <!-- Car -->
+    <string name="fork_cells_car_title">车辆</string>
+    <string name="fork_cells_car_desc">电池组成取决于车型和版本。未选择车辆时，不显示电芯诊断。如果车辆报告的电芯数量不同，检测会提示数据与所选车辆不符。</string>
+    <string name="fork_cells_car_none">未选择</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31.8 kWh</string>
+    <!-- Collection -->
+    <string name="fork_cells_collect_title">采集电池电芯数据</string>
+    <string name="fork_cells_collect_desc">车辆启动期间，应用按所选间隔保存全部 %1$d 个电芯的电压和 %2$d 个温度探头的温度。这些快照用于生成“静置”“充电后”“负载下”的测量以及历史记录。仅读取，不会向车辆写入任何内容。数据与行程和充电数据库分开存放。</string>
+    <!-- Interval -->
+    <string name="fork_cells_interval_title">快照间隔</string>
+    <string name="fork_cells_interval_desc">此外，车辆启动后会立即记录一次快照（电芯经过停放已“休息”），静置一小时后以及负载下也会记录——这些是最可靠的测量。每个快照约 0.5 KB · 按 30 秒、每天 2 小时计算，约每天 0.1 MB</string>
+    <string name="fork_cells_interval_10s">10 秒</string>
+    <string name="fork_cells_interval_30s">30 秒</string>
+    <string name="fork_cells_interval_1m">1 分钟</string>
+    <string name="fork_cells_interval_5m">5 分钟</string>
+    <!-- View -->
+    <string name="fork_cells_view_title">电池检测视图</string>
+    <string name="fork_cells_view_what_to_do">该怎么做</string>
+    <string name="fork_cells_view_norm">按电量的标准</string>
+    <string name="fork_cells_view_ruler">标尺</string>
+    <string name="fork_cells_view_equalization">均衡</string>
+    <!-- Stored data -->
+    <string name="fork_cells_stats_title">已累计</string>
+    <string name="fork_cells_stats_value">快照：%1$s · %2$s · 自 %3$s</string>
+    <string name="fork_cells_stats_measures">测量：静置 — %1$d，充电后 — %2$d，负载下 — %3$d</string>
+    <string name="fork_cells_stats_empty">暂无采集数据</string>
+    <string name="fork_cells_export">导出 CSV</string>
+    <string name="fork_cells_clear">清除</string>
+    <string name="fork_cells_clear_title">清除电芯数据？</string>
+    <string name="fork_cells_clear_text">将删除所有快照和测量（%1$s）。设置会保留。</string>
+    <string name="fork_cells_clear_confirm">清除</string>
+    <string name="fork_cells_clear_cancel">取消</string>
+    <string name="fork_cells_export_done">已保存：%1$s</string>
+    <string name="fork_cells_export_failed">无法保存文件</string>
+</resources>

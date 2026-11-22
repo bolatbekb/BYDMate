@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: battery check. Kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <!-- Block -->
+    <string name="fork_cells_settings_header">Diagnostyka baterii</string>
+    <!-- Car -->
+    <string name="fork_cells_car_title">Samochód</string>
+    <string name="fork_cells_car_desc">Układ baterii zależy od modelu i wersji. Dopóki samochód nie jest wybrany, diagnostyka ogniw nie jest pokazywana. Jeśli auto zgłosi inną liczbę ogniw, kontrola ostrzeże, że dane nie zgadzają się z wybranym samochodem.</string>
+    <string name="fork_cells_car_none">Nie wybrano</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31,8 kWh</string>
+    <!-- Collection -->
+    <string name="fork_cells_collect_title">Zbieraj dane ogniw baterii</string>
+    <string name="fork_cells_collect_desc">Gdy auto jest włączone, aplikacja co wybrany interwał zapisuje napięcia wszystkich %1$d ogniw i temperatury %2$d czujników. Z tych zapisów powstają pomiary „w spoczynku”, „po ładowaniu”, „pod obciążeniem” oraz historia. Tylko odczyt, do auta nic nie jest zapisywane. Dane są przechowywane osobno od bazy przejazdów i ładowań.</string>
+    <!-- Interval -->
+    <string name="fork_cells_interval_title">Jak często zapisywać</string>
+    <string name="fork_cells_interval_desc">Dodatkowo zapis jest robiony zaraz po włączeniu auta (ogniwa „odpoczęły” na postoju), po godzinie spoczynku i pod obciążeniem — to najrzetelniejsze pomiary. ≈ 0,5 KB na zapis · przy 30 s i 2 godzinach dziennie ≈ 0,1 MB dziennie</string>
+    <string name="fork_cells_interval_10s">10 s</string>
+    <string name="fork_cells_interval_30s">30 s</string>
+    <string name="fork_cells_interval_1m">1 min</string>
+    <string name="fork_cells_interval_5m">5 min</string>
+    <!-- View -->
+    <string name="fork_cells_view_title">Widok kontroli baterii</string>
+    <string name="fork_cells_view_what_to_do">Co robić</string>
+    <string name="fork_cells_view_norm">Norma wg ładowania</string>
+    <string name="fork_cells_view_ruler">Linijka</string>
+    <string name="fork_cells_view_equalization">Wyrównywanie</string>
+    <!-- Stored data -->
+    <string name="fork_cells_stats_title">Zebrano</string>
+    <string name="fork_cells_stats_value">Zapisów: %1$s · %2$s · od %3$s</string>
+    <string name="fork_cells_stats_measures">Pomiary: w spoczynku — %1$d, po ładowaniu — %2$d, pod obciążeniem — %3$d</string>
+    <string name="fork_cells_stats_empty">Nic jeszcze nie zebrano</string>
+    <string name="fork_cells_export">Eksportuj CSV</string>
+    <string name="fork_cells_clear">Wyczyść</string>
+    <string name="fork_cells_clear_title">Wyczyścić dane ogniw?</string>
+    <string name="fork_cells_clear_text">Wszystkie zapisy i pomiary zostaną usunięte (%1$s). Ustawienia zostaną.</string>
+    <string name="fork_cells_clear_confirm">Wyczyść</string>
+    <string name="fork_cells_clear_cancel">Anuluj</string>
+    <string name="fork_cells_export_done">Zapisano: %1$s</string>
+    <string name="fork_cells_export_failed">Nie udało się zapisać pliku</string>
+</resources>

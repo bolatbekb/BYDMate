@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: battery check. Kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <!-- Block -->
+    <string name="fork_cells_settings_header">Диагностика батареи</string>
+    <!-- Car -->
+    <string name="fork_cells_car_title">Автомобиль</string>
+    <string name="fork_cells_car_desc">Состав батареи зависит от модели и версии. Пока автомобиль не выбран, диагностика ячеек не показывается. Если машина сообщит другое число ячеек, проверка предупредит, что данные не совпадают с выбранным автомобилем.</string>
+    <string name="fork_cells_car_none">Не выбран</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31,8 кВт·ч</string>
+    <!-- Collection -->
+    <string name="fork_cells_collect_title">Собирать данные ячеек батареи</string>
+    <string name="fork_cells_collect_desc">Пока машина включена, приложение раз в выбранный интервал сохраняет напряжения всех %1$d ячеек и температуры %2$d датчиков. Из этих снимков строятся замеры «в покое», «после зарядки», «под нагрузкой» и история. Только чтение, в машину ничего не пишется. Данные хранятся отдельно от базы поездок и зарядок.</string>
+    <!-- Interval -->
+    <string name="fork_cells_interval_title">Как часто делать снимок</string>
+    <string name="fork_cells_interval_desc">Дополнительно снимок делается сразу после включения машины (ячейки «отдохнули» за стоянку), после часа покоя и под нагрузкой — это самые честные замеры. ≈ 0,5 КБ на снимок · при 30 с и 2 часах в день ≈ 0,1 МБ в день</string>
+    <string name="fork_cells_interval_10s">10 с</string>
+    <string name="fork_cells_interval_30s">30 с</string>
+    <string name="fork_cells_interval_1m">1 мин</string>
+    <string name="fork_cells_interval_5m">5 мин</string>
+    <!-- View -->
+    <string name="fork_cells_view_title">Вид проверки батареи</string>
+    <string name="fork_cells_view_what_to_do">Что делать</string>
+    <string name="fork_cells_view_norm">Норма по заряду</string>
+    <string name="fork_cells_view_ruler">Линейка</string>
+    <string name="fork_cells_view_equalization">Выравнивание</string>
+    <!-- Stored data -->
+    <string name="fork_cells_stats_title">Накоплено</string>
+    <string name="fork_cells_stats_value">Снимков: %1$s · %2$s · с %3$s</string>
+    <string name="fork_cells_stats_measures">Замеры: в покое — %1$d, после зарядки — %2$d, под нагрузкой — %3$d</string>
+    <string name="fork_cells_stats_empty">Пока ничего не собрано</string>
+    <string name="fork_cells_export">Выгрузить CSV</string>
+    <string name="fork_cells_clear">Очистить</string>
+    <string name="fork_cells_clear_title">Очистить данные ячеек?</string>
+    <string name="fork_cells_clear_text">Будут удалены все снимки и замеры (%1$s). Настройки останутся.</string>
+    <string name="fork_cells_clear_confirm">Очистить</string>
+    <string name="fork_cells_clear_cancel">Отмена</string>
+    <string name="fork_cells_export_done">Сохранено: %1$s</string>
+    <string name="fork_cells_export_failed">Не удалось сохранить файл</string>
+</resources>

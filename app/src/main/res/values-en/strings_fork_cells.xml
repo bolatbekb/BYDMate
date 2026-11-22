@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: battery check. Kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <!-- Block -->
+    <string name="fork_cells_settings_header">Battery check</string>
+    <!-- Car -->
+    <string name="fork_cells_car_title">Car</string>
+    <string name="fork_cells_car_desc">The battery layout depends on the model and version. Until a car is chosen, cell diagnostics are hidden. If the car reports a different number of cells, the check warns that the data does not match the chosen car.</string>
+    <string name="fork_cells_car_none">Not chosen</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31.8 kWh</string>
+    <!-- Collection -->
+    <string name="fork_cells_collect_title">Collect battery cell data</string>
+    <string name="fork_cells_collect_desc">While the car is on, the app saves the voltages of all %1$d cells and the temperatures of %2$d probes once per chosen interval. These snapshots build the «at rest», «after charging» and «under load» measurements and the history. Read-only: nothing is written to the car. The data is stored apart from the trips and charges database.</string>
+    <!-- Interval -->
+    <string name="fork_cells_interval_title">How often to take a snapshot</string>
+    <string name="fork_cells_interval_desc">A snapshot is also taken right after the car is switched on (cells have «rested» while parked), after an hour of rest and under load — these are the most honest measurements. ≈ 0.5 KB per snapshot · at 30 s and 2 hours a day ≈ 0.1 MB a day</string>
+    <string name="fork_cells_interval_10s">10 s</string>
+    <string name="fork_cells_interval_30s">30 s</string>
+    <string name="fork_cells_interval_1m">1 min</string>
+    <string name="fork_cells_interval_5m">5 min</string>
+    <!-- View -->
+    <string name="fork_cells_view_title">Battery check view</string>
+    <string name="fork_cells_view_what_to_do">What to do</string>
+    <string name="fork_cells_view_norm">Norm by charge</string>
+    <string name="fork_cells_view_ruler">Ruler</string>
+    <string name="fork_cells_view_equalization">Balancing</string>
+    <!-- Stored data -->
+    <string name="fork_cells_stats_title">Collected</string>
+    <string name="fork_cells_stats_value">Snapshots: %1$s · %2$s · since %3$s</string>
+    <string name="fork_cells_stats_measures">Measurements: at rest — %1$d, after charging — %2$d, under load — %3$d</string>
+    <string name="fork_cells_stats_empty">Nothing collected yet</string>
+    <string name="fork_cells_export">Export CSV</string>
+    <string name="fork_cells_clear">Clear</string>
+    <string name="fork_cells_clear_title">Clear cell data?</string>
+    <string name="fork_cells_clear_text">All snapshots and measurements will be deleted (%1$s). Settings stay.</string>
+    <string name="fork_cells_clear_confirm">Clear</string>
+    <string name="fork_cells_clear_cancel">Cancel</string>
+    <string name="fork_cells_export_done">Saved: %1$s</string>
+    <string name="fork_cells_export_failed">Could not save the file</string>
+</resources>

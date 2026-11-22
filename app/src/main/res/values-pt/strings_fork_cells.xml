@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: battery check. Kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <!-- Block -->
+    <string name="fork_cells_settings_header">Diagnóstico da bateria</string>
+    <!-- Car -->
+    <string name="fork_cells_car_title">Carro</string>
+    <string name="fork_cells_car_desc">A composição da bateria depende do modelo e da versão. Enquanto nenhum carro for escolhido, o diagnóstico das células não é mostrado. Se o carro informar outro número de células, a verificação avisará que os dados não correspondem ao carro escolhido.</string>
+    <string name="fork_cells_car_none">Não escolhido</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31,8 kWh</string>
+    <!-- Collection -->
+    <string name="fork_cells_collect_title">Coletar dados das células da bateria</string>
+    <string name="fork_cells_collect_desc">Com o carro ligado, o app salva a cada intervalo escolhido as tensões de todas as %1$d células e as temperaturas de %2$d sensores. Desses registros saem as medições «em repouso», «após carregar», «sob carga» e o histórico. Somente leitura: nada é gravado no carro. Os dados ficam separados do banco de viagens e carregamentos.</string>
+    <!-- Interval -->
+    <string name="fork_cells_interval_title">Com que frequência registrar</string>
+    <string name="fork_cells_interval_desc">Um registro também é feito logo após ligar o carro (as células «descansaram» no estacionamento), depois de uma hora de repouso e sob carga — são as medições mais fiéis. ≈ 0,5 KB por registro · com 30 s e 2 horas por dia ≈ 0,1 MB por dia</string>
+    <string name="fork_cells_interval_10s">10 s</string>
+    <string name="fork_cells_interval_30s">30 s</string>
+    <string name="fork_cells_interval_1m">1 min</string>
+    <string name="fork_cells_interval_5m">5 min</string>
+    <!-- View -->
+    <string name="fork_cells_view_title">Visão da verificação da bateria</string>
+    <string name="fork_cells_view_what_to_do">O que fazer</string>
+    <string name="fork_cells_view_norm">Norma pela carga</string>
+    <string name="fork_cells_view_ruler">Régua</string>
+    <string name="fork_cells_view_equalization">Equalização</string>
+    <!-- Stored data -->
+    <string name="fork_cells_stats_title">Acumulado</string>
+    <string name="fork_cells_stats_value">Registros: %1$s · %2$s · desde %3$s</string>
+    <string name="fork_cells_stats_measures">Medições: em repouso — %1$d, após carregar — %2$d, sob carga — %3$d</string>
+    <string name="fork_cells_stats_empty">Nada coletado ainda</string>
+    <string name="fork_cells_export">Exportar CSV</string>
+    <string name="fork_cells_clear">Limpar</string>
+    <string name="fork_cells_clear_title">Limpar os dados das células?</string>
+    <string name="fork_cells_clear_text">Todos os registros e medições serão apagados (%1$s). As configurações permanecem.</string>
+    <string name="fork_cells_clear_confirm">Limpar</string>
+    <string name="fork_cells_clear_cancel">Cancelar</string>
+    <string name="fork_cells_export_done">Salvo: %1$s</string>
+    <string name="fork_cells_export_failed">Não foi possível salvar o arquivo</string>
+</resources>
