@@ -165,6 +165,13 @@ class CellScheduleTest {
         assertFalse(g.onSample(sample(8, 60.0)).due.load)
     }
 
+    @Test fun `strong regeneration is not a load episode`() {
+        // The live current is negative while charging or regenerating: load is discharge only.
+        val s = schedule()
+        s.begin(null)
+        for (t in 0..20) assertFalse(s.onSample(sample(t.toLong(), -60.0)).due.load)
+    }
+
     @Test fun `one load measurement per episode`() {
         val s = schedule()
         s.begin(null)

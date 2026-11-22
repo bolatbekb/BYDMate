@@ -1,8 +1,9 @@
 package com.bydmate.app.fork.cells.collect
 
-import kotlin.math.abs
-
-/** R9: a stretch of samples at or above 1C, no more than LOAD_GAP_MS apart. */
+/**
+ * R9: a stretch of discharge samples at or above 1C, no more than LOAD_GAP_MS apart. The live current
+ * is negative while charging or regenerating (the author's FidMap hvCurrent), so load is discharge only.
+ */
 class LoadEpisode(private val oneCAmps: Double) {
     private var start: Long? = null
     private var lastHigh = 0L
@@ -20,7 +21,7 @@ class LoadEpisode(private val oneCAmps: Double) {
     /** The episode's first elapsed ms when the load window is complete and not yet measured. */
     fun update(s: LiveSample): Long? {
         val i = s.currentA ?: return null
-        if (s.charging || abs(i) < oneCAmps) {
+        if (s.charging || i < oneCAmps) {
             start = null
             return null
         }
