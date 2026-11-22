@@ -36,6 +36,9 @@ interface CellDao {
     @Query("SELECT $SUMMARY FROM cell_snapshots WHERE measure IN (:kinds) AND ts BETWEEN :from AND :to ORDER BY ts DESC")
     suspend fun measurementsBetween(kinds: List<String>, from: Long, to: Long): List<SnapshotSummary>
 
+    @Query("SELECT $SUMMARY FROM cell_snapshots WHERE measure IN (:kinds) AND ts BETWEEN :from AND :to ORDER BY ts DESC LIMIT :limit")
+    suspend fun measurementsBetweenLimit(kinds: List<String>, from: Long, to: Long, limit: Int): List<SnapshotSummary>
+
     @Query("SELECT id FROM cell_snapshots WHERE measure IS NOT NULL AND measure != 'LOAD' AND rest_period IS NOT NULL ORDER BY ts DESC LIMIT 1")
     suspend fun latestRestId(): Long?
 

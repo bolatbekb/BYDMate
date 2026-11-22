@@ -26,4 +26,16 @@ class LoadVerdictTest {
         val w = CellVerdict.evaluateLoad(load(200), listOf(load(210, id = 2, lowest = 30)))
         assertEquals(Level.WATCH, w.level)
     }
+
+    @Test fun `cold load doubles norm and service and caps at watch`() {
+        val ok = CellVerdict.evaluateLoad(m(90, kind = MeasureKind.LOAD, period = null, probe = 5), emptyList())
+        assertEquals(Level.OK, ok.level)
+        assertEquals(100, ok.limits.normMv)
+        assertEquals(400, ok.limits.serviceMv)
+        assertTrue(ok.limits.cold)
+        val prev = m(450, id = 2, kind = MeasureKind.LOAD, period = null, probe = 5)
+        val w = CellVerdict.evaluateLoad(m(450, kind = MeasureKind.LOAD, period = null, probe = 5), listOf(prev))
+        assertEquals(Level.WATCH, w.level)
+        assertTrue(Reason.COLD in w.reasons)
+    }
 }

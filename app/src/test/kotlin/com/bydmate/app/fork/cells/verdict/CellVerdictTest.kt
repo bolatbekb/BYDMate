@@ -129,22 +129,62 @@ class CellVerdictTest {
     }
 
     @Test fun `low zone service only with the same laggard`() {
-        val prior = (2L..4L).map { m(10, soc = 50, id = it, ts = NOON - it * DAY) }
+        // current + 5 prior rest periods; cell 92 is the 12 mV minimum in 3 of the 6
+        fun prior(lowestOf: (Long) -> Int) = (2L..6L).map { m(12, soc = 50, id = it, ts = NOON - it * DAY, lowest = lowestOf(it)) }
         val without = ev(m(60, soc = 12), hist(rest = emptyList()))
         assertEquals(Level.WATCH, without.level)
-        val e = ev(m(60, soc = 12), hist(rest = prior))
+        val e = ev(m(60, soc = 12), hist(rest = prior { if (it <= 3) 91 else 10 + it.toInt() }))
         assertEquals(Level.SERVICE, e.level)
         assertTrue(Reason.LOW_WITH_LAGGARD in e.reasons)
-        val other = ev(m(60, soc = 12), hist(rest = prior.map { m(10, id = it.id, ts = it.ts, lowest = 30) }))
+        val other = ev(m(60, soc = 12), hist(rest = prior { 30 + it.toInt() }))
         assertEquals(Level.WATCH, other.level)
     }
 
     @Test fun `laggard raises ok to watch`() {
-        val prior = (2L..3L).map { m(5, id = it, ts = NOON - it * DAY) }
-        val e = ev(m(5), hist(rest = prior))
+        val prior = (2L..3L).map { m(12, id = it, ts = NOON - it * DAY) }
+        val e = ev(m(12), hist(rest = prior))
         assertEquals(Level.WATCH, e.level)
         assertEquals(listOf(Laggard(92, 3, 3)), e.laggards)
         assertTrue(e.service.laggardRepeats)
+    }
+
+    @Test fun `healthy pack with a 2 mV minimum shows no laggard`() {
+        val prior = (2L..6L).map { m(2, id = it, ts = NOON - it * DAY) }
+        val e = ev(m(2), hist(rest = prior))
+        assertEquals(Level.OK, e.level)
+        assertTrue(e.laggards.isEmpty())
+    }
+
+    @Test fun `no base growth reason when cold`() {
+        val pts = (0 until 5).map { sp(10L + it, NOON - (40 + it) * DAY, 5 + it) }
+        val e = ev(m(38, probe = 5), hist(*pts.toTypedArray()))
+        assertEquals(31, e.growthMv)
+        assertFalse(Reason.BASE_GROWTH in e.reasons)
+    }
+
+    @Test fun `toInput is null for empty cells and an unknown measure`() {
+        val e = com.bydmate.app.fork.cells.data.CellSnapshotEntity(
+            ts = NOON, elapsedMs = 0, profile = "p", measure = "AFTER_PARKING", restPeriod = 1, relax = "NOT_NEEDED", relaxDropMv = null,
+            soc = 50, currentA = 0.0, packV = 580, charging = false, restMin = 70, daysSinceFull = 1, vminMv = 3270, vmaxMv = 3275,
+            spreadMv = 5, probeMinC = 20, probeMaxC = 22, flagConsistency = null, flagTempDiff = null, flagUnbalanced = null,
+            cells = CellBlob.encodeCells(cells(5)), probes = CellBlob.encodeProbes(IntArray(24) { 20 }),
+        )
+        assertEquals(MeasureKind.AFTER_PARKING, e.toInput()!!.kind)
+        assertEquals(null, e.copy(cells = ByteArray(0)).toInput())
+        assertEquals(null, e.copy(measure = "BOGUS").toInput())
+        assertEquals(null, e.copy(measure = null).toInput())
+        assertEquals(Relax.UNKNOWN, e.copy(relax = "BOGUS").toInput()!!.relax)
+    }
+
+    @Test fun `threshold rows pin their origins`() {
+        fun o(key: String) = THRESHOLD_ROWS.single { it.conditionKey == key }.origins
+        assertEquals(listOf(Origin.MEASURED, Origin.STANDARD, Origin.COMMUNITY), o("plateau"))
+        assertEquals(listOf(Origin.MEASURED), o("top_knee"))
+        assertEquals(listOf(Origin.MEASURED, Origin.COMMUNITY, Origin.STANDARD), o("top"))
+        assertEquals(listOf(Origin.MEASURED, Origin.COMMUNITY, Origin.INFERENCE), o("low_10_15"))
+        assertEquals(listOf(Origin.MEASURED, Origin.COMMUNITY, Origin.INFERENCE), o("low_under_10"))
+        assertEquals(listOf(Origin.COMMUNITY, Origin.INFERENCE), o("load"))
+        assertEquals(listOf(Origin.BYD), o("bms_flag"))
     }
 
     @Test fun `base growth raises to watch`() {
@@ -176,7 +216,7 @@ class CellVerdictTest {
     }
 
     @Test fun `service conditions`() {
-        val e = ev(m(90), hist(sp(2, NOON - DAY, 95), rest = (2L..3L).map { m(5, id = it, ts = NOON - it * DAY) }))
+        val e = ev(m(90), hist(sp(2, NOON - DAY, 95), rest = (2L..3L).map { m(12, id = it, ts = NOON - it * DAY) }))
         assertTrue(e.service.twiceOnDifferentDays)
         assertTrue(e.service.laggardRepeats)
         assertTrue(e.service.cellBelowHalfService)

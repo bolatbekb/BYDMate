@@ -32,11 +32,11 @@ enum class Origin { BYD, STANDARD, MEASURED, COMMUNITY, INFERENCE }
 data class ThresholdRow(val row: ZoneRow?, val conditionKey: String, val origins: List<Origin>)
 
 val THRESHOLD_ROWS: List<ThresholdRow> = listOf(
-    ThresholdRow(ZoneRow.PLATEAU, "plateau", listOf(Origin.BYD, Origin.COMMUNITY, Origin.MEASURED)),
-    ThresholdRow(ZoneRow.TOP_KNEE, "top_knee", listOf(Origin.INFERENCE)),
-    ThresholdRow(ZoneRow.TOP, "top", listOf(Origin.STANDARD, Origin.COMMUNITY)),
-    ThresholdRow(ZoneRow.LOW_10_15, "low_10_15", listOf(Origin.COMMUNITY, Origin.INFERENCE)),
-    ThresholdRow(ZoneRow.LOW_UNDER_10, "low_under_10", listOf(Origin.COMMUNITY, Origin.INFERENCE)),
+    ThresholdRow(ZoneRow.PLATEAU, "plateau", listOf(Origin.MEASURED, Origin.STANDARD, Origin.COMMUNITY)),
+    ThresholdRow(ZoneRow.TOP_KNEE, "top_knee", listOf(Origin.MEASURED)),
+    ThresholdRow(ZoneRow.TOP, "top", listOf(Origin.MEASURED, Origin.COMMUNITY, Origin.STANDARD)),
+    ThresholdRow(ZoneRow.LOW_10_15, "low_10_15", listOf(Origin.MEASURED, Origin.COMMUNITY, Origin.INFERENCE)),
+    ThresholdRow(ZoneRow.LOW_UNDER_10, "low_under_10", listOf(Origin.MEASURED, Origin.COMMUNITY, Origin.INFERENCE)),
     ThresholdRow(ZoneRow.LOAD, "load", listOf(Origin.COMMUNITY, Origin.INFERENCE)),
     ThresholdRow(null, "bms_flag", listOf(Origin.BYD)),
 )

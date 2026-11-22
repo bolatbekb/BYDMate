@@ -36,6 +36,11 @@ data class MeasurementInput(
 private const val COLD_C = 10
 private const val PRELIM_REST_MIN = 60
 
+/** Honest = at rest, rest of an hour or more, relaxation not pending (same definition as [SpreadPoint.preliminary]). */
+internal val MeasurementInput.honest: Boolean
+    get() = atRest && restMin != null && restMin >= PRELIM_REST_MIN &&
+        relax != Relax.RELAXING && relax != Relax.PENDING && relax != Relax.UNKNOWN
+
 /** Probes below 10 °C double the thresholds; no probes means not cold. */
 internal fun isCold(m: MeasurementInput): Boolean = m.probesC.filter { it != NO_TEMP }.minOrNull()?.let { it < COLD_C } ?: false
 

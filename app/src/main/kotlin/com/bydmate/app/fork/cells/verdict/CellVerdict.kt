@@ -31,7 +31,7 @@ object CellVerdict {
     fun evaluate(m: MeasurementInput, h: History, zone: ZoneId = ZoneId.systemDefault()): Evaluation {
         if (m.kind == MeasureKind.LOAD) return evaluateLoad(m, h.loads)
         val shape = Shape(m.cellsMv)
-        val b = Base(m, zoneOf(shape.vmaxMv, m.soc), isCold(m), shape)
+        val b = EvalContext(m, zoneOf(shape.vmaxMv, m.soc), isCold(m), shape)
         noVerdictReason(m)?.let { return b.evaluation(Level.NONE, false, listOf(it)) }
         val lag = Laggards.find((if (m.atRest) listOf(m) else emptyList()) + h.rest)
         val base = Baseline.of(m, b.row, h.restSpreads)
@@ -43,12 +43,13 @@ object CellVerdict {
         return b.evaluation(d.level, prelimReasons(m).isNotEmpty(), d.reasons, lag, twice, base, previous)
     }
 
-    /** Under load: always preliminary; service needs 200 mV now and before on the same lowest cell. */
+    /** Under load: always preliminary; service needs the service number now and before on the same lowest cell. */
     fun evaluateLoad(m: MeasurementInput, previousLoads: List<MeasurementInput>): Evaluation {
         val shape = Shape(m.cellsMv)
-        val b = Base(m, ZoneRow.LOAD, false, shape)
-        val repeats = shape.spreadMv >= LOAD_SERVICE_MV && previousLoads.any {
-            it.id != m.id && Shape(it.cellsMv).let { s -> s.spreadMv >= LOAD_SERVICE_MV && s.lowestCell == shape.lowestCell }
+        val b = EvalContext(m, ZoneRow.LOAD, isCold(m), shape)
+        val svc = b.svc ?: LOAD_SERVICE_MV
+        val repeats = shape.spreadMv >= svc && previousLoads.any {
+            it.id != m.id && Shape(it.cellsMv).let { s -> s.spreadMv >= svc && s.lowestCell == shape.lowestCell }
         }
         val reasons = mutableListOf<Reason>()
         var level = Level.OK
@@ -56,8 +57,12 @@ object CellVerdict {
             level = Level.WATCH
             reasons.add(Reason.SPREAD_ABOVE_NORM)
         }
-        if (shape.spreadMv >= LOAD_SERVICE_MV) reasons.add(if (repeats) Reason.SERVICE_TWICE else Reason.SERVICE_ONCE)
+        if (shape.spreadMv >= svc) reasons.add(if (repeats) Reason.SERVICE_TWICE else Reason.SERVICE_ONCE)
         if (repeats) level = Level.SERVICE
+        if (b.cold) {
+            level = minOf(level, Level.WATCH)
+            reasons.add(Reason.COLD)
+        }
         return b.evaluation(level, true, reasons, twice = repeats)
     }
 }

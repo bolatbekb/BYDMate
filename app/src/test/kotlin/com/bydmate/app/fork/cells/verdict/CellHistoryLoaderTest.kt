@@ -11,6 +11,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -54,6 +55,14 @@ class CellHistoryLoaderTest {
         assertEquals(Level.WATCH, e.level)
         val load = loader.latestLoadId()!!
         assertEquals(60, loader.evaluate(load, NOON)!!.spreadMv)
+    }
+
+    @Test fun `a wall clock behind the measurement does not lose history`() = runBlocking {
+        repo.insert(row(NOON - DAY, "AFTER_PARKING", 200, spread = 95))
+        val cur = repo.insert(row(NOON, "AFTER_PARKING", 300, spread = 90))!!
+        val e = loader.evaluate(cur, NOON - 10 * DAY)!!
+        assertEquals(Level.SERVICE, e.level)
+        assertTrue(Reason.SERVICE_TWICE in e.reasons)
     }
 
     @Test fun `latestRestId skips load and manual under current`() = runBlocking {
