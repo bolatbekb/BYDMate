@@ -1,0 +1,191 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "0711ad73ffd38d3498ea3b192da85dc6",
+    "entities": [
+      {
+        "tableName": "cell_snapshots",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `ts` INTEGER NOT NULL, `elapsed_ms` INTEGER NOT NULL, `profile` TEXT NOT NULL, `measure` TEXT, `rest_period` INTEGER, `relax` TEXT NOT NULL, `relax_drop_mv` INTEGER, `soc` INTEGER, `current_a` REAL, `pack_v` INTEGER, `charging` INTEGER NOT NULL, `rest_min` INTEGER, `days_since_full` INTEGER, `vmin_mv` INTEGER NOT NULL, `vmax_mv` INTEGER NOT NULL, `spread_mv` INTEGER NOT NULL, `probe_min_c` INTEGER, `probe_max_c` INTEGER, `flag_consistency` INTEGER, `flag_temp_diff` INTEGER, `flag_unbalanced` INTEGER, `cells` BLOB NOT NULL, `probes` BLOB NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ts",
+            "columnName": "ts",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "elapsedMs",
+            "columnName": "elapsed_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profile",
+            "columnName": "profile",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "measure",
+            "columnName": "measure",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "restPeriod",
+            "columnName": "rest_period",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "relax",
+            "columnName": "relax",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "relaxDropMv",
+            "columnName": "relax_drop_mv",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "soc",
+            "columnName": "soc",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "currentA",
+            "columnName": "current_a",
+            "affinity": "REAL",
+            "notNull": false
+          },
+          {
+            "fieldPath": "packV",
+            "columnName": "pack_v",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "charging",
+            "columnName": "charging",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "restMin",
+            "columnName": "rest_min",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "daysSinceFull",
+            "columnName": "days_since_full",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "vminMv",
+            "columnName": "vmin_mv",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "vmaxMv",
+            "columnName": "vmax_mv",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "spreadMv",
+            "columnName": "spread_mv",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "probeMinC",
+            "columnName": "probe_min_c",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "probeMaxC",
+            "columnName": "probe_max_c",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "flagConsistency",
+            "columnName": "flag_consistency",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "flagTempDiff",
+            "columnName": "flag_temp_diff",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "flagUnbalanced",
+            "columnName": "flag_unbalanced",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "cells",
+            "columnName": "cells",
+            "affinity": "BLOB",
+            "notNull": true
+          },
+          {
+            "fieldPath": "probes",
+            "columnName": "probes",
+            "affinity": "BLOB",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_cell_snapshots_ts",
+            "unique": false,
+            "columnNames": [
+              "ts"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_cell_snapshots_ts` ON `${TABLE_NAME}` (`ts`)"
+          },
+          {
+            "name": "index_cell_snapshots_measure",
+            "unique": false,
+            "columnNames": [
+              "measure"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_cell_snapshots_measure` ON `${TABLE_NAME}` (`measure`)"
+          }
+        ],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '0711ad73ffd38d3498ea3b192da85dc6')"
+    ]
+  }
+}

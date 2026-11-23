@@ -76,6 +76,7 @@ class BYDMateApp : Application(), Configuration.Provider {
         com.bydmate.app.fork.hud.HudCustomIcons.init(this) // fork: custom HUD icons switch
         if (!com.bydmate.app.demo.DemoMode.isOn(this)) com.bydmate.app.fork.ledger.backup.LedgerBackup.provider = { ledgerDatabase } // fork: ledger in backups, never the demo one
         if (!com.bydmate.app.demo.DemoMode.isOn(this)) ledgerLiveWatcher.start() // fork: refuel drafts from the tank level
+        com.bydmate.app.fork.cells.collect.CellsStartup.start(this) // fork: battery check — cell collector (idle until a car profile is chosen)
         Trace.install(traceJournal)
         Trace.event(TraceArea.APP, "start", "version" to BuildConfig.VERSION_CODE, "name" to BuildConfig.VERSION_NAME)
         // Rarely runs on Android (a killed process gets no hooks), but costs nothing when it does.

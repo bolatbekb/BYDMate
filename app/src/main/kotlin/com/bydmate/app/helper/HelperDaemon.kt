@@ -202,6 +202,7 @@ fun main(args: Array<String>) {
     val virtualDisplays = ConcurrentHashMap<Int, VirtualDisplay>()
 
     // Step 3: build our stub Binder.
+    @Suppress("LargeClass") // fork: battery check — the dispatch line below takes the author's binder to detekt's 600-line limit
     val helperBinder = object : Binder() {
         override fun onTransact(code: Int, data: Parcel, reply: Parcel?, flags: Int): Boolean {
             // Uid gate first — only our app may call.
@@ -954,6 +955,7 @@ fun main(args: Array<String>) {
                 HelperBinderProtocol.TX_FW_READ_START,
                 HelperBinderProtocol.TX_DIAG_JOB_STATUS -> handleDtcScanTransact(code, data, reply, svc, autoIface)
 
+                in com.bydmate.app.fork.cells.stream.CellTx.RANGE -> com.bydmate.app.fork.cells.helper.CellTapDaemon.onTransact(code, data, reply) // fork: battery check — cell stream listener (own codes)
                 else -> super.onTransact(code, data, reply, flags)
             }
         }

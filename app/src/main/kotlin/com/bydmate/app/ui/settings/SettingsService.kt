@@ -452,6 +452,7 @@ internal fun ServiceSection(
             if (timezoneLockFailed) SettingHint(text = stringResource(R.string.settings_timezone_lock_failed))
         }
     }
+    BatteryCheckBlock() // fork: battery check — car profile, cell data collection, view choice
 
     // Autostart status card
     SectionHeader(text = stringResource(R.string.settings_autostart_header))
