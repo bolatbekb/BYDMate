@@ -32,11 +32,19 @@ class CellRepository(private val dao: CellDao, private val dbFile: () -> File) {
     suspend fun entities(ids: List<Long>): List<CellSnapshotEntity> =
         guard("entities") { ids.chunked(IN_CHUNK).flatMap { dao.byIds(it) } } ?: emptyList()
 
-    suspend fun measurementsBetween(kinds: Set<MeasureKind>, from: Long, to: Long): List<SnapshotSummary> =
-        guard("measurementsBetween") { dao.measurementsBetween(kinds.map { it.name }, from, to) } ?: emptyList()
+    /** [cells]: only the series of a pack with that many cells; null = all. */
+    suspend fun measurementsBetween(kinds: Set<MeasureKind>, from: Long, to: Long, cells: Int? = null): List<SnapshotSummary> =
+        guard("measurementsBetween") { dao.measurementsBetween(kinds.map { it.name }, from, to, cells) } ?: emptyList()
 
-    suspend fun measurementsBetweenLimit(kinds: Set<MeasureKind>, from: Long, to: Long, limit: Int): List<SnapshotSummary> =
-        guard("measurementsBetweenLimit") { dao.measurementsBetweenLimit(kinds.map { it.name }, from, to, limit) } ?: emptyList()
+    /** [cells]: only the series of a pack with that many cells; null = all. */
+    suspend fun measurementsBetweenLimit(
+        kinds: Set<MeasureKind>,
+        from: Long,
+        to: Long,
+        limit: Int,
+        cells: Int? = null,
+    ): List<SnapshotSummary> =
+        guard("measurementsBetweenLimit") { dao.measurementsBetweenLimit(kinds.map { it.name }, from, to, limit, cells) } ?: emptyList()
 
     suspend fun latestRestId(): Long? = guard("latestRestId") { dao.latestRestId() }
 
@@ -44,8 +52,9 @@ class CellRepository(private val dao: CellDao, private val dbFile: () -> File) {
 
     fun latestRestKey(): Flow<MeasureKey?> = dao.latestRestKey().catch { fail("latestRestKey", it); emit(null) }
 
-    suspend fun summariesBetween(from: Long, to: Long): List<SnapshotSummary> =
-        guard("summariesBetween") { dao.summariesBetween(from, to) } ?: emptyList()
+    /** [cells]: only the series of a pack with that many cells; null = all. */
+    suspend fun summariesBetween(from: Long, to: Long, cells: Int? = null): List<SnapshotSummary> =
+        guard("summariesBetween") { dao.summariesBetween(from, to, cells) } ?: emptyList()
 
     fun stats(): Flow<CellStats> = dao.stats()
         .map { CellStats(it, fileBytes()) }

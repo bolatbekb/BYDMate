@@ -150,7 +150,6 @@ internal fun LimitsAndCellsCard(state: TechPanelUiState, onHint: (String) -> Uni
         )
         Hint(state.openHint, "bmsLimits", R.string.tech_hint_bms_limits)
 
-        androidx.compose.foundation.layout.Column(com.bydmate.app.fork.cells.ui.batteryCheckClick()) { // fork: battery check — the «Ячейки» section opens the check
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 10.dp)) {
             SectionHeader(stringResource(R.string.tech_card_cells))
             HelpIcon { onHint("cells") }
@@ -178,7 +177,7 @@ internal fun LimitsAndCellsCard(state: TechPanelUiState, onHint: (String) -> Uni
             )
         }
         Hint(state.openHint, "cells", R.string.tech_hint_cells)
-        } // fork: battery check
+        com.bydmate.app.fork.cells.ui.BatteryDiagButton() // fork: battery check — «Диагностика ВВБ» opens the battery check
     }
 }
 

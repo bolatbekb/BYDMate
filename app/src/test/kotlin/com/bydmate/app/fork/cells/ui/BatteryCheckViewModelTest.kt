@@ -158,6 +158,37 @@ class BatteryCheckViewModelTest {
         assertEquals(newest, vm.ui.value.selected?.input?.id)
     }
 
+    @Test fun `a newer load never hides a manual snapshot of unknown rest`() = runTest(dispatcher) {
+        // the owner's first evening: a manual snapshot right after collection began (rest unknown), then a load
+        val manual = repo.insert(row(NOON - 4 * 60_000L, "MANUAL", 100).copy(restMin = null))!!
+        repo.insert(row(NOON, "LOAD", null, spread = 7))
+        val vm = vm()
+        watch(vm)
+        vm.openWindow()
+        advanceUntilIdle()
+        assertEquals(manual, vm.ui.value.selected?.input?.id)
+    }
+
+    @Test fun `the history is the series of the selected measurement`() = runTest(dispatcher) {
+        val big = { r: CellSnapshotEntity -> r.copy(cells = CellBlob.encodeCells(IntArray(200) { 3275 })) }
+        repo.insert(big(row(NOON - 3 * DAY, "AFTER_PARKING", 100, spread = 0)))
+        val old = repo.insert(big(row(NOON - 2 * DAY, "AFTER_PARKING", 200, spread = 0)))!!
+        repo.insert(row(NOON - DAY, "AFTER_PARKING", 300, spread = 5))
+        val now = repo.insert(row(NOON, "AFTER_PARKING", 400, spread = 6))!!
+        val vm = vm()
+        watch(vm)
+        vm.openWindow()
+        advanceUntilIdle()
+        assertEquals(now, vm.ui.value.selected?.input?.id)
+        assertEquals(listOf(5, 6), vm.ui.value.history.map { it.spreadMv })
+        assertEquals(4, vm.ui.value.picker.size)
+        vm.select(old)
+        advanceUntilIdle()
+        assertEquals(old, vm.ui.value.selected?.input?.id)
+        assertEquals(listOf(0, 0), vm.ui.value.history.map { it.spreadMv })
+        assertEquals(200, vm.ui.value.selected?.input?.cellsMv?.size)
+    }
+
     @Test fun `no measurement at all leaves nothing selected`() = runTest(dispatcher) {
         val vm = vm()
         watch(vm)
@@ -257,8 +288,8 @@ class BatteryCheckViewModelTest {
         val broken = mockk<CellRepository> {
             every { measurements(any()) } returns flow { throw boom }
             every { latestRestKey() } returns flow { throw boom }
-            coEvery { measurementsBetweenLimit(any(), any(), any(), any()) } throws boom
-            coEvery { measurementsBetween(any(), any(), any()) } throws boom
+            coEvery { measurementsBetweenLimit(any(), any(), any(), any(), any()) } throws boom
+            coEvery { measurementsBetween(any(), any(), any(), any()) } throws boom
             coEvery { latestRestId() } throws boom
             coEvery { latestLoadId() } throws boom
             coEvery { entity(any()) } throws boom

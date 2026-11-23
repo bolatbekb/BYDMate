@@ -52,8 +52,8 @@ class BatteryCheckUiTest {
     }
 
     @Test fun `entry row says the data does not match`() {
-        assertEquals(EntryKind.MISMATCH, entryRow(car, StreamStatus(StreamState.MISMATCH, 120, 16), eval()).kind)
-        assertEquals(EntryKind.MISMATCH, entryRow(car.copy(collect = false), StreamStatus(StreamState.MISMATCH, 120, 16), null).kind)
+        assertEquals(EntryKind.UNSUPPORTED, entryRow(car, StreamStatus(StreamState.UNSUPPORTED, 120, 16), eval()).kind)
+        assertEquals(EntryKind.UNSUPPORTED, entryRow(car.copy(collect = false), StreamStatus(StreamState.UNSUPPORTED, 120, 16), null).kind)
     }
 
     @Test fun `entry row tells a stopped stream from one that never came`() {
@@ -96,7 +96,7 @@ class BatteryCheckUiTest {
     }
 
     @Test fun `probe tiles mark one hottest and one coldest`() {
-        val probes = (readingOf(feedFixture().snapshot(true, 0, 0L), 184, 24) as CellReading.Complete).probesC
+        val probes = (readingOf(feedFixture().snapshot(true, 0, 0L)) as CellReading.Complete).probesC
         val tiles = probeTiles(probes)
         assertEquals(24, tiles.size)
         assertEquals((1..24).toList(), tiles.map { it.index })

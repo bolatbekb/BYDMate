@@ -5,9 +5,9 @@ import com.bydmate.app.fork.cells.stream.CellReading
 import com.bydmate.app.fork.cells.stream.CellStreamSnapshot
 import com.bydmate.app.fork.cells.stream.CellTx
 
-enum class StreamState { IDLE, CONNECTING, OK, NO_STREAM, MISMATCH, HELPER_MISSING, HELPER_OUTDATED, LISTEN_FAILED }
+enum class StreamState { IDLE, CONNECTING, OK, NO_STREAM, UNSUPPORTED, HELPER_MISSING, HELPER_OUTDATED, LISTEN_FAILED }
 
-/** [reportedCells]/[reportedProbes] are the pack's own counts on MISMATCH; [detail] the helper's text. */
+/** [reportedCells]/[reportedProbes] are the pack's own counts on UNSUPPORTED; [detail] the helper's text. */
 data class StreamStatus(
     val state: StreamState,
     val reportedCells: Int = -1,
@@ -74,13 +74,13 @@ class StreamHealth {
         if (s.nowMs - maxOf(s.listeningSinceMs, s.lastFrameMs) >= NO_STREAM_AFTER_MS) return StreamStatus(StreamState.NO_STREAM)
         return when (reading) {
             is CellReading.Complete -> StreamStatus(StreamState.OK)
-            is CellReading.Mismatch -> StreamStatus(StreamState.MISMATCH, reading.cells, reading.probes)
+            is CellReading.Unsupported -> StreamStatus(StreamState.UNSUPPORTED, reading.cells, reading.probes)
             else -> waiting()
         }
     }
 
     /**
-     * No verdict in this answer: OK, MISMATCH and CONNECTING stay; anything else is connecting now
+     * No verdict in this answer: OK, UNSUPPORTED and CONNECTING stay; anything else is connecting now
      * (a listening snapshot that is not quiet means frames are coming again after NO_STREAM).
      */
     private fun waiting(): StreamStatus =
@@ -90,6 +90,6 @@ class StreamHealth {
         const val SLOW_GAP_MS = 60_000L
         const val NO_STREAM_AFTER_MS = 60_000L
         val SLOW_STATES = setOf(StreamState.NO_STREAM, StreamState.LISTEN_FAILED)
-        val KEPT_STATES = setOf(StreamState.OK, StreamState.MISMATCH, StreamState.CONNECTING)
+        val KEPT_STATES = setOf(StreamState.OK, StreamState.UNSUPPORTED, StreamState.CONNECTING)
     }
 }

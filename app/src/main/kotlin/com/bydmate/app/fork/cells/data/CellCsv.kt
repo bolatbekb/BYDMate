@@ -7,28 +7,36 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** CSV like the owner's cells CSV: `;` separator, decimal comma, empty field for null, UTF-8 with BOM (R25). */
+/**
+ * CSV like the owner's cells CSV: `;` separator, decimal comma, empty field for null, UTF-8 with BOM (R25). Each row says
+ * its own pack (`cell_count`, `probe_count`); the columns `c…` and `p…` run to the largest pack of the file, a smaller
+ * pack's row is padded with empty fields, so a probe column always holds a probe.
+ */
 object CellCsv {
     const val PAGE = 500
     const val BOM = "\uFEFF"
     private val FIXED = listOf(
         "time", "measure", "soc", "current_a", "pack_v", "charging", "rest_min", "days_since_full", "relax",
         "relax_drop_mv", "spread_mv", "probe_min_c", "probe_max_c", "flag_consistency", "flag_temp_diff", "flag_unbalanced",
+        "cell_count", "probe_count",
     )
 
     fun header(cells: Int, probes: Int): String =
         (FIXED + (1..cells).map { "c$it" } + (1..probes).map { "p$it" }).joinToString(";")
 
-    fun line(e: CellSnapshotEntity, fmt: SimpleDateFormat = timeFormat()): String {
+    /** One row with [cells] cell columns and [probes] probe columns (the file's largest pack). */
+    fun line(e: CellSnapshotEntity, cells: Int, probes: Int, fmt: SimpleDateFormat = timeFormat()): String {
         val time = fmt.format(Date(e.ts))
+        val cellsMv = CellBlob.decodeCells(e.cells)
+        val probesC = CellBlob.decodeProbes(e.probes)
         val head = listOf(
             time, e.measure, e.soc, e.currentA?.let(::decimal), e.packV, if (e.charging) 1 else 0, e.restMin,
             e.daysSinceFull, e.relax, e.relaxDropMv, e.spreadMv, e.probeMinC, e.probeMaxC,
-            e.flagConsistency, e.flagTempDiff, e.flagUnbalanced,
+            e.flagConsistency, e.flagTempDiff, e.flagUnbalanced, cellsMv.size, probesC.size,
         )
-        val cells = CellBlob.decodeCells(e.cells).toList()
-        val probes = CellBlob.decodeProbes(e.probes).map { if (it == NO_TEMP) null else it }
-        return (head + cells + probes).joinToString(";") { it?.toString() ?: "" }
+        val cellCols = List(maxOf(cells, cellsMv.size)) { cellsMv.getOrNull(it) }
+        val probeCols = List(maxOf(probes, probesC.size)) { i -> probesC.getOrNull(i)?.takeIf { it != NO_TEMP } }
+        return (head + cellCols + probeCols).joinToString(";") { it?.toString() ?: "" }
     }
 
     private fun timeFormat() = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.ROOT)
@@ -46,13 +54,14 @@ object CellCsv {
 
     private suspend fun writeAll(dao: CellDao, file: File) {
         val fmt = timeFormat()
+        val pack = dao.packCounts()
         file.bufferedWriter(Charsets.UTF_8).use { w ->
-            w.write(BOM + header(CarProfile.LEOPARD5_318.cells, CarProfile.LEOPARD5_318.probes) + "\n")
+            w.write(BOM + header(pack.cells, pack.probes) + "\n")
             var after = 0L
             while (true) {
                 val rows = dao.page(after, PAGE)
                 if (rows.isEmpty()) break
-                rows.forEach { w.write(line(it, fmt) + "\n") }
+                rows.forEach { w.write(line(it, pack.cells, pack.probes, fmt) + "\n") }
                 after = rows.last().id
             }
         }

@@ -65,6 +65,21 @@ class CellHistoryLoaderTest {
         assertTrue(Reason.SERVICE_TWICE in e.reasons)
     }
 
+    @Test fun `a measurement of another cell count is another series and never compared`() = runBlocking {
+        // the same 95 mV a day before, but of a pack with 200 cells: no repeat, no previous spread
+        val other = row(NOON - DAY, "AFTER_PARKING", 200, spread = 95)
+        repo.insert(other.copy(cells = CellBlob.encodeCells(IntArray(200) { 3275 - if (it == 0) 95 else 0 })))
+        repo.insert(row(NOON - 2 * DAY, "LOAD", null, spread = 250).copy(cells = CellBlob.encodeCells(IntArray(200) { 3275 - if (it == 0) 250 else 0 })))
+        val cur = repo.insert(row(NOON, "AFTER_PARKING", 300, spread = 90))!!
+        val e = loader.evaluate(cur, NOON)!!
+        assertEquals(Level.WATCH, e.level)
+        assertTrue(Reason.SERVICE_ONCE in e.reasons)
+        assertNull(e.previousSpreadMv)
+        // and the other series sees only its own
+        val load = loader.latestLoadId()!!
+        assertEquals(200, loader.evaluate(load, NOON)!!.input.cellsMv.size)
+    }
+
     @Test fun `latestRestId skips load and manual under current`() = runBlocking {
         val rest = repo.insert(row(1000, "AFTER_PARKING", 1))!!
         repo.insert(row(2000, "LOAD", null))

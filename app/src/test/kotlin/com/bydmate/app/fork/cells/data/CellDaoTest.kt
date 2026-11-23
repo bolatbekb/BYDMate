@@ -112,6 +112,36 @@ class CellDaoTest {
         assertEquals(1, repo.summariesBetween(25, 100).size)
     }
 
+    @Test fun `a series holds only the snapshots of one cell count`() = runBlocking {
+        val kinds = setOf(com.bydmate.app.fork.cells.collect.MeasureKind.AFTER_PARKING)
+        repo.insert(row(10, "AFTER_PARKING"))
+        repo.insert(row(20, "AFTER_PARKING").copy(cells = CellBlob.encodeCells(IntArray(200) { 3300 })))
+        repo.insert(row(30).copy(cells = CellBlob.encodeCells(IntArray(200) { 3300 })))
+        assertEquals(listOf(10L), repo.measurementsBetween(kinds, 0, 100, cells = 184).map { it.ts })
+        assertEquals(listOf(20L), repo.measurementsBetweenLimit(kinds, 0, 100, 10, cells = 200).map { it.ts })
+        assertEquals(listOf(20L, 10L), repo.measurementsBetween(kinds, 0, 100).map { it.ts })
+        assertEquals(listOf(20L, 30L), repo.summariesBetween(0, 100, cells = 200).map { it.ts })
+        assertEquals(listOf(184, 200, 200), repo.summariesBetween(0, 100).map { it.cellCount })
+    }
+
+    @Test fun `export runs to the largest pack and pads the smaller rows`() = runBlocking {
+        repo.insert(row(1_700_000_000_000L, "AFTER_PARKING"))
+        repo.insert(
+            row(1_700_000_001_000L, "AFTER_PARKING").copy(
+                cells = CellBlob.encodeCells(IntArray(200) { 3300 }),
+                probes = CellBlob.encodeProbes(IntArray(30) { 21 }),
+            ),
+        )
+        val dir = File.createTempFile("cells", "").let { it.delete(); it.mkdirs(); it }
+        val lines = repo.exportCsv(dir, 1_700_000_000_000L)!!.readText().trimEnd('\n').split('\n')
+        val head = lines[0].removePrefix("﻿").split(';')
+        assertEquals(200, head.count { Regex("c\\d+").matches(it) })
+        assertEquals(30, head.count { Regex("p\\d+").matches(it) })
+        assertTrue(lines.drop(1).all { it.split(';').size == head.size })
+        assertEquals(listOf("184", "24"), lines[1].split(';').subList(16, 18))
+        dir.deleteRecursively(); Unit
+    }
+
     @Test fun `clear empties the table`() = runBlocking {
         repo.insert(row(1, "LOAD"))
         assertTrue(repo.clear())
@@ -128,7 +158,7 @@ class CellDaoTest {
         assertTrue(text.startsWith("﻿time;measure;"))
         val lines = text.trimEnd('\n').split('\n')
         assertEquals(1201, lines.size)
-        val head = lines[0].removePrefix("﻿").split(';')
+        val head = lines[0].removePrefix(CellCsv.BOM).split(';')
         assertEquals(184, head.count { Regex("c\\d+").matches(it) })
         assertEquals(24, head.count { Regex("p\\d+").matches(it) })
         assertEquals(head.size, lines[1].split(';').size)

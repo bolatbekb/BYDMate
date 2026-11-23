@@ -55,7 +55,7 @@ object CellCanvas {
         Canvas(modifier) { drawStrip(e, cls, colors) }
     }
 
-    /** 184 tiles in [columns] columns: number in each, deviation on the off-normal ones, which alone take a colour. */
+    /** Every cell of the pack as a tile in [columns] columns: number in each, deviation on the off-normal ones, which alone take a colour. */
     @Composable
     fun CellGrid(e: Evaluation, columns: Int, modifier: Modifier) {
         val measurer = rememberTextMeasurer(cacheSize = 0)

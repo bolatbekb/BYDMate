@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material3.Icon
@@ -157,11 +159,11 @@ private fun DeviationRow(cell: Int, mv: Int, dev: Double, color: Color, locale: 
     }
 }
 
-/** 6 × 4 tiles Д1…Д24: the hottest framed orange, the coldest blue, then what the probes are. */
+/** Six tiles a row, as many as the pack has (Д1…Д24 on the Leopard 5): the hottest framed orange, the coldest blue; scrolls. */
 @Composable
 private fun ProbesTab(e: Evaluation) {
     val tiles = remember(e) { probeTiles(e.input.probesC) }
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.verticalScroll(rememberScrollState())) {
         tiles.chunked(PROBE_COLUMNS).forEach { row ->
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 row.forEach { ProbeTileBox(it, Modifier.weight(1f)) }

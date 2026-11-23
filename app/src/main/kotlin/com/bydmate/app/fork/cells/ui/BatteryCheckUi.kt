@@ -90,7 +90,7 @@ data class TextRes(val res: Int, val args: List<Any> = emptyList()) {
 /** One argument made of several texts, joined with «, ». */
 data class Joined(val parts: List<TextRes>)
 
-enum class EntryKind { HIDDEN, COLLECT_OFF, NO_MEASUREMENTS, MISMATCH, NO_STREAM, RESULT }
+enum class EntryKind { HIDDEN, COLLECT_OFF, NO_MEASUREMENTS, UNSUPPORTED, NO_STREAM, RESULT }
 
 /** [stopped]: with NO_STREAM, frames came since listening began and then stopped. */
 data class EntryRow(
@@ -105,7 +105,7 @@ data class EntryRow(
 /** The row on «Машина»: hidden without a car; a stream problem beats the result; an old result stays with collection off. */
 fun entryRow(config: CellsConfig, stream: StreamStatus, latest: Evaluation?, framesSeen: Boolean = false): EntryRow = when {
     config.profile == CarProfile.NONE -> EntryRow(EntryKind.HIDDEN)
-    stream.state == StreamState.MISMATCH -> EntryRow(EntryKind.MISMATCH)
+    stream.state == StreamState.UNSUPPORTED -> EntryRow(EntryKind.UNSUPPORTED)
     stream.state == StreamState.NO_STREAM -> EntryRow(EntryKind.NO_STREAM, stopped = framesSeen)
     latest != null -> EntryRow(EntryKind.RESULT, latest.level, latest.preliminary, latest.spreadMv, latest.input.ts)
     !config.collect -> EntryRow(EntryKind.COLLECT_OFF)

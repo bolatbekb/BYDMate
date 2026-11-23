@@ -2,6 +2,7 @@ package com.bydmate.app.fork.cells.data
 
 import android.content.Context
 import com.bydmate.app.data.remote.DiParsData
+import com.bydmate.app.data.repository.SettingsRepository
 import com.bydmate.app.data.vehicle.HelperClient
 import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.fork.cells.collect.BMS_FLAG_ITEMS
@@ -24,7 +25,9 @@ import dagger.hilt.components.SingletonComponent
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import javax.inject.Named
 import javax.inject.Singleton
 
@@ -62,7 +65,15 @@ object CellsModule {
     fun provideCellSource(@ApplicationContext ctx: Context): CellSource =
         if (DemoMode.isOn(ctx)) DemoCellSource(TrackingService.lastData) else HelperCellSource()
 
-    /** The flags are getInt reads (tx 5) through the author's batch read, once per stored snapshot (R3). */
+    /** The capacity the driver entered in the app's settings: the battery check's one adapter to that author field. */
+    @Provides @Singleton
+    fun providePackCapacity(settings: SettingsRepository): PackCapacity = PackCapacity(settings)
+
+    /**
+     * The flags are getInt reads (tx 5) through the author's batch read, once per stored snapshot (R3). 1C follows the
+     * entered capacity, kept at hand as a state (one settings key observed).
+     */
+    @Suppress("LongParameterList") // why: a Hilt provider; every parameter is one dependency of the collector
     @Provides @Singleton
     fun provideCellCollector(
         settings: CellsSettings,
@@ -70,13 +81,19 @@ object CellsModule {
         repo: CellRepository,
         @Named("cellsLive") live: StateFlow<DiParsData?>,
         helper: HelperClient,
-    ): CellCollector = CellCollector(
-        settings, source, repo, live,
-        // the demo never touches the real helper: no BMS flags there
-        flags = { if (source is DemoCellSource) null else bmsFlagsOf(helper.readBatch(BMS_FLAG_ITEMS)) },
-        scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-        liveAtMs = { TrackingService.lastDataAtMs },
-    )
+        capacity: PackCapacity,
+    ): CellCollector {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+        val kwh = capacity.observe().stateIn(scope, SharingStarted.Eagerly, null)
+        return CellCollector(
+            settings, source, repo, live,
+            // the demo never touches the real helper: no BMS flags there
+            flags = { if (source is DemoCellSource) null else bmsFlagsOf(helper.readBatch(BMS_FLAG_ITEMS)) },
+            scope = scope,
+            liveAtMs = { TrackingService.lastDataAtMs },
+            capacityKwh = { kwh.value },
+        )
+    }
 
     /** Coolant °C of the Leopard 5; the demo never touches the real helper. */
     @Provides @Singleton

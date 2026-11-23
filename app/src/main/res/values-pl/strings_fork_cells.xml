@@ -5,12 +5,12 @@
     <string name="fork_cells_settings_header">Diagnostyka baterii</string>
     <!-- Car -->
     <string name="fork_cells_car_title">Samochód</string>
-    <string name="fork_cells_car_desc">Układ baterii zależy od modelu i wersji. Dopóki samochód nie jest wybrany, diagnostyka ogniw nie jest pokazywana. Jeśli auto zgłosi inną liczbę ogniw, kontrola ostrzeże, że dane nie zgadzają się z wybranym samochodem.</string>
+    <string name="fork_cells_car_desc">Dopóki samochód nie jest wybrany, diagnostyka ogniw nie jest pokazywana. Liczbę ogniw i czujników aplikacja bierze z samego auta, a pojemność dla progu „pod obciążeniem” — z ustawienia „Pojemność akumulatora” (puste pole — 31,8 kWh).</string>
     <string name="fork_cells_car_none">Nie wybrano</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31,8 kWh</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">Zbieraj dane ogniw baterii</string>
-    <string name="fork_cells_collect_desc">Gdy auto jest włączone, aplikacja co wybrany interwał zapisuje napięcia wszystkich %1$d ogniw i temperatury %2$d czujników. Z tych zapisów powstają pomiary „w spoczynku”, „po ładowaniu”, „pod obciążeniem” oraz historia. Tylko odczyt, do auta nic nie jest zapisywane. Dane są przechowywane osobno od bazy przejazdów i ładowań.</string>
+    <string name="fork_cells_collect_desc">Gdy auto jest włączone, aplikacja co wybrany interwał zapisuje napięcia wszystkich ogniw i temperatury wszystkich czujników — tylu, ilu zgłasza auto. Z tych zapisów powstają pomiary „w spoczynku”, „po ładowaniu”, „pod obciążeniem” oraz historia. Tylko odczyt, do auta nic nie jest zapisywane. Dane są przechowywane osobno od bazy przejazdów i ładowań.</string>
     <!-- Interval -->
     <string name="fork_cells_interval_title">Jak często zapisywać</string>
     <string name="fork_cells_interval_desc">Dodatkowo zapis jest robiony zaraz po włączeniu auta (ogniwa „odpoczęły” na postoju), po godzinie spoczynku i pod obciążeniem — to najrzetelniejsze pomiary. ≈ 0,5 KB na zapis · przy 30 s i 2 godzinach dziennie ≈ 0,1 MB dziennie</string>
@@ -27,7 +27,7 @@
     <!-- Stored data -->
     <string name="fork_cells_stats_title">Zebrano</string>
     <string name="fork_cells_stats_value">Zapisów: %1$s · %2$s · od %3$s</string>
-    <string name="fork_cells_stats_measures">Pomiary: w spoczynku — %1$d, po ładowaniu — %2$d, pod obciążeniem — %3$d</string>
+    <string name="fork_cells_stats_measures">Pomiary (na nich opiera się werdykt): w spoczynku — %1$d, po ładowaniu — %2$d, pod obciążeniem — %3$d</string>
     <string name="fork_cells_stats_empty">Nic jeszcze nie zebrano</string>
     <string name="fork_cells_export">Eksportuj CSV</string>
     <string name="fork_cells_clear">Wyczyść</string>
@@ -115,7 +115,6 @@
     <string name="fork_cells_stream_connecting">Czekamy na dane ogniw…</string>
     <string name="fork_cells_stream_no_stream">Auto nie przesyła danych ogniw. Na tym oprogramowaniu kontrola jest niedostępna.</string>
     <string name="fork_cells_stream_stopped">Dane ogniw przestały napływać — sprawdź, czy auto jest włączone.</string>
-    <string name="fork_cells_stream_mismatch">Dane baterii nie zgadzają się z wybranym samochodem: auto zgłasza %1$d ogniw i %2$d czujników.</string>
     <string name="fork_cells_stream_helper_missing">Pomocnik nie odpowiada — dane ogniw są niedostępne.</string>
     <string name="fork_cells_stream_helper_outdated">Pomocnik jest nieaktualny — uruchom ponownie radio samochodowe.</string>
     <string name="fork_cells_stream_listen_failed">Auto nie pozwoliło zasubskrybować danych ogniw: %1$s</string>
@@ -138,7 +137,6 @@
     <!-- Row on the car screen -->
     <string name="fork_cells_entry_collect_off">włącz zbieranie danych</string>
     <string name="fork_cells_entry_empty">nie ma jeszcze pomiarów</string>
-    <string name="fork_cells_entry_mismatch">dane nie zgadzają się z autem</string>
     <string name="fork_cells_entry_no_stream">auto nie przesyła danych</string>
     <string name="fork_cells_entry_stopped">dane przestały napływać</string>
     <!-- Details -->
@@ -158,7 +156,7 @@
     <string name="fork_cells_probe_label">C%1$d</string>
     <string name="fork_cells_probe_hottest">najcieplejszy</string>
     <string name="fork_cells_probe_coldest">najzimniejszy</string>
-    <string name="fork_cells_probes_caption">24 czujniki temperatury są umieszczone na modułach baterii (prawdopodobnie po dwa na moduł, na końcach) i nie są przypisane do pojedynczych ogniw. Pomarańczowa ramka — najcieplejszy, niebieska — najzimniejszy.</string>
+    <string name="fork_cells_probes_caption">Czujniki temperatury są umieszczone na modułach baterii (prawdopodobnie po dwa na moduł, na końcach) i nie są przypisane do pojedynczych ogniw. Pomarańczowa ramka — najcieplejszy, niebieska — najzimniejszy.</string>
     <string name="fork_cells_history_caption">rozrzut w pomiarach w spoczynku · przerywana linia — norma</string>
     <string name="fork_cells_history_laggard">nr %1$d — najniżej w %2$d z %3$d pomiarów</string>
     <string name="fork_cells_history_watch">obserwuj</string>
@@ -210,7 +208,7 @@
     <string name="fork_cells_help_rule_prelim">Spoczynek 15–60 minut — ocena „wstępnie”, bez czerwonego.</string>
     <string name="fork_cells_help_rule_cold">Zimno: bateria poniżej 10 °C — progi × 2, bez czerwonego, zmierz ponownie w cieple.</string>
     <string name="fork_cells_help_rule_once">„Do serwisu” — tylko gdy rozrzut potwierdził się w drugim pomiarze innego dnia.</string>
-    <string name="fork_cells_help_rule_median">Punktem odniesienia jest mediana 184 ogniw: jedno słabe ogniwo jej nie przesuwa. „Wyraźnie” — odchylenie większe niż połowa normy strefy, „znacznie” — większe niż połowa progu „do serwisu”.</string>
+    <string name="fork_cells_help_rule_median">Punktem odniesienia jest mediana wszystkich ogniw: jedno słabe ogniwo jej nie przesuwa. „Wyraźnie” — odchylenie większe niż połowa normy strefy, „znacznie” — większe niż połowa progu „do serwisu”.</string>
     <!-- Views: «Что делать» -->
     <string name="fork_cells_wtd_title_nothing">Nic nie trzeba robić</string>
     <string name="fork_cells_wtd_title_watch">Warto obserwować</string>
@@ -288,7 +286,7 @@
     <string name="fork_cells_norm_src_low">społeczność; „do serwisu” tylko razem z odstającym ogniwem</string>
     <string name="fork_cells_norm_src_low10">wniosek z badań, mało danych o Blade</string>
     <string name="fork_cells_norm_src_load">społeczność i wniosek z badań</string>
-    <string name="fork_cells_norm_cells">%1$d ogniwa</string>
+    <string name="fork_cells_norm_cells">Ogniwa: %1$d</string>
     <string name="fork_cells_norm_strip">odchylenie od środka · czujniki %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">odchylenie od środka</string>
     <string name="fork_cells_norm_cold_note">zimno: progi × 2</string>
@@ -345,4 +343,9 @@
     <string name="fork_cells_eq_low_title">Najniżej ze wszystkich</string>
     <string name="fork_cells_eq_low_sub">odchylenie od środka w tym pomiarze</string>
     <string name="fork_cells_coolant_label">Temperatura płynu chłodniczego</string>
+    <string name="fork_cells_btn_diag">Diagnostyka baterii wysokonapięciowej</string>
+    <string name="fork_cells_stream_unsupported">Nie da się odczytać układu baterii: auto zgłasza %1$d ogniw i %2$d czujników, ale dane do tego nie pasują. Bez wniosków.</string>
+    <string name="fork_cells_entry_unsupported">układ baterii nieczytelny</string>
+    <string name="fork_cells_stats_note">Zapisy to surowe dane: z nich wiadomo, jak długo auto stało i czy ogniwa uspokoiły się po ładowaniu, z nich powstaje wykres „Wyrównywanie”; wszystkie trafiają do CSV. Werdykt o baterii opiera się tylko na pomiarach.</string>
+    <string name="fork_cells_norm_load_note">Pomiar pod obciążeniem: te normy dotyczą spoczynku, więc nie ma punktu „Jesteś tutaj”.</string>
 </resources>
