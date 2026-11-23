@@ -70,8 +70,6 @@
     <string name="fork_cells_title_watch">Warto obserwować</string>
     <string name="fork_cells_title_service">Czas do serwisu</string>
     <string name="fork_cells_title_none">Na razie bez oceny</string>
-    <string name="fork_cells_spread_line">Rozrzut %1$d mV · norma do %2$d mV</string>
-    <string name="fork_cells_strip_caption">Odchylenie każdego ogniwa od mediany</string>
     <string name="fork_cells_zone_plateau">plateau 15–85 %</string>
     <string name="fork_cells_zone_knee">góra do 3,40 V</string>
     <string name="fork_cells_zone_top">góra, ogniwa powyżej 3,40 V</string>
@@ -119,7 +117,7 @@
     <string name="fork_cells_stream_stopped">Dane ogniw przestały napływać — sprawdź, czy auto jest włączone.</string>
     <string name="fork_cells_stream_mismatch">Dane baterii nie zgadzają się z wybranym samochodem: auto zgłasza %1$d ogniw i %2$d czujników.</string>
     <string name="fork_cells_stream_helper_missing">Pomocnik nie odpowiada — dane ogniw są niedostępne.</string>
-    <string name="fork_cells_stream_helper_outdated">Pomocnik jest nieaktualny — uruchom aplikację ponownie.</string>
+    <string name="fork_cells_stream_helper_outdated">Pomocnik jest nieaktualny — uruchom ponownie radio samochodowe.</string>
     <string name="fork_cells_stream_listen_failed">Auto nie pozwoliło zasubskrybować danych ogniw: %1$s</string>
     <!-- Manual measurement -->
     <string name="fork_cells_manual_taking">Wykonujemy pomiar…</string>
@@ -133,7 +131,7 @@
     <string name="fork_cells_problem_charging">trwa ładowanie</string>
     <string name="fork_cells_problem_cold">zimno</string>
     <string name="fork_cells_fail_helper">pomocnik nie odpowiada</string>
-    <string name="fork_cells_fail_outdated">pomocnik jest nieaktualny, uruchom aplikację ponownie</string>
+    <string name="fork_cells_fail_outdated">pomocnik jest nieaktualny, uruchom ponownie radio samochodowe</string>
     <string name="fork_cells_fail_listen">auto nie pozwoliło zasubskrybować danych</string>
     <string name="fork_cells_fail_timeout">pełne dane ogniw nie dotarły</string>
     <string name="fork_cells_fail_no_car">nie wybrano samochodu</string>

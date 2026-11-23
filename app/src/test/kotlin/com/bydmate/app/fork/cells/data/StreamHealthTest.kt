@@ -101,7 +101,8 @@ class StreamHealthTest {
         // A keepalive listen keeps OK.
         assertEquals(StreamState.OK, health.onListen(SourceReply.Ok(CellListenReply(CellTx.REG_OK, "OK"))).state)
         assertEquals(StreamState.IDLE, health.onListen(SourceReply.Ok(CellListenReply(CellTx.REG_OFF, ""))).state)
-        assertEquals(StreamState.LISTEN_FAILED, health.onListen(SourceReply.Failed("status -1")).state)
+        // a transport failure is not the car's refusal
+        assertEquals(StreamStatus(StreamState.CONNECTING, detail = "status -1"), health.onListen(SourceReply.Failed("status -1")))
         assertEquals(StreamStatus(StreamState.CONNECTING, detail = "timeout"), health.onSnapshot(SourceReply.Failed("timeout"), null))
     }
 }

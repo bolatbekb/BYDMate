@@ -29,6 +29,20 @@ class CellCsvTest {
         assertEquals("", f[f.size - 23])
     }
 
+    @Test fun `a failed export leaves no partial file`() {
+        val dir = java.io.File.createTempFile("csv", "").let { it.delete(); it.mkdirs(); it }
+        val dao = io.mockk.mockk<CellDao>()
+        io.mockk.coEvery { dao.page(any(), any()) } throws IllegalStateException("boom")
+        try {
+            kotlinx.coroutines.runBlocking { CellCsv.write(dao, dir, 0L) }
+            org.junit.Assert.fail("must rethrow")
+        } catch (e: IllegalStateException) {
+            assertEquals("boom", e.message)
+        }
+        assertEquals(0, dir.listFiles()!!.size)
+        dir.deleteRecursively()
+    }
+
     @Test fun `header names`() {
         val h = CellCsv.header(184, 24).split(';')
         assertEquals("time", h[0])

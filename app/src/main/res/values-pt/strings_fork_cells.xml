@@ -70,8 +70,6 @@
     <string name="fork_cells_title_watch">Vale acompanhar</string>
     <string name="fork_cells_title_service">Hora da oficina</string>
     <string name="fork_cells_title_none">Ainda sem avaliação</string>
-    <string name="fork_cells_spread_line">Dispersão %1$d mV · norma até %2$d mV</string>
-    <string name="fork_cells_strip_caption">Desvio de cada célula em relação à mediana</string>
     <string name="fork_cells_zone_plateau">platô 15–85 %</string>
     <string name="fork_cells_zone_knee">topo até 3,40 V</string>
     <string name="fork_cells_zone_top">topo, células acima de 3,40 V</string>
@@ -119,7 +117,7 @@
     <string name="fork_cells_stream_stopped">Os dados das células pararam de chegar — verifique se o carro está ligado.</string>
     <string name="fork_cells_stream_mismatch">Os dados da bateria não correspondem ao carro escolhido: o carro informa %1$d células e %2$d sensores.</string>
     <string name="fork_cells_stream_helper_missing">O auxiliar não responde — os dados das células estão indisponíveis.</string>
-    <string name="fork_cells_stream_helper_outdated">O auxiliar está desatualizado — reinicie o app.</string>
+    <string name="fork_cells_stream_helper_outdated">O auxiliar está desatualizado — reinicie a central multimídia.</string>
     <string name="fork_cells_stream_listen_failed">O carro recusou a inscrição nos dados das células: %1$s</string>
     <!-- Manual measurement -->
     <string name="fork_cells_manual_taking">Fazendo a medição…</string>
@@ -133,7 +131,7 @@
     <string name="fork_cells_problem_charging">carregando</string>
     <string name="fork_cells_problem_cold">frio</string>
     <string name="fork_cells_fail_helper">o auxiliar não responde</string>
-    <string name="fork_cells_fail_outdated">o auxiliar está desatualizado, reinicie o app</string>
+    <string name="fork_cells_fail_outdated">o auxiliar está desatualizado, reinicie a central multimídia</string>
     <string name="fork_cells_fail_listen">o carro recusou a inscrição nos dados</string>
     <string name="fork_cells_fail_timeout">os dados completos das células não chegaram</string>
     <string name="fork_cells_fail_no_car">nenhum carro escolhido</string>

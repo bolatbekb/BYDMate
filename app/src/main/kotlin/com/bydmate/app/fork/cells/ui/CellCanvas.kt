@@ -51,7 +51,7 @@ object CellCanvas {
         val notice = AccentOrange
         val strong = SocRed
         // the skin's colours are keys: a skin switch with the window open repaints
-        val cls = remember(e, colors.bar, notice, strong) { e.classes.map { cellColor(it, e.level) } }
+        val cls = remember(e, colors.bar, notice, strong) { e.classes.map { cellColor(it, e.level, e.limits.cold) } }
         Canvas(modifier) { drawStrip(e, cls, colors) }
     }
 
@@ -76,7 +76,7 @@ object CellCanvas {
                 )
             }
         }
-        val fills = remember(e, tile, notice, strong) { e.classes.map { if (it == CellClass.NORMAL) tile else cellColor(it, e.level) } }
+        val fills = remember(e, tile, notice, strong) { e.classes.map { if (it == CellClass.NORMAL) tile else cellColor(it, e.level, e.limits.cold) } }
         Canvas(modifier) { drawGrid(fills, labels, max(1, columns)) }
     }
 

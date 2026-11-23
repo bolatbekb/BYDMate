@@ -39,14 +39,14 @@ interface CellDao {
     @Query("SELECT $SUMMARY FROM cell_snapshots WHERE measure IN (:kinds) AND ts BETWEEN :from AND :to ORDER BY ts DESC LIMIT :limit")
     suspend fun measurementsBetweenLimit(kinds: List<String>, from: Long, to: Long, limit: Int): List<SnapshotSummary>
 
-    @Query("SELECT id FROM cell_snapshots WHERE measure IS NOT NULL AND measure != 'LOAD' AND rest_period IS NOT NULL ORDER BY ts DESC LIMIT 1")
+    @Query("SELECT id FROM cell_snapshots WHERE measure IS NOT NULL AND measure != 'LOAD' AND rest_period IS NOT NULL AND NOT (measure = 'MANUAL' AND (rest_min IS NULL OR rest_min < 15)) ORDER BY ts DESC LIMIT 1")
     suspend fun latestRestId(): Long?
 
     @Query("SELECT id FROM cell_snapshots WHERE measure = 'LOAD' ORDER BY ts DESC LIMIT 1")
     suspend fun latestLoadId(): Long?
 
     /** The latest rest measurement's id and relax state, as a flow: it changes with a new one or its relax update. */
-    @Query("SELECT id, relax FROM cell_snapshots WHERE measure IS NOT NULL AND measure != 'LOAD' AND rest_period IS NOT NULL ORDER BY ts DESC LIMIT 1")
+    @Query("SELECT id, relax FROM cell_snapshots WHERE measure IS NOT NULL AND measure != 'LOAD' AND rest_period IS NOT NULL AND NOT (measure = 'MANUAL' AND (rest_min IS NULL OR rest_min < 15)) ORDER BY ts DESC LIMIT 1")
     fun latestRestKey(): Flow<MeasureKey?>
 
     @Query("SELECT $SUMMARY FROM cell_snapshots WHERE ts BETWEEN :from AND :to ORDER BY ts")

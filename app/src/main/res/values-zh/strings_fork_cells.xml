@@ -70,8 +70,6 @@
     <string name="fork_cells_title_watch">值得关注</string>
     <string name="fork_cells_title_service">该去维修站了</string>
     <string name="fork_cells_title_none">暂无评估</string>
-    <string name="fork_cells_spread_line">压差 %1$d mV · 正常不超过 %2$d mV</string>
-    <string name="fork_cells_strip_caption">每个电芯相对中位数的偏差</string>
     <string name="fork_cells_zone_plateau">平台区 15–85%</string>
     <string name="fork_cells_zone_knee">高位，不超过 3.40 V</string>
     <string name="fork_cells_zone_top">高位，电芯高于 3.40 V</string>
@@ -119,7 +117,7 @@
     <string name="fork_cells_stream_stopped">电芯数据已停止 — 请确认车辆已启动。</string>
     <string name="fork_cells_stream_mismatch">电池数据与所选车型不符：车辆报告 %1$d 个电芯和 %2$d 个探头。</string>
     <string name="fork_cells_stream_helper_missing">助手无响应 — 无法获取电芯数据。</string>
-    <string name="fork_cells_stream_helper_outdated">助手版本过旧 — 请重启应用。</string>
+    <string name="fork_cells_stream_helper_outdated">助手版本过旧 — 请重启车机。</string>
     <string name="fork_cells_stream_listen_failed">车辆拒绝订阅电芯数据：%1$s</string>
     <!-- Manual measurement -->
     <string name="fork_cells_manual_taking">正在测量…</string>
@@ -133,7 +131,7 @@
     <string name="fork_cells_problem_charging">正在充电</string>
     <string name="fork_cells_problem_cold">温度低</string>
     <string name="fork_cells_fail_helper">助手无响应</string>
-    <string name="fork_cells_fail_outdated">助手版本过旧，请重启应用</string>
+    <string name="fork_cells_fail_outdated">助手版本过旧，请重启车机</string>
     <string name="fork_cells_fail_listen">车辆拒绝订阅数据</string>
     <string name="fork_cells_fail_timeout">未收到完整的电芯数据</string>
     <string name="fork_cells_fail_no_car">未选择车辆</string>

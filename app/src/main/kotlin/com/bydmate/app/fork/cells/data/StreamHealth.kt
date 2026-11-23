@@ -30,7 +30,8 @@ class StreamHealth {
             is SourceReply.Ok -> afterListen(r.value)
             SourceReply.HelperMissing -> StreamStatus(StreamState.HELPER_MISSING)
             SourceReply.HelperOutdated -> StreamStatus(StreamState.HELPER_OUTDATED)
-            is SourceReply.Failed -> StreamStatus(StreamState.LISTEN_FAILED, detail = r.detail)
+            // a transport failure is not the car's refusal: the helper's explicit refusal arrives as a registration status
+            is SourceReply.Failed -> StreamStatus(StreamState.CONNECTING, detail = r.detail)
         },
     )
 

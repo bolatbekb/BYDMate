@@ -178,7 +178,7 @@ private fun CellLine(e: Evaluation, cell: Int, dev: Double, modifier: Modifier) 
         )
         Text(
             TextRes(R.string.fork_cells_val_signed_mv, signedMv(dev)).text(),
-            color = if (cls == CellClass.NORMAL) TextSecondary else cellColor(cls, e.level),
+            color = if (cls == CellClass.NORMAL) TextSecondary else cellColor(cls, e.level, e.limits.cold),
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             lineHeight = 18.sp,

@@ -70,8 +70,6 @@
     <string name="fork_cells_title_watch">Worth watching</string>
     <string name="fork_cells_title_service">Time for service</string>
     <string name="fork_cells_title_none">No verdict yet</string>
-    <string name="fork_cells_spread_line">Spread %1$d mV · norm up to %2$d mV</string>
-    <string name="fork_cells_strip_caption">How far each cell is from the median</string>
     <string name="fork_cells_zone_plateau">plateau 15–85%</string>
     <string name="fork_cells_zone_knee">top up to 3.40 V</string>
     <string name="fork_cells_zone_top">top, cells above 3.40 V</string>
@@ -119,7 +117,7 @@
     <string name="fork_cells_stream_stopped">Cell data stopped coming — check that the car is on.</string>
     <string name="fork_cells_stream_mismatch">The battery data does not match the chosen car: the car reports %1$d cells and %2$d probes.</string>
     <string name="fork_cells_stream_helper_missing">The helper does not respond — cell data is unavailable.</string>
-    <string name="fork_cells_stream_helper_outdated">The helper is outdated — restart the app.</string>
+    <string name="fork_cells_stream_helper_outdated">The helper is outdated — reboot the head unit.</string>
     <string name="fork_cells_stream_listen_failed">The car refused the subscription to cell data: %1$s</string>
     <!-- Manual measurement -->
     <string name="fork_cells_manual_taking">Taking a measurement…</string>
@@ -133,7 +131,7 @@
     <string name="fork_cells_problem_charging">charging</string>
     <string name="fork_cells_problem_cold">cold</string>
     <string name="fork_cells_fail_helper">the helper does not respond</string>
-    <string name="fork_cells_fail_outdated">the helper is outdated, restart the app</string>
+    <string name="fork_cells_fail_outdated">the helper is outdated, reboot the head unit</string>
     <string name="fork_cells_fail_listen">the car refused the data subscription</string>
     <string name="fork_cells_fail_timeout">complete cell data did not arrive</string>
     <string name="fork_cells_fail_no_car">no car chosen</string>

@@ -16,11 +16,16 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -34,7 +39,12 @@ class CellsSettingsViewModel @Inject constructor(
 ) : ViewModel() {
     val config: StateFlow<CellsConfig> = settings.config
 
-    val stats: StateFlow<CellStats?> = repo.stats()
+    // No car profile: the cells database is neither opened nor created by this screen.
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val stats: StateFlow<CellStats?> = config
+        .map { it.profile != CarProfile.NONE }
+        .distinctUntilChanged()
+        .flatMapLatest { on -> if (on) repo.stats() else flowOf(null) }
         .catch { emit(CellStats(CellStatsRow(0, null, 0, 0, 0), 0L)) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
@@ -46,13 +56,21 @@ class CellsSettingsViewModel @Inject constructor(
     fun setInterval(sec: Int) = settings.setIntervalSec(sec)
     fun setView(v: CheckView) = settings.setView(v)
 
+    private val exportingState = MutableStateFlow(false)
+    val exporting: StateFlow<Boolean> = exportingState.asStateFlow()
+
     fun exportCsv() {
+        if (!exportingState.compareAndSet(false, true)) return
         viewModelScope.launch {
-            val file = withContext(Dispatchers.IO) {
-                repo.exportCsv(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), System.currentTimeMillis())
+            try {
+                val file = withContext(Dispatchers.IO) {
+                    repo.exportCsv(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), System.currentTimeMillis())
+                }
+                noticeState.value = file?.let { ctx.getString(R.string.fork_cells_export_done, it.name) }
+                    ?: ctx.getString(R.string.fork_cells_export_failed)
+            } finally {
+                exportingState.value = false
             }
-            noticeState.value = file?.let { ctx.getString(R.string.fork_cells_export_done, it.name) }
-                ?: ctx.getString(R.string.fork_cells_export_failed)
         }
     }
 

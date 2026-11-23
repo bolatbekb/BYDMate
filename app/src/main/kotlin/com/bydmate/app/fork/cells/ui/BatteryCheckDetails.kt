@@ -131,14 +131,14 @@ private fun DeviationsTab(e: Evaluation) {
             groups.forEach { g ->
                 item(key = g.cls.name) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 12.dp, bottom = 4.dp)) {
-                        Swatch(cellColor(g.cls, e.level))
+                        Swatch(cellColor(g.cls, e.level, e.limits.cold))
                         Spacer(Modifier.width(10.dp))
                         Text(stringResource(groupRes(g.cls)), color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold)
                         Text("  ·  ${g.cells.size}", color = TextMuted, fontSize = 15.sp, style = tnum())
                     }
                 }
                 items(g.cells, key = { "c$it" }) { cell ->
-                    DeviationRow(cell, e.input.cellsMv.getOrElse(cell - 1) { 0 }, e.deviationsMv.getOrElse(cell - 1) { 0.0 }, cellColor(g.cls, e.level), locale)
+                    DeviationRow(cell, e.input.cellsMv.getOrElse(cell - 1) { 0 }, e.deviationsMv.getOrElse(cell - 1) { 0.0 }, cellColor(g.cls, e.level, e.limits.cold), locale)
                 }
             }
         }

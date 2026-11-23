@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -14,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellStats
@@ -43,9 +43,10 @@ import java.util.Locale
 /** Settings › System: battery check — car profile, cell data collection, view, stored data. fork-local. */
 @Composable
 internal fun BatteryCheckBlock(vm: CellsSettingsViewModel = hiltViewModel()) {
-    val config by vm.config.collectAsState()
-    val stats by vm.stats.collectAsState()
-    val notice by vm.notice.collectAsState()
+    val config by vm.config.collectAsStateWithLifecycle()
+    val stats by vm.stats.collectAsStateWithLifecycle()
+    val notice by vm.notice.collectAsStateWithLifecycle()
+    val exporting by vm.exporting.collectAsStateWithLifecycle()
     val rows = visibleRows(config)
     SectionHeader(text = stringResource(R.string.fork_cells_settings_header))
     Card(
@@ -94,14 +95,14 @@ internal fun BatteryCheckBlock(vm: CellsSettingsViewModel = hiltViewModel()) {
             }
             if (BlockRow.STATS in rows) {
                 SettingDivider()
-                StatsRow(stats, notice, vm)
+                StatsRow(stats, notice, exporting, vm)
             }
         }
     }
 }
 
 @Composable
-private fun StatsRow(stats: CellStats?, notice: String?, vm: CellsSettingsViewModel) {
+private fun StatsRow(stats: CellStats?, notice: String?, exporting: Boolean, vm: CellsSettingsViewModel) {
     var confirm by remember { mutableStateOf(false) }
     val locale = Locale.getDefault()
     val empty = stats == null || stats.row.snapshots == 0
@@ -121,7 +122,7 @@ private fun StatsRow(stats: CellStats?, notice: String?, vm: CellsSettingsViewMo
         description = line,
         buttonLabel = stringResource(R.string.fork_cells_export),
         onClick = vm::exportCsv,
-        enabled = !empty,
+        enabled = !empty && !exporting,
         secondButtonLabel = stringResource(R.string.fork_cells_clear),
         onSecondClick = { confirm = true },
     )

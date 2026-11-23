@@ -70,8 +70,6 @@
     <string name="fork_cells_title_watch">Стоит последить</string>
     <string name="fork_cells_title_service">Пора в сервис</string>
     <string name="fork_cells_title_none">Пока без оценки</string>
-    <string name="fork_cells_spread_line">Разброс %1$d мВ · норма до %2$d мВ</string>
-    <string name="fork_cells_strip_caption">Отклонение каждой ячейки от медианы</string>
     <string name="fork_cells_zone_plateau">плато 15–85 %</string>
     <string name="fork_cells_zone_knee">верх до 3,40 В</string>
     <string name="fork_cells_zone_top">верх, ячейки выше 3,40 В</string>
@@ -119,7 +117,7 @@
     <string name="fork_cells_stream_stopped">Данные ячеек перестали приходить — проверьте, включена ли машина.</string>
     <string name="fork_cells_stream_mismatch">Данные батареи не совпадают с выбранным автомобилем: машина сообщает %1$d ячеек и %2$d датчиков.</string>
     <string name="fork_cells_stream_helper_missing">Помощник не отвечает — данные ячеек недоступны.</string>
-    <string name="fork_cells_stream_helper_outdated">Помощник устарел — перезапустите приложение.</string>
+    <string name="fork_cells_stream_helper_outdated">Помощник устарел — перезагрузите магнитолу.</string>
     <string name="fork_cells_stream_listen_failed">Машина не дала подписаться на данные ячеек: %1$s</string>
     <!-- Manual measurement -->
     <string name="fork_cells_manual_taking">Снимаем замер…</string>
@@ -133,7 +131,7 @@
     <string name="fork_cells_problem_charging">идёт зарядка</string>
     <string name="fork_cells_problem_cold">холодно</string>
     <string name="fork_cells_fail_helper">помощник не отвечает</string>
-    <string name="fork_cells_fail_outdated">помощник устарел, перезапустите приложение</string>
+    <string name="fork_cells_fail_outdated">помощник устарел, перезагрузите магнитолу</string>
     <string name="fork_cells_fail_listen">машина не дала подписаться на данные</string>
     <string name="fork_cells_fail_timeout">полные данные ячеек не пришли</string>
     <string name="fork_cells_fail_no_car">автомобиль не выбран</string>

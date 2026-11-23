@@ -12,6 +12,8 @@ import com.bydmate.app.fork.cells.stream.NO_TEMP
 import com.bydmate.app.fork.cells.stream.feedFixture
 import com.bydmate.app.fork.cells.stream.readingOf
 import com.bydmate.app.fork.cells.verdict.CellClass
+import com.bydmate.app.ui.theme.AccentOrange
+import com.bydmate.app.ui.theme.SocRed
 import com.bydmate.app.fork.cells.verdict.CellVerdict
 import com.bydmate.app.fork.cells.verdict.Evaluation
 import com.bydmate.app.fork.cells.verdict.Laggard
@@ -162,6 +164,14 @@ class BatteryCheckUiTest {
         assertEquals(Level.SERVICE, pointLevel(sp(1, 0, 95), known = Level.SERVICE))
         assertEquals(Level.WATCH, pointLevel(sp(1, 0, 320, row = ZoneRow.TOP), known = Level.WATCH))
         assertEquals(Level.NONE, pointLevel(sp(1, 0, 95, prelim = true), known = Level.NONE))
+    }
+
+    @Test fun `strong cells are red only with a verdict and not in the cold`() {
+        assertEquals(SocRed, cellColor(CellClass.STRONGLY_LOW, Level.OK))
+        assertEquals(SocRed, cellColor(CellClass.STRONGLY_HIGH, Level.WATCH, cold = false))
+        assertEquals(AccentOrange, cellColor(CellClass.STRONGLY_LOW, Level.OK, cold = true))
+        assertEquals(AccentOrange, cellColor(CellClass.STRONGLY_HIGH, Level.WATCH, cold = true))
+        assertEquals(AccentOrange, cellColor(CellClass.STRONGLY_LOW, Level.NONE))
     }
 
     @Test fun `the selected measurement stays in the picker`() {

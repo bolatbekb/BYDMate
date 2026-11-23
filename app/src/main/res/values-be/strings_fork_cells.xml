@@ -70,8 +70,6 @@
     <string name="fork_cells_title_watch">Варта сачыць</string>
     <string name="fork_cells_title_service">Пара ў сэрвіс</string>
     <string name="fork_cells_title_none">Пакуль без ацэнкі</string>
-    <string name="fork_cells_spread_line">Разкід %1$d мВ · норма да %2$d мВ</string>
-    <string name="fork_cells_strip_caption">Адхіленне кожнай ячэйкі ад медыяны</string>
     <string name="fork_cells_zone_plateau">плато 15–85 %</string>
     <string name="fork_cells_zone_knee">верх да 3,40 В</string>
     <string name="fork_cells_zone_top">верх, ячэйкі вышэй за 3,40 В</string>
@@ -119,7 +117,7 @@
     <string name="fork_cells_stream_stopped">Даныя ячэек перасталі прыходзіць — праверце, ці ўключана машына.</string>
     <string name="fork_cells_stream_mismatch">Даныя батарэі не супадаюць з выбраным аўтамабілем: машына паведамляе %1$d ячэек і %2$d датчыкаў.</string>
     <string name="fork_cells_stream_helper_missing">Памочнік не адказвае — даныя ячэек недаступныя.</string>
-    <string name="fork_cells_stream_helper_outdated">Памочнік састарэў — перазапусціце праграму.</string>
+    <string name="fork_cells_stream_helper_outdated">Памочнік састарэў — перазагрузіце магнітолу.</string>
     <string name="fork_cells_stream_listen_failed">Машына не дала падпісацца на даныя ячэек: %1$s</string>
     <!-- Manual measurement -->
     <string name="fork_cells_manual_taking">Робім замер…</string>
@@ -133,7 +131,7 @@
     <string name="fork_cells_problem_charging">ідзе зарадка</string>
     <string name="fork_cells_problem_cold">холадна</string>
     <string name="fork_cells_fail_helper">памочнік не адказвае</string>
-    <string name="fork_cells_fail_outdated">памочнік састарэў, перазапусціце праграму</string>
+    <string name="fork_cells_fail_outdated">памочнік састарэў, перазагрузіце магнітолу</string>
     <string name="fork_cells_fail_listen">машына не дала падпісацца на даныя</string>
     <string name="fork_cells_fail_timeout">поўныя даныя ячэек не прыйшлі</string>
     <string name="fork_cells_fail_no_car">аўтамабіль не выбраны</string>

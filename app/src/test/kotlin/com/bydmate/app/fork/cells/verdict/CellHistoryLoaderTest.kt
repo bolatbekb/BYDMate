@@ -35,9 +35,9 @@ class CellHistoryLoaderTest {
 
     @After fun tearDown() = db.close()
 
-    private fun row(ts: Long, measure: String?, period: Long?, spread: Int = 10) = CellSnapshotEntity(
+    private fun row(ts: Long, measure: String?, period: Long?, spread: Int = 10, restMin: Int? = 70) = CellSnapshotEntity(
         ts = ts, elapsedMs = ts, profile = "p", measure = measure, restPeriod = period, relax = "NOT_NEEDED", relaxDropMv = null,
-        soc = 50, currentA = 0.5, packV = 580, charging = false, restMin = 70, daysSinceFull = 3, vminMv = 3275 - spread,
+        soc = 50, currentA = 0.5, packV = 580, charging = false, restMin = restMin, daysSinceFull = 3, vminMv = 3275 - spread,
         vmaxMv = 3275, spreadMv = spread, probeMinC = 20, probeMaxC = 22, flagConsistency = null, flagTempDiff = null,
         flagUnbalanced = null, cells = CellBlob.encodeCells(cells(spread)), probes = CellBlob.encodeProbes(IntArray(24) { 20 }),
     )
@@ -74,6 +74,15 @@ class CellHistoryLoaderTest {
         assertEquals(manual, loader.latestRestId())
         val load = repo.insert(row(5000, "LOAD", null))
         assertEquals(load, loader.latestLoadId())
+    }
+
+    @Test fun `a short or unknown-rest manual snapshot never becomes the latest rest measurement`() = runBlocking {
+        val rest = repo.insert(row(1000, "AFTER_PARKING", 1))!!
+        repo.insert(row(2000, "MANUAL", 2, restMin = 5))
+        repo.insert(row(3000, "MANUAL", 3, restMin = null))
+        assertEquals(rest, loader.latestRestId())
+        val long = repo.insert(row(4000, "MANUAL", 4, restMin = 15))!!
+        assertEquals(long, loader.latestRestId())
     }
 
     @Test fun `unknown id or plain snapshot gives null`() = runBlocking {
