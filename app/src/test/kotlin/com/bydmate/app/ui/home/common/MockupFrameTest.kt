@@ -1,6 +1,8 @@
 package com.bydmate.app.ui.home.common
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MockupFrameTest {
@@ -36,4 +38,16 @@ class MockupFrameTest {
     @Test fun `a zero area never gives NaN`() = check(0f, 0f, FluidFrame(0f, 1080f, 0f), 1080f)
 
     @Test fun `a wide short area keeps the min scale`() = check(2000f, 600f, FluidFrame(600f / 604f, 1208f, 0f), 1208f)
+
+    // first frame: Compose has no bars yet while the window reports the car's 112 / 120 px
+    @Test fun `waits while compose has no bars the window already has`() =
+        assertTrue(insetsPending(0, 0, 112, 120))
+
+    @Test fun `draws once the bars match`() = assertFalse(insetsPending(112, 120, 112, 120))
+
+    @Test fun `waits while only one bar arrived`() = assertTrue(insetsPending(112, 0, 112, 120))
+
+    @Test fun `a screen without bars never waits`() = assertFalse(insetsPending(0, 0, 0, 0))
+
+    @Test fun `unknown window insets never wait`() = assertFalse(insetsPending(0, 0, null, null))
 }
