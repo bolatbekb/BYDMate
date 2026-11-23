@@ -12,10 +12,12 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -23,7 +25,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
@@ -33,6 +37,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalView
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
@@ -51,6 +58,7 @@ import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.util.Locale
+import kotlinx.coroutines.delay
 import kotlin.math.min
 
 /*
@@ -129,6 +137,24 @@ internal fun fluidFrame(
 /** The extra design px of height the fluid frame gives (0 in the fixed frame). */
 internal val LocalMockupExtra = staticCompositionLocalOf { 0f }
 
+/** Frames the area must keep one size, after the bars arrived, before the home is drawn. */
+private const val SETTLE_FRAMES = 2
+
+/** The home is drawn anyway after this long, even if the bar sizes never match. */
+private const val INSETS_WAIT_MAX_MS = 600L
+
+/**
+ * True while Compose has not yet got the system-bar sizes the window already reports ([viewTop],
+ * [viewBottom]; null while the view has none). With edge-to-edge the first frame sees no bars, the
+ * bars arrive a frame later and the area under the home shrinks, so the fluid home would jump.
+ * No bars at all (0 and 0) or unknown view insets never wait. All values are px.
+ */
+internal fun insetsPending(composeTop: Int, composeBottom: Int, viewTop: Int?, viewBottom: Int?): Boolean {
+    if (viewTop == null || viewBottom == null) return false
+    if (viewTop == 0 && viewBottom == 0) return false
+    return composeTop != viewTop || composeBottom != viewBottom
+}
+
 @Composable
 private fun FluidMockupFrame(baseHPx: Float, letterbox: Color, content: @Composable BoxScope.() -> Unit) {
     BoxWithConstraints(Modifier.fillMaxSize().background(letterbox), contentAlignment = Alignment.Center) {
@@ -136,6 +162,18 @@ private fun FluidMockupFrame(baseHPx: Float, letterbox: Color, content: @Composa
         val h = if (constraints.hasBoundedHeight) maxHeight.value else baseHPx * K
         val frame = fluidFrame(w, h, baseHPx)
         val base = LocalDensity.current
+        val bars = WindowInsets.systemBars
+        val root = ViewCompat.getRootWindowInsets(LocalView.current)?.getInsets(WindowInsetsCompat.Type.systemBars())
+        val pending = insetsPending(bars.getTop(base), bars.getBottom(base), root?.top, root?.bottom)
+        // the first frame without the bars draws only the letterbox; once they came, the area
+        // settles (the menu grows by the bottom bar a frame later) and only then the home appears
+        var shown by remember { mutableStateOf(!pending) }
+        LaunchedEffect(w, h, pending) {
+            if (shown) return@LaunchedEffect
+            if (pending) delay(INSETS_WAIT_MAX_MS) else repeat(SETTLE_FRAMES) { withFrameNanos { } }
+            shown = true
+        }
+        if (!shown) return@BoxWithConstraints
         CompositionLocalProvider(
             LocalDensity provides Density(base.density * frame.scale, 1f),
             LocalMockupExtra provides frame.extraPx,
