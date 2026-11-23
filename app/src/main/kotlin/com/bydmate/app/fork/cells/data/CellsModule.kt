@@ -11,6 +11,9 @@ import com.bydmate.app.fork.cells.coolant.CoolantReader
 import com.bydmate.app.fork.cells.coolant.DemoCoolant
 import com.bydmate.app.fork.cells.coolant.HelperCoolantReader
 import com.bydmate.app.fork.cells.demo.DemoCellSource
+import com.bydmate.app.fork.cells.motors.DemoMotorTempsReader
+import com.bydmate.app.fork.cells.motors.HelperMotorTempsReader
+import com.bydmate.app.fork.cells.motors.MotorTempsReader
 import com.bydmate.app.fork.cells.verdict.CellHistoryLoader
 import com.bydmate.app.service.TrackingService
 import dagger.Module
@@ -79,4 +82,9 @@ object CellsModule {
     @Provides @Singleton
     fun provideCoolantReader(@ApplicationContext ctx: Context, helper: HelperClient): CoolantReader =
         if (DemoMode.isOn(ctx)) DemoCoolant(TrackingService.lastData) else HelperCoolantReader(helper)
+
+    /** Motor and inverter °C of the Leopard 5; the demo keeps the demo car's own values. */
+    @Provides @Singleton
+    fun provideMotorTempsReader(@ApplicationContext ctx: Context, helper: HelperClient): MotorTempsReader =
+        if (DemoMode.isOn(ctx)) DemoMotorTempsReader(TrackingService.lastData) else HelperMotorTempsReader(helper)
 }

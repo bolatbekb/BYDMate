@@ -190,7 +190,8 @@ class CellCollector(
             daysSinceFull = daysSinceFull(s.wallMs, settings.lastFull100WallMs),
             flags = readFlags(flags),
         )
-        val id = repo.insert(snapshotRow(profile, s, reading, conditions)) ?: return
+        val stored = if (measure == MeasureKind.LOAD) reading.copy(cellsMv = alignedUnderLoad(reading.cellsMv)) else reading
+        val id = repo.insert(snapshotRow(profile, s, stored, conditions)) ?: return
         sch.onStored(s, StoredSnapshot(id, s.elapsedMs, vmax, s.soc, measure)).forEach { repo.updateRelax(it) }
     }
 

@@ -312,7 +312,7 @@ private fun TechCardContent(
         TechCard.BATTERY_NOW -> BatteryNowCard(state, onHint, modifier)
         TechCard.LIMITS -> LimitsAndCellsCard(state, onHint, modifier)
         TechCard.HISTORY -> HistoryCard(state, onHint, modifier)
-        TechCard.MOTORS -> MotorsCard(state, onHint, modifier)
+        TechCard.MOTORS -> MotorsCard(com.bydmate.app.fork.cells.motors.leopard5Motors(state), onHint, modifier) // fork: Leopard 5 — motor and inverter °C from frame 0x4DA, rpm as magnitudes
         TechCard.CAR_STATE -> CarStateCard(state, onHint, onOpenTyres, modifier)
         TechCard.FUEL -> FuelCard(state, modifier)
         TechCard.DIAGNOSTICS -> DiagnosticsCard(state, onHint, onScan, onOpenDtc, onOpenFirmware, modifier)
