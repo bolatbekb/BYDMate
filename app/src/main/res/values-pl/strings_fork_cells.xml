@@ -346,4 +346,5 @@
     <string name="fork_cells_eq_top_sub">ogniwa powyżej środka — BMS ściąga je w dół</string>
     <string name="fork_cells_eq_low_title">Najniżej ze wszystkich</string>
     <string name="fork_cells_eq_low_sub">odchylenie od środka w tym pomiarze</string>
+    <string name="fork_cells_coolant_label">Temperatura płynu chłodniczego</string>
 </resources>

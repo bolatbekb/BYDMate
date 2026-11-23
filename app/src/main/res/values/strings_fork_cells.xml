@@ -346,4 +346,5 @@
     <string name="fork_cells_eq_top_sub">ячейки выше середины — их BMS подтягивает вниз</string>
     <string name="fork_cells_eq_low_title">Ниже всех</string>
     <string name="fork_cells_eq_low_sub">отклонение от середины в этом замере</string>
+    <string name="fork_cells_coolant_label">Температура ОЖ</string>
 </resources>

@@ -346,4 +346,5 @@
     <string name="fork_cells_eq_top_sub">cells above the middle — the BMS pulls them down</string>
     <string name="fork_cells_eq_low_title">Lowest of all</string>
     <string name="fork_cells_eq_low_sub">deviation from the middle in this measurement</string>
+    <string name="fork_cells_coolant_label">Coolant temperature</string>
 </resources>

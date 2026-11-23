@@ -346,4 +346,5 @@
     <string name="fork_cells_eq_top_sub">ячэйкі вышэй за сярэдзіну — BMS падцягвае іх уніз</string>
     <string name="fork_cells_eq_low_title">Ніжэй за ўсе</string>
     <string name="fork_cells_eq_low_sub">адхіленне ад сярэдзіны ў гэтым замеры</string>
+    <string name="fork_cells_coolant_label">Тэмпература АЖ</string>
 </resources>

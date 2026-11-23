@@ -346,4 +346,5 @@
     <string name="fork_cells_eq_top_sub">células acima do meio — o BMS as puxa para baixo</string>
     <string name="fork_cells_eq_low_title">As mais baixas</string>
     <string name="fork_cells_eq_low_sub">desvio em relação ao meio nesta medição</string>
+    <string name="fork_cells_coolant_label">Temperatura do líquido de arrefecimento</string>
 </resources>

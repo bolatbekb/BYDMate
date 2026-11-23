@@ -346,4 +346,5 @@
     <string name="fork_cells_eq_top_sub">高于中位数的电芯 — BMS 会把它们拉下来</string>
     <string name="fork_cells_eq_low_title">最低的电芯</string>
     <string name="fork_cells_eq_low_sub">本次测量中相对中位数的偏差</string>
+    <string name="fork_cells_coolant_label">冷却液温度</string>
 </resources>

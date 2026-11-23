@@ -7,6 +7,9 @@ import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.fork.cells.collect.BMS_FLAG_ITEMS
 import com.bydmate.app.fork.cells.collect.CellCollector
 import com.bydmate.app.fork.cells.collect.bmsFlagsOf
+import com.bydmate.app.fork.cells.coolant.CoolantReader
+import com.bydmate.app.fork.cells.coolant.DemoCoolant
+import com.bydmate.app.fork.cells.coolant.HelperCoolantReader
 import com.bydmate.app.fork.cells.demo.DemoCellSource
 import com.bydmate.app.fork.cells.verdict.CellHistoryLoader
 import com.bydmate.app.service.TrackingService
@@ -71,4 +74,9 @@ object CellsModule {
         scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
         liveAtMs = { TrackingService.lastDataAtMs },
     )
+
+    /** Coolant °C of the Leopard 5; the demo never touches the real helper. */
+    @Provides @Singleton
+    fun provideCoolantReader(@ApplicationContext ctx: Context, helper: HelperClient): CoolantReader =
+        if (DemoMode.isOn(ctx)) DemoCoolant(TrackingService.lastData) else HelperCoolantReader(helper)
 }
