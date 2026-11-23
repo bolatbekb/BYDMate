@@ -164,7 +164,7 @@ fun TechPanelScreen(
             onDismiss = firmwareViewModel::closeDialog,
         )
     }
-    com.bydmate.app.fork.cells.ui.BatteryCheckHost() // fork: battery check window (opened from «Диагностика» and «Ячейки»)
+    com.bydmate.app.fork.cells.ui.BatteryCheckHost() // fork: battery check window (opened by «Диагностика ВВБ» in «Лимиты BMS»)
 }
 
 /** Columns of the card grid: the screen is 15.6" landscape, three cards fit across it. */

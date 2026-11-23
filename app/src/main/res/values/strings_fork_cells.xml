@@ -5,12 +5,12 @@
     <string name="fork_cells_settings_header">Диагностика батареи</string>
     <!-- Car -->
     <string name="fork_cells_car_title">Автомобиль</string>
-    <string name="fork_cells_car_desc">Состав батареи зависит от модели и версии. Пока автомобиль не выбран, диагностика ячеек не показывается. Если машина сообщит другое число ячеек, проверка предупредит, что данные не совпадают с выбранным автомобилем.</string>
+    <string name="fork_cells_car_desc">Пока автомобиль не выбран, диагностика ячеек не показывается. Число ячеек и датчиков приложение берёт у самой машины, ёмкость для порога «под нагрузкой» — из поля «Ёмкость батареи» в настройках (пустое поле — 31,8 кВт·ч).</string>
     <string name="fork_cells_car_none">Не выбран</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31,8 кВт·ч</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">Собирать данные ячеек батареи</string>
-    <string name="fork_cells_collect_desc">Пока машина включена, приложение раз в выбранный интервал сохраняет напряжения всех %1$d ячеек и температуры %2$d датчиков. Из этих снимков строятся замеры «в покое», «после зарядки», «под нагрузкой» и история. Только чтение, в машину ничего не пишется. Данные хранятся отдельно от базы поездок и зарядок.</string>
+    <string name="fork_cells_collect_desc">Пока машина включена, приложение раз в выбранный интервал сохраняет напряжения всех ячеек и температуры всех датчиков — столько, сколько сообщает машина. Из этих снимков строятся замеры «в покое», «после зарядки», «под нагрузкой» и история. Только чтение, в машину ничего не пишется. Данные хранятся отдельно от базы поездок и зарядок.</string>
     <!-- Interval -->
     <string name="fork_cells_interval_title">Как часто делать снимок</string>
     <string name="fork_cells_interval_desc">Дополнительно снимок делается сразу после включения машины (ячейки «отдохнули» за стоянку), после часа покоя и под нагрузкой — это самые честные замеры. ≈ 0,5 КБ на снимок · при 30 с и 2 часах в день ≈ 0,1 МБ в день</string>
@@ -27,7 +27,7 @@
     <!-- Stored data -->
     <string name="fork_cells_stats_title">Накоплено</string>
     <string name="fork_cells_stats_value">Снимков: %1$s · %2$s · с %3$s</string>
-    <string name="fork_cells_stats_measures">Замеры: в покое — %1$d, после зарядки — %2$d, под нагрузкой — %3$d</string>
+    <string name="fork_cells_stats_measures">Замеры (по ним делается вывод): в покое — %1$d, после зарядки — %2$d, под нагрузкой — %3$d</string>
     <string name="fork_cells_stats_empty">Пока ничего не собрано</string>
     <string name="fork_cells_export">Выгрузить CSV</string>
     <string name="fork_cells_clear">Очистить</string>
@@ -115,7 +115,6 @@
     <string name="fork_cells_stream_connecting">Ждём данные ячеек…</string>
     <string name="fork_cells_stream_no_stream">Машина не передаёт данные ячеек. На этой прошивке проверка недоступна.</string>
     <string name="fork_cells_stream_stopped">Данные ячеек перестали приходить — проверьте, включена ли машина.</string>
-    <string name="fork_cells_stream_mismatch">Данные батареи не совпадают с выбранным автомобилем: машина сообщает %1$d ячеек и %2$d датчиков.</string>
     <string name="fork_cells_stream_helper_missing">Помощник не отвечает — данные ячеек недоступны.</string>
     <string name="fork_cells_stream_helper_outdated">Помощник устарел — перезагрузите магнитолу.</string>
     <string name="fork_cells_stream_listen_failed">Машина не дала подписаться на данные ячеек: %1$s</string>
@@ -138,7 +137,6 @@
     <!-- Row on «Машина» -->
     <string name="fork_cells_entry_collect_off">включите сбор данных</string>
     <string name="fork_cells_entry_empty">замеров ещё нет</string>
-    <string name="fork_cells_entry_mismatch">данные не совпадают с автомобилем</string>
     <string name="fork_cells_entry_no_stream">машина не передаёт данные</string>
     <string name="fork_cells_entry_stopped">данные перестали приходить</string>
     <!-- «Подробно» -->
@@ -158,7 +156,7 @@
     <string name="fork_cells_probe_label">Д%1$d</string>
     <string name="fork_cells_probe_hottest">самый тёплый</string>
     <string name="fork_cells_probe_coldest">самый холодный</string>
-    <string name="fork_cells_probes_caption">24 датчика температуры стоят на модулях батареи (вероятно, по два на модуль, с концов) и к отдельным ячейкам не привязаны. Оранжевая рамка — самый тёплый, синяя — самый холодный.</string>
+    <string name="fork_cells_probes_caption">Датчики температуры стоят на модулях батареи (вероятно, по два на модуль, с концов) и к отдельным ячейкам не привязаны. Оранжевая рамка — самый тёплый, синяя — самый холодный.</string>
     <string name="fork_cells_history_caption">разброс по замерам в покое · пунктир — норма</string>
     <string name="fork_cells_history_laggard">№%1$d — ниже всех в %2$d из %3$d замеров</string>
     <string name="fork_cells_history_watch">следить</string>
@@ -210,7 +208,7 @@
     <string name="fork_cells_help_rule_prelim">Покой 15–60 минут — оценка «предварительно», красный не ставится.</string>
     <string name="fork_cells_help_rule_cold">Холод: батарея ниже 10 °C — пороги × 2, красный не ставится, перемерить в тепле.</string>
     <string name="fork_cells_help_rule_once">«В сервис» — только когда разброс подтвердился во втором замере в другой день.</string>
-    <string name="fork_cells_help_rule_median">Опорная точка — медиана 184 ячеек: одна слабая ячейка её не сдвигает. «Заметно» — отклонение больше половины нормы зоны, «сильно» — больше половины порога «в сервис».</string>
+    <string name="fork_cells_help_rule_median">Опорная точка — медиана всех ячеек: одна слабая ячейка её не сдвигает. «Заметно» — отклонение больше половины нормы зоны, «сильно» — больше половины порога «в сервис».</string>
     <!-- Views: «Что делать» -->
     <string name="fork_cells_wtd_title_nothing">Ничего делать не нужно</string>
     <string name="fork_cells_wtd_title_watch">Стоит последить</string>
@@ -288,7 +286,7 @@
     <string name="fork_cells_norm_src_low">сообщество; «в сервис» только вместе с отстающей ячейкой</string>
     <string name="fork_cells_norm_src_low10">вывод исследования, данных по Blade мало</string>
     <string name="fork_cells_norm_src_load">сообщество и вывод исследования</string>
-    <string name="fork_cells_norm_cells">%1$d ячейки</string>
+    <string name="fork_cells_norm_cells">Ячеек: %1$d</string>
     <string name="fork_cells_norm_strip">отклонение от середины · датчики %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">отклонение от середины</string>
     <string name="fork_cells_norm_cold_note">холод: пороги × 2</string>
@@ -345,4 +343,9 @@
     <string name="fork_cells_eq_low_title">Ниже всех</string>
     <string name="fork_cells_eq_low_sub">отклонение от середины в этом замере</string>
     <string name="fork_cells_coolant_label">Температура ОЖ</string>
+    <string name="fork_cells_btn_diag">Диагностика ВВБ</string>
+    <string name="fork_cells_stream_unsupported">Состав батареи не читается: машина сообщает %1$d ячеек и %2$d датчиков, но данные с этим не сходятся. Выводов нет.</string>
+    <string name="fork_cells_entry_unsupported">состав батареи не читается</string>
+    <string name="fork_cells_stats_note">Снимки — сырые данные: по ним считается, сколько машина стояла, проверяется, успокоились ли ячейки после зарядки, и строится график «Выравнивание»; все они уходят в CSV. Вывод о батарее делается только по замерам.</string>
+    <string name="fork_cells_norm_load_note">Замер под нагрузкой: эти нормы — для покоя, поэтому точки «Вы здесь» нет.</string>
 </resources>

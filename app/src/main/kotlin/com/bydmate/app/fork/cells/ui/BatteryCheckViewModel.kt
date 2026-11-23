@@ -54,6 +54,8 @@ private data class WindowState(
     val selected: Evaluation? = null,
     val latestLoad: Evaluation? = null,
     val history: List<SpreadPoint> = emptyList(),
+    /** The cell count of the series [history] belongs to. */
+    val historyCells: Int? = null,
     val manual: ManualUi = ManualUi.Idle,
     val details: DetailsTab? = null,
     val helpOpen: Boolean = false,
@@ -160,10 +162,16 @@ class BatteryCheckViewModel @Inject constructor(
         if (openState.value) collector.setWindowOpen(visible)
     }
 
+    /** A measurement of another cell count brings its own series: the window reloads around it. */
     fun select(id: Long) {
         window.update { it.copy(selectedId = id) }
         viewModelScope.launch {
             val e = withContext(io) { data.evaluate(id) }
+            val cells = e?.input?.cellsMv?.size
+            if (cells != null && cells != window.value.historyCells && window.value.selectedId == id) {
+                reload(id)
+                return@launch
+            }
             window.update { if (it.selectedId == id) it.copy(selected = e) else it }
         }
     }
@@ -195,7 +203,10 @@ class BatteryCheckViewModel @Inject constructor(
         loadJob = viewModelScope.launch {
             val d = withContext(io) { data.load(select) }
             window.update {
-                it.copy(picker = d.picker, selectedId = d.selectedId, selected = d.selected, latestLoad = d.latestLoad, history = d.history, loading = false)
+                it.copy(
+                    picker = d.picker, selectedId = d.selectedId, selected = d.selected, latestLoad = d.latestLoad, history = d.history,
+                    historyCells = d.historyCells, loading = false,
+                )
             }
             val levels = withContext(io) { data.levels(d) }
             window.update { it.copy(picker = levels.picker, levels = levels.byId) }

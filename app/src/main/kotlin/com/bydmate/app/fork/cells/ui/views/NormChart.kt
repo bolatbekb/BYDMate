@@ -21,6 +21,8 @@ import com.bydmate.app.fork.cells.ui.TextRes
 import com.bydmate.app.fork.cells.ui.levelColor
 import com.bydmate.app.fork.cells.ui.text
 import com.bydmate.app.fork.cells.verdict.Evaluation
+import com.bydmate.app.fork.cells.verdict.Level
+import com.bydmate.app.fork.cells.verdict.ZoneRow
 import com.bydmate.app.ui.skin.withTnum
 import com.bydmate.app.ui.theme.AccentOrange
 import com.bydmate.app.ui.theme.CardBorder
@@ -43,6 +45,7 @@ private const val BAND_BAD = 0.09f
 private const val BAND_LIT = 1.6f
 private const val HALO = 0.22f
 private const val CHIP = 0.85f
+private const val NOTE_WIDTH = 0.7f
 
 /** The texts of the chart, resolved in composition and measured in the draw pass. */
 private data class NormTexts(
@@ -53,6 +56,8 @@ private data class NormTexts(
     val hereValue: String,
     val previous: String?,
     val full: String,
+    /** Why there is no point: the measurement was taken under load (these are rest norms). */
+    val loadNote: String?,
 )
 
 private data class NormInk(val ok: Color, val warn: Color, val bad: Color, val axis: Color, val muted: Color, val primary: Color, val secondary: Color, val level: Color, val chip: Color)
@@ -77,8 +82,11 @@ internal fun NormChart(model: NormChartModel, e: Evaluation, modifier: Modifier)
         hereValue = TextRes(R.string.fork_cells_norm_here_value, socArg(e.input.soc), e.spreadMv).text(),
         previous = model.previous?.let { TextRes(R.string.fork_cells_norm_previous, it.second).text() },
         full = TextRes(R.string.fork_cells_val_percent, 100).text(),
+        loadNote = if (model.here == null && e.row == ZoneRow.LOAD) stringResource(R.string.fork_cells_norm_load_note) else null,
     )
-    val ink = NormInk(ConsumptionGood, AccentOrange, SocRed, CardBorder, TextMuted, TextPrimary, TextSecondary, levelColor(model.level), CardSurfaceElevated)
+    // without a verdict the point is neutral, but never as faint as the axis labels
+    val here = if (model.level == null || model.level == Level.NONE) TextSecondary else levelColor(model.level)
+    val ink = NormInk(ConsumptionGood, AccentOrange, SocRed, CardBorder, TextMuted, TextPrimary, TextSecondary, here, CardSurfaceElevated)
     Canvas(modifier) {
         if (size.width <= 0f || size.height <= 0f) return@Canvas
         val g = NormGeom(40.dp.toPx(), size.width - 6.dp.toPx(), 38.dp.toPx(), size.height - 20.dp.toPx())
@@ -88,7 +96,18 @@ internal fun NormChart(model: NormChartModel, e: Evaluation, modifier: Modifier)
         drawZoneLines(g, model.zones, texts, ink, l)
         drawAxes(g, texts, ink, l)
         drawHere(g, model, texts, ink, l)
+        texts.loadNote?.let { drawNote(g, it, ink, l) }
     }
+}
+
+/** A line on a chip in the middle of the plot, wrapped to its width: why the chart has no point. */
+private fun DrawScope.drawNote(g: NormGeom, note: String, ink: NormInk, l: Labels) {
+    val pad = 8.dp.toPx()
+    val t = l.centered(note, 13f, ink.primary, ((g.right - g.left) * NOTE_WIDTH).toInt())
+    val x = (g.left + g.right) / 2f - t.size.width / 2f
+    val y = (g.top + g.bottom) / 2f - t.size.height / 2f
+    drawRoundRect(ink.chip.copy(alpha = CHIP), Offset(x - pad, y - pad / 2f), Size(t.size.width + pad * 2, t.size.height + pad), CornerRadius(pad))
+    drawText(t, topLeft = Offset(x, y))
 }
 
 /** Green up to the norm, orange to the service number (or the top), red above it; the zone of the measurement a bit brighter. */

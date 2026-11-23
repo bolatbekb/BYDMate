@@ -5,12 +5,12 @@
     <string name="fork_cells_settings_header">电池检测</string>
     <!-- Car -->
     <string name="fork_cells_car_title">车辆</string>
-    <string name="fork_cells_car_desc">电池组成取决于车型和版本。未选择车辆时，不显示电芯诊断。如果车辆报告的电芯数量不同，检测会提示数据与所选车辆不符。</string>
+    <string name="fork_cells_car_desc">未选择车辆时，不显示电芯诊断。电芯和温度探头的数量由车辆本身提供；“负载下”阈值所用的容量取自“电池容量”设置（为空时按 31.8 kWh）。</string>
     <string name="fork_cells_car_none">未选择</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31.8 kWh</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">采集电池电芯数据</string>
-    <string name="fork_cells_collect_desc">车辆启动期间，应用按所选间隔保存全部 %1$d 个电芯的电压和 %2$d 个温度探头的温度。这些快照用于生成“静置”“充电后”“负载下”的测量以及历史记录。仅读取，不会向车辆写入任何内容。数据与行程和充电数据库分开存放。</string>
+    <string name="fork_cells_collect_desc">车辆启动期间，应用按所选间隔保存车辆报告的全部电芯电压和全部温度探头温度。这些快照用于生成“静置”“充电后”“负载下”的测量以及历史记录。仅读取，不会向车辆写入任何内容。数据与行程和充电数据库分开存放。</string>
     <!-- Interval -->
     <string name="fork_cells_interval_title">快照间隔</string>
     <string name="fork_cells_interval_desc">此外，车辆启动后会立即记录一次快照（电芯经过停放已“休息”），静置一小时后以及负载下也会记录——这些是最可靠的测量。每个快照约 0.5 KB · 按 30 秒、每天 2 小时计算，约每天 0.1 MB</string>
@@ -27,7 +27,7 @@
     <!-- Stored data -->
     <string name="fork_cells_stats_title">已累计</string>
     <string name="fork_cells_stats_value">快照：%1$s · %2$s · 自 %3$s</string>
-    <string name="fork_cells_stats_measures">测量：静置 — %1$d，充电后 — %2$d，负载下 — %3$d</string>
+    <string name="fork_cells_stats_measures">测量（结论只依据这些）：静置 — %1$d，充电后 — %2$d，负载下 — %3$d</string>
     <string name="fork_cells_stats_empty">暂无采集数据</string>
     <string name="fork_cells_export">导出 CSV</string>
     <string name="fork_cells_clear">清除</string>
@@ -115,7 +115,6 @@
     <string name="fork_cells_stream_connecting">正在等待电芯数据…</string>
     <string name="fork_cells_stream_no_stream">车辆不发送电芯数据。此固件不支持该检查。</string>
     <string name="fork_cells_stream_stopped">电芯数据已停止 — 请确认车辆已启动。</string>
-    <string name="fork_cells_stream_mismatch">电池数据与所选车型不符：车辆报告 %1$d 个电芯和 %2$d 个探头。</string>
     <string name="fork_cells_stream_helper_missing">助手无响应 — 无法获取电芯数据。</string>
     <string name="fork_cells_stream_helper_outdated">助手版本过旧 — 请重启车机。</string>
     <string name="fork_cells_stream_listen_failed">车辆拒绝订阅电芯数据：%1$s</string>
@@ -138,7 +137,6 @@
     <!-- Row on the car screen -->
     <string name="fork_cells_entry_collect_off">请开启数据采集</string>
     <string name="fork_cells_entry_empty">还没有测量</string>
-    <string name="fork_cells_entry_mismatch">数据与车型不符</string>
     <string name="fork_cells_entry_no_stream">车辆不发送数据</string>
     <string name="fork_cells_entry_stopped">数据已停止</string>
     <!-- Details -->
@@ -158,7 +156,7 @@
     <string name="fork_cells_probe_label">T%1$d</string>
     <string name="fork_cells_probe_hottest">最热</string>
     <string name="fork_cells_probe_coldest">最冷</string>
-    <string name="fork_cells_probes_caption">24 个温度探头安装在电池模组上（可能每个模组两端各一个），并不对应单个电芯。橙色框 — 最热，蓝色框 — 最冷。</string>
+    <string name="fork_cells_probes_caption">温度探头安装在电池模组上（可能每个模组两端各一个），并不对应单个电芯。橙色框 — 最热，蓝色框 — 最冷。</string>
     <string name="fork_cells_history_caption">静置测量的压差 · 虚线 — 正常范围</string>
     <string name="fork_cells_history_laggard">第 %1$d 号 — %2$d 次最低（共 %3$d 次测量）</string>
     <string name="fork_cells_history_watch">关注</string>
@@ -210,7 +208,7 @@
     <string name="fork_cells_help_rule_prelim">静置 15–60 分钟 — 评估为“初步”，不显示红色。</string>
     <string name="fork_cells_help_rule_cold">低温：电池低于 10 °C — 阈值 × 2，不显示红色，请在温暖时重新测量。</string>
     <string name="fork_cells_help_rule_once">“维修” — 仅当另一天的第二次测量确认了压差时。</string>
-    <string name="fork_cells_help_rule_median">参考点是 184 个电芯的中位数：一个弱电芯不会改变它。“略微” — 偏差超过该区间正常值的一半，“明显” — 超过“维修”阈值的一半。</string>
+    <string name="fork_cells_help_rule_median">参考点是 全部电芯的中位数：一个弱电芯不会改变它。“略微” — 偏差超过该区间正常值的一半，“明显” — 超过“维修”阈值的一半。</string>
     <!-- Views: «Что делать» -->
     <string name="fork_cells_wtd_title_nothing">无需任何操作</string>
     <string name="fork_cells_wtd_title_watch">值得关注</string>
@@ -288,7 +286,7 @@
     <string name="fork_cells_norm_src_low">社区；“维修”仅在同时有落后电芯时判定</string>
     <string name="fork_cells_norm_src_low10">研究结论，刀片电池的数据较少</string>
     <string name="fork_cells_norm_src_load">社区及研究结论</string>
-    <string name="fork_cells_norm_cells">%1$d 个电芯</string>
+    <string name="fork_cells_norm_cells">电芯：%1$d</string>
     <string name="fork_cells_norm_strip">相对中位数的偏差 · 探头 %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">相对中位数的偏差</string>
     <string name="fork_cells_norm_cold_note">低温：阈值 × 2</string>
@@ -345,4 +343,9 @@
     <string name="fork_cells_eq_low_title">最低的电芯</string>
     <string name="fork_cells_eq_low_sub">本次测量中相对中位数的偏差</string>
     <string name="fork_cells_coolant_label">冷却液温度</string>
+    <string name="fork_cells_btn_diag">高压电池诊断</string>
+    <string name="fork_cells_stream_unsupported">无法读取电池组成：车辆报告 %1$d 个电芯和 %2$d 个探头，但数据与此不符。不作结论。</string>
+    <string name="fork_cells_entry_unsupported">无法读取电池组成</string>
+    <string name="fork_cells_stats_note">快照是原始数据：用于计算停放时长、判断充电后电芯是否已稳定、绘制“均衡”图表，并全部导出到 CSV。电池结论只依据测量。</string>
+    <string name="fork_cells_norm_load_note">负载下的测量：这些正常值适用于静置，因此没有“您在这里”的点。</string>
 </resources>

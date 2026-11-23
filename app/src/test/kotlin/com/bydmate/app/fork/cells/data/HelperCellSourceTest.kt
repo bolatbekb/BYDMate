@@ -53,7 +53,7 @@ class HelperCellSourceTest {
         val snap = source.snapshot() as SourceReply.Ok
         assertTrue(snap.value.listening)
         assertEquals(1_000L, snap.value.listeningSinceMs)
-        assertTrue(readingOf(snap.value, 184, 24) is CellReading.Complete)
+        assertTrue(readingOf(snap.value) is CellReading.Complete)
 
         assertEquals(SourceReply.Ok(CellListenReply(CellTx.REG_OFF, "")), source.listen(false))
         assertEquals(1, device.unregisterCalls)

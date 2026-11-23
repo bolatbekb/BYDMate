@@ -33,11 +33,10 @@ import com.bydmate.app.ui.theme.TextMuted
 import com.bydmate.app.ui.theme.TextPrimary
 import com.bydmate.app.ui.theme.TextSecondary
 
-private val STRIP_MARKS = listOf(1, 46, 92, 138, 184)
 
 /**
  * «Норма по заряду» (mockup V1): the chart «charge → allowed spread» with the research thresholds of each band and the point
- * «Вы здесь» on the left; the verdict, why the norm is what it is, and the 184 cells as a strip on the right. fork-local.
+ * «Вы здесь» on the left; the verdict, why the norm is what it is, and every cell of the pack as a strip on the right. fork-local.
  */
 @Composable
 internal fun NormByChargeView(ui: BatteryCheckUi) {
@@ -99,7 +98,7 @@ private fun WhyCard(e: Evaluation, modifier: Modifier) {
     }
 }
 
-/** «184 ячейки · отклонение от середины · датчики 19–20 °C» over the strip, cell numbers under it. */
+/** «Ячеек: 184 · отклонение от середины · датчики 19–20 °C» over the strip, cell numbers under it. */
 @Composable
 private fun StripCard(e: Evaluation, modifier: Modifier) {
     val probes = e.input.probesC.filter { it != NO_TEMP }
@@ -116,7 +115,7 @@ private fun StripCard(e: Evaluation, modifier: Modifier) {
             }
             CellCanvas.DeviationStrip(e, Modifier.fillMaxWidth().height(50.dp).padding(top = 6.dp))
             Row(horizontalArrangement = Arrangement.SpaceBetween, modifier = Modifier.fillMaxWidth().padding(top = 3.dp)) {
-                STRIP_MARKS.filter { it <= e.classes.size }.forEach { Text("$it", color = TextMuted, fontSize = 11.sp, lineHeight = 13.sp, style = tnum()) }
+                stripMarks(e.classes.size).forEach { Text("$it", color = TextMuted, fontSize = 11.sp, lineHeight = 13.sp, style = tnum()) }
             }
         }
     }

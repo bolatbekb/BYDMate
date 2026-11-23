@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 sealed interface ManualResult {
     data class Stored(val id: Long, val conditionsOk: Boolean, val problems: List<ManualProblem>) : ManualResult
 
-    /** NO_STREAM, MISMATCH, HELPER_MISSING, HELPER_OUTDATED, LISTEN_FAILED, CONNECTING (nothing complete in 12 s), IDLE (no car). */
+    /** NO_STREAM, UNSUPPORTED, HELPER_MISSING, HELPER_OUTDATED, LISTEN_FAILED, CONNECTING (nothing complete in 12 s), IDLE (no car). */
     data class Failed(val why: StreamState) : ManualResult
 }
 
@@ -51,6 +51,8 @@ class CellCollector(
     private val uptime: () -> Long = SystemClock::uptimeMillis,
     /** Wall time of TrackingService's last poll (0 = unknown: the live value is never re-fed). */
     private val liveAtMs: () -> Long = { 0L },
+    /** The pack capacity the driver entered in the settings, kWh; null = not entered (the car profile's is used). */
+    private val capacityKwh: () -> Double? = { null },
 ) {
     private val link = CellLink(source)
     private val lock = Mutex()
@@ -61,6 +63,9 @@ class CellCollector(
     private var active = false
     private val gate = SessionGate()
     private var lastSampleMs = 0L
+
+    /** Cells of the latest complete reading; 0 = none yet (the car profile's count stands in). */
+    @Volatile private var packCells = 0
 
     val stream: StateFlow<StreamStatus> = link.stream
 
@@ -158,7 +163,9 @@ class CellCollector(
      */
     private suspend fun begin(s: LiveSample, profile: CarProfile, wake: Boolean): CellSchedule {
         val sch = schedule?.takeIf { scheduleProfile == profile }
-            ?: CellSchedule(profile.capacityAh) { settings.config.value.intervalSec * MS_PER_SEC }
+            ?: CellSchedule({ oneCAmps(capacityKwh() ?: profile.capacityKwh, packCells.takeIf { it > 0 } ?: profile.cells) }) {
+                settings.config.value.intervalSec * MS_PER_SEC
+            }
         schedule = sch
         scheduleProfile = profile
         sch.startSession(s, repo.anchor(settings.anchorClearedAtMs), wake)
@@ -176,10 +183,11 @@ class CellCollector(
 
     private suspend fun measure(s: LiveSample, due: Due, profile: CarProfile, sch: CellSchedule) {
         sch.onHelperContact(s.elapsedMs)
-        val read = link.read(profile, if (due.load) due.windowStartMs else 0L, s.elapsedMs) ?: return
+        val read = link.read(if (due.load) due.windowStartMs else 0L, s.elapsedMs) ?: return
         if (!read.listening) link.listen(true)
         val reading = read.reading as? CellReading.Complete ?: return
         if (!saneReading(reading)) return
+        packCells = reading.cellsMv.size
         val vmax = reading.cellsMv.max()
         val measure = measureFor(due, vmax, s.soc)
         val conditions = RowConditions(
@@ -198,10 +206,11 @@ class CellCollector(
     private suspend fun manualAttempt(profile: CarProfile): ManualResult.Stored? {
         cellsStep("manual") {
             val now = elapsed()
-            val read = link.read(profile, 0L, now) ?: return null
+            val read = link.read(0L, now) ?: return null
             if (!read.listening) link.listen(true)
             val reading = read.reading as? CellReading.Complete ?: return null
             if (!saneReading(reading)) return null
+            packCells = reading.cellsMv.size
             val s = live.value?.let { liveSampleOf(it, wall(), now) } ?: LiveSample(wall(), now, false, null, null, null, false)
             val sch = schedule?.takeIf { active }
             val restMin = sch?.restMinutes(now)
@@ -245,7 +254,7 @@ class CellCollector(
                         lastListen = now
                         link.listen(true)
                     }
-                    if (link.mayRequest(now)) link.read(profile, 0L, now)?.let { if (!it.listening) link.listen(true) }
+                    if (link.mayRequest(now)) link.read(0L, now)?.let { if (!it.listening) link.listen(true) }
                 }
             }
             delay(WINDOW_POLL_MS)
@@ -263,7 +272,7 @@ class CellCollector(
         /** As the home screen's LIVE_FRESH_MS: TrackingService polls at most a minute apart. */
         const val LIVE_FRESH_MS = 90_000L
         val MANUAL_GIVE_UP = setOf(
-            StreamState.NO_STREAM, StreamState.MISMATCH, StreamState.HELPER_MISSING,
+            StreamState.NO_STREAM, StreamState.UNSUPPORTED, StreamState.HELPER_MISSING,
             StreamState.HELPER_OUTDATED, StreamState.LISTEN_FAILED,
         )
     }

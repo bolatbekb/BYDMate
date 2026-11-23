@@ -62,7 +62,7 @@ class CellStreamAssemblerTest {
     }
 
     @Test fun `real pass decodes to 184 cells and 24 probes`() {
-        val r = readingOf(feedFixture().snapshot(true, 0, 0L), 184, 24) as CellReading.Complete
+        val r = readingOf(feedFixture().snapshot(true, 0, 0L)) as CellReading.Complete
         assertEquals(184, r.cellsMv.size); assertEquals(listOf(3274, 3274, 3275), r.cellsMv.take(3))
         assertEquals(3274, r.cellsMv[183]); assertEquals(3271, r.cellsMv.min()); assertEquals(3278, r.cellsMv.max())
         assertEquals(listOf(20, 20, 20, 19, 20, 20, 20, 19) + List(16) { 20 }, r.probesC.toList())
@@ -71,28 +71,52 @@ class CellStreamAssemblerTest {
     @Test fun `reading is incomplete when a page is older than 10 s`() {
         val c = FakeClock(); val a = feedFixture(c)
         c.now = msOfDay("19:45:16.300")
-        val r = readingOf(a.snapshot(true, 0, 0L), 184, 24) as CellReading.Incomplete
+        val r = readingOf(a.snapshot(true, 0, 0L)) as CellReading.Incomplete
         assertTrue(r.missingCellPages >= 1)
     }
 
     @Test fun `reading needs pages after the load window start`() {
-        val r = readingOf(feedFixture().snapshot(true, 0, 0L), 184, 24, msOfDay("19:45:08.000"))
+        val r = readingOf(feedFixture().snapshot(true, 0, 0L), msOfDay("19:45:08.000"))
         assertTrue(r is CellReading.Incomplete)
     }
 
-    @Test fun `declared count mismatch`() {
+    @Test fun `a declared count below the fresh pages is unsupported, never cut short`() {
         val c = FakeClock(); val a = feedFixture(c)
         a.onBuffer(GB_STREAM_FID, hex("0000043A000200045F9278100000000000"))
-        assertEquals(CellReading.Mismatch(120, 16), readingOf(a.snapshot(true, 0, 0L), 184, 24))
+        assertEquals(CellReading.Unsupported(120, 16), readingOf(a.snapshot(true, 0, 0L)))
+    }
+
+    @Test fun `a bigger pack is read in full as the car declares it`() {
+        val a = CellStreamAssembler(clock)
+        feedPack(a, 200, 30)
+        val r = readingOf(a.snapshot(true, 0, 0L)) as CellReading.Complete
+        assertEquals(200, r.cellsMv.size); assertEquals(30, r.probesC.size)
+        assertEquals(3304, r.cellsMv[199]); assertEquals(22, r.probesC[29])
+    }
+
+    @Test fun `a smaller pack is read as declared`() {
+        val a = CellStreamAssembler(clock)
+        feedPack(a, 96, 12)
+        val r = readingOf(a.snapshot(true, 0, 0L)) as CellReading.Complete
+        assertEquals(96, r.cellsMv.size); assertEquals(12, r.probesC.size)
+    }
+
+    @Test fun `counts the arrays cannot hold are unsupported`() {
+        val a = CellStreamAssembler(clock)
+        feedPack(a, 100, 97)
+        assertEquals(CellReading.Unsupported(100, 97), readingOf(a.snapshot(true, 0, 0L)))
+        val b = CellStreamAssembler(clock)
+        feedPack(b, 0, 24)
+        assertEquals(CellReading.Unsupported(0, 24), readingOf(b.snapshot(true, 0, 0L)))
     }
 
     @Test fun `no frames`() {
-        assertEquals(CellReading.NoFrames, readingOf(snap(), 184, 24))
+        assertEquals(CellReading.NoFrames, readingOf(snap()))
     }
 
     @Test fun `implausible value makes the reading incomplete`() {
         val c = FakeClock(); val a = feedFixture(c)
         a.onBuffer(GB_STREAM_FID, hex("0000043D000200045D6D000100CE0CCE0C46"))
-        assertTrue(readingOf(a.snapshot(true, 0, 0L), 184, 24) is CellReading.Incomplete)
+        assertTrue(readingOf(a.snapshot(true, 0, 0L)) is CellReading.Incomplete)
     }
 }

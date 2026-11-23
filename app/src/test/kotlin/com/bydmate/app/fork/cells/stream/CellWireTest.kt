@@ -44,7 +44,7 @@ class CellWireTest {
         assertEquals(184, got.declaredCells)
         assertTrue(got.listening)
         assertEquals(4_321L, got.listeningSinceMs)
-        assertTrue(readingOf(got, 184, 24) is CellReading.Complete)
+        assertTrue(readingOf(got) is CellReading.Complete)
     }
 
     @Test fun `listen reply survives the round trip`() {

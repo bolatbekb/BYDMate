@@ -34,7 +34,7 @@ data class CellSnapshotEntity(
     val probes: ByteArray,
 )
 
-/** List projection: no blobs. */
+/** List projection: no blobs; [cellCount] is the stored pack's cell count (0 when built by hand). */
 data class SnapshotSummary(
     val id: Long,
     val ts: Long,
@@ -51,7 +51,11 @@ data class SnapshotSummary(
     val spreadMv: Int,
     val probeMinC: Int?,
     val probeMaxC: Int?,
+    val cellCount: Int = 0,
 )
+
+/** The largest pack stored: its cells and probes. */
+data class PackCounts(val cells: Int, val probes: Int)
 
 data class AnchorRow(val ts: Long, val elapsedMs: Long, val soc: Int?)
 

@@ -60,6 +60,15 @@ private fun pass(now: Long, pagesAt: Long = now, flat: Boolean = false, edit: (I
     )
 }
 
+/** A pack of [cells] cells and [probes] probes as the helper answers at [now]: every page fresh. */
+private fun bigPass(now: Long, cells: Int, probes: Int): CellStreamSnapshot = FIXTURE.copy(
+    nowMs = now, listeningSinceMs = EL0, lastFrameMs = now, declaredCells = cells, declaredProbes = probes,
+    cellMv = IntArray(MAX_CELL_PAGES * 3) { if (it < cells) 3270 + it % 7 else -1 },
+    cellPageMs = LongArray(MAX_CELL_PAGES) { if (it < (cells + 2) / 3) now else 0L },
+    probeC = IntArray(MAX_PROBE_PAGES * 6) { if (it < probes) 21 else Int.MIN_VALUE },
+    probePageMs = LongArray(MAX_PROBE_PAGES) { if (it < (probes + 5) / 6) now else 0L },
+)
+
 private class FakeSource : CellSource {
     var clock: () -> Long = { EL0 }
     val listens = mutableListOf<Boolean>()
@@ -100,6 +109,7 @@ class CellCollectorTest {
     private var flags: BmsFlags? = BmsFlags(0, 1, 1)
     private var flagsFail = false
     private var seq = 0
+    private var capacityKwh: Double? = null
 
     /** Time the head unit spent asleep (elapsedRealtime − uptime). */
     private var sleptMs = 0L
@@ -131,6 +141,7 @@ class CellCollectorTest {
             elapsed = { EL0 + testScheduler.currentTime },
             uptime = { EL0 + testScheduler.currentTime - sleptMs },
             liveAtMs = { if (fresh) WALL0 + testScheduler.currentTime else 0L },
+            capacityKwh = { capacityKwh },
         )
         c.start()
         c.start()
@@ -235,14 +246,44 @@ class CellCollectorTest {
         assertEquals(StreamState.OK, c.stream.value.state)
     }
 
-    @Test fun `mismatch stores nothing and reports MISMATCH`() = test {
+    @Test fun `a count the pages contradict stores nothing and reports UNSUPPORTED`() = test {
         on()
         source.reply = { SourceReply.Ok(pass(it).copy(declaredCells = 120, declaredProbes = 16)) }
         val c = collector()
         sample(0)
         sample(5)
-        assertEquals(StreamStatus(StreamState.MISMATCH, 120, 16), c.stream.value)
+        assertEquals(StreamStatus(StreamState.UNSUPPORTED, 120, 16), c.stream.value)
         assertTrue(rows().isEmpty())
+    }
+
+    @Test fun `a bigger pack is stored whole, as the car declares it`() = test {
+        on()
+        source.reply = { SourceReply.Ok(bigPass(it, 200, 30)) }
+        val c = collector()
+        sample(0)
+        sample(30)
+        val rs = rows()
+        assertEquals(listOf("AFTER_PARKING", null), rs.map { it.measure })
+        assertTrue(rs.all { CellBlob.decodeCells(it.cells).size == 200 && CellBlob.decodeProbes(it.probes).size == 30 })
+        assertEquals(StreamState.OK, c.stream.value.state)
+    }
+
+    @Test fun `load starts at 1C of the capacity the driver entered`() = test {
+        // 45.8 kWh over 184 cells of 3.2 V: 1C = 77.8 A, so 60 A is no load any more
+        capacityKwh = 45.8
+        on()
+        collector()
+        sample(0)
+        for (t in 1L..20L) sample(t, current = 60.0)
+        assertEquals(0, rows().count { it.measure == "LOAD" })
+        for (t in 21L..30L) sample(t, current = 80.0)
+        assertEquals(1, rows().count { it.measure == "LOAD" })
+    }
+
+    @Test fun `1C is the capacity over the cells at 3,2 V`() {
+        assertEquals(54.0, oneCAmps(31.8, 184), 1e-9)
+        assertEquals(77.8, oneCAmps(45.8, 184), 1e-9)
+        assertEquals(49.7, oneCAmps(31.8, 200), 1e-9)
     }
 
     @Test fun `no stream stores nothing and asks once a minute`() = test {

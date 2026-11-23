@@ -49,7 +49,7 @@ fun streamText(s: StreamStatus, framesSeen: Boolean): TextRes? = when (s.state) 
     StreamState.IDLE, StreamState.OK -> null
     StreamState.CONNECTING -> TextRes(R.string.fork_cells_stream_connecting)
     StreamState.NO_STREAM -> TextRes(if (framesSeen) R.string.fork_cells_stream_stopped else R.string.fork_cells_stream_no_stream)
-    StreamState.MISMATCH -> TextRes(R.string.fork_cells_stream_mismatch, s.reportedCells, s.reportedProbes)
+    StreamState.UNSUPPORTED -> TextRes(R.string.fork_cells_stream_unsupported, s.reportedCells, s.reportedProbes)
     StreamState.HELPER_MISSING -> TextRes(R.string.fork_cells_stream_helper_missing)
     StreamState.HELPER_OUTDATED -> TextRes(R.string.fork_cells_stream_helper_outdated)
     StreamState.LISTEN_FAILED -> TextRes(R.string.fork_cells_stream_listen_failed, s.detail.ifBlank { "—" })
@@ -74,7 +74,7 @@ fun manualText(m: ManualUi): TextRes? = when (m) {
 private fun failText(why: StreamState): TextRes = TextRes(
     when (why) {
         StreamState.NO_STREAM -> R.string.fork_cells_entry_no_stream
-        StreamState.MISMATCH -> R.string.fork_cells_entry_mismatch
+        StreamState.UNSUPPORTED -> R.string.fork_cells_entry_unsupported
         StreamState.HELPER_MISSING -> R.string.fork_cells_fail_helper
         StreamState.HELPER_OUTDATED -> R.string.fork_cells_fail_outdated
         StreamState.LISTEN_FAILED -> R.string.fork_cells_fail_listen
@@ -100,7 +100,7 @@ fun footerText(e: Evaluation, locale: Locale): TextRes =
 fun entryStatusText(row: EntryRow): TextRes? = when (row.kind) {
     EntryKind.COLLECT_OFF -> TextRes(R.string.fork_cells_entry_collect_off)
     EntryKind.NO_MEASUREMENTS -> TextRes(R.string.fork_cells_entry_empty)
-    EntryKind.MISMATCH -> TextRes(R.string.fork_cells_entry_mismatch)
+    EntryKind.UNSUPPORTED -> TextRes(R.string.fork_cells_entry_unsupported)
     EntryKind.NO_STREAM -> TextRes(if (row.stopped) R.string.fork_cells_entry_stopped else R.string.fork_cells_entry_no_stream)
     EntryKind.HIDDEN, EntryKind.RESULT -> null
 }

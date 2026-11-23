@@ -61,9 +61,9 @@ class StreamHealthTest {
         assertEquals(StreamState.NO_STREAM, health.onSnapshot(snap(nowMs = 69_900L, lastFrameMs = 9_900L), stale).state)
     }
 
-    @Test fun `mismatch reports the numbers`() {
-        val s = health.onSnapshot(snap(nowMs = 5_000L, lastFrameMs = 4_900L), CellReading.Mismatch(120, 16))
-        assertEquals(StreamStatus(StreamState.MISMATCH, reportedCells = 120, reportedProbes = 16), s)
+    @Test fun `an unreadable pack reports its counts`() {
+        val s = health.onSnapshot(snap(nowMs = 5_000L, lastFrameMs = 4_900L), CellReading.Unsupported(120, 16))
+        assertEquals(StreamStatus(StreamState.UNSUPPORTED, reportedCells = 120, reportedProbes = 16), s)
         // Until a matching reading.
         assertEquals(s, health.onSnapshot(snap(nowMs = 6_000L, lastFrameMs = 5_900L), CellReading.Incomplete(1, 0)))
         assertEquals(StreamState.OK, health.onSnapshot(snap(nowMs = 7_000L, lastFrameMs = 6_900L), complete).state)

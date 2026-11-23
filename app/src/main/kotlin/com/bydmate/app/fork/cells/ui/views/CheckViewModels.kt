@@ -133,6 +133,10 @@ fun normChartModel(e: Evaluation?): NormChartModel {
     return NormChartModel(zones, soc to e.spreadMv, e.level, e.previousSpreadMv?.let { soc to it }, lit, e.limits.cold)
 }
 
+/** The cell numbers under the strip of a pack of [cells]: the first, the quarters and the last (1, 46, 92, 138, 184). */
+fun stripMarks(cells: Int): List<Int> =
+    if (cells <= 0) emptyList() else listOf(1, cells / 4, cells / 2, cells * 3 / 4, cells).filter { it >= 1 }.distinct()
+
 private const val LOG_SHIFT = 6.0
 private const val LOG_TOP = 326.0
 

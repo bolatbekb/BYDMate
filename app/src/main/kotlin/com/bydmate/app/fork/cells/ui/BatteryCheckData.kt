@@ -12,7 +12,10 @@ import com.bydmate.app.fork.cells.verdict.SpreadPoint
 import com.bydmate.app.fork.cells.verdict.toSpreadPoint
 import java.util.concurrent.ConcurrentHashMap
 
-/** What the window shows, read in one go: the picker, the default selection and the history ([historyKeys] for its levels). */
+/**
+ * What the window shows, read in one go: the picker, the default selection and the history ([historyKeys] for its levels).
+ * The history is the series of the selected measurement: [historyCells] is its cell count (null without a selection).
+ */
 internal data class WindowData(
     val picker: List<PickerItem>,
     val selectedId: Long?,
@@ -20,6 +23,7 @@ internal data class WindowData(
     val latestLoad: Evaluation?,
     val history: List<SpreadPoint>,
     val historyKeys: List<LevelKey> = emptyList(),
+    val historyCells: Int? = null,
 )
 
 /**
@@ -47,16 +51,22 @@ internal class BatteryCheckData(
 ) {
     private val cache = ConcurrentHashMap<LevelKey, LevelMark>()
 
-    /** Default selection: [select] when given, else the latest rest measurement, else the newest of any kind. */
+    /**
+     * Default selection: [select] when given, else the latest rest measurement, else the newest one not under load (a manual
+     * snapshot of unknown rest), and a load only when there is nothing else: «Норма по заряду» has no point for a load.
+     */
     suspend fun load(select: Long?): WindowData {
         val rest = quiet { repo.measurementsBetweenLimit(PICKER_KINDS, 0L, Long.MAX_VALUE, REST_ITEMS) }.orEmpty()
         val loads = quiet { repo.measurementsBetweenLimit(LOAD_KINDS, 0L, Long.MAX_VALUE, LOAD_ITEMS) }.orEmpty()
         val picker = (rest + loads).mapNotNull { pickerItemOf(it) }
-        val id = select ?: quiet { loader.latestRestId() } ?: picker.maxByOrNull { it.ts }?.id
+        val id = select ?: quiet { loader.latestRestId() } ?: rest.firstOrNull()?.id ?: loads.firstOrNull()?.id
         val selected = id?.let { evaluate(it) }
         val latestLoad = loads.firstOrNull()?.id?.let { if (it == selected?.input?.id) selected else evaluate(it) }
-        val history = history()
-        return WindowData(picker, id, selected, latestLoad, history.map { it.toSpreadPoint() }, history.map { LevelKey(it.id, it.ts, it.relax) })
+        val cells = selected?.input?.cellsMv?.size
+        val history = cells?.let { history(it) }.orEmpty()
+        return WindowData(
+            picker, id, selected, latestLoad, history.map { it.toSpreadPoint() }, history.map { LevelKey(it.id, it.ts, it.relax) }, cells,
+        )
     }
 
     /** Levels of the picker and the history: the window's own evaluations and the cache first, each other one evaluated once. */
@@ -78,9 +88,9 @@ internal class BatteryCheckData(
 
     suspend fun evaluate(id: Long): Evaluation? = quiet { loader.evaluate(id, wall()) }
 
-    /** Spread per rest period, the latest measurement of each, oldest first. */
-    private suspend fun history(): List<SnapshotSummary> = quiet {
-        repo.measurementsBetweenLimit(REST_KINDS, 0L, Long.MAX_VALUE, HISTORY_ROWS)
+    /** Spread per rest period of the series of [cells]-cell packs, the latest measurement of each, oldest first. */
+    private suspend fun history(cells: Int): List<SnapshotSummary> = quiet {
+        repo.measurementsBetweenLimit(REST_KINDS, 0L, Long.MAX_VALUE, HISTORY_ROWS, cells)
             .filter { it.restPeriod != null }
             .distinctBy { it.restPeriod }
             .take(HISTORY_POINTS)

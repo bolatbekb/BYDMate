@@ -1,6 +1,5 @@
 package com.bydmate.app.fork.cells.collect
 
-import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellSource
 import com.bydmate.app.fork.cells.data.SourceReply
 import com.bydmate.app.fork.cells.data.StreamHealth
@@ -12,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
-/** One answered snapshot: whether the helper still listens, and the reading for the chosen car. */
+/** One answered snapshot: whether the helper still listens, and the reading of the pack. */
 internal data class LinkRead(val listening: Boolean, val reading: CellReading)
 
 /**
@@ -47,12 +46,12 @@ internal class CellLink(private val source: CellSource) {
         return nowMs < last || nowMs - last >= gapMs()
     }
 
-    /** One snapshot read for [profile]; null when the helper did not answer. [windowStartMs]: pages before it are stale. */
-    suspend fun read(profile: CarProfile, windowStartMs: Long, nowMs: Long): LinkRead? {
+    /** One snapshot read of the pack as the car declares it; null when the helper did not answer. [windowStartMs]: pages before it are stale. */
+    suspend fun read(windowStartMs: Long, nowMs: Long): LinkRead? {
         lastRequestMs = nowMs
         val r = source.snapshot()
         val snap = (r as? SourceReply.Ok)?.value
-        val reading = snap?.let { readingOf(it, profile.cells, profile.probes, windowStartMs) }
+        val reading = snap?.let { readingOf(it, windowStartMs) }
         status.value = health.onSnapshot(r, reading)
         if (snap == null || reading == null) return null
         if (snap.lastFrameMs > frameMs.value) frameMs.value = snap.lastFrameMs
@@ -63,7 +62,7 @@ internal class CellLink(private val source: CellSource) {
         health.minRequestGapMs(),
         when (health.status.state) {
             // The pack or the helper will not change by asking again soon.
-            StreamState.MISMATCH, StreamState.HELPER_OUTDATED -> SLOW_GAP_MS
+            StreamState.UNSUPPORTED, StreamState.HELPER_OUTDATED -> SLOW_GAP_MS
             // The helper may still be starting after a wake.
             StreamState.HELPER_MISSING -> MISSING_GAP_MS
             else -> MIN_GAP_MS

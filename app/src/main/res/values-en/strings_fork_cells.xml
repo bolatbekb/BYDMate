@@ -5,12 +5,12 @@
     <string name="fork_cells_settings_header">Battery check</string>
     <!-- Car -->
     <string name="fork_cells_car_title">Car</string>
-    <string name="fork_cells_car_desc">The battery layout depends on the model and version. Until a car is chosen, cell diagnostics are hidden. If the car reports a different number of cells, the check warns that the data does not match the chosen car.</string>
+    <string name="fork_cells_car_desc">Until a car is chosen, cell diagnostics are hidden. The app takes the number of cells and probes from the car itself, and the capacity for the “under load” threshold from the “Battery capacity” setting (empty field — 31.8 kWh).</string>
     <string name="fork_cells_car_none">Not chosen</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31.8 kWh</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">Collect battery cell data</string>
-    <string name="fork_cells_collect_desc">While the car is on, the app saves the voltages of all %1$d cells and the temperatures of %2$d probes once per chosen interval. These snapshots build the “at rest”, “after charging” and “under load” measurements and the history. Read-only: nothing is written to the car. The data is stored apart from the trips and charges database.</string>
+    <string name="fork_cells_collect_desc">While the car is on, the app saves the voltages of all cells and the temperatures of all probes, as many as the car reports, once per chosen interval. These snapshots build the “at rest”, “after charging” and “under load” measurements and the history. Read-only: nothing is written to the car. The data is stored apart from the trips and charges database.</string>
     <!-- Interval -->
     <string name="fork_cells_interval_title">How often to take a snapshot</string>
     <string name="fork_cells_interval_desc">A snapshot is also taken right after the car is switched on (cells have “rested” while parked), after an hour of rest and under load — these are the most honest measurements. ≈ 0.5 KB per snapshot · at 30 s and 2 hours a day ≈ 0.1 MB a day</string>
@@ -27,7 +27,7 @@
     <!-- Stored data -->
     <string name="fork_cells_stats_title">Collected</string>
     <string name="fork_cells_stats_value">Snapshots: %1$s · %2$s · since %3$s</string>
-    <string name="fork_cells_stats_measures">Measurements: at rest — %1$d, after charging — %2$d, under load — %3$d</string>
+    <string name="fork_cells_stats_measures">Measurements (the verdict comes from these): at rest — %1$d, after charging — %2$d, under load — %3$d</string>
     <string name="fork_cells_stats_empty">Nothing collected yet</string>
     <string name="fork_cells_export">Export CSV</string>
     <string name="fork_cells_clear">Clear</string>
@@ -115,7 +115,6 @@
     <string name="fork_cells_stream_connecting">Waiting for cell data…</string>
     <string name="fork_cells_stream_no_stream">The car does not send cell data. The check is not available on this firmware.</string>
     <string name="fork_cells_stream_stopped">Cell data stopped coming — check that the car is on.</string>
-    <string name="fork_cells_stream_mismatch">The battery data does not match the chosen car: the car reports %1$d cells and %2$d probes.</string>
     <string name="fork_cells_stream_helper_missing">The helper does not respond — cell data is unavailable.</string>
     <string name="fork_cells_stream_helper_outdated">The helper is outdated — reboot the head unit.</string>
     <string name="fork_cells_stream_listen_failed">The car refused the subscription to cell data: %1$s</string>
@@ -138,7 +137,6 @@
     <!-- Row on the car screen -->
     <string name="fork_cells_entry_collect_off">turn data collection on</string>
     <string name="fork_cells_entry_empty">no measurements yet</string>
-    <string name="fork_cells_entry_mismatch">data does not match the car</string>
     <string name="fork_cells_entry_no_stream">the car sends no data</string>
     <string name="fork_cells_entry_stopped">data stopped coming</string>
     <!-- Details -->
@@ -158,7 +156,7 @@
     <string name="fork_cells_probe_label">P%1$d</string>
     <string name="fork_cells_probe_hottest">warmest</string>
     <string name="fork_cells_probe_coldest">coldest</string>
-    <string name="fork_cells_probes_caption">The 24 temperature probes sit on the battery modules (probably two per module, at the ends) and are not tied to single cells. Orange frame — the warmest, blue — the coldest.</string>
+    <string name="fork_cells_probes_caption">The temperature probes sit on the battery modules (probably two per module, at the ends) and are not tied to single cells. Orange frame — the warmest, blue — the coldest.</string>
     <string name="fork_cells_history_caption">spread per measurement at rest · dashed — norm</string>
     <string name="fork_cells_history_laggard">No. %1$d — lowest in %2$d of %3$d measurements</string>
     <string name="fork_cells_history_watch">watch</string>
@@ -210,7 +208,7 @@
     <string name="fork_cells_help_rule_prelim">Rest 15–60 minutes — a “preliminary” verdict, never red.</string>
     <string name="fork_cells_help_rule_cold">Cold: battery below 10 °C — thresholds × 2, never red, measure again when warm.</string>
     <string name="fork_cells_help_rule_once">“Service” — only when the spread is confirmed by a second measurement on another day.</string>
-    <string name="fork_cells_help_rule_median">The reference point is the median of the 184 cells: one weak cell does not move it. “Noticeably” — a deviation above half the zone norm, “much” — above half the “service” threshold.</string>
+    <string name="fork_cells_help_rule_median">The reference point is the median of all cells: one weak cell does not move it. “Noticeably” — a deviation above half the zone norm, “much” — above half the “service” threshold.</string>
     <!-- Views: «Что делать» -->
     <string name="fork_cells_wtd_title_nothing">Nothing to do</string>
     <string name="fork_cells_wtd_title_watch">Worth watching</string>
@@ -288,7 +286,7 @@
     <string name="fork_cells_norm_src_low">community; “service” only together with a lagging cell</string>
     <string name="fork_cells_norm_src_low10">research conclusion, little data for Blade</string>
     <string name="fork_cells_norm_src_load">community and research conclusion</string>
-    <string name="fork_cells_norm_cells">%1$d cells</string>
+    <string name="fork_cells_norm_cells">Cells: %1$d</string>
     <string name="fork_cells_norm_strip">deviation from the middle · probes %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">deviation from the middle</string>
     <string name="fork_cells_norm_cold_note">cold: thresholds × 2</string>
@@ -345,4 +343,9 @@
     <string name="fork_cells_eq_low_title">Lowest of all</string>
     <string name="fork_cells_eq_low_sub">deviation from the middle in this measurement</string>
     <string name="fork_cells_coolant_label">Coolant temperature</string>
+    <string name="fork_cells_btn_diag">HV battery diagnostics</string>
+    <string name="fork_cells_stream_unsupported">The battery layout cannot be read: the car reports %1$d cells and %2$d probes, but the data does not fit that. No conclusions.</string>
+    <string name="fork_cells_entry_unsupported">battery layout not readable</string>
+    <string name="fork_cells_stats_note">Snapshots are raw data: they tell how long the car stood and whether the cells settled after a charge, and they draw the “Balancing” chart; all of them go to the CSV. The battery verdict comes from the measurements only.</string>
+    <string name="fork_cells_norm_load_note">A measurement under load: these norms are for rest, so there is no “You are here” point.</string>
 </resources>

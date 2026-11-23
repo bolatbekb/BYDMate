@@ -5,12 +5,12 @@
     <string name="fork_cells_settings_header">Diagnóstico da bateria</string>
     <!-- Car -->
     <string name="fork_cells_car_title">Carro</string>
-    <string name="fork_cells_car_desc">A composição da bateria depende do modelo e da versão. Enquanto nenhum carro for escolhido, o diagnóstico das células não é mostrado. Se o carro informar outro número de células, a verificação avisará que os dados não correspondem ao carro escolhido.</string>
+    <string name="fork_cells_car_desc">Enquanto nenhum carro for escolhido, o diagnóstico das células não é mostrado. O app obtém o número de células e sensores do próprio carro, e a capacidade para o limite «sob carga» da configuração «Capacidade da bateria» (campo vazio — 31,8 kWh).</string>
     <string name="fork_cells_car_none">Não escolhido</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5 · 31,8 kWh</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">Coletar dados das células da bateria</string>
-    <string name="fork_cells_collect_desc">Com o carro ligado, o app salva a cada intervalo escolhido as tensões de todas as %1$d células e as temperaturas de %2$d sensores. Desses registros saem as medições «em repouso», «após carregar», «sob carga» e o histórico. Somente leitura: nada é gravado no carro. Os dados ficam separados do banco de viagens e carregamentos.</string>
+    <string name="fork_cells_collect_desc">Com o carro ligado, o app salva a cada intervalo escolhido as tensões de todas as células e as temperaturas de todos os sensores, quantos o carro informar. Desses registros saem as medições «em repouso», «após carregar», «sob carga» e o histórico. Somente leitura: nada é gravado no carro. Os dados ficam separados do banco de viagens e carregamentos.</string>
     <!-- Interval -->
     <string name="fork_cells_interval_title">Com que frequência registrar</string>
     <string name="fork_cells_interval_desc">Um registro também é feito logo após ligar o carro (as células «descansaram» no estacionamento), depois de uma hora de repouso e sob carga — são as medições mais fiéis. ≈ 0,5 KB por registro · com 30 s e 2 horas por dia ≈ 0,1 MB por dia</string>
@@ -27,7 +27,7 @@
     <!-- Stored data -->
     <string name="fork_cells_stats_title">Acumulado</string>
     <string name="fork_cells_stats_value">Registros: %1$s · %2$s · desde %3$s</string>
-    <string name="fork_cells_stats_measures">Medições: em repouso — %1$d, após carregar — %2$d, sob carga — %3$d</string>
+    <string name="fork_cells_stats_measures">Medições (o veredito vem delas): em repouso — %1$d, após carregar — %2$d, sob carga — %3$d</string>
     <string name="fork_cells_stats_empty">Nada coletado ainda</string>
     <string name="fork_cells_export">Exportar CSV</string>
     <string name="fork_cells_clear">Limpar</string>
@@ -115,7 +115,6 @@
     <string name="fork_cells_stream_connecting">Aguardando os dados das células…</string>
     <string name="fork_cells_stream_no_stream">O carro não envia dados das células. Neste firmware a verificação não está disponível.</string>
     <string name="fork_cells_stream_stopped">Os dados das células pararam de chegar — verifique se o carro está ligado.</string>
-    <string name="fork_cells_stream_mismatch">Os dados da bateria não correspondem ao carro escolhido: o carro informa %1$d células e %2$d sensores.</string>
     <string name="fork_cells_stream_helper_missing">O auxiliar não responde — os dados das células estão indisponíveis.</string>
     <string name="fork_cells_stream_helper_outdated">O auxiliar está desatualizado — reinicie a central multimídia.</string>
     <string name="fork_cells_stream_listen_failed">O carro recusou a inscrição nos dados das células: %1$s</string>
@@ -138,7 +137,6 @@
     <!-- Row on the car screen -->
     <string name="fork_cells_entry_collect_off">ligue a coleta de dados</string>
     <string name="fork_cells_entry_empty">ainda não há medições</string>
-    <string name="fork_cells_entry_mismatch">os dados não correspondem ao carro</string>
     <string name="fork_cells_entry_no_stream">o carro não envia dados</string>
     <string name="fork_cells_entry_stopped">os dados pararam de chegar</string>
     <!-- Details -->
@@ -158,7 +156,7 @@
     <string name="fork_cells_probe_label">S%1$d</string>
     <string name="fork_cells_probe_hottest">o mais quente</string>
     <string name="fork_cells_probe_coldest">o mais frio</string>
-    <string name="fork_cells_probes_caption">Os 24 sensores de temperatura ficam nos módulos da bateria (provavelmente dois por módulo, nas pontas) e não estão ligados a células individuais. Moldura laranja — o mais quente, azul — o mais frio.</string>
+    <string name="fork_cells_probes_caption">Os sensores de temperatura ficam nos módulos da bateria (provavelmente dois por módulo, nas pontas) e não estão ligados a células individuais. Moldura laranja — o mais quente, azul — o mais frio.</string>
     <string name="fork_cells_history_caption">dispersão por medição em repouso · tracejado — norma</string>
     <string name="fork_cells_history_laggard">nº %1$d — a mais baixa em %2$d de %3$d medições</string>
     <string name="fork_cells_history_watch">acompanhar</string>
@@ -210,7 +208,7 @@
     <string name="fork_cells_help_rule_prelim">Repouso de 15–60 minutos — avaliação «preliminar», nunca vermelha.</string>
     <string name="fork_cells_help_rule_cold">Frio: bateria abaixo de 10 °C — limites × 2, nunca vermelho, meça de novo no calor.</string>
     <string name="fork_cells_help_rule_once">«Oficina» — só quando a dispersão se confirma numa segunda medição em outro dia.</string>
-    <string name="fork_cells_help_rule_median">O ponto de referência é a mediana das 184 células: uma célula fraca não a desloca. «Visivelmente» — desvio maior que metade da norma da zona, «muito» — maior que metade do limite «oficina».</string>
+    <string name="fork_cells_help_rule_median">O ponto de referência é a mediana de todas as células: uma célula fraca não a desloca. «Visivelmente» — desvio maior que metade da norma da zona, «muito» — maior que metade do limite «oficina».</string>
     <!-- Views: «Что делать» -->
     <string name="fork_cells_wtd_title_nothing">Nada a fazer</string>
     <string name="fork_cells_wtd_title_watch">Vale acompanhar</string>
@@ -288,7 +286,7 @@
     <string name="fork_cells_norm_src_low">comunidade; «oficina» só junto com uma célula que fica para trás</string>
     <string name="fork_cells_norm_src_low10">conclusão da pesquisa, poucos dados sobre a Blade</string>
     <string name="fork_cells_norm_src_load">comunidade e conclusão da pesquisa</string>
-    <string name="fork_cells_norm_cells">%1$d células</string>
+    <string name="fork_cells_norm_cells">Células: %1$d</string>
     <string name="fork_cells_norm_strip">desvio em relação ao meio · sensores %1$s °C</string>
     <string name="fork_cells_norm_strip_plain">desvio em relação ao meio</string>
     <string name="fork_cells_norm_cold_note">frio: limites × 2</string>
@@ -345,4 +343,9 @@
     <string name="fork_cells_eq_low_title">As mais baixas</string>
     <string name="fork_cells_eq_low_sub">desvio em relação ao meio nesta medição</string>
     <string name="fork_cells_coolant_label">Temperatura do líquido de arrefecimento</string>
+    <string name="fork_cells_btn_diag">Diagnóstico da bateria de alta tensão</string>
+    <string name="fork_cells_stream_unsupported">A composição da bateria não pode ser lida: o carro informa %1$d células e %2$d sensores, mas os dados não batem com isso. Sem conclusões.</string>
+    <string name="fork_cells_entry_unsupported">composição da bateria ilegível</string>
+    <string name="fork_cells_stats_note">Os registros são dados brutos: mostram quanto tempo o carro ficou parado e se as células se acomodaram após a carga, e desenham o gráfico «Equalização»; todos vão para o CSV. O veredito da bateria vem só das medições.</string>
+    <string name="fork_cells_norm_load_note">Medição sob carga: estas normas são para repouso, por isso não há o ponto «Você está aqui».</string>
 </resources>

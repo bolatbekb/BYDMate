@@ -67,7 +67,7 @@ internal fun BatteryCheckBlock(vm: CellsSettingsViewModel = hiltViewModel()) {
                 SettingDivider()
                 SettingToggleRow(
                     title = stringResource(R.string.fork_cells_collect_title),
-                    description = stringResource(R.string.fork_cells_collect_desc, config.profile.cells, config.profile.probes),
+                    description = stringResource(R.string.fork_cells_collect_desc),
                     checked = config.collect,
                     onCheckedChange = vm::setCollect,
                 )
@@ -115,7 +115,8 @@ private fun StatsRow(stats: CellStats?, notice: String?, exporting: Boolean, vm:
             NumberFormat.getIntegerInstance(locale).format(stats.row.snapshots),
             sizeText(stats.bytes, locale),
             first,
-        ) + "\n" + stringResource(R.string.fork_cells_stats_measures, stats.row.rest, stats.row.afterCharge, stats.row.load)
+        ) + "\n" + stringResource(R.string.fork_cells_stats_measures, stats.row.rest, stats.row.afterCharge, stats.row.load) +
+            "\n" + stringResource(R.string.fork_cells_stats_note)
     }
     SettingActionRow(
         title = stringResource(R.string.fork_cells_stats_title),

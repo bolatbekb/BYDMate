@@ -7,7 +7,13 @@ import kotlinx.coroutines.flow.Flow
 
 internal const val SUMMARY = "id, ts, measure, rest_period AS restPeriod, relax, soc, current_a AS currentA, charging, " +
     "rest_min AS restMin, days_since_full AS daysSinceFull, vmax_mv AS vmaxMv, vmin_mv AS vminMv, " +
-    "spread_mv AS spreadMv, probe_min_c AS probeMinC, probe_max_c AS probeMaxC"
+    "spread_mv AS spreadMv, probe_min_c AS probeMinC, probe_max_c AS probeMaxC, length(cells) / 2 AS cellCount"
+
+/**
+ * One series of the history: the snapshots of a pack with :n cells (a stored snapshot's count is its blob's length / 2);
+ * null = every snapshot. Snapshots of different counts are never compared.
+ */
+internal const val SERIES = "(:n IS NULL OR length(cells) / 2 = :n)"
 
 internal const val STATS = "SELECT COUNT(*) AS snapshots, MIN(ts) AS firstTs, " +
     "IFNULL(SUM(measure IN ('AFTER_PARKING','REST_IN_SESSION') OR (measure = 'MANUAL' AND rest_period IS NOT NULL)), 0) AS rest, " +
@@ -33,11 +39,11 @@ interface CellDao {
     @Query("SELECT $SUMMARY FROM cell_snapshots WHERE measure IS NOT NULL ORDER BY ts DESC LIMIT :limit")
     fun measurements(limit: Int): Flow<List<SnapshotSummary>>
 
-    @Query("SELECT $SUMMARY FROM cell_snapshots WHERE measure IN (:kinds) AND ts BETWEEN :from AND :to ORDER BY ts DESC")
-    suspend fun measurementsBetween(kinds: List<String>, from: Long, to: Long): List<SnapshotSummary>
+    @Query("SELECT $SUMMARY FROM cell_snapshots WHERE measure IN (:kinds) AND ts BETWEEN :from AND :to AND $SERIES ORDER BY ts DESC")
+    suspend fun measurementsBetween(kinds: List<String>, from: Long, to: Long, n: Int?): List<SnapshotSummary>
 
-    @Query("SELECT $SUMMARY FROM cell_snapshots WHERE measure IN (:kinds) AND ts BETWEEN :from AND :to ORDER BY ts DESC LIMIT :limit")
-    suspend fun measurementsBetweenLimit(kinds: List<String>, from: Long, to: Long, limit: Int): List<SnapshotSummary>
+    @Query("SELECT $SUMMARY FROM cell_snapshots WHERE measure IN (:kinds) AND ts BETWEEN :from AND :to AND $SERIES ORDER BY ts DESC LIMIT :limit")
+    suspend fun measurementsBetweenLimit(kinds: List<String>, from: Long, to: Long, limit: Int, n: Int?): List<SnapshotSummary>
 
     @Query("SELECT id FROM cell_snapshots WHERE measure IS NOT NULL AND measure != 'LOAD' AND rest_period IS NOT NULL AND NOT (measure = 'MANUAL' AND (rest_min IS NULL OR rest_min < 15)) ORDER BY ts DESC LIMIT 1")
     suspend fun latestRestId(): Long?
@@ -49,8 +55,12 @@ interface CellDao {
     @Query("SELECT id, relax FROM cell_snapshots WHERE measure IS NOT NULL AND measure != 'LOAD' AND rest_period IS NOT NULL AND NOT (measure = 'MANUAL' AND (rest_min IS NULL OR rest_min < 15)) ORDER BY ts DESC LIMIT 1")
     fun latestRestKey(): Flow<MeasureKey?>
 
-    @Query("SELECT $SUMMARY FROM cell_snapshots WHERE ts BETWEEN :from AND :to ORDER BY ts")
-    suspend fun summariesBetween(from: Long, to: Long): List<SnapshotSummary>
+    @Query("SELECT $SUMMARY FROM cell_snapshots WHERE ts BETWEEN :from AND :to AND $SERIES ORDER BY ts")
+    suspend fun summariesBetween(from: Long, to: Long, n: Int?): List<SnapshotSummary>
+
+    /** The largest pack in the table (cells, probes): the CSV's columns. */
+    @Query("SELECT IFNULL(MAX(length(cells)), 0) / 2 AS cells, IFNULL(MAX(length(probes)), 0) AS probes FROM cell_snapshots")
+    suspend fun packCounts(): PackCounts
 
     @Query(STATS)
     fun stats(): Flow<CellStatsRow>

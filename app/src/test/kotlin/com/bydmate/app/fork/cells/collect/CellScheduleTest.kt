@@ -20,7 +20,7 @@ class CellScheduleTest {
     private fun anchor(agoMin: Long, soc: Int? = 56) =
         SessionAnchor(base - agoMin * min, 5_000_000L - agoMin * min, soc)
 
-    private fun schedule(intervalSec: Long = 30) = CellSchedule(54.0, { intervalSec * sec })
+    private fun schedule(intervalSec: Long = 30) = CellSchedule({ 54.0 }, { intervalSec * sec })
 
     private fun CellSchedule.begin(a: SessionAnchor?) = startSession(sample(0, 0.0), a)
 

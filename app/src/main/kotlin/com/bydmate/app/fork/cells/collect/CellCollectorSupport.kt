@@ -9,8 +9,12 @@ import com.bydmate.app.fork.cells.data.CellsSettings
 import com.bydmate.app.fork.cells.stream.CellReading
 import kotlinx.coroutines.CancellationException
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 private const val TAG = "CellCollector"
+private const val NOMINAL_CELL_V = 3.2
+private const val WH_PER_KWH = 1000.0
+private const val TENTHS = 10.0
 private const val DAY_MS = 86_400_000L
 private const val FULL_WRITE_GAP_MS = 60_000L
 private const val FULL_SOC = 100
@@ -31,6 +35,10 @@ fun liveSampleOf(d: DiParsData, wallMs: Long, elapsedMs: Long): LiveSample = Liv
     packV = d.hvVoltage,
     charging = d.chargingStatus == CHARGING_STATUS,
 )
+
+/** 1C in amps, to 0.1 A: the capacity over the pack's nominal voltage ([cells] LFP cells of 3.2 V). 31.8 kWh, 184 cells → 54.0 A. */
+fun oneCAmps(capacityKwh: Double, cells: Int): Double =
+    (capacityKwh * WH_PER_KWH / (cells.coerceAtLeast(1) * NOMINAL_CELL_V) * TENTHS).roundToInt() / TENTHS
 
 /** R24: every cell within 2000..4000 mV and every probe within −40..125 °C, else the reading is not stored. */
 internal fun saneReading(r: CellReading.Complete): Boolean =
