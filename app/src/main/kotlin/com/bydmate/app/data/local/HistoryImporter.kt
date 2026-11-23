@@ -20,6 +20,7 @@ import com.bydmate.app.data.trips.CounterSnapshotWriter
 import com.bydmate.app.data.trips.TripFuel
 import com.bydmate.app.data.trips.TripSource
 import com.bydmate.app.domain.cost.CostCalculator
+import com.bydmate.app.fork.hybrid.HybridEnergy
 import com.bydmate.app.service.TrackingService
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
@@ -466,6 +467,7 @@ class HistoryImporter @Inject @Suppress("LongParameterList") constructor( // Hil
         // DM-i: the engine charges the pack on the way, so a SOC delta is no trip figure.
         val sane = if (vehicleKind.kind.value == VehicleKind.HYBRID) {
             raw.takeIf { TripEnergySanity.isPlausible(it, km) }
+                ?: HybridEnergy.plausibleGain(raw, socStart, socEnd, capacity) // fork: hybrid pack gain keeps its minus
         } else {
             TripEnergySanity.kwhFor(raw, km, socStart, socEnd, capacity)
         }
