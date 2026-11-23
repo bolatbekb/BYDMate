@@ -5,6 +5,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -14,6 +15,7 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
@@ -40,11 +42,14 @@ private const val HEADROOM = 1.12
 private const val GRID_ALPHA = 0.35f
 private const val NORM_FILL = 0.07f
 private const val FIRST_HOUR_FILL = 0.14f
+private const val PREVIOUS_ALPHA = 0.85f
+private val KEY_LINE = 22.dp
+private val KEY_GAP = 6.dp
 private val HOUR_TICKS = (0..EQ_WINDOW_H step 3).toList()
 private val DAY_TICKS = listOf(0, 3, 6, 9, 12, PARKING_DAYS)
 
 /** The texts of the chart, resolved in composition. */
-private data class EqTexts(val xTicks: List<Pair<Double, String>>, val norm: String, val service: String?, val firstHour: String, val previous: String?, val empty: String?)
+private data class EqTexts(val xTicks: List<Pair<Double, String>>, val norm: String, val service: String?, val previous: String?, val empty: String?)
 
 internal data class EqInk(val ok: Color, val warn: Color, val bad: Color, val grid: Color, val muted: Color, val primary: Color, val secondary: Color, val line: Color, val hole: Color)
 
@@ -72,7 +77,6 @@ internal fun EqChart(e: Evaluation, mode: EqMode, model: EqualizationModel?, fai
         ticks,
         TextRes(R.string.fork_cells_eq_norm, norm).text(),
         svc?.let { TextRes(R.string.fork_cells_eq_service, it).text() },
-        stringResource(R.string.fork_cells_eq_first_hour),
         model?.previous?.lastOrNull()?.let { TextRes(R.string.fork_cells_eq_previous, it.mv).text() },
         when {
             model == null && failed -> stringResource(R.string.fork_cells_eq_no_data)
@@ -91,9 +95,10 @@ internal fun EqChart(e: Evaluation, mode: EqMode, model: EqualizationModel?, fai
         if (g.bottom <= g.top || g.right <= g.left) return@Canvas
         val l = Labels(measurer, base)
         drawFrame(g, texts, ink, l)
-        drawLines(g, norm to svc, texts, ink, l, pts)
-        if (charge && model != null && !model.awakeAxis) drawFirstHour(g, texts.firstHour, ink, l)
-        drawPrevious(g, prev, texts.previous, ink, l)
+        val key = if (prev.isEmpty()) null else texts.previous?.let { previousKey(g, it, ink, l) }
+        drawLines(g, norm to svc, texts, ink, l, LabelRoom(pts, key?.box))
+        if (charge && model != null && !model.awakeAxis) drawFirstHour(g, ink)
+        drawPrevious(g, prev, key, ink)
         drawCurve(g, pts, charge, norm, ink, l)
         texts.empty?.let {
             val t = l.centered(it, 14f, ink.secondary, ((g.right - g.left) * 0.8f).toInt())
@@ -141,8 +146,8 @@ private fun DrawScope.drawFrame(g: EqGeom, texts: EqTexts, ink: EqInk, l: Labels
  * The norm (a soft green floor and a dashed line) and the service number (dashed red) when it is on the scale; each label
  * over its line at the right end, or at the left end when a dot or its value is in the way.
  */
-@Suppress("LongParameterList") // why: the lines, their labels and the dots they must not cover
-private fun DrawScope.drawLines(g: EqGeom, lines: Pair<Int, Int?>, texts: EqTexts, ink: EqInk, l: Labels, pts: List<EqPoint>) {
+@Suppress("LongParameterList") // why: the lines, their labels and what they must not cover
+private fun DrawScope.drawLines(g: EqGeom, lines: Pair<Int, Int?>, texts: EqTexts, ink: EqInk, l: Labels, room: LabelRoom) {
     val (norm, svc) = lines
     val dash = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 4.dp.toPx()))
     val ny = g.y(norm)
@@ -150,61 +155,75 @@ private fun DrawScope.drawLines(g: EqGeom, lines: Pair<Int, Int?>, texts: EqText
     drawLine(ink.ok, Offset(g.left, ny), Offset(g.right, ny), 1.2.dp.toPx(), pathEffect = dash)
     val nt = l.measure(texts.norm, 11.5f, ink.ok)
     val nTop = ny - nt.size.height - 2.dp.toPx()
-    drawText(nt, topLeft = Offset(lineLabelX(g, nTop, nt.size.width, nt.size.height, pts), nTop))
+    drawText(nt, topLeft = Offset(lineLabelX(g, Rect(0f, nTop, nt.size.width.toFloat(), nTop + nt.size.height), room), nTop))
     if (svc == null || svc > g.topMv) return
     val sy = g.y(svc)
     drawLine(ink.bad, Offset(g.left, sy), Offset(g.right, sy), 1.2.dp.toPx(), pathEffect = dash)
     texts.service?.let {
         val st = l.measure(it, 11.5f, ink.bad)
         val sTop = sy - st.size.height - 2.dp.toPx()
-        drawText(st, topLeft = Offset(lineLabelX(g, sTop, st.size.width, st.size.height, pts), sTop))
+        drawText(st, topLeft = Offset(lineLabelX(g, Rect(0f, sTop, st.size.width.toFloat(), sTop + st.size.height), room), sTop))
     }
 }
 
-/** The right end when no dot (with its value above it) is under the label there, else the left end; the right end when both are taken. */
-private fun DrawScope.lineLabelX(g: EqGeom, top: Float, w: Int, h: Int, pts: List<EqPoint>): Float {
+/** What a line label must not cover: the dots with their values above them, and the previous charge's key. */
+private class LabelRoom(val pts: List<EqPoint>, val key: Rect?)
+
+/**
+ * The right end when nothing is under the label there ([label] gives its height and width; its left is ignored), else the
+ * left end; the right end when both are taken.
+ */
+private fun DrawScope.lineLabelX(g: EqGeom, label: Rect, room: LabelRoom): Float {
     val reach = 24.dp.toPx()
     val above = 32.dp.toPx()
     val below = 10.dp.toPx()
-    fun free(x0: Float): Boolean = pts.none { p ->
-        val cx = g.x(p.x)
-        val cy = g.y(p.mv)
-        val acrossX = cx + reach > x0 && cx - reach < x0 + w
-        val acrossY = cy + below > top && cy - above < top + h
-        acrossX && acrossY
+    fun free(x0: Float): Boolean {
+        val r = Rect(x0, label.top, x0 + label.width, label.bottom)
+        val dots = room.pts.none { p ->
+            val cx = g.x(p.x)
+            val cy = g.y(p.mv)
+            r.overlaps(Rect(cx - reach, cy - above, cx + reach, cy + below))
+        }
+        return dots && room.key?.overlaps(r) != true
     }
-    val right = g.right - w
+    val right = g.right - label.width
     val left = g.left + 6.dp.toPx()
     return if (free(right) || !free(left)) right else left
 }
 
-/** The first hour after the charge end: grey, «< 1 ч — без оценки». */
-private fun DrawScope.drawFirstHour(g: EqGeom, label: String, ink: EqInk, l: Labels) {
-    val x1 = g.x(1.0)
-    drawRect(ink.muted.copy(alpha = FIRST_HOUR_FILL), Offset(g.left, g.top), Size(x1 - g.left, g.bottom - g.top))
-    val t = l.centered(label, 10.5f, ink.secondary, (88.dp.toPx()).toInt())
-    drawText(t, topLeft = Offset(((g.left + x1) / 2f - t.size.width / 2f).coerceAtLeast(g.left), g.bottom - t.size.height - 6.dp.toPx()))
+/** The first hour after the charge end: a grey band; the axis caption says «< 1 ч — без оценки». */
+private fun DrawScope.drawFirstHour(g: EqGeom, ink: EqInk) {
+    drawRect(ink.muted.copy(alpha = FIRST_HOUR_FILL), Offset(g.left, g.top), Size(g.x(1.0) - g.left, g.bottom - g.top))
 }
 
-/** The previous full charge: dashed grey with small dots and its last value. */
-private fun DrawScope.drawPrevious(g: EqGeom, prev: List<EqPoint>, label: String?, ink: EqInk, l: Labels) {
+/** The previous charge's key: its text and where it goes, at the top right of the plot. */
+private class PreviousKey(val text: TextLayoutResult, val box: Rect)
+
+private fun DrawScope.previousKey(g: EqGeom, label: String, ink: EqInk, l: Labels): PreviousKey {
+    val t = l.measure(label, 11f, ink.muted)
+    val w = KEY_LINE.toPx() + KEY_GAP.toPx() + t.size.width
+    val x = (g.right - w).within(g.left, g.right)
+    val y = g.top + 4.dp.toPx()
+    return PreviousKey(t, Rect(x, y, x + w, y + t.size.height))
+}
+
+/**
+ * The previous full charge: a thin grey dashed line under the current one, no dots (dense dots would make it look solid),
+ * and its [key] at the top right of the plot («- - после прошлой зарядки: N», N its last value) — never at its end, where the
+ * current curve ends too.
+ */
+private fun DrawScope.drawPrevious(g: EqGeom, prev: List<EqPoint>, key: PreviousKey?, ink: EqInk) {
     if (prev.isEmpty()) return
+    val dash = PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 6.dp.toPx()))
     if (prev.size > 1) {
-        drawPath(
-            polyline(g, prev),
-            ink.muted,
-            style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round, pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx()))),
-        )
+        drawPath(polyline(g, prev), ink.muted.copy(alpha = PREVIOUS_ALPHA), style = Stroke(1.8.dp.toPx(), cap = StrokeCap.Butt, join = StrokeJoin.Round, pathEffect = dash))
+    } else {
+        drawCircle(ink.muted, 3.dp.toPx(), Offset(g.x(prev[0].x), g.y(prev[0].mv)), style = Stroke(1.5.dp.toPx()))
     }
-    prev.forEach { drawCircle(ink.muted, 2.5.dp.toPx(), Offset(g.x(it.x), g.y(it.mv))) }
-    val last = prev.last()
-    label?.let {
-        val t = l.measure(it, 11f, ink.muted)
-        val at = Offset(g.x(last.x), g.y(last.mv))
-        val x = (at.x - t.size.width / 2f).within(g.left, g.right - t.size.width)
-        val y = (at.y - t.size.height - 8.dp.toPx()).coerceAtLeast(g.top)
-        drawText(t, topLeft = Offset(x, y))
-    }
+    key ?: return
+    val mid = key.box.top + key.text.size.height / 2f
+    drawLine(ink.muted, Offset(key.box.left, mid), Offset(key.box.left + KEY_LINE.toPx(), mid), 1.8.dp.toPx(), pathEffect = dash)
+    drawText(key.text, topLeft = Offset(key.box.left + KEY_LINE.toPx() + KEY_GAP.toPx(), key.box.top))
 }
 
 internal fun polyline(g: EqGeom, pts: List<EqPoint>): Path = Path().apply {

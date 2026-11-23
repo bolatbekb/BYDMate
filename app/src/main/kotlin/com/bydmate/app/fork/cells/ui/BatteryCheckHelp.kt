@@ -54,6 +54,8 @@ private val RULES = listOf(
     R.string.fork_cells_help_rule_prelim,
     R.string.fork_cells_help_rule_cold,
     R.string.fork_cells_help_rule_once,
+    // «Что делать» drops this note on a short screen; here it is always
+    R.string.fork_cells_wtd_footnote,
     R.string.fork_cells_help_rule_median,
 )
 

@@ -81,7 +81,7 @@
     <string name="fork_cells_cond_rest">спакой ≥ 1 г</string>
     <string name="fork_cells_cond_after_full">пасля поўнай зарадкі і ≥ 1 г спакою</string>
     <string name="fork_cells_cond_load">ток ад 1C не менш за 7 с</string>
-    <string name="fork_cells_footer">Замер %1$s. Зона: %2$s, умовы парога — %3$s. Ацэнка сумленная, калі машына стаіць: ток да 5 А не менш за гадзіну, праз гадзіну пасля зарадкі; менш за 15 хвілін спакою — без ацэнкі.</string>
+    <string name="fork_cells_footer">Замер %1$s. Зона: %2$s, умовы парога — %3$s.</string>
     <string name="fork_cells_part_rest">спакой %1$s</string>
     <string name="fork_cells_part_rest_unknown">час стаянкі невядомы</string>
     <string name="fork_cells_part_current">ток %1$s А</string>
@@ -240,7 +240,7 @@
     <string name="fork_cells_wtd_re_monthly">Раз на месяц</string>
     <string name="fork_cells_wtd_re_monthly_hint">каб бачыць змены</string>
     <string name="fork_cells_wtd_norm">Што лічыцца нормай</string>
-    <string name="fork_cells_wtd_norm_sub">Разкід залежыць ад зараду. Ваш зараз — %1$s</string>
+    <string name="fork_cells_wtd_norm_charge">зарад %1$s</string>
     <string name="fork_cells_wtd_row_low10">менш за 10 %%</string>
     <string name="fork_cells_wtd_row_low">10–15 %%</string>
     <string name="fork_cells_wtd_row_plateau">15–85 %%</string>
@@ -320,7 +320,9 @@
     <string name="fork_cells_ruler_cond_honest">ацэнка сумленная</string>
     <string name="fork_cells_ruler_cond_prelim">ацэнка папярэдняя</string>
     <string name="fork_cells_ruler_cond_none">без ацэнкі</string>
-    <string name="fork_cells_ruler_grid_caption">Колерам — толькі тыя, што адрозніваюцца ад сярэдзіны больш чым на палову нормы гэтай зоны.</string>
+    <string name="fork_cells_ruler_grid_caption">колерам — адхіленне больш за палову нормы</string>
+    <string name="fork_cells_ruler_legend_notice">прыкметна</string>
+    <string name="fork_cells_ruler_legend_strong">моцна</string>
     <!-- Views: «Выравнивание» -->
     <string name="fork_cells_eq_title_charge">Як выраўноўваюцца ячэйкі пасля зарадкі да 100 %%</string>
     <string name="fork_cells_eq_title_parkings">Разкід у спакоі па замерах</string>

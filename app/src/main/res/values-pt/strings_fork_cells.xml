@@ -81,7 +81,7 @@
     <string name="fork_cells_cond_rest">repouso ≥ 1 h</string>
     <string name="fork_cells_cond_after_full">após carga completa e ≥ 1 h de repouso</string>
     <string name="fork_cells_cond_load">corrente a partir de 1C por pelo menos 7 s</string>
-    <string name="fork_cells_footer">Medição %1$s. Zona: %2$s, condição do limite — %3$s. A avaliação é confiável com o carro parado: corrente até 5 A por pelo menos uma hora, uma hora após carregar; com menos de 15 minutos de repouso — sem avaliação.</string>
+    <string name="fork_cells_footer">Medição %1$s. Zona: %2$s, condição do limite — %3$s.</string>
     <string name="fork_cells_part_rest">repouso %1$s</string>
     <string name="fork_cells_part_rest_unknown">tempo de estacionamento desconhecido</string>
     <string name="fork_cells_part_current">corrente %1$s A</string>
@@ -240,7 +240,7 @@
     <string name="fork_cells_wtd_re_monthly">Uma vez por mês</string>
     <string name="fork_cells_wtd_re_monthly_hint">para ver as mudanças</string>
     <string name="fork_cells_wtd_norm">O que é normal</string>
-    <string name="fork_cells_wtd_norm_sub">A dispersão depende da carga. A sua agora — %1$s</string>
+    <string name="fork_cells_wtd_norm_charge">carga %1$s</string>
     <string name="fork_cells_wtd_row_low10">abaixo de 10 %%</string>
     <string name="fork_cells_wtd_row_low">10–15 %%</string>
     <string name="fork_cells_wtd_row_plateau">15–85 %%</string>
@@ -320,7 +320,9 @@
     <string name="fork_cells_ruler_cond_honest">avaliação confiável</string>
     <string name="fork_cells_ruler_cond_prelim">avaliação preliminar</string>
     <string name="fork_cells_ruler_cond_none">sem avaliação</string>
-    <string name="fork_cells_ruler_grid_caption">A cor marca só as células que diferem do meio em mais da metade da norma desta zona.</string>
+    <string name="fork_cells_ruler_grid_caption">cor — desvio maior que metade da norma</string>
+    <string name="fork_cells_ruler_legend_notice">visivelmente</string>
+    <string name="fork_cells_ruler_legend_strong">muito</string>
     <!-- Views: «Выравнивание» -->
     <string name="fork_cells_eq_title_charge">Como as células se equalizam após carregar até 100 %%</string>
     <string name="fork_cells_eq_title_parkings">Dispersão em repouso, medição a medição</string>

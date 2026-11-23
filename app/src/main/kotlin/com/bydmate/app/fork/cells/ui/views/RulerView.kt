@@ -53,7 +53,7 @@ private const val GRID_COLUMNS_NARROW = 23
 private const val TILE_ALPHA = 0.55f
 
 /** A grid card at least this tall shows the legend with its title. */
-private val LEGEND_FULL = 106.dp
+private val LEGEND_FULL = 72.dp
 
 /**
  * «Линейка» (mockup V2): the zone's scale with an arrow at the spread on the left; the verdict in words, the four checks
@@ -144,7 +144,7 @@ private fun CellsGridCard(e: Evaluation, columns: Int, modifier: Modifier) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxSize()) {
                     FittedGrid(e, columns, Modifier.weight(1f).fillMaxHeight())
                     Spacer(Modifier.width(20.dp))
-                    Column(Modifier.width(250.dp)) { GridLegend(e, compact) }
+                    Column(Modifier.width(270.dp)) { GridLegend(e, compact) }
                 }
             }
         }
@@ -164,6 +164,7 @@ private fun FittedGrid(e: Evaluation, columns: Int, modifier: Modifier) {
     }
 }
 
+/** «184 ячейки» (when there is room), «цветом — отклонение больше половины нормы», the three swatches on one line. */
 @Composable
 private fun GridLegend(e: Evaluation, compact: Boolean) {
     if (!compact) {
@@ -174,20 +175,22 @@ private fun GridLegend(e: Evaluation, compact: Boolean) {
         color = TextSecondary,
         fontSize = 12.sp,
         lineHeight = 15.sp,
-        maxLines = 2,
+        maxLines = if (compact) 1 else 2,
         overflow = TextOverflow.Ellipsis,
-        modifier = Modifier.padding(top = 2.dp, bottom = 4.dp),
+        modifier = Modifier.padding(top = 1.dp, bottom = 4.dp),
     )
-    LegendLine(CardBorder.copy(alpha = TILE_ALPHA), stringResource(R.string.fork_cells_legend_normal))
-    LegendLine(AccentOrange, stringResource(R.string.fork_cells_legend_noticeable))
-    LegendLine(SocRed, stringResource(R.string.fork_cells_legend_strong))
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        LegendItem(CardBorder.copy(alpha = TILE_ALPHA), stringResource(R.string.fork_cells_legend_normal))
+        LegendItem(AccentOrange, stringResource(R.string.fork_cells_ruler_legend_notice))
+        LegendItem(SocRed, stringResource(R.string.fork_cells_ruler_legend_strong))
+    }
 }
 
 @Composable
-private fun LegendLine(c: Color, text: String) {
-    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(vertical = 1.dp)) {
+private fun LegendItem(c: Color, text: String) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
         Box(Modifier.size(10.dp).background(c, RoundedCornerShape(3.dp)))
-        Spacer(Modifier.width(8.dp))
-        Text(text, color = TextSecondary, fontSize = 12.sp, lineHeight = 15.sp)
+        Spacer(Modifier.width(6.dp))
+        Text(text, color = TextSecondary, fontSize = 12.sp, lineHeight = 15.sp, maxLines = 1, softWrap = false)
     }
 }

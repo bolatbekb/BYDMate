@@ -47,7 +47,8 @@ class BatteryCheckTextTest {
         val input = m(rest = 540, currentA = 3.1).copy(probesC = IntArray(24) { if (it == 3) 19 else 20 })
         val e = CellVerdict.evaluate(input, hist(), ZoneOffset.UTC)
         val text = resolve(footerText(e, Locale("ru")), r)
-        assertTrue(text, text.startsWith("Замер после стоянки, покой 9 ч, ток 3,1 А, датчики 19–20 °C. Зона: плато 15–85 %, условия порога — покой ≥ 1 ч."))
+        // one line under the window: the honesty rules live in «?»
+        assertEquals("Замер после стоянки, покой 9 ч, ток 3,1 А, датчики 19–20 °C. Зона: плато 15–85 %, условия порога — покой ≥ 1 ч.", text)
     }
 
     @Test fun `durations, percent signs and the collection line`() {

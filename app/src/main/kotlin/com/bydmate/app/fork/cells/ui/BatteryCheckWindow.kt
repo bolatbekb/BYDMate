@@ -195,7 +195,7 @@ private fun Banner(text: String, action: @Composable () -> Unit = {}) {
     }
 }
 
-/** The measuring conditions and the zone's rule, and the round «?» with the thresholds. */
+/** The measuring conditions and the zone's rule on one line (the honesty rules live in «?»), and the round «?». */
 @Composable
 private fun Footer(ui: BatteryCheckUi, actions: BatteryCheckActions) {
     val locale = LocalConfiguration.current.locales[0]
@@ -206,6 +206,8 @@ private fun Footer(ui: BatteryCheckUi, actions: BatteryCheckActions) {
             color = TextMuted,
             fontSize = 13.sp,
             lineHeight = 19.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             style = tnum(),
             modifier = Modifier.weight(1f),
         )

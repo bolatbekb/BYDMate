@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -15,8 +16,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.bydmate.app.R
@@ -101,54 +106,84 @@ private fun EqChartCard(e: Evaluation, mode: EqMode, model: EqualizationModel?, 
             }
             Spacer(Modifier.height(4.dp))
             EqChart(e, mode, model, failed, if (narrow) Modifier.fillMaxWidth().height(300.dp) else Modifier.fillMaxWidth().weight(1f))
-            Text(stringResource(axis), color = TextMuted, fontSize = 12.sp, lineHeight = 15.sp, textAlign = TextAlign.Center, modifier = Modifier.fillMaxWidth().padding(top = 2.dp))
+            // the grey first hour after a charge end is explained here, not inside its narrow band
+            val firstHour = if (charge && model?.awakeAxis == false) " · " + stringResource(R.string.fork_cells_eq_first_hour) else ""
+            Text(
+                stringResource(axis) + firstHour,
+                color = TextMuted,
+                fontSize = 12.sp,
+                lineHeight = 15.sp,
+                maxLines = 1,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+            )
             Text(explainText(e, mode).text(), color = TextSecondary, fontSize = 13.sp, lineHeight = 18.sp, style = tnum(), modifier = Modifier.padding(top = 6.dp))
         }
     }
 }
 
-/** «Выравниваются сильнее всего» (the highest after a charge) or «Ниже всех»: compact rows № · voltage · deviation. */
+/**
+ * «Выравниваются сильнее всего · ячейки выше середины …» (the highest after a charge) or «Ниже всех · …» on one line, then
+ * five rows № · voltage · deviation. In a wide window the rows share the card's height (up to 40 dp each), so all five show
+ * on the smallest screen; in a narrow one they are 36 dp.
+ */
 @Composable
 private fun CellsListCard(e: Evaluation, mode: EqMode, cells: List<Pair<Int, Double>>, modifier: Modifier) {
     val charge = mode == EqMode.AFTER_CHARGE
-    val locale = LocalConfiguration.current.locales[0]
+    val narrow = LocalCheckNarrow.current
+    val muted = TextMuted
+    val head = buildAnnotatedString {
+        append(stringResource(if (charge) R.string.fork_cells_eq_top_title else R.string.fork_cells_eq_low_title))
+        withStyle(SpanStyle(color = muted, fontWeight = FontWeight.Normal, fontSize = 12.sp)) {
+            append(" · " + stringResource(if (charge) R.string.fork_cells_eq_top_sub else R.string.fork_cells_eq_low_sub))
+        }
+    }
     ViewCard(modifier) {
-        Column(cardScroll().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 10.dp)) {
-            CardHead(
-                stringResource(if (charge) R.string.fork_cells_eq_top_title else R.string.fork_cells_eq_low_title),
-                stringResource(if (charge) R.string.fork_cells_eq_top_sub else R.string.fork_cells_eq_low_sub),
-            )
+        Column(Modifier.then(if (narrow) Modifier else Modifier.fillMaxSize()).padding(start = 16.dp, end = 16.dp, top = 10.dp, bottom = 8.dp)) {
+            Text(head, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, lineHeight = 19.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Spacer(Modifier.height(6.dp))
             if (cells.isEmpty()) {
                 Text(stringResource(R.string.fork_cells_dev_none), color = TextSecondary, fontSize = 13.5.sp, lineHeight = 19.sp)
             }
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp), modifier = if (narrow) Modifier else Modifier.weight(1f)) {
                 cells.forEach { (cell, dev) ->
-                    val cls = e.classes.getOrElse(cell - 1) { CellClass.NORMAL }
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth().background(CardSurface, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
-                    ) {
-                        Text(TextRes(R.string.fork_cells_cell_no, cell).text(), color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp, style = tnum())
-                        Text(
-                            " · " + TextRes(R.string.fork_cells_val_cell_v, cellVolts(e.input.cellsMv.getOrElse(cell - 1) { 0 }, locale)).text(),
-                            color = TextSecondary,
-                            fontSize = 14.sp,
-                            lineHeight = 18.sp,
-                            style = tnum(),
-                            modifier = Modifier.weight(1f),
-                        )
-                        Text(
-                            TextRes(R.string.fork_cells_val_signed_mv, signedMv(dev)).text(),
-                            color = if (cls == CellClass.NORMAL) TextSecondary else cellColor(cls, e.level),
-                            fontSize = 14.sp,
-                            fontWeight = FontWeight.Medium,
-                            lineHeight = 18.sp,
-                            style = tnum(),
-                        )
-                    }
+                    val row = if (narrow) Modifier.height(ROW_NARROW) else Modifier.weight(1f).heightIn(max = ROW_MAX)
+                    CellLine(e, cell, dev, row)
                 }
             }
         }
+    }
+}
+
+private val ROW_MAX = 40.dp
+private val ROW_NARROW = 36.dp
+
+@Composable
+private fun CellLine(e: Evaluation, cell: Int, dev: Double, modifier: Modifier) {
+    val cls = e.classes.getOrElse(cell - 1) { CellClass.NORMAL }
+    val locale = LocalConfiguration.current.locales[0]
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier.fillMaxWidth().background(CardSurface, RoundedCornerShape(8.dp)).padding(horizontal = 12.dp),
+    ) {
+        Text(TextRes(R.string.fork_cells_cell_no, cell).text(), color = TextPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, lineHeight = 18.sp, style = tnum())
+        Text(
+            " · " + TextRes(R.string.fork_cells_val_cell_v, cellVolts(e.input.cellsMv.getOrElse(cell - 1) { 0 }, locale)).text(),
+            color = TextSecondary,
+            fontSize = 14.sp,
+            lineHeight = 18.sp,
+            maxLines = 1,
+            style = tnum(),
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            TextRes(R.string.fork_cells_val_signed_mv, signedMv(dev)).text(),
+            color = if (cls == CellClass.NORMAL) TextSecondary else cellColor(cls, e.level),
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Medium,
+            lineHeight = 18.sp,
+            maxLines = 1,
+            style = tnum(),
+        )
     }
 }

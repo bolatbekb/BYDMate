@@ -81,7 +81,7 @@
     <string name="fork_cells_cond_rest">покой ≥ 1 ч</string>
     <string name="fork_cells_cond_after_full">после полной зарядки и ≥ 1 ч покоя</string>
     <string name="fork_cells_cond_load">ток от 1C не меньше 7 с</string>
-    <string name="fork_cells_footer">Замер %1$s. Зона: %2$s, условия порога — %3$s. Оценка честная, когда машина стоит: ток до 5 А не меньше часа, через час после зарядки; меньше 15 минут покоя — без оценки.</string>
+    <string name="fork_cells_footer">Замер %1$s. Зона: %2$s, условия порога — %3$s.</string>
     <string name="fork_cells_part_rest">покой %1$s</string>
     <string name="fork_cells_part_rest_unknown">время стоянки неизвестно</string>
     <string name="fork_cells_part_current">ток %1$s А</string>
@@ -240,7 +240,7 @@
     <string name="fork_cells_wtd_re_monthly">Раз в месяц</string>
     <string name="fork_cells_wtd_re_monthly_hint">чтобы видеть изменения</string>
     <string name="fork_cells_wtd_norm">Что считается нормой</string>
-    <string name="fork_cells_wtd_norm_sub">Разброс зависит от заряда. Ваш сейчас — %1$s</string>
+    <string name="fork_cells_wtd_norm_charge">заряд %1$s</string>
     <string name="fork_cells_wtd_row_low10">меньше 10 %%</string>
     <string name="fork_cells_wtd_row_low">10–15 %%</string>
     <string name="fork_cells_wtd_row_plateau">15–85 %%</string>
@@ -320,7 +320,9 @@
     <string name="fork_cells_ruler_cond_honest">оценка честная</string>
     <string name="fork_cells_ruler_cond_prelim">оценка предварительная</string>
     <string name="fork_cells_ruler_cond_none">без оценки</string>
-    <string name="fork_cells_ruler_grid_caption">Цветом — только те, что отличаются от середины больше половины нормы этой зоны.</string>
+    <string name="fork_cells_ruler_grid_caption">цветом — отклонение больше половины нормы</string>
+    <string name="fork_cells_ruler_legend_notice">заметно</string>
+    <string name="fork_cells_ruler_legend_strong">сильно</string>
     <!-- Views: «Выравнивание» -->
     <string name="fork_cells_eq_title_charge">Как выравниваются ячейки после зарядки до 100 %%</string>
     <string name="fork_cells_eq_title_parkings">Разброс в покое по замерам</string>

@@ -3,6 +3,7 @@ package com.bydmate.app.fork.cells.ui.views
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -40,32 +41,42 @@ import com.bydmate.app.ui.theme.TextSecondary
 
 private const val ADVICE_TINT = 0.10f
 
+private val ROOMY_HEIGHT = 390.dp
+
 /**
  * «Что делать» (EVDiag variant 26): the advice on top, as tall as its text, and three cards under it: when to check again,
- * what counts as normal at which charge, when to go to the service. Sized to show every row at 1280 × 604 dp. fork-local.
+ * what counts as normal at which charge, when to go to the service. Every row shows at the car's smallest screen. fork-local.
  */
 @Composable
 internal fun WhatToDoView(ui: BatteryCheckUi) {
     val e = ui.selected
     val model = remember(e) { whatToDoModel(e) }
     if (LocalCheckNarrow.current) {
+        val size = WtdSize(compact = false)
         Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
-            AdviceCard(model.advice, e, Modifier.fillMaxWidth())
-            RecheckCard(model, Modifier.fillMaxWidth())
-            NormsCard(model, e, Modifier.fillMaxWidth())
-            ServiceCard(model, Modifier.fillMaxWidth())
+            AdviceCard(model.advice, e, size, Modifier.fillMaxWidth())
+            RecheckCard(model, size, Modifier.fillMaxWidth())
+            NormsCard(model, e, size, Modifier.fillMaxWidth())
+            ServiceCard(model, size, Modifier.fillMaxWidth())
         }
         return
     }
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxSize()) {
-        AdviceCard(model.advice, e, Modifier.fillMaxWidth())
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
-            RecheckCard(model, Modifier.weight(1f).fillMaxHeight())
-            NormsCard(model, e, Modifier.weight(1f).fillMaxHeight())
-            ServiceCard(model, Modifier.weight(1f).fillMaxHeight())
+    BoxWithConstraints(Modifier.fillMaxSize()) {
+        val size = WtdSize(compact = maxHeight < ROOMY_HEIGHT)
+        Column(verticalArrangement = Arrangement.spacedBy(size.gap), modifier = Modifier.fillMaxSize()) {
+            AdviceCard(model.advice, e, size, Modifier.fillMaxWidth())
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth().weight(1f)) {
+                RecheckCard(model, size, Modifier.weight(RECHECK_WEIGHT).fillMaxHeight())
+                NormsCard(model, e, size, Modifier.weight(1f).fillMaxHeight())
+                ServiceCard(model, size, Modifier.weight(SERVICE_WEIGHT).fillMaxHeight())
+            }
         }
     }
 }
+
+/** The recheck rows are the longest lines, the service card the shortest. */
+private const val RECHECK_WEIGHT = 1.2f
+private const val SERVICE_WEIGHT = 0.9f
 
 /** Green when nothing is to be done, orange / red with the level, blue while the pack settles, grey without a verdict. */
 internal fun adviceColor(a: Advice): Color = when (a) {
@@ -84,7 +95,7 @@ private fun adviceGlyph(a: Advice): Glyph = when (a) {
 
 /** The advice on a wash of its colour fading into the card: the ringed glyph, the title, then what to do and why (muted). */
 @Composable
-private fun AdviceCard(advice: Advice, e: Evaluation?, modifier: Modifier) {
+private fun AdviceCard(advice: Advice, e: Evaluation?, size: WtdSize, modifier: Modifier) {
     val color = adviceColor(advice)
     val why = if (e == null || advice == Advice.NOTHING_TO_DO || advice == Advice.WAIT_RELAX) null else reasonTexts(e).firstOrNull()?.text()
     val muted = TextMuted
@@ -97,14 +108,14 @@ private fun AdviceCard(advice: Advice, e: Evaluation?, modifier: Modifier) {
             contentAlignment = Alignment.CenterStart,
             modifier = Modifier.fillMaxWidth()
                 .background(Brush.horizontalGradient(0f to color.copy(alpha = ADVICE_TINT), 0.6f to Color.Transparent))
-                .padding(horizontal = 26.dp, vertical = 14.dp),
+                .padding(horizontal = 22.dp, vertical = size.heroPad),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                GlyphBadge(adviceGlyph(advice), color, 64.dp, outlined = true)
-                Spacer(Modifier.width(22.dp))
+                GlyphBadge(adviceGlyph(advice), color, size.heroIcon, outlined = true)
+                Spacer(Modifier.width(18.dp))
                 Column {
-                    Text(stringResource(adviceTitleRes(advice)), color = color, fontSize = 28.sp, fontWeight = FontWeight.Medium, lineHeight = 33.sp)
-                    Text(body, color = TextSecondary, fontSize = 14.5.sp, lineHeight = 20.sp, style = tnum(), modifier = Modifier.padding(top = 3.dp))
+                    Text(stringResource(adviceTitleRes(advice)), color = color, fontSize = size.heroTitle, fontWeight = FontWeight.Medium, lineHeight = size.heroTitleLine)
+                    Text(body, color = TextSecondary, fontSize = size.heroBody, lineHeight = size.heroBodyLine, style = tnum(), modifier = Modifier.padding(top = 2.dp))
                 }
             }
         }

@@ -81,7 +81,7 @@
     <string name="fork_cells_cond_rest">静置 ≥ 1 小时</string>
     <string name="fork_cells_cond_after_full">充满电后并静置 ≥ 1 小时</string>
     <string name="fork_cells_cond_load">电流 1C 及以上持续至少 7 秒</string>
-    <string name="fork_cells_footer">测量：%1$s。区间：%2$s，阈值条件 — %3$s。车辆静止时评估才可靠：电流不超过 5 A 至少一小时，充电后一小时；静置不足 15 分钟 — 不评估。</string>
+    <string name="fork_cells_footer">测量：%1$s。区间：%2$s，阈值条件 — %3$s。</string>
     <string name="fork_cells_part_rest">静置 %1$s</string>
     <string name="fork_cells_part_rest_unknown">停车时长未知</string>
     <string name="fork_cells_part_current">电流 %1$s A</string>
@@ -240,7 +240,7 @@
     <string name="fork_cells_wtd_re_monthly">每月一次</string>
     <string name="fork_cells_wtd_re_monthly_hint">以便看到变化</string>
     <string name="fork_cells_wtd_norm">什么算正常</string>
-    <string name="fork_cells_wtd_norm_sub">压差取决于电量。您当前 — %1$s</string>
+    <string name="fork_cells_wtd_norm_charge">电量 %1$s</string>
     <string name="fork_cells_wtd_row_low10">低于 10%%</string>
     <string name="fork_cells_wtd_row_low">10–15%%</string>
     <string name="fork_cells_wtd_row_plateau">15–85%%</string>
@@ -320,7 +320,9 @@
     <string name="fork_cells_ruler_cond_honest">评估可靠</string>
     <string name="fork_cells_ruler_cond_prelim">初步评估</string>
     <string name="fork_cells_ruler_cond_none">无评估</string>
-    <string name="fork_cells_ruler_grid_caption">只有偏离中位数超过该区间正常值一半的电芯才着色。</string>
+    <string name="fork_cells_ruler_grid_caption">着色 — 偏差超过正常值的一半</string>
+    <string name="fork_cells_ruler_legend_notice">略微</string>
+    <string name="fork_cells_ruler_legend_strong">明显</string>
     <!-- Views: «Выравнивание» -->
     <string name="fork_cells_eq_title_charge">充到 100%% 后电芯如何均衡</string>
     <string name="fork_cells_eq_title_parkings">每次静置测量的压差</string>

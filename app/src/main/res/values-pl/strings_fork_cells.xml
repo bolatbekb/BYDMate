@@ -81,7 +81,7 @@
     <string name="fork_cells_cond_rest">spoczynek ≥ 1 h</string>
     <string name="fork_cells_cond_after_full">po pełnym ładowaniu i ≥ 1 h spoczynku</string>
     <string name="fork_cells_cond_load">prąd od 1C przez co najmniej 7 s</string>
-    <string name="fork_cells_footer">Pomiar %1$s. Strefa: %2$s, warunek progu — %3$s. Ocena jest rzetelna, gdy auto stoi: prąd do 5 A przez co najmniej godzinę, godzinę po ładowaniu; poniżej 15 minut spoczynku — bez oceny.</string>
+    <string name="fork_cells_footer">Pomiar %1$s. Strefa: %2$s, warunek progu — %3$s.</string>
     <string name="fork_cells_part_rest">spoczynek %1$s</string>
     <string name="fork_cells_part_rest_unknown">czas postoju nieznany</string>
     <string name="fork_cells_part_current">prąd %1$s A</string>
@@ -240,7 +240,7 @@
     <string name="fork_cells_wtd_re_monthly">Raz w miesiącu</string>
     <string name="fork_cells_wtd_re_monthly_hint">aby widzieć zmiany</string>
     <string name="fork_cells_wtd_norm">Co jest normą</string>
-    <string name="fork_cells_wtd_norm_sub">Rozrzut zależy od naładowania. Twoje teraz — %1$s</string>
+    <string name="fork_cells_wtd_norm_charge">naładowanie %1$s</string>
     <string name="fork_cells_wtd_row_low10">poniżej 10 %%</string>
     <string name="fork_cells_wtd_row_low">10–15 %%</string>
     <string name="fork_cells_wtd_row_plateau">15–85 %%</string>
@@ -320,7 +320,9 @@
     <string name="fork_cells_ruler_cond_honest">ocena rzetelna</string>
     <string name="fork_cells_ruler_cond_prelim">ocena wstępna</string>
     <string name="fork_cells_ruler_cond_none">bez oceny</string>
-    <string name="fork_cells_ruler_grid_caption">Kolorem — tylko te, które różnią się od środka o więcej niż połowę normy tej strefy.</string>
+    <string name="fork_cells_ruler_grid_caption">kolor — odchylenie większe niż połowa normy</string>
+    <string name="fork_cells_ruler_legend_notice">wyraźnie</string>
+    <string name="fork_cells_ruler_legend_strong">znacznie</string>
     <!-- Views: «Выравнивание» -->
     <string name="fork_cells_eq_title_charge">Jak ogniwa wyrównują się po ładowaniu do 100 %%</string>
     <string name="fork_cells_eq_title_parkings">Rozrzut w spoczynku w kolejnych pomiarach</string>

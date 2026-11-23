@@ -81,7 +81,7 @@
     <string name="fork_cells_cond_rest">rest ≥ 1 h</string>
     <string name="fork_cells_cond_after_full">after a full charge and ≥ 1 h of rest</string>
     <string name="fork_cells_cond_load">current from 1C for at least 7 s</string>
-    <string name="fork_cells_footer">Measurement %1$s. Zone: %2$s, threshold condition — %3$s. The verdict is honest when the car stands still: current up to 5 A for at least an hour, an hour after charging; under 15 minutes of rest — no verdict.</string>
+    <string name="fork_cells_footer">Measurement %1$s. Zone: %2$s, threshold condition — %3$s.</string>
     <string name="fork_cells_part_rest">rest %1$s</string>
     <string name="fork_cells_part_rest_unknown">parking time unknown</string>
     <string name="fork_cells_part_current">current %1$s A</string>
@@ -240,7 +240,7 @@
     <string name="fork_cells_wtd_re_monthly">Once a month</string>
     <string name="fork_cells_wtd_re_monthly_hint">to see the changes</string>
     <string name="fork_cells_wtd_norm">What counts as normal</string>
-    <string name="fork_cells_wtd_norm_sub">The spread depends on the charge. Yours now — %1$s</string>
+    <string name="fork_cells_wtd_norm_charge">charge %1$s</string>
     <string name="fork_cells_wtd_row_low10">below 10%%</string>
     <string name="fork_cells_wtd_row_low">10–15%%</string>
     <string name="fork_cells_wtd_row_plateau">15–85%%</string>
@@ -320,7 +320,9 @@
     <string name="fork_cells_ruler_cond_honest">honest verdict</string>
     <string name="fork_cells_ruler_cond_prelim">preliminary verdict</string>
     <string name="fork_cells_ruler_cond_none">no verdict</string>
-    <string name="fork_cells_ruler_grid_caption">Colour marks only the cells that differ from the middle by more than half the norm of this zone.</string>
+    <string name="fork_cells_ruler_grid_caption">colour — a deviation above half the norm</string>
+    <string name="fork_cells_ruler_legend_notice">noticeably</string>
+    <string name="fork_cells_ruler_legend_strong">much</string>
     <!-- Views: «Выравнивание» -->
     <string name="fork_cells_eq_title_charge">How the cells balance after a charge to 100%%</string>
     <string name="fork_cells_eq_title_parkings">Spread at rest, measurement by measurement</string>
