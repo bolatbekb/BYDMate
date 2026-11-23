@@ -289,6 +289,28 @@ class CellCollectorTest {
         assertEquals(1, rows().count { it.measure == "LOAD" })
     }
 
+    @Test fun `load row is set on one current, rest rows stay raw`() = test {
+        on()
+        collector()
+        // Pages 0..9 read 100 mV higher, as under regen mid-sweep; cell 40 sags 30 mV against its page-mates.
+        fun skewed(a: IntArray) {
+            for (i in 0 until 30) a[i] += 100
+            a[40] -= 30
+        }
+        source.reply = { SourceReply.Ok(pass(it, edit = ::skewed)) }
+        sample(0)
+        val parked = rows().single()
+        assertEquals("AFTER_PARKING", parked.measure)
+        assertTrue(parked.spreadMv >= 100)
+        for (t in 1L..9L) sample(t, current = 60.0)
+        val load = rows().last()
+        assertEquals("LOAD", load.measure)
+        val cells = CellBlob.decodeCells(load.cells)
+        val center = cells.sorted()[cells.size / 2]
+        assertTrue(kotlin.math.abs(cells[40] - (center - 30)) <= 4)
+        assertTrue(load.spreadMv in 30..40)
+    }
+
     @Test fun `regeneration is no load`() = test {
         on()
         collector()
