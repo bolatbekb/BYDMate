@@ -31,7 +31,7 @@ android {
         // targetSdk 30+ would break listFiles() on /storage/emulated/0/energydata/
         targetSdk = 29
         versionCode = 5273  // fork: author's code * 10 + fork build, never below an official build
-        versionName = "4.5.0.3"  // fork: author's version + fork build number
+        versionName = "4.5.0.3-carhost"  // fork: author's version + fork build number (probe/car-host only)
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -180,6 +180,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.activity:activity-compose:1.9.3")
     implementation("androidx.navigation:navigation-compose:2.8.5")
+    implementation("androidx.car.app:app:1.4.0") // fork: car host probe (probe/car-host only)
     debugImplementation("androidx.compose.ui:ui-tooling")
 
     // Room
