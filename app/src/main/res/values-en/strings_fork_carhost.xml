@@ -9,7 +9,7 @@
     <string name="fork_carhost_st_none">Not connected</string>
     <string name="fork_carhost_st_connecting">Connecting…</string>
     <string name="fork_carhost_st_ok">Connected</string>
-    <string name="fork_carhost_st_failed">Refused</string>
+    <string name="fork_carhost_st_failed">Refused: %1$s</string>
     <string name="fork_carhost_st_off">Disconnected</string>
     <string name="fork_carhost_countdown">Open the navigator: %1$d</string>
     <string name="fork_carhost_guard">Navigator screen: %1$s</string>
@@ -23,4 +23,5 @@
     <string name="fork_carhost_disconnect">Disconnect</string>
     <string name="fork_carhost_route_hint">Address or place</string>
     <string name="fork_carhost_route">Route via Android Auto</string>
+    <string name="fork_carhost_st_failed_plain">Refused</string>
 </resources>

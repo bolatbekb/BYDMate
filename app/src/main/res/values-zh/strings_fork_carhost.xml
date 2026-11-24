@@ -9,7 +9,7 @@
     <string name="fork_carhost_st_none">未连接</string>
     <string name="fork_carhost_st_connecting">正在连接…</string>
     <string name="fork_carhost_st_ok">已连接</string>
-    <string name="fork_carhost_st_failed">被拒绝</string>
+    <string name="fork_carhost_st_failed">被拒绝：%1$s</string>
     <string name="fork_carhost_st_off">已断开</string>
     <string name="fork_carhost_countdown">请打开导航应用：%1$d</string>
     <string name="fork_carhost_guard">导航应用界面：%1$s</string>
@@ -23,4 +23,5 @@
     <string name="fork_carhost_disconnect">断开</string>
     <string name="fork_carhost_route_hint">地址或地点</string>
     <string name="fork_carhost_route">通过 Android Auto 导航</string>
+    <string name="fork_carhost_st_failed_plain">被拒绝</string>
 </resources>

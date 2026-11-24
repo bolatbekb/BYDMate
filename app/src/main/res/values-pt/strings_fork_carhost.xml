@@ -9,7 +9,7 @@
     <string name="fork_carhost_st_none">Não conectado</string>
     <string name="fork_carhost_st_connecting">Conectando…</string>
     <string name="fork_carhost_st_ok">Conectado</string>
-    <string name="fork_carhost_st_failed">Recusado</string>
+    <string name="fork_carhost_st_failed">Recusado: %1$s</string>
     <string name="fork_carhost_st_off">Desconectado</string>
     <string name="fork_carhost_countdown">Abra o navegador: %1$d</string>
     <string name="fork_carhost_guard">Tela do navegador: %1$s</string>
@@ -23,4 +23,5 @@
     <string name="fork_carhost_disconnect">Desconectar</string>
     <string name="fork_carhost_route_hint">Endereço ou local</string>
     <string name="fork_carhost_route">Rota via Android Auto</string>
+    <string name="fork_carhost_st_failed_plain">Recusado</string>
 </resources>

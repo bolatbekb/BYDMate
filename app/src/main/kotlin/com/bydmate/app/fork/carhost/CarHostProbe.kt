@@ -32,7 +32,19 @@ data class ProbeRow(
     val guard: GuardVerdict?,
     val lastTrip: String?,
     val countdown: Int?,
+    /** Why the navigator refused (masked, at most [FAIL_REASON_MAX] chars); null if not refused. */
+    val failReason: String? = null,
 )
+
+internal const val FAIL_REASON_MAX = 80
+
+/** The refusal reason out of a `carhost_refused` log line; null for any other line. */
+internal fun refusalReason(what: String, fields: List<Pair<String, String>>): String? {
+    if (what != "carhost_refused") return null
+    val v = fields.firstOrNull { it.first == "reason" }?.second
+        ?: fields.firstOrNull { it.first == "error" }?.second
+    return v?.take(FAIL_REASON_MAX)?.ifBlank { null }
+}
 
 /**
  * The car-connection provider is on only while some session runs and is not being stopped
@@ -114,7 +126,10 @@ object CarHostProbe {
             ctx = app,
             target = target,
             giveSurface = giveSurface,
-            log = { what, fields -> Trace.event(TraceArea.HUD, what, "pkg" to label, *fields.toTypedArray()) },
+            log = { what, fields ->
+                Trace.event(TraceArea.HUD, what, "pkg" to label, *fields.toTypedArray())
+                refusalReason(what, fields)?.let { r -> changeRow(target, session) { it.copy(failReason = r) } }
+            },
             onState = { state -> stateChanged(target, session, state) },
             onTrip = { trip -> changeRow(target, session) { it.copy(lastTrip = trip) } },
         )

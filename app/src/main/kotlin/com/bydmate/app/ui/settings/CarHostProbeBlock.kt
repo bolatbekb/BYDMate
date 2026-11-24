@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CardDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -20,6 +19,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bydmate.app.R
 import com.bydmate.app.fork.carhost.CarAppTarget
 import com.bydmate.app.fork.carhost.CarAppTargets
@@ -46,7 +46,7 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun CarHostProbeBlock() {
     val context = LocalContext.current
-    val rows by CarHostProbe.states.collectAsState()
+    val rows by CarHostProbe.states.collectAsStateWithLifecycle()
     var targets by remember { mutableStateOf<List<CarAppTarget>?>(null) }
     var notif by remember { mutableStateOf(CarNotifProbe.enabled) }
     LaunchedEffect(Unit) {
@@ -102,7 +102,7 @@ private fun CarHostTargetRow(target: CarAppTarget, row: ProbeRow?) {
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         Text(target.label, color = TextPrimary, fontSize = 15.sp, fontWeight = FontWeight.Medium)
-        Text(statusText(state), color = TextSecondary, fontSize = 13.sp)
+        Text(statusText(state, row?.failReason), color = TextSecondary, fontSize = 13.sp)
         row?.countdown?.let {
             Text(stringResource(R.string.fork_carhost_countdown, it), color = AccentOrange, fontSize = 13.sp)
         }
@@ -145,15 +145,18 @@ private fun CarHostTargetRow(target: CarAppTarget, row: ProbeRow?) {
 }
 
 @Composable
-private fun statusText(state: HostState?): String = stringResource(
+private fun statusText(state: HostState?, reason: String?): String {
+    if (state == HostState.FAILED && reason != null) return stringResource(R.string.fork_carhost_st_failed, reason)
+    return stringResource(
     when (state) {
         null -> R.string.fork_carhost_st_none
         HostState.IDLE, HostState.BINDING, HostState.HANDSHAKE, HostState.CREATING -> R.string.fork_carhost_st_connecting
         HostState.RUNNING -> R.string.fork_carhost_st_ok
-        HostState.FAILED -> R.string.fork_carhost_st_failed
+        HostState.FAILED -> R.string.fork_carhost_st_failed_plain
         HostState.DISCONNECTED -> R.string.fork_carhost_st_off
     }
-)
+    )
+}
 
 @Composable
 private fun guardText(g: GuardVerdict?): String = stringResource(

@@ -9,7 +9,7 @@
     <string name="fork_carhost_st_none">Не падключана</string>
     <string name="fork_carhost_st_connecting">Падключэнне…</string>
     <string name="fork_carhost_st_ok">Падключана</string>
-    <string name="fork_carhost_st_failed">Адмова</string>
+    <string name="fork_carhost_st_failed">Адмова: %1$s</string>
     <string name="fork_carhost_st_off">Адключана</string>
     <string name="fork_carhost_countdown">Адкрыйце навігатар: %1$d</string>
     <string name="fork_carhost_guard">Экран навігатара: %1$s</string>
@@ -23,4 +23,5 @@
     <string name="fork_carhost_disconnect">Адключыць</string>
     <string name="fork_carhost_route_hint">Адрас або месца</string>
     <string name="fork_carhost_route">Маршрут праз Android Auto</string>
+    <string name="fork_carhost_st_failed_plain">Адмова</string>
 </resources>

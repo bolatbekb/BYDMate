@@ -9,7 +9,7 @@
     <string name="fork_carhost_st_none">Nie połączono</string>
     <string name="fork_carhost_st_connecting">Łączenie…</string>
     <string name="fork_carhost_st_ok">Połączono</string>
-    <string name="fork_carhost_st_failed">Odmowa</string>
+    <string name="fork_carhost_st_failed">Odmowa: %1$s</string>
     <string name="fork_carhost_st_off">Rozłączono</string>
     <string name="fork_carhost_countdown">Otwórz nawigację: %1$d</string>
     <string name="fork_carhost_guard">Ekran nawigacji: %1$s</string>
@@ -23,4 +23,5 @@
     <string name="fork_carhost_disconnect">Rozłącz</string>
     <string name="fork_carhost_route_hint">Adres lub miejsce</string>
     <string name="fork_carhost_route">Trasa przez Android Auto</string>
+    <string name="fork_carhost_st_failed_plain">Odmowa</string>
 </resources>
