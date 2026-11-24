@@ -33,6 +33,7 @@ import com.bydmate.app.fork.cells.ui.CellCanvas
 import com.bydmate.app.fork.cells.ui.LocalCheckNarrow
 import com.bydmate.app.fork.cells.ui.TextRes
 import com.bydmate.app.fork.cells.ui.levelColor
+import com.bydmate.app.fork.cells.ui.normalTileColor
 import com.bydmate.app.fork.cells.ui.text
 import com.bydmate.app.fork.cells.ui.titleRes
 import com.bydmate.app.fork.cells.ui.tnum
@@ -43,14 +44,12 @@ import com.bydmate.app.ui.skin.RoundedCornerShape
 import com.bydmate.app.ui.skin.Text
 import com.bydmate.app.ui.theme.AccentBlue
 import com.bydmate.app.ui.theme.AccentOrange
-import com.bydmate.app.ui.theme.CardBorder
 import com.bydmate.app.ui.theme.SocRed
 import com.bydmate.app.ui.theme.TextMuted
 import com.bydmate.app.ui.theme.TextPrimary
 import com.bydmate.app.ui.theme.TextSecondary
 import kotlin.math.ceil
 
-private const val TILE_ALPHA = 0.55f
 private const val ROWS_WIDE = 4
 private const val ROWS_NARROW = 8
 private const val MAX_COLUMNS_WIDE = 50
@@ -185,7 +184,7 @@ private fun GridLegend(e: Evaluation) {
         )
         Spacer(Modifier.width(14.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            LegendItem(CardBorder.copy(alpha = TILE_ALPHA), stringResource(R.string.fork_cells_legend_normal))
+            LegendItem(normalTileColor(), stringResource(R.string.fork_cells_legend_normal))
             LegendItem(AccentOrange, stringResource(R.string.fork_cells_ruler_legend_notice))
             LegendItem(SocRed, stringResource(R.string.fork_cells_ruler_legend_strong))
         }

@@ -60,18 +60,18 @@ object CellCanvas {
     fun CellGrid(e: Evaluation, columns: Int, modifier: Modifier) {
         val measurer = rememberTextMeasurer(cacheSize = 0)
         val base = LocalTextStyle.current
-        val muted = TextMuted
+        val ink = normalTileInk()
         val dark = NavyDark
         val notice = AccentOrange
         val strong = SocRed
-        val tile = CardBorder.copy(alpha = TILE_ALPHA)
-        val labels = remember(e, measurer, base, muted, dark) {
+        val tile = normalTileColor()
+        val labels = remember(e, measurer, base, ink, dark) {
             val num = base.merge(TextStyle(fontSize = 10.sp)).withTnum()
             val dev = base.merge(TextStyle(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, color = dark)).withTnum()
             List(e.classes.size) { i ->
                 val off = e.classes[i] != CellClass.NORMAL
                 TileText(
-                    measurer.measure("${i + 1}", num.copy(color = if (off) dark else muted)),
+                    measurer.measure("${i + 1}", num.copy(color = if (off) dark else ink)),
                     if (off) measurer.measure(signedMv(e.deviationsMv[i]), dev) else null,
                 )
             }
@@ -103,7 +103,6 @@ private class TileText(val num: TextLayoutResult, val dev: TextLayoutResult?)
 
 private class HistoryInput(val points: List<SpreadPoint>, val selectedId: Long?, val dots: List<Color>, val hole: Color)
 
-private const val TILE_ALPHA = 0.55f
 private const val NORM_ALPHA = 0.7f
 private const val LINE_ALPHA = 0.6f
 private const val HISTORY_HEADROOM = 1.18
