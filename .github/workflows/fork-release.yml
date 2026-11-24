@@ -86,8 +86,15 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # A release-notes/<tag>.prerelease marker makes this a prerelease: GitHub keeps it off
+          # /releases/latest, so the in-app updater (UpdateChecker) does not offer it to everyone —
+          # it is installable only by downloading the APK by hand. No marker = normal latest release.
+          flag=""
+          if [ -f "release-notes/${GITHUB_REF_NAME}.prerelease" ]; then
+            flag="--prerelease"
+          fi
           gh release create "$GITHUB_REF_NAME" app/build/outputs/apk/release/*.apk \
-            --title "BYDMate ${GITHUB_REF_NAME#v} (fork)" --notes-file "release-notes/${GITHUB_REF_NAME}.md"
+            --title "BYDMate ${GITHUB_REF_NAME#v} (fork)" --notes-file "release-notes/${GITHUB_REF_NAME}.md" $flag
 
       - name: Clean up the key
         if: always()
