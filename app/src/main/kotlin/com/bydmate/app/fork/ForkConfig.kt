@@ -10,4 +10,11 @@ object ForkConfig {
 
     /** The author's donation prompt never pops up on its own; it stays reachable from Settings. */
     const val DONATION_PROMPT = false
+
+    /**
+     * Updates download silently in the background and install is offered only when parked. When
+     * true, the author's inline «download + install» dialog on app open is disabled (manual check
+     * in Settings stays); the fork's `ForkUpdateGate` drives the flow instead.
+     */
+    const val BACKGROUND_UPDATE = true
 }

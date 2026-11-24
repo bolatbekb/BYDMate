@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: background update, install offered only on P. Kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="fork_update_prompt_title">Atualização pronta</string>
+    <string name="fork_update_prompt_ready">A versão %1$s foi baixada e está pronta para instalar.</string>
+    <string name="fork_update_install_button">Instalar atualização %1$s</string>
+    <string name="fork_update_later_button">Mais tarde</string>
+    <string name="fork_update_notify_title">Atualização %1$s baixada</string>
+    <string name="fork_update_notify_text">Pode instalar quando estiver estacionado</string>
+</resources>

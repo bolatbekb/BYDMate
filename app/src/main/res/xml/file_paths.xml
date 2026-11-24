@@ -3,4 +3,6 @@
     <external-path name="downloads" path="Download/" />
     <!-- dumpFids() fallback target when the public Download is unavailable (W6-F4) -->
     <external-files-path name="fid_dumps_external" path="." />
+    <!-- fork: background update keeps the single ready APK in cache/update for install (ForkUpdateGate) -->
+    <cache-path name="update_apks" path="update/" />
 </paths>

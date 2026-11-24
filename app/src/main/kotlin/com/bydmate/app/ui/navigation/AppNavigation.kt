@@ -140,7 +140,9 @@ fun AppNavigation(
         }
     }
 
+    com.bydmate.app.fork.update.ForkUpdateGate() // fork: background download, install offered only on P
     LaunchedEffect(Unit) {
+        if (com.bydmate.app.fork.ForkConfig.BACKGROUND_UPDATE) return@LaunchedEffect // fork: ForkUpdateGate drives updates now
         if (!UpdateChecker.isAutoCheckEnabled(autoCheckContext)) return@LaunchedEffect
         try {
             val info = updateChecker.checkForUpdate(autoCheckContext, forceCheck = false)
