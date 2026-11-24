@@ -102,6 +102,7 @@ class MediaSessionListenerService : NotificationListenerService() {
     // views (waits up to 3 s) - it runs on the lane thread, never here.
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         runCatching {
+            com.bydmate.app.fork.carhost.CarNotifProbe.onPosted(sbn) // fork: car host probe, notifications (probe/car-host only)
             if (sbn.packageName !in NavPackages.GUIDANCE_SOURCES) return
             val notification = sbn.notification
             val pkg = sbn.packageName
