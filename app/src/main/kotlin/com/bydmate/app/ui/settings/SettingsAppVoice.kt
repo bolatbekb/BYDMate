@@ -147,6 +147,15 @@ internal fun AppSection(state: SettingsUiState, viewModel: SettingsViewModel) {
                 checked = state.autoCheckUpdates,
                 onCheckedChange = { viewModel.setAutoCheckUpdates(it) },
             )
+            // fork: opt-in to test (nightly/prerelease) builds; off by default.
+            SettingDivider()
+            SettingToggleRow(
+                title = stringResource(R.string.fork_update_nightly_toggle_label),
+                traceId = "update_nightly",
+                description = stringResource(R.string.fork_update_nightly_toggle_description),
+                checked = state.nightlyUpdates,
+                onCheckedChange = { viewModel.setNightlyUpdates(it) },
+            )
             SettingActionRow(
                 title = stringResource(R.string.settings_update_check_button),
                 description = "BYDMate v${state.appVersion}",

@@ -171,6 +171,7 @@ data class SettingsUiState(
     val aliceEnabled: Boolean = false,
     val aliceSaveStatus: String? = null,
     val autoCheckUpdates: Boolean = true,
+    val nightlyUpdates: Boolean = false, // fork: opt-in to test (nightly/prerelease) builds
     val abrpTelemetryEnabled: Boolean = false,
     val abrpApiKey: String = "",
     val abrpUserToken: String = "",
@@ -395,7 +396,8 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
 
     private val _uiState = MutableStateFlow(SettingsUiState(
         appVersion = getVersion(),
-        autoCheckUpdates = UpdateChecker.isAutoCheckEnabled(appContext)
+        autoCheckUpdates = UpdateChecker.isAutoCheckEnabled(appContext),
+        nightlyUpdates = UpdateChecker.isNightlyEnabled(appContext) // fork: nightly opt-in
     ))
     val uiState: StateFlow<SettingsUiState> = _uiState.asStateFlow()
 
@@ -1710,6 +1712,12 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
     fun setAutoCheckUpdates(enabled: Boolean) {
         UpdateChecker.setAutoCheckEnabled(appContext, enabled)
         _uiState.update { it.copy(autoCheckUpdates = enabled) }
+    }
+
+    // fork: nightly opt-in — the updater also considers prerelease builds when on.
+    fun setNightlyUpdates(enabled: Boolean) {
+        UpdateChecker.setNightlyEnabled(appContext, enabled)
+        _uiState.update { it.copy(nightlyUpdates = enabled) }
     }
 
     /** Check for app updates on GitHub. */

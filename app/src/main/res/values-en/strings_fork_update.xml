@@ -7,4 +7,6 @@
     <string name="fork_update_later_button">Later</string>
     <string name="fork_update_notify_title">Update %1$s downloaded</string>
     <string name="fork_update_notify_text">You can install it while parked</string>
+    <string name="fork_update_nightly_toggle_label">Install test (nightly) builds</string>
+    <string name="fork_update_nightly_toggle_description">These are test builds (prereleases) and may be unstable. Off by default.</string>
 </resources>
