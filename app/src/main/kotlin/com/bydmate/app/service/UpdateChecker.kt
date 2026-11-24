@@ -9,12 +9,13 @@ import android.net.Uri
 import android.os.Environment
 import androidx.core.content.FileProvider
 import com.bydmate.app.R
+import com.bydmate.app.fork.update.ReleasePicker // fork: nightly opt-in picks which release to offer
 import com.bydmate.app.util.AppStrings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
-import org.json.JSONObject
+// fork: import org.json.JSONObject removed — JSON parsing/selection moved to fork/update/ReleasePicker
 import java.io.File
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,10 +27,12 @@ class UpdateChecker @Inject constructor(
 ) {
     companion object {
         // fork: updates come from the fork's releases, not the author's (different signing key).
-        private const val GITHUB_API = "https://api.github.com/repos/${com.bydmate.app.fork.ForkConfig.UPDATE_REPO}/releases/latest"
+        private const val GITHUB_RELEASES = "https://api.github.com/repos/${com.bydmate.app.fork.ForkConfig.UPDATE_REPO}/releases"
+        private const val GITHUB_API = "$GITHUB_RELEASES/latest" // fork: stable path (GitHub excludes prereleases/drafts)
         private const val PREFS_NAME = "update_prefs"
         private const val KEY_LAST_CHECK = "last_check"
         private const val KEY_AUTO_CHECK = "auto_check_enabled"
+        private const val KEY_NIGHTLY = "nightly_enabled" // fork: opt-in to test (prerelease) builds
         private const val KEY_LAST_SEEN_VERSION = "last_seen_version"
         private const val CHECK_INTERVAL_MS = 10 * 60 * 1000L // 10 minutes (protects only against repeated launches within one session)
 
@@ -40,6 +43,16 @@ class UpdateChecker @Inject constructor(
         fun setAutoCheckEnabled(context: Context, enabled: Boolean) {
             context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
                 .edit().putBoolean(KEY_AUTO_CHECK, enabled).apply()
+        }
+
+        // fork: nightly opt-in — when on, the updater also considers prerelease builds. Default off.
+        fun isNightlyEnabled(context: Context): Boolean =
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .getBoolean(KEY_NIGHTLY, false)
+
+        fun setNightlyEnabled(context: Context, enabled: Boolean) {
+            context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+                .edit().putBoolean(KEY_NIGHTLY, enabled).apply()
         }
 
         fun getLastSeenVersion(context: Context): String? =
@@ -67,8 +80,11 @@ class UpdateChecker @Inject constructor(
 
         prefs.edit().putLong(KEY_LAST_CHECK, now).apply()
 
+        // fork: the nightly opt-in picks the endpoint — the full /releases list (prereleases
+        // included) when on, the single /releases/latest (stable only) when off.
+        val nightly = isNightlyEnabled(context)
         val request = Request.Builder()
-            .url(GITHUB_API)
+            .url(if (nightly) GITHUB_RELEASES else GITHUB_API) // fork: endpoint by the nightly pref
             .header("Accept", "application/vnd.github+json")
             .header("User-Agent", "BYDMate-UpdateCheck")
             .build()
@@ -79,33 +95,22 @@ class UpdateChecker @Inject constructor(
             response.body?.string() ?: throw Exception("Пустой ответ от GitHub")
         }
 
-        val json = JSONObject(body)
-        val tagName = json.optString("tag_name", "").removePrefix("v")
+        // fork: parsing/selection lives in ReleasePicker; list path returns null (no installable
+        // release) → treated as "no update" below, single-latest path parses as the author did.
+        val picked = (if (nightly) ReleasePicker.fromList(body) else ReleasePicker.fromLatest(body))
+            ?: return@withContext null
         val currentVersion = getAppVersion(context)
 
-        if (tagName.isEmpty()) throw Exception("Нет tag_name в ответе GitHub")
-        if (tagName == currentVersion || !isNewer(tagName, currentVersion)) {
+        // fork: up-to-date check now reads the picked release (tag already stripped of "v").
+        if (picked.version == currentVersion || !isNewer(picked.version, currentVersion)) {
             return@withContext null // genuinely up to date
         }
 
-        val assets = json.optJSONArray("assets")
-            ?: throw Exception("Нет assets в релизе $tagName")
-        var apkUrl: String? = null
-        for (i in 0 until assets.length()) {
-            val asset = assets.getJSONObject(i)
-            val name = asset.optString("name", "")
-            if (name.endsWith(".apk")) {
-                apkUrl = asset.optString("browser_download_url")
-                break
-            }
-        }
-
-        if (apkUrl == null) throw Exception("Нет APK в релизе $tagName")
-
+        // fork: the author's assets[] → first-.apk scan moved into ReleasePicker.
         UpdateInfo(
-            version = tagName,
-            downloadUrl = apkUrl,
-            releaseNotes = json.optString("body", "")
+            version = picked.version, // fork: fields from the picked release
+            downloadUrl = picked.downloadUrl,
+            releaseNotes = picked.releaseNotes
         )
     }
 

@@ -7,4 +7,6 @@
     <string name="fork_update_later_button">Później</string>
     <string name="fork_update_notify_title">Pobrano aktualizację %1$s</string>
     <string name="fork_update_notify_text">Można zainstalować na postoju</string>
+    <string name="fork_update_nightly_toggle_label">Instaluj kompilacje testowe (nightly)</string>
+    <string name="fork_update_nightly_toggle_description">To kompilacje testowe (przedpremierowe), mogą być niestabilne. Domyślnie wyłączone.</string>
 </resources>

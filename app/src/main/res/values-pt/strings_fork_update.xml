@@ -7,4 +7,6 @@
     <string name="fork_update_later_button">Mais tarde</string>
     <string name="fork_update_notify_title">Atualização %1$s baixada</string>
     <string name="fork_update_notify_text">Pode instalar quando estiver estacionado</string>
+    <string name="fork_update_nightly_toggle_label">Instalar versões de teste (nightly)</string>
+    <string name="fork_update_nightly_toggle_description">São versões de teste (pré-lançamento) e podem ser instáveis. Desativado por padrão.</string>
 </resources>

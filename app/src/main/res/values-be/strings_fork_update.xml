@@ -7,4 +7,6 @@
     <string name="fork_update_later_button">Пазней</string>
     <string name="fork_update_notify_title">Абнаўленне %1$s спампавана</string>
     <string name="fork_update_notify_text">Усталяваць можна на стаянцы</string>
+    <string name="fork_update_nightly_toggle_label">Усталёўваць тэставыя (nightly) зборкі</string>
+    <string name="fork_update_nightly_toggle_description">Гэта тэставыя зборкі (prerelease), могуць працаваць нестабільна. Па змаўчанні выключана.</string>
 </resources>

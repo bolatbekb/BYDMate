@@ -7,4 +7,6 @@
     <string name="fork_update_later_button">稍后</string>
     <string name="fork_update_notify_title">已下载更新 %1$s</string>
     <string name="fork_update_notify_text">可在停车时安装</string>
+    <string name="fork_update_nightly_toggle_label">安装测试版 (nightly) 更新</string>
+    <string name="fork_update_nightly_toggle_description">这些是测试版 (预发布) 更新，可能不稳定。默认关闭。</string>
 </resources>
