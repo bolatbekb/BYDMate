@@ -8,6 +8,7 @@ import com.bydmate.app.data.local.entity.TariffPeriodEntity
 import com.bydmate.app.data.local.entity.TripEntity
 import com.bydmate.app.data.local.entity.TariffPeriodEntity.Companion.TRIP_RULE_CHARGES
 import com.bydmate.app.data.repository.SettingsRepository
+import com.bydmate.app.fork.hybrid.HybridEnergy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -152,7 +153,7 @@ class CostCalculator @Inject constructor(
         var updated = 0
         for (trip in tripDao.getWithEnergyInRange(fromTs, toTs)) {
             val period = schedule.periodAt(trip.startTs) ?: continue
-            val electricityCost = trip.kwhConsumed?.let { it * tripRate(period, trip.startTs, timeline) }
+            val electricityCost = trip.kwhConsumed?.let { HybridEnergy.billableKwh(it) * tripRate(period, trip.startTs, timeline) } // fork: a pack gain costs 0
             // DM-i: the fuel part follows the litre price of the trip's own period.
             val fuelCost = fuelCost(trip, period.fuelPricePerLiter)
             val cost = if (fuelCost == null) electricityCost else (electricityCost ?: 0.0) + fuelCost
@@ -190,7 +191,7 @@ class CostCalculator @Inject constructor(
             val period = schedule.periodAt(trip.startTs)
             // A trip priced before its litres arrived keeps its cost as the electricity part.
             val electricityCost = trip.cost
-                ?: if (kwh != null && period != null) kwh * tripRate(period, trip.startTs, timeline) else null
+                ?: if (kwh != null && period != null) HybridEnergy.billableKwh(kwh) * tripRate(period, trip.startTs, timeline) else null // fork: a pack gain costs 0
             val fuelCost = fuelCost(trip, period?.fuelPricePerLiter)
             when {
                 fuelCost != null -> tripDao.update(trip.copy(cost = (electricityCost ?: 0.0) + fuelCost, fuelCost = fuelCost))

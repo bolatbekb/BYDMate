@@ -1,6 +1,7 @@
 package com.bydmate.app.data.trips
 
 import com.bydmate.app.data.local.dao.TripCounterStats
+import com.bydmate.app.fork.hybrid.HybridEnergy
 
 /** One resettable trip counter's persisted anchor: the reset moment plus the live
  *  session's progress captured at that moment, so a mid-drive reset starts from ~zero
@@ -96,7 +97,7 @@ object TripCounterMath {
             kwh = (stats.totalKwh - kwhSub).coerceAtLeast(0.0) + kwhLive,
             drivingKwh = (stats.drivingKwh - kwhSub).coerceAtLeast(0.0) + kwhLive,
             idleKwh = stats.idleKwh,
-            cost = (stats.totalCost - kwhSub * tariff).coerceAtLeast(0.0) + kwhLive * tariff,
+            cost = (stats.totalCost - HybridEnergy.billableKwh(kwhSub) * tariff).coerceAtLeast(0.0) + kwhLive * tariff, // fork: a gain trip cut by a reset is no refund
             tripCount = if (reset.excludeStraddling)
                 (stats.tripCount - stats.straddlingTripCount).coerceAtLeast(0)
             else stats.tripCount,

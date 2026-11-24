@@ -9,6 +9,7 @@ import com.bydmate.app.data.local.entity.LastStateEntity
 import com.bydmate.app.data.local.entity.TripEntity
 import com.bydmate.app.data.nativestack.VehicleKind
 import com.bydmate.app.data.remote.DiParsData
+import com.bydmate.app.fork.hybrid.HybridEnergy
 import android.util.Log
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -133,6 +134,7 @@ class TripRecorder @Inject @Suppress("LongParameterList") constructor( // inject
                 Log.w(TAG, "trip kwh implausible: elec=$startElec/$endElec delta=$elecDelta " +
                     "soc=$startSoc->$endSoc -> SOC estimate")
             }
+            if (kind() == VehicleKind.HYBRID) HybridEnergy.plausibleGain(elecDelta, startSoc, endSoc, cap)?.let { return it } // fork: hybrid pack gain keeps its minus
         }
         if (kind() == VehicleKind.HYBRID) return null
         return TripEnergySanity.socEstimate(startSoc, endSoc, cap)
