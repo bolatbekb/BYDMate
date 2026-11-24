@@ -20,7 +20,9 @@ import com.bydmate.app.fork.alerts.center.AlertSettings
 import com.bydmate.app.fork.alerts.model.AlertBlock
 import com.bydmate.app.fork.alerts.model.AlertSourceId
 import com.bydmate.app.fork.alerts.model.Severity
+import com.bydmate.app.fork.alerts.ui.ActiveAlerts
 import com.bydmate.app.fork.alerts.ui.AlertsSettingsViewModel
+import com.bydmate.app.fork.alerts.ui.AlertsViewModel
 import com.bydmate.app.fork.alerts.ui.blockLabel
 import com.bydmate.app.fork.alerts.ui.severityLabel
 import com.bydmate.app.fork.alerts.ui.sourceTitle
@@ -36,9 +38,14 @@ internal val AlertsSectionIcon: ImageVector get() = Icons.Outlined.Notifications
  * minimum level (send from this level up). Storage carries its free-space threshold. fork-local.
  */
 @Composable
-internal fun AlertsSection(vm: AlertsSettingsViewModel = hiltViewModel()) {
+internal fun AlertsSection(
+    vm: AlertsSettingsViewModel = hiltViewModel(),
+    alertsVm: AlertsViewModel = hiltViewModel(),
+) {
     val config by vm.config.collectAsStateWithLifecycle()
+    val active by alertsVm.active.collectAsStateWithLifecycle()
     SectionHeader(text = stringResource(R.string.fork_alerts_settings_title))
+    ActiveAlerts(active, nowMs = System.currentTimeMillis(), modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp))
     SettingHint(text = stringResource(R.string.fork_alerts_settings_hint))
     AlertBlock.entries.forEach { block ->
         val ids = AlertSourceId.entries.filter { it.block == block }
