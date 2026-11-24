@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork: problem-alerts strings, stage 1 -->
+<resources>
+    <string name="fork_alerts_settings_title">预警</string>
+    <string name="fork_alerts_settings_hint">选择需要提醒的内容。每个来源可开关，并设置最低级别（从该级别起发送）。</string>
+
+    <string name="fork_alerts_block_storage">存储</string>
+    <string name="fork_alerts_block_battery">电池</string>
+    <string name="fork_alerts_block_drive">驱动与冷却</string>
+    <string name="fork_alerts_block_tyres">轮胎</string>
+    <string name="fork_alerts_block_electrical">电气</string>
+    <string name="fork_alerts_block_diagnostics">诊断</string>
+
+    <string name="fork_alerts_src_storage">存储空间</string>
+    <string name="fork_alerts_src_battery_temp">电池温度</string>
+    <string name="fork_alerts_src_cell_imbalance">单体不均衡</string>
+    <string name="fork_alerts_src_insulation">绝缘电阻</string>
+    <string name="fork_alerts_src_coolant">冷却液温度</string>
+    <string name="fork_alerts_src_motor">电机和逆变器温度</string>
+    <string name="fork_alerts_src_tyre_pressure">胎压</string>
+    <string name="fork_alerts_src_tyre_temp">轮胎温度</string>
+    <string name="fork_alerts_src_volt12">12V 车载电网</string>
+
+    <string name="fork_alerts_sev_critical">严重</string>
+    <string name="fork_alerts_sev_warning">警告</string>
+    <string name="fork_alerts_sev_info">提示</string>
+
+    <string name="fork_alerts_min_severity">最低级别</string>
+    <string name="fork_alerts_storage_threshold">剩余空间阈值</string>
+    <string name="fork_alerts_percent">%1$d %%</string>
+
+    <string name="fork_alerts_list_title">预警</string>
+    <string name="fork_alerts_list_empty">当前没有预警</string>
+    <string name="fork_alerts_close">关闭</string>
+    <string name="fork_alerts_entry_button">预警</string>
+    <string name="fork_alerts_entry_none">没有活动预警</string>
+
+    <string name="fork_alerts_value_storage">剩余 %1$d %%（%2$d GB，共 %3$d GB）</string>
+    <string name="fork_alerts_value_volt">%1$s V</string>
+    <string name="fork_alerts_value_celsius">%1$d °C</string>
+    <string name="fork_alerts_value_kpa">%1$d kPa</string>
+    <string name="fork_alerts_value_kohm">%1$d kΩ</string>
+    <string name="fork_alerts_value_wheel">%1$s: %2$s</string>
+
+    <string name="fork_alerts_when_now">刚刚</string>
+    <string name="fork_alerts_when_min">%1$d 分钟前</string>
+    <string name="fork_alerts_when_hour">%1$d 小时前</string>
+    <string name="fork_alerts_when_day">%1$d 天前</string>
+</resources>

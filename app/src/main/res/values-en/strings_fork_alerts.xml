@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork: problem-alerts strings, stage 1 -->
+<resources>
+    <string name="fork_alerts_settings_title">Alerts</string>
+    <string name="fork_alerts_settings_hint">Choose what to be warned about. For each source: on/off and the minimum level (send from it up).</string>
+
+    <string name="fork_alerts_block_storage">Storage</string>
+    <string name="fork_alerts_block_battery">Battery</string>
+    <string name="fork_alerts_block_drive">Drive and cooling</string>
+    <string name="fork_alerts_block_tyres">Tyres</string>
+    <string name="fork_alerts_block_electrical">Electrical</string>
+    <string name="fork_alerts_block_diagnostics">Diagnostics</string>
+
+    <string name="fork_alerts_src_storage">Storage space</string>
+    <string name="fork_alerts_src_battery_temp">Battery temperature</string>
+    <string name="fork_alerts_src_cell_imbalance">Cell imbalance</string>
+    <string name="fork_alerts_src_insulation">Insulation resistance</string>
+    <string name="fork_alerts_src_coolant">Coolant temperature</string>
+    <string name="fork_alerts_src_motor">Motor and inverter temperature</string>
+    <string name="fork_alerts_src_tyre_pressure">Tyre pressure</string>
+    <string name="fork_alerts_src_tyre_temp">Tyre temperature</string>
+    <string name="fork_alerts_src_volt12">12 V board net</string>
+
+    <string name="fork_alerts_sev_critical">Critical</string>
+    <string name="fork_alerts_sev_warning">Warning</string>
+    <string name="fork_alerts_sev_info">For information</string>
+
+    <string name="fork_alerts_min_severity">Minimum level</string>
+    <string name="fork_alerts_storage_threshold">Free-space threshold</string>
+    <string name="fork_alerts_percent">%1$d %%</string>
+
+    <string name="fork_alerts_list_title">Alerts</string>
+    <string name="fork_alerts_list_empty">No alerts right now</string>
+    <string name="fork_alerts_close">Close</string>
+    <string name="fork_alerts_entry_button">Alerts</string>
+    <string name="fork_alerts_entry_none">no active alerts</string>
+
+    <string name="fork_alerts_value_storage">%1$d %% left (%2$d GB of %3$d GB)</string>
+    <string name="fork_alerts_value_volt">%1$s V</string>
+    <string name="fork_alerts_value_celsius">%1$d °C</string>
+    <string name="fork_alerts_value_kpa">%1$d kPa</string>
+    <string name="fork_alerts_value_kohm">%1$d kΩ</string>
+    <string name="fork_alerts_value_wheel">%1$s: %2$s</string>
+
+    <string name="fork_alerts_when_now">just now</string>
+    <string name="fork_alerts_when_min">%1$d min ago</string>
+    <string name="fork_alerts_when_hour">%1$d h ago</string>
+    <string name="fork_alerts_when_day">%1$d d ago</string>
+</resources>

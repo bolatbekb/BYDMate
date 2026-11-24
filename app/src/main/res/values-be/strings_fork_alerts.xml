@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork: problem-alerts strings, stage 1 -->
+<resources>
+    <string name="fork_alerts_settings_title">Папярэджанні</string>
+    <string name="fork_alerts_settings_hint">Выберыце, пра што папярэджваць. Для кожнай крыніцы — уключэнне і мінімальная важнасць (слаць ад яе і вышэй).</string>
+
+    <string name="fork_alerts_block_storage">Сховішча</string>
+    <string name="fork_alerts_block_battery">Батарэя</string>
+    <string name="fork_alerts_block_drive">Прывод і ахаладжэнне</string>
+    <string name="fork_alerts_block_tyres">Шыны</string>
+    <string name="fork_alerts_block_electrical">Электрыка</string>
+    <string name="fork_alerts_block_diagnostics">Дыягностыка</string>
+
+    <string name="fork_alerts_src_storage">Месца на носьбітах</string>
+    <string name="fork_alerts_src_battery_temp">Тэмпература батарэі</string>
+    <string name="fork_alerts_src_cell_imbalance">Разбаланс ячэек</string>
+    <string name="fork_alerts_src_insulation">Супраціў ізаляцыі</string>
+    <string name="fork_alerts_src_coolant">Тэмпература ахаладжальнай вадкасці</string>
+    <string name="fork_alerts_src_motor">Тэмпература матораў і інвертараў</string>
+    <string name="fork_alerts_src_tyre_pressure">Ціск у шынах</string>
+    <string name="fork_alerts_src_tyre_temp">Тэмпература шын</string>
+    <string name="fork_alerts_src_volt12">Бартавая сетка 12 В</string>
+
+    <string name="fork_alerts_sev_critical">Крытычна</string>
+    <string name="fork_alerts_sev_warning">Папярэджанне</string>
+    <string name="fork_alerts_sev_info">Да ведама</string>
+
+    <string name="fork_alerts_min_severity">Мінімальная важнасць</string>
+    <string name="fork_alerts_storage_threshold">Парог вольнага месца</string>
+    <string name="fork_alerts_percent">%1$d %%</string>
+
+    <string name="fork_alerts_list_title">Папярэджанні</string>
+    <string name="fork_alerts_list_empty">Зараз папярэджанняў няма</string>
+    <string name="fork_alerts_close">Закрыць</string>
+    <string name="fork_alerts_entry_button">Папярэджанні</string>
+    <string name="fork_alerts_entry_none">няма актыўных папярэджанняў</string>
+
+    <string name="fork_alerts_value_storage">засталося %1$d %% (%2$d ГБ з %3$d ГБ)</string>
+    <string name="fork_alerts_value_volt">%1$s В</string>
+    <string name="fork_alerts_value_celsius">%1$d °C</string>
+    <string name="fork_alerts_value_kpa">%1$d кПа</string>
+    <string name="fork_alerts_value_kohm">%1$d кОм</string>
+    <string name="fork_alerts_value_wheel">%1$s: %2$s</string>
+
+    <string name="fork_alerts_when_now">толькі што</string>
+    <string name="fork_alerts_when_min">%1$d хв таму</string>
+    <string name="fork_alerts_when_hour">%1$d гадз таму</string>
+    <string name="fork_alerts_when_day">%1$d дзён таму</string>
+</resources>
