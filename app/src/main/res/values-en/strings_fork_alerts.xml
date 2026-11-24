@@ -29,11 +29,7 @@
     <string name="fork_alerts_storage_threshold">Free-space threshold</string>
     <string name="fork_alerts_percent">%1$d %%</string>
 
-    <string name="fork_alerts_list_title">Alerts</string>
     <string name="fork_alerts_list_empty">No alerts right now</string>
-    <string name="fork_alerts_close">Close</string>
-    <string name="fork_alerts_entry_button">Alerts</string>
-    <string name="fork_alerts_entry_none">no active alerts</string>
 
     <string name="fork_alerts_value_storage">%1$d %% left (%2$d GB of %3$d GB)</string>
     <string name="fork_alerts_value_volt">%1$s V</string>

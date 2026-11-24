@@ -29,11 +29,7 @@
     <string name="fork_alerts_storage_threshold">Порог свободного места</string>
     <string name="fork_alerts_percent">%1$d %%</string>
 
-    <string name="fork_alerts_list_title">Предупреждения</string>
     <string name="fork_alerts_list_empty">Сейчас предупреждений нет</string>
-    <string name="fork_alerts_close">Закрыть</string>
-    <string name="fork_alerts_entry_button">Предупреждения</string>
-    <string name="fork_alerts_entry_none">нет активных предупреждений</string>
 
     <string name="fork_alerts_value_storage">остаток %1$d %% (%2$d ГБ из %3$d ГБ)</string>
     <string name="fork_alerts_value_volt">%1$s В</string>
