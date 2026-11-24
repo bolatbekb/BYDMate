@@ -7,7 +7,20 @@ import android.content.pm.PackageManager
 import androidx.annotation.VisibleForTesting
 import com.bydmate.app.diagnostics.Trace
 import com.bydmate.app.diagnostics.TraceArea
+import com.bydmate.app.data.autoservice.AdbOnDeviceClient
 import com.bydmate.app.fork.naviprobe.AsciiText
+import dagger.hilt.EntryPoint
+import dagger.hilt.InstallIn
+import dagger.hilt.android.EntryPointAccessors
+import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.launch
+import kotlin.coroutines.coroutineContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -40,6 +53,10 @@ internal fun providerShouldBeEnabled(states: Map<String, HostState>, stopping: S
  * [MAX_SESSION_MS] and leaves the map once it is unbound.
  */
 object CarHostProbe {
+    const val COUNTDOWN_S = 10
+    private val SNAPSHOT_AT_S = listOf(3, 10, 30)
+    private const val AFTER_STOP_S = 3
+
     private val rows = MutableStateFlow<Map<String, ProbeRow>>(emptyMap())
     val states: StateFlow<Map<String, ProbeRow>> = rows.asStateFlow()
 
@@ -48,6 +65,17 @@ object CarHostProbe {
     @Volatile private var connectedForTest: Boolean? = null
     private val stopping = HashSet<String>()
     private var providerOn = false
+
+    // UI guard: one job per package (countdown, snapshots); a stop cancels it.
+    private val guardScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val guards = HashMap<String, Job>()
+    private var guardRuns = 0
+
+    @EntryPoint
+    @InstallIn(SingletonComponent::class)
+    interface GuardDeps {
+        fun adb(): AdbOnDeviceClient
+    }
 
     val anyConnected: Boolean
         @Synchronized get() = connectedForTest ?: wanted()
@@ -77,6 +105,7 @@ object CarHostProbe {
     fun connect(ctx: Context, target: CarAppTarget, giveSurface: Boolean) {
         val app = ctx.applicationContext ?: ctx
         appCtx = app
+        guards.remove(target.pkg)?.cancel()
         sessions.remove(target.pkg)?.stop()
         stopping.remove(target.pkg)
         val label = AsciiText.encode(target.label) ?: "?"
@@ -92,11 +121,80 @@ object CarHostProbe {
         sessions[target.pkg] = session
         rows.update { it + (target.pkg to ProbeRow(target, HostState.IDLE, null, null, null)) }
         syncProvider()
-        session.connect()
+        val runner = try {
+            UiGuardRunner(EntryPointAccessors.fromApplication(app, GuardDeps::class.java).adb())
+        } catch (e: RuntimeException) {
+            null
+        }
+        val n = ++guardRuns
+        guards[target.pkg] = guardScope.launch { guardFlow(target, session, runner, n) }
+    }
+
+    /** Countdown, S0, connect, S1 at 3/10/30 s; BLOCKED stops the session and takes S2. */
+    private suspend fun guardFlow(target: CarAppTarget, session: CarHostSession, runner: UiGuardRunner?, n: Int) {
+        val me = coroutineContext[Job]
+        val pkg = target.pkg
+        for (left in COUNTDOWN_S downTo 1) {
+            changeRow(target, session) { it.copy(countdown = left) }
+            delay(1000)
+        }
+        changeRow(target, session) { it.copy(countdown = null) }
+        val before = runner?.snapshot("before", n)
+        coroutineContext.ensureActive()
+        val started = synchronized(this) {
+            if (guards[pkg] !== me || sessions[pkg] !== session) false else { session.connect(); true }
+        }
+        if (!started || before == null) return
+        var t = 0
+        for (at in SNAPSHOT_AT_S) {
+            delay((at - t) * 1000L)
+            t = at
+            val after = runner.snapshot("${at}s", n)
+            coroutineContext.ensureActive()
+            val (verdict, reason) = UiGuard.verdict(before, after, pkg)
+            traceGuard("${at}s", n, verdict, reason, before, after, null)
+            changeRow(target, session) { it.copy(guard = worse(it.guard, verdict)) }
+            if (verdict == GuardVerdict.BLOCKED) {
+                synchronized(this) {
+                    if (guards[pkg] !== me || sessions[pkg] !== session) return
+                    stopForGuard(pkg)
+                }
+                delay(AFTER_STOP_S * 1000L)
+                val s2 = runner.snapshot("after", n)
+                coroutineContext.ensureActive()
+                val restored = UiGuard.verdict(before, s2, pkg).first.let {
+                    it == GuardVerdict.OK || it == GuardVerdict.CHANGED
+                }
+                traceGuard("after", n, verdict, reason, before, s2, restored)
+                return
+            }
+        }
+    }
+
+    private fun worse(old: GuardVerdict?, new: GuardVerdict): GuardVerdict =
+        if (old == null || new.ordinal > old.ordinal && old != GuardVerdict.BLOCKED) new else old
+
+    private fun traceGuard(
+        tag: String, n: Int, v: GuardVerdict, reason: String,
+        before: UiSnapshot, after: UiSnapshot, restored: Boolean?,
+    ) {
+        val f = mutableListOf<Pair<String, Any?>>(
+            "n" to n, "tag" to tag, "verdict" to v.name, "reason" to reason,
+            "nodes_before" to before.nodes, "nodes_after" to after.nodes,
+        )
+        if (restored != null) f += "restored" to if (restored) "yes" else "no"
+        Trace.event(TraceArea.HUD, "carhost_guard", *f.toTypedArray())
     }
 
     @Synchronized
     fun stop(pkg: String) {
+        guards.remove(pkg)?.cancel()
+        stopForGuard(pkg)
+    }
+
+    /** Stop that leaves the running guard job alone (it is the one stopping, then takes S2). */
+    @Synchronized
+    private fun stopForGuard(pkg: String) {
         val s = sessions[pkg] ?: return
         stopping.add(pkg)
         syncProvider()
@@ -116,6 +214,8 @@ object CarHostProbe {
     fun stopAll() {
         // Marked first: a session that is still RUNNING until its thread gets the stop must not
         // turn the provider back on.
+        guards.values.forEach { it.cancel() }
+        guards.clear()
         stopping.addAll(rows.value.keys)
         sessions.values.forEach { it.stop() }
         providerOn = false
@@ -161,6 +261,8 @@ object CarHostProbe {
     @VisibleForTesting
     @Synchronized
     internal fun clearForTest() {
+        guards.values.forEach { it.cancel() }
+        guards.clear()
         sessions.clear()
         stopping.clear()
         rows.value = emptyMap()
