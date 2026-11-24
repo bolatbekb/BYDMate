@@ -153,4 +153,79 @@ class HostFlowTest {
         assertEquals(emptyList<HostAction>(), f.on(HostEvent.Created))
         assertEquals(HostState.IDLE, f.state)
     }
+
+    private fun disc(reason: String) = listOf(
+        HostAction.Log("carhost_disconnected", listOf("reason" to reason)),
+        HostAction.Unbind,
+    )
+
+    private fun refused(call: String, error: String) = listOf(
+        HostAction.Log("carhost_refused", listOf("call" to call, "error" to error)),
+        HostAction.Unbind,
+    )
+
+    @Test
+    fun `stop in idle`() {
+        val f = HostFlow(6)
+        assertEquals(disc("stop"), f.on(HostEvent.StopAsked))
+        assertEquals(HostState.DISCONNECTED, f.state)
+    }
+
+    @Test
+    fun `cap in idle`() {
+        val f = HostFlow(6)
+        assertEquals(disc("cap"), f.on(HostEvent.CapReached))
+        assertEquals(HostState.DISCONNECTED, f.state)
+    }
+
+    @Test
+    fun `call failed in idle`() {
+        val f = HostFlow(6)
+        assertEquals(refused("bind", "false"), f.on(HostEvent.CallFailed("bind", "false")))
+        assertEquals(HostState.FAILED, f.state)
+    }
+
+    @Test
+    fun `duplicate created is ignored`() {
+        val f = HostFlow(6)
+        f.on(HostEvent.Bound)
+        f.on(HostEvent.AppInfoGot(4, 7))
+        f.on(HostEvent.HandshakeDone)
+        assertEquals(listOf<HostAction>(HostAction.StartResume), f.on(HostEvent.Created))
+        assertEquals(emptyList<HostAction>(), f.on(HostEvent.Created))
+        assertEquals(HostState.CREATING, f.state)
+    }
+
+    @Test
+    fun `started before created is ignored`() {
+        val f = HostFlow(6)
+        f.on(HostEvent.Bound)
+        f.on(HostEvent.AppInfoGot(4, 7))
+        f.on(HostEvent.HandshakeDone)
+        assertEquals(emptyList<HostAction>(), f.on(HostEvent.Started))
+        assertEquals(HostState.CREATING, f.state)
+    }
+
+    @Test
+    fun `call failed in creating`() {
+        val f = HostFlow(6)
+        f.on(HostEvent.Bound)
+        f.on(HostEvent.AppInfoGot(4, 7))
+        f.on(HostEvent.HandshakeDone)
+        assertEquals(refused("onAppCreate", "boom"), f.on(HostEvent.CallFailed("onAppCreate", "boom")))
+        assertEquals(HostState.FAILED, f.state)
+    }
+
+    @Test
+    fun `binder died in binding`() {
+        val f = HostFlow(6)
+        f.on(HostEvent.Bound)
+        assertEquals(
+            listOf<HostAction>(
+                HostAction.Log("carhost_disconnected", listOf("reason" to "binder_died")),
+            ),
+            f.on(HostEvent.BinderDied),
+        )
+        assertEquals(HostState.DISCONNECTED, f.state)
+    }
 }

@@ -33,6 +33,8 @@ class HostFlow(private val hostLatest: Int) {
     var state: HostState = HostState.IDLE
         private set
 
+    private var created = false
+
     fun on(e: HostEvent): List<HostAction> {
         if (state == HostState.FAILED || state == HostState.DISCONNECTED) return emptyList()
         return when (e) {
@@ -67,11 +69,12 @@ class HostFlow(private val hostLatest: Int) {
                 listOf(HostAction.Create)
             } else emptyList()
 
-            HostEvent.Created -> if (state == HostState.CREATING) {
+            HostEvent.Created -> if (state == HostState.CREATING && !created) {
+                created = true
                 listOf(HostAction.StartResume)
             } else emptyList()
 
-            HostEvent.Started -> if (state == HostState.CREATING) {
+            HostEvent.Started -> if (state == HostState.CREATING && created) {
                 state = HostState.RUNNING
                 listOf(HostAction.GetManagers, HostAction.FetchTemplate)
             } else emptyList()
@@ -83,7 +86,6 @@ class HostFlow(private val hostLatest: Int) {
                         listOf("call" to e.call, "error" to e.error),
                     ),
                 )
-                HostState.IDLE -> emptyList()
                 else -> {
                     state = HostState.FAILED
                     listOf(
@@ -107,7 +109,6 @@ class HostFlow(private val hostLatest: Int) {
     }
 
     private fun disconnect(reason: String): List<HostAction> {
-        if (state == HostState.IDLE) return emptyList()
         state = HostState.DISCONNECTED
         return listOf(
             HostAction.Log("carhost_disconnected", listOf("reason" to reason)),
