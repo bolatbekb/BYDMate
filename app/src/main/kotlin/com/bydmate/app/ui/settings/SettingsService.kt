@@ -453,6 +453,7 @@ internal fun ServiceSection(
         }
     }
     BatteryCheckBlock() // fork: battery check — car profile, cell data collection, view choice
+    CarHostProbeBlock() // fork: car host probe (probe/car-host only)
 
     // Autostart status card
     SectionHeader(text = stringResource(R.string.settings_autostart_header))

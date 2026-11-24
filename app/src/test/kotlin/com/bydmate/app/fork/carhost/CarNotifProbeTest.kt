@@ -75,6 +75,14 @@ class CarNotifProbeTest {
         assertTrue(lines.isEmpty())
     }
 
+    @Test fun `disabling forgets the last line`() {
+        CarNotifProbe.onPosted(sbn(pkg, plain()))
+        CarNotifProbe.enabled = false
+        CarNotifProbe.enabled = true
+        CarNotifProbe.onPosted(sbn(pkg, plain()))
+        assertEquals(2, lines.size)
+    }
+
     @Test fun `non target package logs nothing`() {
         CarNotifProbe.onPosted(sbn("org.other.app", plain()))
         assertTrue(lines.isEmpty())

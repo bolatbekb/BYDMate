@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: car host probe (probe/car-host only). -->
+<resources>
+    <string name="fork_carhost_title">Android Auto 探测（测试版）</string>
+    <string name="fork_carhost_hint">BYDMate 以 Android Auto 的身份连接导航应用，并把提示写入日志。点击“连接”，然后在 10 秒内打开导航应用</string>
+    <string name="fork_carhost_notif">记录导航应用的通知</string>
+    <string name="fork_carhost_stop_all">全部断开</string>
+    <string name="fork_carhost_none">未找到支持 Android Auto 的导航应用</string>
+    <string name="fork_carhost_st_none">未连接</string>
+    <string name="fork_carhost_st_connecting">正在连接…</string>
+    <string name="fork_carhost_st_ok">已连接</string>
+    <string name="fork_carhost_st_failed">被拒绝</string>
+    <string name="fork_carhost_st_off">已断开</string>
+    <string name="fork_carhost_countdown">请打开导航应用：%1$d</string>
+    <string name="fork_carhost_guard">导航应用界面：%1$s</string>
+    <string name="fork_carhost_g_ok">未变化</string>
+    <string name="fork_carhost_g_changed">已变化</string>
+    <string name="fork_carhost_g_blocked">已被阻止 — 已断开</string>
+    <string name="fork_carhost_g_unknown">未检查</string>
+    <string name="fork_carhost_trip">提示：%1$s</string>
+    <string name="fork_carhost_surface">提供地图画面</string>
+    <string name="fork_carhost_connect">连接</string>
+    <string name="fork_carhost_disconnect">断开</string>
+    <string name="fork_carhost_route_hint">地址或地点</string>
+    <string name="fork_carhost_route">通过 Android Auto 导航</string>
+</resources>

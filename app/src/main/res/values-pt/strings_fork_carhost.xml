@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: car host probe (probe/car-host only). -->
+<resources>
+    <string name="fork_carhost_title">Teste do Android Auto (versão de teste)</string>
+    <string name="fork_carhost_hint">O BYDMate conecta-se ao navegador como Android Auto e grava as instruções no registro. Toque em «Conectar» e abra o navegador em 10 segundos</string>
+    <string name="fork_carhost_notif">Gravar notificações dos navegadores</string>
+    <string name="fork_carhost_stop_all">Desconectar tudo</string>
+    <string name="fork_carhost_none">Nenhum navegador com Android Auto encontrado</string>
+    <string name="fork_carhost_st_none">Não conectado</string>
+    <string name="fork_carhost_st_connecting">Conectando…</string>
+    <string name="fork_carhost_st_ok">Conectado</string>
+    <string name="fork_carhost_st_failed">Recusado</string>
+    <string name="fork_carhost_st_off">Desconectado</string>
+    <string name="fork_carhost_countdown">Abra o navegador: %1$d</string>
+    <string name="fork_carhost_guard">Tela do navegador: %1$s</string>
+    <string name="fork_carhost_g_ok">não mudou</string>
+    <string name="fork_carhost_g_changed">mudou</string>
+    <string name="fork_carhost_g_blocked">BLOQUEADO — desconectado</string>
+    <string name="fork_carhost_g_unknown">não verificado</string>
+    <string name="fork_carhost_trip">Instrução: %1$s</string>
+    <string name="fork_carhost_surface">Dar superfície para o mapa</string>
+    <string name="fork_carhost_connect">Conectar</string>
+    <string name="fork_carhost_disconnect">Desconectar</string>
+    <string name="fork_carhost_route_hint">Endereço ou local</string>
+    <string name="fork_carhost_route">Rota via Android Auto</string>
+</resources>

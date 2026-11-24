@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: car host probe (probe/car-host only). -->
+<resources>
+    <string name="fork_carhost_title">Android Auto probe (test build)</string>
+    <string name="fork_carhost_hint">BYDMate connects to the navigator as Android Auto and writes its hints to the log. Press \"Connect\" and open the navigator within 10 seconds</string>
+    <string name="fork_carhost_notif">Record navigator notifications</string>
+    <string name="fork_carhost_stop_all">Disconnect all</string>
+    <string name="fork_carhost_none">No Android Auto navigators found</string>
+    <string name="fork_carhost_st_none">Not connected</string>
+    <string name="fork_carhost_st_connecting">Connecting…</string>
+    <string name="fork_carhost_st_ok">Connected</string>
+    <string name="fork_carhost_st_failed">Refused</string>
+    <string name="fork_carhost_st_off">Disconnected</string>
+    <string name="fork_carhost_countdown">Open the navigator: %1$d</string>
+    <string name="fork_carhost_guard">Navigator screen: %1$s</string>
+    <string name="fork_carhost_g_ok">unchanged</string>
+    <string name="fork_carhost_g_changed">changed</string>
+    <string name="fork_carhost_g_blocked">BLOCKED — disconnected</string>
+    <string name="fork_carhost_g_unknown">not checked</string>
+    <string name="fork_carhost_trip">Hint: %1$s</string>
+    <string name="fork_carhost_surface">Give a map surface</string>
+    <string name="fork_carhost_connect">Connect</string>
+    <string name="fork_carhost_disconnect">Disconnect</string>
+    <string name="fork_carhost_route_hint">Address or place</string>
+    <string name="fork_carhost_route">Route via Android Auto</string>
+</resources>

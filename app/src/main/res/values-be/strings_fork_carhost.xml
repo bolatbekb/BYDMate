@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: car host probe (probe/car-host only). -->
+<resources>
+    <string name="fork_carhost_title">Проба Android Auto (тэставая зборка)</string>
+    <string name="fork_carhost_hint">BYDMate падключаецца да навігатара як Android Auto і запісвае падказкі ў журнал. Націсніце «Падключыць» і за 10 секунд адкрыйце навігатар</string>
+    <string name="fork_carhost_notif">Запісваць апавяшчэнні навігатараў</string>
+    <string name="fork_carhost_stop_all">Адключыць усё</string>
+    <string name="fork_carhost_none">Навігатары з Android Auto не знойдзены</string>
+    <string name="fork_carhost_st_none">Не падключана</string>
+    <string name="fork_carhost_st_connecting">Падключэнне…</string>
+    <string name="fork_carhost_st_ok">Падключана</string>
+    <string name="fork_carhost_st_failed">Адмова</string>
+    <string name="fork_carhost_st_off">Адключана</string>
+    <string name="fork_carhost_countdown">Адкрыйце навігатар: %1$d</string>
+    <string name="fork_carhost_guard">Экран навігатара: %1$s</string>
+    <string name="fork_carhost_g_ok">не змяніўся</string>
+    <string name="fork_carhost_g_changed">змяніўся</string>
+    <string name="fork_carhost_g_blocked">ЗАБЛАКІРАВАНЫ — адключана</string>
+    <string name="fork_carhost_g_unknown">не правярана</string>
+    <string name="fork_carhost_trip">Падказка: %1$s</string>
+    <string name="fork_carhost_surface">Даць паверхню для карты</string>
+    <string name="fork_carhost_connect">Падключыць</string>
+    <string name="fork_carhost_disconnect">Адключыць</string>
+    <string name="fork_carhost_route_hint">Адрас або месца</string>
+    <string name="fork_carhost_route">Маршрут праз Android Auto</string>
+</resources>

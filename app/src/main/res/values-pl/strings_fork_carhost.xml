@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: car host probe (probe/car-host only). -->
+<resources>
+    <string name="fork_carhost_title">Próba Android Auto (wersja testowa)</string>
+    <string name="fork_carhost_hint">BYDMate łączy się z nawigacją jako Android Auto i zapisuje podpowiedzi w dzienniku. Naciśnij «Połącz» i w ciągu 10 sekund otwórz nawigację</string>
+    <string name="fork_carhost_notif">Zapisuj powiadomienia nawigacji</string>
+    <string name="fork_carhost_stop_all">Rozłącz wszystko</string>
+    <string name="fork_carhost_none">Nie znaleziono nawigacji z Android Auto</string>
+    <string name="fork_carhost_st_none">Nie połączono</string>
+    <string name="fork_carhost_st_connecting">Łączenie…</string>
+    <string name="fork_carhost_st_ok">Połączono</string>
+    <string name="fork_carhost_st_failed">Odmowa</string>
+    <string name="fork_carhost_st_off">Rozłączono</string>
+    <string name="fork_carhost_countdown">Otwórz nawigację: %1$d</string>
+    <string name="fork_carhost_guard">Ekran nawigacji: %1$s</string>
+    <string name="fork_carhost_g_ok">bez zmian</string>
+    <string name="fork_carhost_g_changed">zmienił się</string>
+    <string name="fork_carhost_g_blocked">ZABLOKOWANY — rozłączono</string>
+    <string name="fork_carhost_g_unknown">nie sprawdzono</string>
+    <string name="fork_carhost_trip">Podpowiedź: %1$s</string>
+    <string name="fork_carhost_surface">Daj powierzchnię dla mapy</string>
+    <string name="fork_carhost_connect">Połącz</string>
+    <string name="fork_carhost_disconnect">Rozłącz</string>
+    <string name="fork_carhost_route_hint">Adres lub miejsce</string>
+    <string name="fork_carhost_route">Trasa przez Android Auto</string>
+</resources>

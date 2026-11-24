@@ -17,7 +17,12 @@ object CarNotifProbe {
     private const val MIN_GAP_MS = 2_000L
     private const val KEYS_MAX = 120
 
+    /** Turning it off also forgets the per-package last lines, so nothing lingers. */
     @Volatile var enabled: Boolean = false
+        set(value) {
+            field = value
+            if (!value) synchronized(last) { last.clear() }
+        }
     @Volatile var targets: Set<String> = emptySet()
     /** Package to the app label shown in the trace; the package itself is never traced. */
     @Volatile var labels: Map<String, String> = emptyMap()
