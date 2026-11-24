@@ -165,6 +165,7 @@ fun TechPanelScreen(
         )
     }
     com.bydmate.app.fork.cells.ui.BatteryCheckHost() // fork: battery check window (opened by «Диагностика ВВБ» in «Лимиты BMS»)
+    com.bydmate.app.fork.alerts.ui.AlertsHost() // fork: problem-alerts list overlay (opened by «Предупреждения» in «Лимиты BMS»)
 }
 
 /** Columns of the card grid: the screen is 15.6" landscape, three cards fit across it. */

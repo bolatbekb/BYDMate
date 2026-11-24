@@ -178,6 +178,7 @@ internal fun LimitsAndCellsCard(state: TechPanelUiState, onHint: (String) -> Uni
         }
         Hint(state.openHint, "cells", R.string.tech_hint_cells)
         com.bydmate.app.fork.cells.ui.BatteryDiagButton() // fork: battery check — «Диагностика ВВБ» opens the battery check
+        com.bydmate.app.fork.alerts.ui.AlertsDiagButton() // fork: problem-alerts — «Предупреждения» opens the alerts list
     }
 }
 
