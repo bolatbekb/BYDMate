@@ -60,6 +60,7 @@ object UiGuard {
 
     fun verdict(before: UiSnapshot, after: UiSnapshot, targetPkg: String): Pair<GuardVerdict, String> {
         if (before.pkgOnTop != targetPkg) return GuardVerdict.UNKNOWN to "not_in_front_before"
+        if (after.pkgOnTop == null && after.activity == null) return GuardVerdict.UNKNOWN to "no_reading"
         if (after.pkgOnTop != targetPkg) return GuardVerdict.BLOCKED to "left_front"
         if (after.activity != before.activity) return GuardVerdict.BLOCKED to "activity_changed"
         val had = before.texts.map { it.lowercase() }
@@ -67,6 +68,7 @@ object UiGuard {
             CAR_WORDS.any { w -> w in t && had.none { w in it } }
         }
         if (carWords) return GuardVerdict.BLOCKED to "car_words"
+        if (after.nodes == 0) return GuardVerdict.OK to "no_tree" // uiautomator failed: tree rules skipped
         if (after.nodes < before.nodes / 3) return GuardVerdict.BLOCKED to "tree_collapsed"
         val union = (before.ids + after.ids).size
         val jaccard = if (union == 0) 1.0 else before.ids.intersect(after.ids).size.toDouble() / union

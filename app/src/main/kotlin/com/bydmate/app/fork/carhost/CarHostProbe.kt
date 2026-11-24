@@ -127,7 +127,14 @@ object CarHostProbe {
             null
         }
         val n = ++guardRuns
-        guards[target.pkg] = guardScope.launch { guardFlow(target, session, runner, n) }
+        guards[target.pkg] = guardScope.launch {
+            val me = coroutineContext[Job]
+            try {
+                guardFlow(target, session, runner, n)
+            } finally {
+                synchronized(this@CarHostProbe) { if (guards[target.pkg] === me) guards.remove(target.pkg) }
+            }
+        }
     }
 
     /** Countdown, S0, connect, S1 at 3/10/30 s; BLOCKED stops the session and takes S2. */
@@ -144,14 +151,25 @@ object CarHostProbe {
         val started = synchronized(this) {
             if (guards[pkg] !== me || sessions[pkg] !== session) false else { session.connect(); true }
         }
-        if (!started || before == null) return
+        if (!started) return
+        if (before == null) {
+            Trace.event(TraceArea.HUD, "carhost_guard", "n" to n, "verdict" to "UNKNOWN", "reason" to "no_runner")
+            return
+        }
         var t = 0
         for (at in SNAPSHOT_AT_S) {
             delay((at - t) * 1000L)
             t = at
-            val after = runner.snapshot("${at}s", n)
+            if (!stillRunning(pkg, session, me)) return
+            var after = runner.snapshot("${at}s", n)
             coroutineContext.ensureActive()
-            val (verdict, reason) = UiGuard.verdict(before, after, pkg)
+            var (verdict, reason) = UiGuard.verdict(before, after, pkg)
+            if (verdict == GuardVerdict.UNKNOWN && reason == "no_reading") {
+                delay(1000)
+                after = runner.snapshot("${at}s-retry", n)
+                coroutineContext.ensureActive()
+                UiGuard.verdict(before, after, pkg).let { verdict = it.first; reason = it.second }
+            }
             traceGuard("${at}s", n, verdict, reason, before, after, null)
             changeRow(target, session) { it.copy(guard = worse(it.guard, verdict)) }
             if (verdict == GuardVerdict.BLOCKED) {
@@ -171,6 +189,10 @@ object CarHostProbe {
         }
     }
 
+    @Synchronized
+    private fun stillRunning(pkg: String, session: CarHostSession, me: Job?) =
+        guards[pkg] === me && sessions[pkg] === session
+
     private fun worse(old: GuardVerdict?, new: GuardVerdict): GuardVerdict =
         if (old == null || new.ordinal > old.ordinal && old != GuardVerdict.BLOCKED) new else old
 
@@ -189,6 +211,7 @@ object CarHostProbe {
     @Synchronized
     fun stop(pkg: String) {
         guards.remove(pkg)?.cancel()
+        rows.update { m -> m[pkg]?.let { m + (pkg to it.copy(countdown = null)) } ?: m }
         stopForGuard(pkg)
     }
 
@@ -216,6 +239,7 @@ object CarHostProbe {
         // turn the provider back on.
         guards.values.forEach { it.cancel() }
         guards.clear()
+        rows.update { m -> m.mapValues { it.value.copy(countdown = null) } }
         stopping.addAll(rows.value.keys)
         sessions.values.forEach { it.stop() }
         providerOn = false
@@ -241,6 +265,8 @@ object CarHostProbe {
         rows.update { m -> m[pkg]?.let { m + (pkg to it.copy(state = state)) } ?: m }
         if (state == HostState.FAILED || state == HostState.DISCONNECTED) {
             sessions.remove(pkg)
+            // A guard-initiated stop (pkg in stopping) lets the guard take its after-shot.
+            if (pkg !in stopping) guards.remove(pkg)?.cancel()
             stopping.remove(pkg)
         }
         afterChange()

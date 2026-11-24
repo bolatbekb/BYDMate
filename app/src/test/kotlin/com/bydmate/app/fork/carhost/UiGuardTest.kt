@@ -75,4 +75,27 @@ class UiGuardTest {
     @Test
     fun verdict_bydmateOnTopAfter_isLeftFront() =
         assertEquals(GuardVerdict.BLOCKED to "left_front", UiGuard.verdict(snap(), snap(top = "com.bydmate.app"), pkg))
+
+    @Test
+    fun verdict_failedTopRead_isNoReading() =
+        assertEquals(GuardVerdict.UNKNOWN to "no_reading", UiGuard.verdict(snap(), snap(top = null, act = null), pkg))
+
+    @Test
+    fun verdict_zeroNodesAfter_skipsTreeRules() =
+        assertEquals(GuardVerdict.OK, UiGuard.verdict(snap(), snap(nodes = 0, ids = emptySet(), texts = emptyList()), pkg).first)
+
+    @Test
+    fun verdict_zeroNodesButActivityChanged_isStillBlocked() =
+        assertEquals(
+            GuardVerdict.BLOCKED to "activity_changed",
+            UiGuard.verdict(snap(), snap(nodes = 0, ids = emptySet(), act = "a.b.Stub"), pkg),
+        )
+
+    @Test
+    fun parseUiDump_emptyAndGarbled() {
+        for (x in listOf("", "<hierarchy><nod", "garbage \u0000 <<>>")) {
+            val (ids, texts, n) = UiGuard.parseUiDump(x)
+            assertEquals(emptySet<String>(), ids); assertEquals(emptyList<String>(), texts); assertEquals(0, n)
+        }
+    }
 }
