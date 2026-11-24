@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork-local strings: background update, install offered only on P. Kept out of strings.xml so upstream merges do not conflict. -->
+<resources>
+    <string name="fork_update_prompt_title">更新已就绪</string>
+    <string name="fork_update_prompt_ready">版本 %1$s 已下载，可以安装。</string>
+    <string name="fork_update_install_button">安装更新 %1$s</string>
+    <string name="fork_update_later_button">稍后</string>
+    <string name="fork_update_notify_title">已下载更新 %1$s</string>
+    <string name="fork_update_notify_text">可在停车时安装</string>
+</resources>
