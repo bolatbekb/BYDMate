@@ -76,6 +76,7 @@ internal enum class SettingsSection(@StringRes val labelRes: Int, val icon: Imag
     DISPLAY(R.string.settings_section_display_title, Icons.Outlined.DirectionsCar),
     SPLIT(R.string.settings_section_split_title, Icons.Outlined.Apps),
     BATTERY(R.string.settings_section_auto_battery_title, Icons.Outlined.BatteryChargingFull),
+    ALERTS(R.string.fork_alerts_settings_title, AlertsSectionIcon), // fork: problem-alerts (Предупреждения)
     INTEGRATIONS(R.string.settings_section_integrations_title, Icons.Outlined.Link),
     LEDGER(R.string.ledger_section_title, LedgerSectionIcon), // fork: fuel & expenses ledger
     SERVICE(R.string.settings_section_service_title, Icons.Outlined.Build),
@@ -191,6 +192,7 @@ fun SettingsScreen(
                 ) {
                     when (safeSelected) {
                         SettingsSection.BATTERY -> BatterySection(state, viewModel, onNavigateToTariffPeriods)
+                        SettingsSection.ALERTS -> AlertsSection() // fork: problem-alerts (Предупреждения)
                         SettingsSection.INTEGRATIONS -> IntegrationsSection(state, viewModel)
                         SettingsSection.VOICE -> VoiceSettingsContent(
                             state, viewModel, onNavigateToVoiceJournal, onNavigateToAgentChat, onNavigateToVoiceUserPhrases,

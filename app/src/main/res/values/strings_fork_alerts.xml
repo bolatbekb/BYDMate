@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- fork: problem-alerts (Сервис предупреждений) strings, stage 1 -->
+<resources>
+    <string name="fork_alerts_settings_title">Предупреждения</string>
+    <string name="fork_alerts_settings_hint">Выберите, о чём предупреждать. Для каждого источника — включение и минимальная важность (слать от неё и выше).</string>
+
+    <string name="fork_alerts_block_storage">Хранилище</string>
+    <string name="fork_alerts_block_battery">Батарея</string>
+    <string name="fork_alerts_block_drive">Привод и охлаждение</string>
+    <string name="fork_alerts_block_tyres">Шины</string>
+    <string name="fork_alerts_block_electrical">Электрика</string>
+    <string name="fork_alerts_block_diagnostics">Диагностика</string>
+
+    <string name="fork_alerts_src_storage">Место на носителях</string>
+    <string name="fork_alerts_src_battery_temp">Температура батареи</string>
+    <string name="fork_alerts_src_cell_imbalance">Разбаланс ячеек</string>
+    <string name="fork_alerts_src_insulation">Сопротивление изоляции</string>
+    <string name="fork_alerts_src_coolant">Температура ОЖ</string>
+    <string name="fork_alerts_src_motor">Температура моторов и инверторов</string>
+    <string name="fork_alerts_src_tyre_pressure">Давление в шинах</string>
+    <string name="fork_alerts_src_tyre_temp">Температура шин</string>
+    <string name="fork_alerts_src_volt12">Бортовая сеть 12 В</string>
+
+    <string name="fork_alerts_sev_critical">Критично</string>
+    <string name="fork_alerts_sev_warning">Предупреждение</string>
+    <string name="fork_alerts_sev_info">К сведению</string>
+
+    <string name="fork_alerts_min_severity">Минимальная важность</string>
+    <string name="fork_alerts_storage_threshold">Порог свободного места</string>
+    <string name="fork_alerts_percent">%1$d %%</string>
+
+    <string name="fork_alerts_list_title">Предупреждения</string>
+    <string name="fork_alerts_list_empty">Сейчас предупреждений нет</string>
+    <string name="fork_alerts_close">Закрыть</string>
+    <string name="fork_alerts_entry_button">Предупреждения</string>
+    <string name="fork_alerts_entry_none">нет активных предупреждений</string>
+
+    <string name="fork_alerts_value_storage">остаток %1$d %% (%2$d ГБ из %3$d ГБ)</string>
+    <string name="fork_alerts_value_volt">%1$s В</string>
+    <string name="fork_alerts_value_celsius">%1$d °C</string>
+    <string name="fork_alerts_value_kpa">%1$d кПа</string>
+    <string name="fork_alerts_value_kohm">%1$d кОм</string>
+    <string name="fork_alerts_value_wheel">%1$s: %2$s</string>
+
+    <string name="fork_alerts_when_now">только что</string>
+    <string name="fork_alerts_when_min">%1$d мин назад</string>
+    <string name="fork_alerts_when_hour">%1$d ч назад</string>
+    <string name="fork_alerts_when_day">%1$d дн назад</string>
+</resources>
