@@ -24,4 +24,6 @@
     <string name="fork_carhost_route_hint">Adres lub miejsce</string>
     <string name="fork_carhost_route">Trasa przez Android Auto</string>
     <string name="fork_carhost_st_failed_plain">Odmowa</string>
+    <string name="fork_carhost_keep_on_block">Nie rozłączaj przy blokadzie</string>
+    <string name="fork_carhost_g_blocked_kept">ZABLOKOWANY — połączenie zostawione</string>
 </resources>

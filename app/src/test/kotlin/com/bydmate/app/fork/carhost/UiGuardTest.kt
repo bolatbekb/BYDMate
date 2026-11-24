@@ -1,5 +1,6 @@
 package com.bydmate.app.fork.carhost
 
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -7,24 +8,8 @@ import org.junit.Test
 class UiGuardTest {
     private val pkg = "a.b"
 
-    private fun snap(
-        top: String? = pkg, act: String? = "a.b.Main", nodes: Int = 57,
-        ids: Set<String> = (1..10).map { "id$it" }.toSet(), texts: List<String> = listOf("Route"),
-    ) = UiSnapshot(top, act, "$top/$act", ids, texts, nodes)
-
-    @Test
-    fun parseUiDump_readsIdsTextsAndCount() {
-        val xml = """<?xml version='1.0'?><hierarchy rotation="0">
-            <node index="0" text="" resource-id="a:id/root" content-desc="">
-            <node index="0" text="Go" resource-id="a:id/btn" content-desc="" />
-            <node index="1" text="" resource-id="" content-desc="Menu button" />
-            <node index="2" text="" resource-id="a:id/btn" content-desc="" />
-            </node></hierarchy>"""
-        val (ids, texts, n) = UiGuard.parseUiDump(xml)
-        assertEquals(setOf("a:id/root", "a:id/btn"), ids)
-        assertEquals(listOf("Go", "Menu button"), texts)
-        assertEquals(4, n)
-    }
+    private fun snap(top: String? = pkg, act: String? = "a.b.Main", texts: List<String> = listOf("Route")) =
+        UiSnapshot(top, act, "$top/$act", texts)
 
     @Test
     fun parseTop_readsActivityAndFocus() {
@@ -39,7 +24,7 @@ class UiGuardTest {
     }
 
     @Test
-    fun verdict_same_isOk() = assertEquals(GuardVerdict.OK, UiGuard.verdict(snap(), snap(), pkg).first)
+    fun verdict_same_isOk() = assertEquals(GuardVerdict.OK to "same", UiGuard.verdict(snap(), snap(), pkg))
 
     @Test
     fun verdict_activityChanged() =
@@ -53,24 +38,29 @@ class UiGuardTest {
         )
 
     @Test
+    fun verdict_androidAutoNotificationAfterConnect_isBlocked() =
+        assertEquals(
+            GuardVerdict.BLOCKED to "car_words",
+            UiGuard.verdict(snap(texts = emptyList()), snap(texts = listOf("Navi | Running in Android Auto mode")), pkg),
+        )
+
+    @Test
     fun verdict_carWordsAlreadyBefore_isNotBlocked() {
         val s = snap(texts = listOf("Android Auto"))
         assertEquals(GuardVerdict.OK, UiGuard.verdict(s, s, pkg).first)
     }
 
     @Test
-    fun verdict_treeCollapsed() =
-        assertEquals(GuardVerdict.BLOCKED to "tree_collapsed", UiGuard.verdict(snap(), snap(nodes = 10), pkg))
-
-    @Test
-    fun verdict_halfIdsReplaced_isChanged() {
-        val ids = (1..5).map { "id$it" }.toSet() + (1..5).map { "new$it" }
-        assertEquals(GuardVerdict.CHANGED to "tree_changed", UiGuard.verdict(snap(), snap(ids = ids), pkg))
-    }
+    fun verdict_noNotifications_isOk() =
+        assertEquals(GuardVerdict.OK, UiGuard.verdict(snap(texts = emptyList()), snap(texts = emptyList()), pkg).first)
 
     @Test
     fun verdict_notInFrontBefore_isUnknown() =
         assertEquals(GuardVerdict.UNKNOWN to "not_in_front_before", UiGuard.verdict(snap(top = "x.y"), snap(), pkg))
+
+    @Test
+    fun verdict_emptyBefore_isNoReading() =
+        assertEquals(GuardVerdict.UNKNOWN to "no_reading", UiGuard.verdict(snap(top = null, act = null), snap(), pkg))
 
     @Test
     fun verdict_bydmateOnTopAfter_isLeftFront() =
@@ -81,21 +71,30 @@ class UiGuardTest {
         assertEquals(GuardVerdict.UNKNOWN to "no_reading", UiGuard.verdict(snap(), snap(top = null, act = null), pkg))
 
     @Test
-    fun verdict_zeroNodesAfter_skipsTreeRules() =
-        assertEquals(GuardVerdict.OK, UiGuard.verdict(snap(), snap(nodes = 0, ids = emptySet(), texts = emptyList()), pkg).first)
+    fun readBefore_emptyFirstRead_retriesOnceAfterWait() = runTest {
+        val tags = mutableListOf<String>()
+        var waits = 0
+        val reads = ArrayDeque(listOf(snap(top = null, act = null), snap()))
+        val s = readBefore({ tags += it; reads.removeFirst() }, { waits++ })
+        assertEquals(listOf("before", "before-retry"), tags)
+        assertEquals(1, waits)
+        assertEquals(pkg, s.pkgOnTop)
+    }
 
     @Test
-    fun verdict_zeroNodesButActivityChanged_isStillBlocked() =
-        assertEquals(
-            GuardVerdict.BLOCKED to "activity_changed",
-            UiGuard.verdict(snap(), snap(nodes = 0, ids = emptySet(), act = "a.b.Stub"), pkg),
-        )
+    fun readBefore_emptyTwice_givesNoReading() = runTest {
+        val tags = mutableListOf<String>()
+        val s = readBefore({ tags += it; snap(top = null, act = null) }, {})
+        assertEquals(2, tags.size)
+        assertEquals(GuardVerdict.UNKNOWN to "no_reading", UiGuard.verdict(s, snap(), pkg))
+    }
 
     @Test
-    fun parseUiDump_emptyAndGarbled() {
-        for (x in listOf("", "<hierarchy><nod", "garbage \u0000 <<>>")) {
-            val (ids, texts, n) = UiGuard.parseUiDump(x)
-            assertEquals(emptySet<String>(), ids); assertEquals(emptyList<String>(), texts); assertEquals(0, n)
-        }
+    fun readBefore_goodFirstRead_noRetry() = runTest {
+        val tags = mutableListOf<String>()
+        var waits = 0
+        readBefore({ tags += it; snap() }, { waits++ })
+        assertEquals(listOf("before"), tags)
+        assertEquals(0, waits)
     }
 }

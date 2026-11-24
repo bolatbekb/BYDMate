@@ -135,7 +135,7 @@ class AdbOnDeviceClientImpl @Inject constructor(
     override suspend fun exec(cmd: String): String? = withContext(Dispatchers.IO) {
         // Structural barrier against accidental WRITE — only allow GETs to autoservice, plus the
         // fixed cloud-over-Wi-Fi command set the user switches on explicitly.
-        require(cmd.matches(WRITE_BARRIER_REGEX) || cmd.matches(CLOUD_OVER_WIFI_REGEX)) {
+        require(cmd.matches(WRITE_BARRIER_REGEX) || cmd.matches(CLOUD_OVER_WIFI_REGEX) || com.bydmate.app.fork.carhost.CarHostAdbBarrier.allowsCommand(cmd)) { // fork: car host probe (probe/car-host only)
             "AdbOnDeviceClient: refused command (write barrier): $cmd"
         }
         val p = protocol ?: return@withContext null
@@ -239,7 +239,7 @@ class AdbOnDeviceClientImpl @Inject constructor(
 
     // fork: whole-screen screenshot for the settings button (ScreenshotTaker).
     override suspend fun screencap(path: String): Boolean = withContext(Dispatchers.IO) {
-        require(path.matches(com.bydmate.app.fork.ScreenshotTaker.PATH_REGEX)) { "screencap: refused path" }
+        require(path.matches(com.bydmate.app.fork.ScreenshotTaker.PATH_REGEX) || com.bydmate.app.fork.carhost.CarHostAdbBarrier.allowsScreenPath(path)) { "screencap: refused path" } // fork: car host probe (probe/car-host only)
         val p = protocol ?: run {
             if (connect().isFailure) return@withContext false
             protocol ?: return@withContext false

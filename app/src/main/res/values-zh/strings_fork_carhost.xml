@@ -24,4 +24,6 @@
     <string name="fork_carhost_route_hint">地址或地点</string>
     <string name="fork_carhost_route">通过 Android Auto 导航</string>
     <string name="fork_carhost_st_failed_plain">被拒绝</string>
+    <string name="fork_carhost_keep_on_block">被阻止时不断开</string>
+    <string name="fork_carhost_g_blocked_kept">已阻止 — 保持连接</string>
 </resources>

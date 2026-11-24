@@ -3,46 +3,29 @@ package com.bydmate.app.fork.carhost
 /** Did the navigator's own screen survive the car-app session (filled in by the UI guard). */
 enum class GuardVerdict { OK, CHANGED, BLOCKED, UNKNOWN }
 
-/** What the foreground looked like at one moment: top activity, window focus, uiautomator tree. */
+/**
+ * What the foreground looked like at one moment: top activity and window focus (two read-only
+ * dumpsys lines), and [texts] — the target's notification texts that belong to this moment
+ * (before connect: those seen so far in the session; after: those posted since connect).
+ */
 data class UiSnapshot(
     val pkgOnTop: String?,
     val activity: String?,
     val focus: String?,
-    val ids: Set<String>,
     val texts: List<String>,
-    val nodes: Int,
 )
 
 /** Pure parsing and the verdict rules of the UI guard. */
 object UiGuard {
+    /** Words of a "this app runs in the car" placeholder or notification; no app names. */
     val CAR_WORDS = listOf(
-        "android auto", "в автомобиле", "в машине", "экране автомобиля",
-        "car screen", "connected to car", "подключен к автомобилю",
+        "android auto", "running in android auto", "в android auto", "в режиме android auto",
+        "в автомобиле", "в машине", "экране автомобиля",
+        "car screen", "connected to car", "continue on phone", "подключен к автомобилю",
     )
 
-    private val NODE = Regex("<node\\b[^>]*>")
-    private val ATTR = Regex("""\b(resource-id|text|content-desc)="([^"]*)"""")
     private val COMPONENT = Regex("""u\d+\s+([\w.]+)/([\w.$]+)""")
     private val FOCUS = Regex("""([\w.]+)/([\w.$]+)\}""")
-
-    /** Resource ids, texts (text and content-desc, non-empty) and node count of a uiautomator dump. */
-    fun parseUiDump(xml: String): Triple<Set<String>, List<String>, Int> {
-        val ids = LinkedHashSet<String>()
-        val texts = ArrayList<String>()
-        var nodes = 0
-        for (m in NODE.findAll(xml)) {
-            nodes++
-            for (a in ATTR.findAll(m.value)) {
-                val v = unescape(a.groupValues[2])
-                if (v.isEmpty()) continue
-                if (a.groupValues[1] == "resource-id") ids.add(v) else texts.add(v)
-            }
-        }
-        return Triple(ids, texts, nodes)
-    }
-
-    private fun unescape(s: String) = s.replace("&quot;", "\"").replace("&apos;", "'")
-        .replace("&lt;", "<").replace("&gt;", ">").replace("&amp;", "&")
 
     private fun fullClass(pkg: String, cls: String) = if (cls.startsWith(".")) pkg + cls else cls
 
@@ -58,9 +41,13 @@ object UiGuard {
         return Triple(pkg, act, focus)
     }
 
+    /** A snapshot with nothing read from the foreground. */
+    fun empty(s: UiSnapshot) = s.pkgOnTop == null && s.activity == null
+
     fun verdict(before: UiSnapshot, after: UiSnapshot, targetPkg: String): Pair<GuardVerdict, String> {
+        if (empty(before)) return GuardVerdict.UNKNOWN to "no_reading"
         if (before.pkgOnTop != targetPkg) return GuardVerdict.UNKNOWN to "not_in_front_before"
-        if (after.pkgOnTop == null && after.activity == null) return GuardVerdict.UNKNOWN to "no_reading"
+        if (empty(after)) return GuardVerdict.UNKNOWN to "no_reading"
         if (after.pkgOnTop != targetPkg) return GuardVerdict.BLOCKED to "left_front"
         if (after.activity != before.activity) return GuardVerdict.BLOCKED to "activity_changed"
         val had = before.texts.map { it.lowercase() }
@@ -68,11 +55,6 @@ object UiGuard {
             CAR_WORDS.any { w -> w in t && had.none { w in it } }
         }
         if (carWords) return GuardVerdict.BLOCKED to "car_words"
-        if (after.nodes == 0) return GuardVerdict.OK to "no_tree" // uiautomator failed: tree rules skipped
-        if (after.nodes < before.nodes / 3) return GuardVerdict.BLOCKED to "tree_collapsed"
-        val union = (before.ids + after.ids).size
-        val jaccard = if (union == 0) 1.0 else before.ids.intersect(after.ids).size.toDouble() / union
-        if (jaccard < 0.5) return GuardVerdict.CHANGED to "tree_changed"
         return GuardVerdict.OK to "same"
     }
 }

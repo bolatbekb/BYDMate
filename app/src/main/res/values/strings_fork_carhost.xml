@@ -24,4 +24,6 @@
     <string name="fork_carhost_route_hint">Адрес или место</string>
     <string name="fork_carhost_route">Маршрут через Android Auto</string>
     <string name="fork_carhost_st_failed_plain">Отказ</string>
+    <string name="fork_carhost_keep_on_block">Не отключать при блокировке</string>
+    <string name="fork_carhost_g_blocked_kept">ЗАБЛОКИРОВАН — соединение оставлено</string>
 </resources>

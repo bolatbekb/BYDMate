@@ -24,4 +24,6 @@
     <string name="fork_carhost_route_hint">Endereço ou local</string>
     <string name="fork_carhost_route">Rota via Android Auto</string>
     <string name="fork_carhost_st_failed_plain">Recusado</string>
+    <string name="fork_carhost_keep_on_block">Não desligar quando bloqueado</string>
+    <string name="fork_carhost_g_blocked_kept">BLOQUEADO — ligação mantida</string>
 </resources>

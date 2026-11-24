@@ -53,6 +53,7 @@ internal fun CarHostProbeBlock() {
         val found = withContext(Dispatchers.IO) { CarAppTargets.discover(context.packageManager) }
         CarNotifProbe.targets = found.map { it.pkg }.toSet()
         CarNotifProbe.labels = found.associate { it.pkg to it.label }
+        CarHostProbe.rememberTargets(found.map { it.pkg })
         targets = found
     }
     SectionHeader(text = stringResource(R.string.fork_carhost_title))
@@ -95,6 +96,7 @@ internal fun CarHostProbeBlock() {
 private fun CarHostTargetRow(target: CarAppTarget, row: ProbeRow?) {
     val context = LocalContext.current
     var surface by remember(target.pkg) { mutableStateOf(false) }
+    var keepOnBlock by remember(target.pkg) { mutableStateOf(false) }
     var query by remember(target.pkg) { mutableStateOf("") }
     val state = row?.state
     Column(
@@ -108,7 +110,7 @@ private fun CarHostTargetRow(target: CarAppTarget, row: ProbeRow?) {
         }
         if (row != null) {
             Text(
-                stringResource(R.string.fork_carhost_guard, guardText(row.guard)),
+                stringResource(R.string.fork_carhost_guard, guardText(row.guard, row.keptOnBlock)),
                 color = if (row.guard == GuardVerdict.BLOCKED) AccentOrange else TextSecondary,
                 fontSize = 13.sp,
             )
@@ -120,8 +122,12 @@ private fun CarHostTargetRow(target: CarAppTarget, row: ProbeRow?) {
             Checkbox(checked = surface, onCheckedChange = { surface = it })
             Text(stringResource(R.string.fork_carhost_surface), color = TextPrimary, fontSize = 13.sp)
         }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Checkbox(checked = keepOnBlock, onCheckedChange = { keepOnBlock = it })
+            Text(stringResource(R.string.fork_carhost_keep_on_block), color = TextPrimary, fontSize = 13.sp)
+        }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Button(onClick = { CarHostProbe.connect(context, target, surface) }) {
+            Button(onClick = { CarHostProbe.connect(context, target, surface, keepOnBlock) }) {
                 Text(stringResource(R.string.fork_carhost_connect))
             }
             OutlinedButton(onClick = { CarHostProbe.stop(target.pkg) }) {
@@ -159,11 +165,11 @@ private fun statusText(state: HostState?, reason: String?): String {
 }
 
 @Composable
-private fun guardText(g: GuardVerdict?): String = stringResource(
+private fun guardText(g: GuardVerdict?, kept: Boolean): String = stringResource(
     when (g) {
         GuardVerdict.OK -> R.string.fork_carhost_g_ok
         GuardVerdict.CHANGED -> R.string.fork_carhost_g_changed
-        GuardVerdict.BLOCKED -> R.string.fork_carhost_g_blocked
+        GuardVerdict.BLOCKED -> if (kept) R.string.fork_carhost_g_blocked_kept else R.string.fork_carhost_g_blocked
         GuardVerdict.UNKNOWN, null -> R.string.fork_carhost_g_unknown
     }
 )

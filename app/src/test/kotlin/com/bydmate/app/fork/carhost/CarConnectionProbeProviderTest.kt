@@ -93,6 +93,18 @@ class CarConnectionProbeProviderTest {
         assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, pm.getComponentEnabledSetting(name))
     }
 
+    @Test fun `every provider flip reaches every discovered navigator, not only those with a row`() {
+        CarHostProbe.resetOnStart(ctx)
+        CarHostProbe.rememberTargets(listOf("p.x", "p.y"))
+        CarHostProbe.putRowForTest(CarAppTarget("p.a", "S", "A"), HostState.RUNNING)
+        val app = ctx as android.app.Application
+        val sent = { org.robolectric.Shadows.shadowOf(app).broadcastIntents
+            .filter { it.action == CarConnectionProbeProvider.ACTION_UPDATED }.map { it.`package` } }
+        val already = sent().size
+        CarHostProbe.stopAll()
+        assertEquals(setOf("p.x", "p.y", "p.a"), sent().drop(already).toSet())
+    }
+
     @Test fun `stopAll with no sessions leaves the provider at the manifest default (disabled)`() {
         CarHostProbe.resetOnStart(ctx)
         CarHostProbe.stopAll()

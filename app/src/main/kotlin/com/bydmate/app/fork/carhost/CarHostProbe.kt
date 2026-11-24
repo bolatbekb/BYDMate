@@ -13,6 +13,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -34,6 +35,8 @@ data class ProbeRow(
     val countdown: Int?,
     /** Why the navigator refused (masked, at most [FAIL_REASON_MAX] chars); null if not refused. */
     val failReason: String? = null,
+    /** BLOCKED was seen but the session was left connected (the row's checkbox asked for it). */
+    val keptOnBlock: Boolean = false,
 )
 
 internal const val FAIL_REASON_MAX = 80
@@ -76,10 +79,21 @@ object CarHostProbe {
     @Volatile private var appCtx: Context? = null
     @Volatile private var connectedForTest: Boolean? = null
     private val stopping = HashSet<String>()
+    /** Navigator packages from the last discovery and every connect: all hear each provider flip. */
+    private val known = LinkedHashSet<String>()
     private var providerOn = false
 
     // UI guard: one job per package (countdown, snapshots); a stop cancels it.
-    private val guardScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    // A failure inside a guard is logged and goes no further: it never reaches the app.
+    private val guardScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO + CoroutineExceptionHandler { _, e ->
+            try {
+                Trace.event(TraceArea.HUD, "carhost_error", "where" to "guard", "error" to maskedError(e))
+            } catch (_: Throwable) {
+                // nothing more to do
+            }
+        },
+    )
     private val guards = HashMap<String, Job>()
     private var guardRuns = 0
 
@@ -110,16 +124,25 @@ object CarHostProbe {
         } catch (e: RuntimeException) {
             emptyList()
         }
-        announce(app, pkgs)
+        known.addAll(pkgs)
+        announce(app, known)
+    }
+
+    /** The settings block's discovery: every listed navigator hears the provider flips. */
+    @Synchronized
+    fun rememberTargets(pkgs: Collection<String>) {
+        known.addAll(pkgs)
     }
 
     @Synchronized
-    fun connect(ctx: Context, target: CarAppTarget, giveSurface: Boolean) {
+    fun connect(ctx: Context, target: CarAppTarget, giveSurface: Boolean, keepOnBlock: Boolean = false) {
         val app = ctx.applicationContext ?: ctx
         appCtx = app
+        known.add(target.pkg)
         guards.remove(target.pkg)?.cancel()
         sessions.remove(target.pkg)?.stop()
         stopping.remove(target.pkg)
+        CarNotifProbe.watch(target.pkg)
         val label = AsciiText.encode(target.label) ?: "?"
         lateinit var session: CarHostSession
         session = CarHostSession(
@@ -145,15 +168,20 @@ object CarHostProbe {
         guards[target.pkg] = guardScope.launch {
             val me = coroutineContext[Job]
             try {
-                guardFlow(target, session, runner, n)
+                guardFlow(target, session, runner, n, keepOnBlock)
             } finally {
                 synchronized(this@CarHostProbe) { if (guards[target.pkg] === me) guards.remove(target.pkg) }
             }
         }
     }
 
-    /** Countdown, S0, connect, S1 at 3/10/30 s; BLOCKED stops the session and takes S2. */
-    private suspend fun guardFlow(target: CarAppTarget, session: CarHostSession, runner: UiGuardRunner?, n: Int) {
+    /**
+     * Countdown, S0, connect, S1 at 3/10/30 s; BLOCKED stops the session and takes S2 (with
+     * [keepOnBlock] it is only logged and shown, the session stays and the checks go on).
+     */
+    private suspend fun guardFlow(
+        target: CarAppTarget, session: CarHostSession, runner: UiGuardRunner?, n: Int, keepOnBlock: Boolean,
+    ) {
         val me = coroutineContext[Job]
         val pkg = target.pkg
         for (left in COUNTDOWN_S downTo 1) {
@@ -161,39 +189,51 @@ object CarHostProbe {
             delay(1000)
         }
         changeRow(target, session) { it.copy(countdown = null) }
-        val before = runner?.snapshot("before", n)
+        val read = runner?.let { r -> readBefore({ r.snapshot(it, n, CarNotifProbe.texts(pkg)) }, { delay(1000) }) }
         coroutineContext.ensureActive()
+        var mark = 0L
         val started = synchronized(this) {
-            if (guards[pkg] !== me || sessions[pkg] !== session) false else { session.connect(); true }
+            if (guards[pkg] !== me || sessions[pkg] !== session) {
+                false
+            } else {
+                mark = CarNotifProbe.mark()
+                session.connect()
+                true
+            }
         }
         if (!started) return
-        if (before == null) {
+        if (read == null || runner == null) {
             Trace.event(TraceArea.HUD, "carhost_guard", "n" to n, "verdict" to "UNKNOWN", "reason" to "no_runner")
             return
         }
+        // Texts that came in during S0 still count as "before".
+        val before = read.copy(texts = CarNotifProbe.texts(pkg, until = mark))
         var t = 0
         for (at in SNAPSHOT_AT_S) {
             delay((at - t) * 1000L)
             t = at
             if (!stillRunning(pkg, session, me)) return
-            var after = runner.snapshot("${at}s", n)
+            var after = runner.snapshot("${at}s", n, CarNotifProbe.texts(pkg, from = mark))
             coroutineContext.ensureActive()
             var (verdict, reason) = UiGuard.verdict(before, after, pkg)
             if (verdict == GuardVerdict.UNKNOWN && reason == "no_reading") {
                 delay(1000)
-                after = runner.snapshot("${at}s-retry", n)
+                after = runner.snapshot("${at}s-retry", n, CarNotifProbe.texts(pkg, from = mark))
                 coroutineContext.ensureActive()
                 UiGuard.verdict(before, after, pkg).let { verdict = it.first; reason = it.second }
             }
-            traceGuard("${at}s", n, verdict, reason, before, after, null)
-            changeRow(target, session) { it.copy(guard = worse(it.guard, verdict)) }
-            if (verdict == GuardVerdict.BLOCKED) {
+            val keep = keepOnBlock && verdict == GuardVerdict.BLOCKED
+            traceGuard("${at}s", n, verdict, reason, before, after, null, kept = keep)
+            changeRow(target, session) {
+                it.copy(guard = worse(it.guard, verdict), keptOnBlock = it.keptOnBlock || keep)
+            }
+            if (verdict == GuardVerdict.BLOCKED && !keep) {
                 synchronized(this) {
                     if (guards[pkg] !== me || sessions[pkg] !== session) return
                     stopForGuard(pkg)
                 }
                 delay(AFTER_STOP_S * 1000L)
-                val s2 = runner.snapshot("after", n)
+                val s2 = runner.snapshot("after", n, emptyList())
                 coroutineContext.ensureActive()
                 val restored = UiGuard.verdict(before, s2, pkg).first.let {
                     it == GuardVerdict.OK || it == GuardVerdict.CHANGED
@@ -213,13 +253,14 @@ object CarHostProbe {
 
     private fun traceGuard(
         tag: String, n: Int, v: GuardVerdict, reason: String,
-        before: UiSnapshot, after: UiSnapshot, restored: Boolean?,
+        before: UiSnapshot, after: UiSnapshot, restored: Boolean?, kept: Boolean = false,
     ) {
         val f = mutableListOf<Pair<String, Any?>>(
             "n" to n, "tag" to tag, "verdict" to v.name, "reason" to reason,
-            "nodes_before" to before.nodes, "nodes_after" to after.nodes,
+            "notif_before" to before.texts.size, "notif_after" to after.texts.size,
         )
         if (restored != null) f += "restored" to if (restored) "yes" else "no"
+        if (kept) f += "kept" to "yes"
         Trace.event(TraceArea.HUD, "carhost_guard", *f.toTypedArray())
     }
 
@@ -227,6 +268,7 @@ object CarHostProbe {
     fun stop(pkg: String) {
         guards.remove(pkg)?.cancel()
         rows.update { m -> m[pkg]?.let { m + (pkg to it.copy(countdown = null)) } ?: m }
+        CarNotifProbe.unwatch(pkg)
         stopForGuard(pkg)
     }
 
@@ -257,10 +299,11 @@ object CarHostProbe {
         rows.update { m -> m.mapValues { it.value.copy(countdown = null) } }
         stopping.addAll(rows.value.keys)
         sessions.values.forEach { it.stop() }
+        CarNotifProbe.unwatchAll()
         providerOn = false
         val ctx = appCtx ?: return
         setProvider(ctx, false)
-        announce(ctx, rows.value.keys)
+        announce(ctx, known + rows.value.keys)
     }
 
     @VisibleForTesting
@@ -280,6 +323,7 @@ object CarHostProbe {
         rows.update { m -> m[pkg]?.let { m + (pkg to it.copy(state = state)) } ?: m }
         if (state == HostState.FAILED || state == HostState.DISCONNECTED) {
             sessions.remove(pkg)
+            CarNotifProbe.unwatch(pkg)
             // A guard-initiated stop (pkg in stopping) lets the guard take its after-shot.
             if (pkg !in stopping) guards.remove(pkg)?.cancel()
             stopping.remove(pkg)
@@ -306,6 +350,8 @@ object CarHostProbe {
         guards.clear()
         sessions.clear()
         stopping.clear()
+        known.clear()
+        CarNotifProbe.unwatchAll()
         rows.value = emptyMap()
         providerOn = false
         connectedForTest = null
@@ -324,7 +370,7 @@ object CarHostProbe {
         providerOn = want
         val ctx = appCtx ?: return
         setProvider(ctx, want)
-        announce(ctx, rows.value.keys)
+        announce(ctx, known + rows.value.keys)
     }
 
     private fun providerName(ctx: Context) = ComponentName(ctx, CarConnectionProbeProvider::class.java)
@@ -341,6 +387,17 @@ object CarHostProbe {
 
     /** The library's update broadcast to each navigator, so its `CarConnection` asks again. */
     private fun announce(ctx: Context, pkgs: Collection<String>) {
-        for (pkg in pkgs) ctx.sendBroadcast(Intent(CarConnectionProbeProvider.ACTION_UPDATED).setPackage(pkg))
+        for (pkg in pkgs) {
+            try {
+                ctx.sendBroadcast(Intent(CarConnectionProbeProvider.ACTION_UPDATED).setPackage(pkg))
+            } catch (e: RuntimeException) {
+                // one navigator that cannot hear it does not stop the others
+            }
+        }
     }
+
+    /** Which packages heard the last flip (tests only). */
+    @VisibleForTesting
+    @Synchronized
+    internal fun knownForTest(): Set<String> = known.toSet()
 }

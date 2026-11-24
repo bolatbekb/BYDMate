@@ -24,4 +24,6 @@
     <string name="fork_carhost_route_hint">Address or place</string>
     <string name="fork_carhost_route">Route via Android Auto</string>
     <string name="fork_carhost_st_failed_plain">Refused</string>
+    <string name="fork_carhost_keep_on_block">Do not disconnect when blocked</string>
+    <string name="fork_carhost_g_blocked_kept">BLOCKED — connection kept</string>
 </resources>

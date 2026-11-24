@@ -10,6 +10,9 @@ import com.bydmate.app.fork.naviprobe.AsciiText
  * Passive recorder (probe build): one `carhost_notif` line per notification of a discovered
  * navigator, with its car extensions flagged. Reads only; never connects to the app. [enabled] is
  * not persisted, so it is off after every process start.
+ *
+ * Independently of [enabled], it keeps the last few texts of each [watch]ed package (one with a
+ * live probe session) in memory for the UI guard; they are never traced and go with the session.
  */
 object CarNotifProbe {
     private const val CAR_EXT = "android.car.EXTENSIONS"
@@ -35,8 +38,58 @@ object CarNotifProbe {
     private class Last(val title: String, val text: String, val at: Long)
     private val last = HashMap<String, Last>()
 
+    // ---- texts for the UI guard: memory only, only while the package has a probe session ----
+
+    private const val SEEN_MAX = 8
+    private const val SEEN_TEXT_MAX = 200
+    private class Seen(val seq: Long, val text: String)
+    private val seen = HashMap<String, ArrayDeque<Seen>>()
+    private var seq = 0L
+    /** Packages with a live probe session; empty when idle, so other packages cost one check. */
+    @Volatile private var watched: Set<String> = emptySet()
+
+    /** Starts (or restarts, empty) keeping the notification texts of [pkg]. */
+    fun watch(pkg: String) = synchronized(seen) {
+        seen[pkg] = ArrayDeque()
+        watched = seen.keys.toSet()
+    }
+
+    /** Forgets [pkg]'s texts and stops keeping them. */
+    fun unwatch(pkg: String) = synchronized(seen) {
+        seen.remove(pkg)
+        watched = seen.keys.toSet()
+    }
+
+    fun unwatchAll() = synchronized(seen) {
+        seen.clear()
+        watched = emptySet()
+    }
+
+    /** A mark of "now": texts kept later have a higher number. */
+    fun mark(): Long = synchronized(seen) { seq }
+
+    /** The kept texts of [pkg] numbered in `[from, until)`. */
+    fun texts(pkg: String, from: Long = 0, until: Long = Long.MAX_VALUE): List<String> = synchronized(seen) {
+        seen[pkg]?.filter { it.seq in from until until }?.map { it.text } ?: emptyList()
+    }
+
+    private fun keep(pkg: String, n: Notification) {
+        val ex = n.extras ?: return
+        val text = listOf(
+            Notification.EXTRA_TITLE, Notification.EXTRA_TEXT, Notification.EXTRA_BIG_TEXT, Notification.EXTRA_SUB_TEXT,
+        ).mapNotNull { ex.getCharSequence(it)?.toString()?.takeIf(String::isNotBlank) }
+            .joinToString(" | ").take(SEEN_TEXT_MAX)
+        if (text.isEmpty()) return
+        synchronized(seen) {
+            val q = seen[pkg] ?: return
+            q.addLast(Seen(seq++, text))
+            while (q.size > SEEN_MAX) q.removeFirst()
+        }
+    }
+
     internal fun resetForTest(full: Boolean = false) {
         synchronized(last) { last.clear() }
+        unwatchAll()
         if (full) {
             enabled = false
             targets = emptySet()
@@ -48,8 +101,9 @@ object CarNotifProbe {
 
     fun onPosted(sbn: StatusBarNotification) {
         try {
-            if (!enabled) return
             val pkg = sbn.packageName
+            if (pkg in watched) runCatching { keep(pkg, sbn.notification) }
+            if (!enabled) return
             if (pkg !in targets) return
             val d = digest(sbn.notification, pkg)
             val title = d.first { it.first == "title" }.second

@@ -104,4 +104,45 @@ class CarNotifProbeTest {
         CarNotifProbe.sink = { _, _ -> error("boom") }
         CarNotifProbe.onPosted(sbn(pkg, plain()))
     }
+
+    @Test fun `a watched package keeps its texts even with the recorder off, before and after a mark`() {
+        CarNotifProbe.enabled = false
+        CarNotifProbe.watch(pkg)
+        CarNotifProbe.onPosted(sbn(pkg, plain(title = "Navi", text = "Route ready")))
+        val mark = CarNotifProbe.mark()
+        CarNotifProbe.onPosted(sbn(pkg, plain(title = "Navi", text = "Running in Android Auto mode")))
+        assertTrue(lines.isEmpty())
+        assertEquals(listOf("Navi | Route ready"), CarNotifProbe.texts(pkg, until = mark))
+        val after = CarNotifProbe.texts(pkg, from = mark)
+        assertEquals(listOf("Navi | Running in Android Auto mode"), after)
+        val before = UiSnapshot(pkg, "A", null, CarNotifProbe.texts(pkg, until = mark))
+        assertEquals(
+            GuardVerdict.BLOCKED to "car_words",
+            UiGuard.verdict(before, before.copy(texts = after), pkg),
+        )
+    }
+
+    @Test fun `unwatched or other packages keep nothing, and unwatch forgets`() {
+        CarNotifProbe.onPosted(sbn(pkg, plain()))
+        assertTrue(CarNotifProbe.texts(pkg).isEmpty())
+        CarNotifProbe.watch(pkg)
+        CarNotifProbe.onPosted(sbn("org.other.app", plain()))
+        assertTrue(CarNotifProbe.texts("org.other.app").isEmpty())
+        CarNotifProbe.onPosted(sbn(pkg, plain()))
+        assertEquals(1, CarNotifProbe.texts(pkg).size)
+        CarNotifProbe.unwatch(pkg)
+        assertTrue(CarNotifProbe.texts(pkg).isEmpty())
+        CarNotifProbe.watch(pkg)
+        CarNotifProbe.onPosted(sbn(pkg, plain()))
+        CarNotifProbe.unwatchAll()
+        assertTrue(CarNotifProbe.texts(pkg).isEmpty())
+    }
+
+    @Test fun `only the last few texts are kept`() {
+        CarNotifProbe.watch(pkg)
+        repeat(20) { CarNotifProbe.onPosted(sbn(pkg, plain(text = "t$it"))) }
+        val t = CarNotifProbe.texts(pkg)
+        assertEquals(8, t.size)
+        assertEquals("T | t19", t.last())
+    }
 }

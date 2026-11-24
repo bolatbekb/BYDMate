@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
+import android.os.Message
 import android.os.Parcel
 import android.os.RemoteException
 import android.os.SystemClock
@@ -47,11 +48,15 @@ private val OWN_PREFIXES = listOf("androidx.", "android.", "java.", "javax.", "k
  */
 internal fun traceSafe(s: String?, pkg: String): String? {
     if (s == null) return null
-    val masked = DOTTED_NAME.replace(s.replace(pkg, "<pkg>")) { m ->
+    val masked = DOTTED_NAME.replace(if (pkg.isEmpty()) s else s.replace(pkg, "<pkg>")) { m ->
         if (OWN_PREFIXES.any { m.value.startsWith(it) }) m.value else "<pkg>"
     }
     return AsciiText.encode(masked, CarHostDigest.MAX_VALUE)
 }
+
+/** An unexpected failure for a `carhost_error` line: class and first message line, masked. */
+internal fun maskedError(e: Throwable, pkg: String = ""): String =
+    traceSafe(e.javaClass.simpleName + (e.message?.lineSequence()?.firstOrNull()?.let { ": $it" } ?: ""), pkg) ?: "?"
 
 /** The car-app API level this host speaks: the latest one of the linked library. */
 val HOST_LATEST: Int get() = CarAppApiLevels.getLatest()
@@ -74,7 +79,17 @@ class CarHostSession(
     private val onTrip: (String) -> Unit = {},
 ) {
     private val thread = HandlerThread("carhost-session").apply { start() }
-    private val handler = Handler(thread.looper)
+    // Safety net: whatever escapes a step on the session thread is logged and ends the session
+    // (it unbinds), instead of killing the process.
+    private val handler = object : Handler(thread.looper) {
+        override fun dispatchMessage(msg: Message) {
+            try {
+                super.dispatchMessage(msg)
+            } catch (t: Throwable) {
+                crashed(t)
+            }
+        }
+    }
     private val executor = Executor { handler.post(it) }
     private val flow = HostFlow(HOST_LATEST)
 
@@ -147,6 +162,22 @@ class CarHostSession(
 
     private fun post(block: () -> Unit) {
         handler.post(block)
+    }
+
+    private fun crashed(t: Throwable) {
+        try {
+            log("carhost_error", listOf("where" to "session", "error" to maskedError(t, target.pkg)))
+            if (!ended()) feed(HostEvent.CallFailed("session", maskedError(t, target.pkg)))
+            if (!ended()) feed(HostEvent.StopAsked) // RUNNING only logs a failed call
+        } catch (t2: Throwable) {
+            // The flow itself fails: at least let go of the app and the thread.
+            try {
+                unbind()
+                thread.quitSafely()
+            } catch (_: Throwable) {
+                // nothing more to do
+            }
+        }
     }
 
     // ---- flow ----
