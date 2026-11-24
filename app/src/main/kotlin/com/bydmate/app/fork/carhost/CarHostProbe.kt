@@ -21,8 +21,12 @@ data class ProbeRow(
     val countdown: Int?,
 )
 
-/** The car-connection provider is on only while some session runs. */
-internal fun providerShouldBeEnabled(states: Collection<HostState>): Boolean = HostState.RUNNING in states
+/**
+ * The car-connection provider is on only while some session runs and is not being stopped
+ * ([stopping]: packages whose stop is asked but not yet handled by their session thread).
+ */
+internal fun providerShouldBeEnabled(states: Map<String, HostState>, stopping: Set<String>): Boolean =
+    states.any { (pkg, state) -> state == HostState.RUNNING && pkg !in stopping }
 
 /**
  * App-wide holder of the car host probe: one [CarHostSession] per navigator package, their rows
@@ -30,7 +34,8 @@ internal fun providerShouldBeEnabled(states: Collection<HostState>): Boolean = H
  *
  * Rolls back by itself: nothing is persisted and nothing connects on its own; the provider is
  * disabled in the manifest, enabled only while a session is RUNNING and disabled again when none
- * is (also on every process start, in case the last process died while connected); each flip
+ * is (also on every process start, in case the last process died while connected); "off" is the
+ * manifest default, so nothing lasting is left in the package settings; each flip
  * sends the library's update broadcast so the navigator asks again. A session ends by itself at
  * [MAX_SESSION_MS] and leaves the map once it is unbound.
  */
@@ -41,10 +46,13 @@ object CarHostProbe {
     private val sessions = HashMap<String, CarHostSession>()
     @Volatile private var appCtx: Context? = null
     @Volatile private var connectedForTest: Boolean? = null
+    private val stopping = HashSet<String>()
     private var providerOn = false
 
     val anyConnected: Boolean
-        get() = connectedForTest ?: providerShouldBeEnabled(rows.value.values.map { it.state })
+        @Synchronized get() = connectedForTest ?: wanted()
+
+    private fun wanted() = providerShouldBeEnabled(rows.value.mapValues { it.value.state }, stopping)
 
     /** Process start: the provider goes back to disabled; the navigators hear it if it was on. */
     @Synchronized
@@ -54,9 +62,7 @@ object CarHostProbe {
         val pm = app.packageManager
         val was = pm.getComponentEnabledSetting(providerName(app))
         providerOn = false
-        if (was == PackageManager.COMPONENT_ENABLED_STATE_DEFAULT ||
-            was == PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-        ) return
+        if (was != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) return
         setProvider(app, false)
         Trace.event(TraceArea.HUD, "carhost_provider_reset")
         val pkgs = try {
@@ -72,6 +78,7 @@ object CarHostProbe {
         val app = ctx.applicationContext ?: ctx
         appCtx = app
         sessions.remove(target.pkg)?.stop()
+        stopping.remove(target.pkg)
         val label = AsciiText.encode(target.label) ?: "?"
         lateinit var session: CarHostSession
         session = CarHostSession(
@@ -84,12 +91,16 @@ object CarHostProbe {
         )
         sessions[target.pkg] = session
         rows.update { it + (target.pkg to ProbeRow(target, HostState.IDLE, null, null, null)) }
+        syncProvider()
         session.connect()
     }
 
     @Synchronized
     fun stop(pkg: String) {
-        sessions[pkg]?.stop()
+        val s = sessions[pkg] ?: return
+        stopping.add(pkg)
+        syncProvider()
+        s.stop()
     }
 
     @Synchronized
@@ -103,6 +114,9 @@ object CarHostProbe {
      */
     @Synchronized
     fun stopAll() {
+        // Marked first: a session that is still RUNNING until its thread gets the stop must not
+        // turn the provider back on.
+        stopping.addAll(rows.value.keys)
         sessions.values.forEach { it.stop() }
         providerOn = false
         val ctx = appCtx ?: return
@@ -117,11 +131,41 @@ object CarHostProbe {
 
     @Synchronized
     private fun stateChanged(target: CarAppTarget, session: CarHostSession, state: HostState) {
-        val current = sessions[target.pkg] === session
-        if (current) rows.update { m -> m[target.pkg]?.let { m + (target.pkg to it.copy(state = state)) } ?: m }
-        // A terminal session has already unbound and freed its surface: it leaves the map.
-        if (current && (state == HostState.FAILED || state == HostState.DISCONNECTED)) sessions.remove(target.pkg)
+        if (sessions[target.pkg] === session) applyState(target.pkg, state) else afterChange()
+    }
+
+    /** A state of the current session of [pkg]; a terminal one (already unbound) leaves the map. */
+    @VisibleForTesting
+    @Synchronized
+    internal fun applyState(pkg: String, state: HostState) {
+        rows.update { m -> m[pkg]?.let { m + (pkg to it.copy(state = state)) } ?: m }
+        if (state == HostState.FAILED || state == HostState.DISCONNECTED) {
+            sessions.remove(pkg)
+            stopping.remove(pkg)
+        }
+        afterChange()
+    }
+
+    private fun afterChange() {
         if (sessions.isEmpty()) stopAll() else syncProvider()
+    }
+
+    /** A row without a session, for tests of the provider decision. */
+    @VisibleForTesting
+    @Synchronized
+    internal fun putRowForTest(target: CarAppTarget, state: HostState) {
+        stopping.remove(target.pkg)
+        rows.update { it + (target.pkg to ProbeRow(target, state, null, null, null)) }
+    }
+
+    @VisibleForTesting
+    @Synchronized
+    internal fun clearForTest() {
+        sessions.clear()
+        stopping.clear()
+        rows.value = emptyMap()
+        providerOn = false
+        connectedForTest = null
     }
 
     /** Updates the row of [target] while [session] is still the one for it (a newer one wins). */
@@ -132,7 +176,7 @@ object CarHostProbe {
     }
 
     private fun syncProvider() {
-        val want = providerShouldBeEnabled(rows.value.values.map { it.state })
+        val want = wanted()
         if (want == providerOn) return
         providerOn = want
         val ctx = appCtx ?: return
@@ -146,7 +190,7 @@ object CarHostProbe {
         val state = if (on) {
             PackageManager.COMPONENT_ENABLED_STATE_ENABLED
         } else {
-            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            PackageManager.COMPONENT_ENABLED_STATE_DEFAULT // the manifest's: disabled
         }
         ctx.packageManager.setComponentEnabledSetting(providerName(ctx), state, PackageManager.DONT_KILL_APP)
         Trace.event(TraceArea.HUD, "carhost_car_connection", "connected" to on)

@@ -37,6 +37,22 @@ import com.bydmate.app.fork.naviprobe.AsciiText
 import java.util.concurrent.Executor
 import java.util.concurrent.atomic.AtomicBoolean
 
+private val DOTTED_NAME = Regex("""(?<![\w.$])[a-z][a-z0-9_]*(?:\.[A-Za-z0-9_$]+){2,}""")
+private val OWN_PREFIXES = listOf("androidx.", "android.", "java.", "javax.", "kotlin.", "kotlinx.", "com.bydmate.")
+
+/**
+ * A text from the app (error line, intent action, host type) as the trace may keep it: the
+ * target's package and every other dotted Java-style name that is not ours or the platform's
+ * become `<pkg>`, so a navigator's class names cannot leak its package; then ASCII, capped.
+ */
+internal fun traceSafe(s: String?, pkg: String): String? {
+    if (s == null) return null
+    val masked = DOTTED_NAME.replace(s.replace(pkg, "<pkg>")) { m ->
+        if (OWN_PREFIXES.any { m.value.startsWith(it) }) m.value else "<pkg>"
+    }
+    return AsciiText.encode(masked, CarHostDigest.MAX_VALUE)
+}
+
 /** The car-app API level this host speaks: the latest one of the linked library. */
 val HOST_LATEST: Int get() = CarAppApiLevels.getLatest()
 
@@ -88,7 +104,8 @@ class CarHostSession(
             try {
                 service.linkToDeath(deathRecipient, 0)
             } catch (e: RemoteException) {
-                feed(HostEvent.BinderDied)
+                // Not BinderDied: HostFlow ignores that before Bound and would keep the binding.
+                feed(HostEvent.CallFailed("bind", errorText(e)))
                 return
             }
             feed(HostEvent.Bound)
@@ -332,8 +349,7 @@ class CarHostSession(
         clean(e.message?.lineSequence()?.firstOrNull())?.let { "${e.javaClass.simpleName}: $it" } ?: e.javaClass.simpleName
 
     /** An error line for the trace: the target's package name is masked, text is ASCII. */
-    private fun clean(s: String?): String? =
-        AsciiText.encode(s?.replace(target.pkg, "<pkg>"), CarHostDigest.MAX_VALUE)
+    private fun clean(s: String?): String? = traceSafe(s, target.pkg)
 
     // ---- host stubs (binder threads) ----
 
@@ -372,7 +388,7 @@ class CarHostSession(
 
     private val carHost = object : ICarHost.Stub() {
         override fun startCarApp(intent: Intent?) = post {
-            log("carhost_start_car_app", listOfNotNull(intent?.action?.let { "action" to it }))
+            log("carhost_start_car_app", listOfNotNull(clean(intent?.action)?.let { "action" to it }))
         }
 
         override fun getHost(type: String?): IBinder? = when (type) {
@@ -387,7 +403,7 @@ class CarHostSession(
                 navigationHost.asBinder()
             }
             else -> {
-                val t = AsciiText.encode(type, CarHostDigest.MAX_VALUE) ?: "null"
+                val t = clean(type) ?: "null"
                 post { log("carhost_host_asked", listOf("type" to t)) }
                 null
             }

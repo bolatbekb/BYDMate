@@ -23,7 +23,7 @@ class CarConnectionProbeProviderTest {
     private val ctx: Context get() = ApplicationProvider.getApplicationContext()
     private val name get() = ComponentName(ctx, CarConnectionProbeProvider::class.java)
 
-    @After fun reset() = CarHostProbe.setConnectedForTest(null)
+    @After fun reset() = CarHostProbe.clearForTest()
 
     private fun state(): Int {
         val provider = Robolectric.buildContentProvider(CarConnectionProbeProvider::class.java).create().get()
@@ -54,24 +54,49 @@ class CarConnectionProbeProviderTest {
         assertEquals(2, state())
     }
 
-    @Test fun `the provider is on only while some session runs`() {
-        assertFalse(providerShouldBeEnabled(emptyList()))
-        assertFalse(providerShouldBeEnabled(HostState.values().filter { it != HostState.RUNNING }))
-        assertTrue(providerShouldBeEnabled(listOf(HostState.FAILED, HostState.RUNNING)))
-        assertTrue(providerShouldBeEnabled(listOf(HostState.RUNNING)))
+    @Test fun `the provider is on only while some session runs and is not being stopped`() {
+        assertFalse(providerShouldBeEnabled(emptyMap(), emptySet()))
+        val notRunning = HostState.values().filter { it != HostState.RUNNING }
+        assertFalse(providerShouldBeEnabled(notRunning.associateBy { it.name }, emptySet()))
+        assertTrue(providerShouldBeEnabled(mapOf("a" to HostState.FAILED, "b" to HostState.RUNNING), emptySet()))
+        assertTrue(providerShouldBeEnabled(mapOf("b" to HostState.RUNNING), setOf("a")))
+        assertFalse(providerShouldBeEnabled(mapOf("b" to HostState.RUNNING), setOf("b")))
+        assertFalse(
+            providerShouldBeEnabled(mapOf("a" to HostState.RUNNING, "b" to HostState.RUNNING), setOf("a", "b")),
+        )
     }
 
-    @Test fun `process start turns a provider left on back off`() {
+    @Test fun `stopAll with two running sessions keeps the provider off while the stops drain`() {
+        CarHostProbe.resetOnStart(ctx)
+        val a = CarAppTarget("p.a", "S", "A")
+        val b = CarAppTarget("p.b", "S", "B")
+        CarHostProbe.putRowForTest(a, HostState.RUNNING)
+        CarHostProbe.putRowForTest(b, HostState.RUNNING)
+        assertTrue(CarHostProbe.anyConnected)
+        CarHostProbe.stopAll()
+        assertFalse(CarHostProbe.anyConnected)
+        assertEquals(0, state())
+        // A's thread handles its stop first; B still reads RUNNING.
+        CarHostProbe.applyState(a.pkg, HostState.DISCONNECTED)
+        assertEquals(HostState.RUNNING, CarHostProbe.states.value.getValue(b.pkg).state)
+        assertFalse(CarHostProbe.anyConnected)
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, ctx.packageManager.getComponentEnabledSetting(name))
+        CarHostProbe.applyState(b.pkg, HostState.DISCONNECTED)
+        assertFalse(CarHostProbe.anyConnected)
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, ctx.packageManager.getComponentEnabledSetting(name))
+    }
+
+    @Test fun `process start turns a provider left on back to the manifest default`() {
         val pm = ctx.packageManager
         pm.setComponentEnabledSetting(name, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
         CarHostProbe.resetOnStart(ctx)
-        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, pm.getComponentEnabledSetting(name))
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, pm.getComponentEnabledSetting(name))
     }
 
-    @Test fun `stopAll with no sessions leaves the provider disabled`() {
+    @Test fun `stopAll with no sessions leaves the provider at the manifest default (disabled)`() {
         CarHostProbe.resetOnStart(ctx)
         CarHostProbe.stopAll()
-        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DISABLED, ctx.packageManager.getComponentEnabledSetting(name))
+        assertEquals(PackageManager.COMPONENT_ENABLED_STATE_DEFAULT, ctx.packageManager.getComponentEnabledSetting(name))
         assertEquals(0, state())
     }
 }
