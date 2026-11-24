@@ -203,6 +203,7 @@
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/file_paths" />
         </provider>
+        <!-- fork: car host probe (probe/car-host only) --><provider android:name="com.bydmate.app.fork.carhost.CarConnectionProbeProvider" android:authorities="androidx.car.app.connection" android:enabled="false" android:exported="true" />
 
     </application>
 
