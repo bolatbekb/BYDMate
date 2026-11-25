@@ -106,8 +106,9 @@ class CellCollector(
 
     /** «Снять замер сейчас»: polls a snapshot each second for up to 12 s and stores the first complete one. */
     suspend fun takeManual(): ManualResult {
+        // The model no longer gates collection (it moved to «Мой автомобиль»); a snapshot works on any
+        // car — the cell count comes from the reading itself, not from a profile.
         val profile = settings.config.value.profile
-        if (profile == CarProfile.NONE) return ManualResult.Failed(StreamState.IDLE)
         lock.withLock { cellsStep("manual listen") { link.listen(true) } }
         var result: ManualResult? = null
         for (attempt in 1..MANUAL_POLLS) {
@@ -122,14 +123,14 @@ class CellCollector(
     }
 
     private suspend fun onSample(d: DiParsData?, c: CellsConfig) = cellsStep("sample") {
-        val enabled = c.profile != CarProfile.NONE && c.collect
+        val enabled = c.collect
         val s = d?.let { liveSampleOf(it, wall(), elapsed()) }
         if (s == null) {
             if (active && !enabled) end()
             return@cellsStep
         }
         lastSampleMs = s.elapsedMs
-        if (c.profile != CarProfile.NONE) settings.noteFull(s)
+        settings.noteFull(s)
         val sch = session(gate.move(s, uptime(), enabled, active), s, c.profile) ?: return@cellsStep
         val step = sch.onSample(s)
         step.relax.forEach { repo.updateRelax(it) }
@@ -246,8 +247,6 @@ class CellCollector(
         while (true) {
             lock.withLock {
                 cellsStep("window") {
-                    val profile = settings.config.value.profile
-                    if (profile == CarProfile.NONE) return@cellsStep
                     val now = elapsed()
                     val last = lastListen
                     if (last == null || now - last >= CellSchedule.KEEPALIVE_MS || now < last) {

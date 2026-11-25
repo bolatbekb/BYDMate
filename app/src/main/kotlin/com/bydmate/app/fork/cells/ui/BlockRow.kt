@@ -2,16 +2,19 @@ package com.bydmate.app.fork.cells.ui
 
 import com.bydmate.app.R
 import com.bydmate.app.fork.cells.data.CarProfile
-import com.bydmate.app.fork.cells.data.CellsConfig
 import com.bydmate.app.fork.cells.data.CheckView
 import java.util.Locale
 
 /** Rows of the settings block «Диагностика батареи». fork-local. */
 enum class BlockRow { CAR, COLLECT, INTERVAL, VIEW, STATS }
 
-/** Without a chosen car only the car row shows: everything else is hidden until a profile exists. */
-fun visibleRows(config: CellsConfig): List<BlockRow> =
-    if (config.profile == CarProfile.NONE) listOf(BlockRow.CAR) else BlockRow.entries
+/**
+ * The battery-check data rows. The car model is no longer chosen here (it moved to «Мой автомобиль»),
+ * so the CAR row is never shown and collection no longer depends on a profile — the four data rows
+ * always appear; collection itself is gated by the COLLECT toggle alone.
+ */
+fun visibleRows(): List<BlockRow> =
+    listOf(BlockRow.COLLECT, BlockRow.INTERVAL, BlockRow.VIEW, BlockRow.STATS)
 
 fun intervalLabelRes(sec: Int): Int = when (sec) {
     10 -> R.string.fork_cells_interval_10s

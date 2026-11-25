@@ -10,6 +10,7 @@ import com.bydmate.app.fork.cells.data.CellRepository
 import com.bydmate.app.fork.cells.data.CellStats
 import com.bydmate.app.fork.cells.data.CellStatsRow
 import com.bydmate.app.fork.cells.data.CellsConfig
+import com.bydmate.app.fork.cells.data.CellsDatabase
 import com.bydmate.app.fork.cells.data.CellsSettings
 import com.bydmate.app.fork.cells.data.CheckView
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -39,10 +40,14 @@ class CellsSettingsViewModel @Inject constructor(
 ) : ViewModel() {
     val config: StateFlow<CellsConfig> = settings.config
 
-    // No car profile: the cells database is neither opened nor created by this screen.
+    // The model no longer gates this (it moved to «Мой автомобиль»): show stats while collecting or
+    // while a database with earlier data exists, so stored snapshots stay exportable after collection
+    // is switched off. An existence check never opens or creates the database.
+    private fun cellsDbExists(): Boolean = ctx.getDatabasePath(CellsDatabase.FILE_NAME).exists()
+
     @OptIn(ExperimentalCoroutinesApi::class)
     val stats: StateFlow<CellStats?> = config
-        .map { it.profile != CarProfile.NONE }
+        .map { it.collect || cellsDbExists() }
         .distinctUntilChanged()
         .flatMapLatest { on -> if (on) repo.stats() else flowOf(null) }
         .catch { emit(CellStats(CellStatsRow(0, null, 0, 0, 0), 0L)) }

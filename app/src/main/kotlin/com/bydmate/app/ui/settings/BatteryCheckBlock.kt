@@ -15,14 +15,12 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.bydmate.app.R
-import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellStats
 import com.bydmate.app.fork.cells.data.CellsSettings
 import com.bydmate.app.fork.cells.data.CheckView
 import com.bydmate.app.fork.cells.ui.BlockRow
 import com.bydmate.app.fork.cells.ui.CellsSettingsViewModel
 import com.bydmate.app.fork.cells.ui.intervalLabelRes
-import com.bydmate.app.fork.cells.ui.profileLabelRes
 import com.bydmate.app.fork.cells.ui.sizeText
 import com.bydmate.app.fork.cells.ui.viewLabelRes
 import com.bydmate.app.fork.cells.ui.visibleRows
@@ -47,7 +45,7 @@ internal fun BatteryCheckBlock(vm: CellsSettingsViewModel = hiltViewModel()) {
     val stats by vm.stats.collectAsStateWithLifecycle()
     val notice by vm.notice.collectAsStateWithLifecycle()
     val exporting by vm.exporting.collectAsStateWithLifecycle()
-    val rows = visibleRows(config)
+    val rows = visibleRows()
     SectionHeader(text = stringResource(R.string.fork_cells_settings_header))
     Card(
         shape = RoundedCornerShape(12.dp),
@@ -55,16 +53,8 @@ internal fun BatteryCheckBlock(vm: CellsSettingsViewModel = hiltViewModel()) {
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(12.dp)) {
-            val profiles = CarProfile.entries
-            SettingChipRow(
-                title = stringResource(R.string.fork_cells_car_title),
-                description = stringResource(R.string.fork_cells_car_desc),
-                options = profiles.map { stringResource(profileLabelRes(it)) },
-                selectedIndex = profiles.indexOf(config.profile),
-                onSelect = { vm.setProfile(profiles[it]) },
-            )
+            // The car model moved to «Мой автомобиль»; here only the collection toggle and its options.
             if (BlockRow.COLLECT in rows) {
-                SettingDivider()
                 SettingToggleRow(
                     title = stringResource(R.string.fork_cells_collect_title),
                     description = stringResource(R.string.fork_cells_collect_desc),

@@ -34,7 +34,9 @@ class CellsSettingsViewModelTest {
 
     private val stats = CellStats(CellStatsRow(3, null, 0, 0, 0), 10L)
 
-    @Test fun `without a profile the stats are never collected from the repo`() = runTest {
+    @Test fun `stats follow the collection toggle, not the car model`() = runTest {
+        // Decoupled from the model: with no database file, stats collect while the toggle is on,
+        // regardless of the chosen profile (NONE here).
         val config = MutableStateFlow(CellsConfig(CarProfile.NONE, false, 30, CheckView.WHAT_TO_DO))
         val settings = mockk<CellsSettings> { every { this@mockk.config } returns config }
         val repo = mockk<CellRepository> { every { stats() } returns flowOf(stats) }
@@ -44,7 +46,7 @@ class CellsSettingsViewModelTest {
         verify(exactly = 0) { repo.stats() }
         assertNull(vm.stats.value)
 
-        config.value = CellsConfig(CarProfile.LEOPARD5_318, false, 30, CheckView.WHAT_TO_DO)
+        config.value = CellsConfig(CarProfile.NONE, true, 30, CheckView.WHAT_TO_DO)
         runCurrent()
         verify(exactly = 1) { repo.stats() }
         assertEquals(stats, vm.stats.value)

@@ -178,17 +178,17 @@ class CellCollectorTest {
         cells = CellBlob.encodeCells(IntArray(184) { 3275 }), probes = CellBlob.encodeProbes(IntArray(24) { 20 }),
     )
 
-    @Test fun `nothing happens without a car profile`() = test {
+    @Test fun `collection works without a car profile`() = test {
+        // The model moved to «Мой автомобиль» and no longer gates collection: a snapshot stores on any
+        // car, the cell count coming from the reading itself.
         settings.setCollect(true)
         val c = collector()
         for (t in 0L..9L) sample(t)
         c.setWindowOpen(true)
         advanceTimeBy(120_000)
         runCurrent()
-        assertEquals(ManualResult.Failed(StreamState.IDLE), c.takeManual())
-        assertEquals(0, source.calls)
-        assertEquals(StreamState.IDLE, c.stream.value.state)
-        assertTrue(rows().isEmpty())
+        assertTrue(c.takeManual() is ManualResult.Stored)
+        assertTrue(rows().isNotEmpty())
     }
 
     @Test fun `nothing happens with collection off`() = test {

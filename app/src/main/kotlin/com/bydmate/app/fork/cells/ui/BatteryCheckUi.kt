@@ -2,7 +2,6 @@ package com.bydmate.app.fork.cells.ui
 
 import com.bydmate.app.fork.cells.collect.ManualResult
 import com.bydmate.app.fork.cells.collect.MeasureKind
-import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellsConfig
 import com.bydmate.app.fork.cells.data.SnapshotSummary
 import com.bydmate.app.fork.cells.data.StreamState
@@ -102,9 +101,11 @@ data class EntryRow(
     val stopped: Boolean = false,
 )
 
-/** The row on «Машина»: hidden without a car; a stream problem beats the result; an old result stays with collection off. */
+/**
+ * The row on «Машина»: a stream problem beats the result; an old result stays with collection off.
+ * No longer depends on a car model (that moved to «Мой автомобиль»): the row works on any car.
+ */
 fun entryRow(config: CellsConfig, stream: StreamStatus, latest: Evaluation?, framesSeen: Boolean = false): EntryRow = when {
-    config.profile == CarProfile.NONE -> EntryRow(EntryKind.HIDDEN)
     stream.state == StreamState.UNSUPPORTED -> EntryRow(EntryKind.UNSUPPORTED)
     stream.state == StreamState.NO_STREAM -> EntryRow(EntryKind.NO_STREAM, stopped = framesSeen)
     latest != null -> EntryRow(EntryKind.RESULT, latest.level, latest.preliminary, latest.spreadMv, latest.input.ts)
