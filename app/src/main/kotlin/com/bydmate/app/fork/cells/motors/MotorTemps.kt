@@ -11,6 +11,7 @@ private const val TX_GET_INT = 5
 private const val DEV_GB = 1039
 private const val MIN_C = -39
 private const val MAX_C = 150
+private const val RPM_NOISE_FLOOR = 10
 
 /**
  * Motor and inverter °C of the Leopard 5, frame 0x4DA, confirmed by the owner's drive log (2026-11-23): 18–45 °C,
@@ -34,6 +35,12 @@ data class MotorTemps(
 /** −39..150 is a temperature; −40 (no data), 65535 and everything else is none. */
 internal fun motorTempOrNull(raw: Int): Int? = if (raw in MIN_C..MAX_C) raw else null
 
+/**
+ * At rest the electric-motor rpm signal dithers (±1 in the drive log), which [abs] would show as a
+ * 0↔1 flicker on the card; below [RPM_NOISE_FLOOR] there is no real rotation, so show 0. Magnitude otherwise.
+ */
+internal fun denoiseMotorRpm(rpm: Int?): Int? = rpm?.let { if (abs(it) < RPM_NOISE_FLOOR) 0 else abs(it) }
+
 interface MotorTempsReader {
     /** Null = the read failed as a whole; a single bad value is a null field. */
     suspend fun read(): MotorTemps?
@@ -56,16 +63,17 @@ class DemoMotorTempsReader(private val live: StateFlow<DiParsData?>) : MotorTemp
 }
 
 /**
- * The «Моторы» card for the Leopard 5: temperatures from [temps] (a dash while unread), every rpm as a magnitude.
- * On this car the front motor turns negative forward and the rear negative in reverse (drive log 2026-11-23);
- * the sign says nothing to the driver (owner, 2026-11-23).
+ * The «Моторы» card for the Leopard 5: temperatures from [temps] (a dash while unread), every rpm as a magnitude,
+ * with the electric motors denoised so the at-rest dither (±1) reads 0 ([denoiseMotorRpm]). On this car the front
+ * motor turns negative forward and the rear negative in reverse (drive log 2026-11-23); the sign says nothing to
+ * the driver (owner, 2026-11-23).
  */
 internal fun applyLeopard5Motors(state: TechPanelUiState, temps: MotorTemps?): TechPanelUiState = state.copy(
     inverterTempFront = temps?.inverterFront,
     motorTempFront = temps?.motorFront,
     inverterTempRear = temps?.inverterRear,
     motorTempRear = temps?.motorRear,
-    motorRpmFront = state.motorRpmFront?.let(::abs),
-    motorRpmRear = state.motorRpmRear?.let(::abs),
+    motorRpmFront = denoiseMotorRpm(state.motorRpmFront),
+    motorRpmRear = denoiseMotorRpm(state.motorRpmRear),
     engineRpm = state.engineRpm?.let(::abs),
 )

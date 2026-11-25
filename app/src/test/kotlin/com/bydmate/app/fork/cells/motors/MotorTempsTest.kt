@@ -77,4 +77,21 @@ class MotorTempsTest {
         assertEquals(384, out.motorRpmFront)
         assertEquals(388, out.motorRpmRear)
     }
+
+    @Test fun `at-rest electric-motor dither below 10 reads 0, engine rpm is untouched`() {
+        val state = TechPanelUiState(motorRpmFront = 0, motorRpmRear = -1, engineRpm = 3)
+        val out = applyLeopard5Motors(state, null)
+        assertEquals(0, out.motorRpmFront)
+        assertEquals(0, out.motorRpmRear)
+        assertEquals(3, out.engineRpm) // ICE, not an electric motor — no noise floor
+    }
+
+    @Test fun `rpm noise floor clamps under 10 and keeps 10 and up as a magnitude`() {
+        assertEquals(0, denoiseMotorRpm(9))
+        assertEquals(0, denoiseMotorRpm(-9))
+        assertEquals(10, denoiseMotorRpm(10))
+        assertEquals(10, denoiseMotorRpm(-10))
+        assertEquals(5793, denoiseMotorRpm(-5793))
+        assertNull(denoiseMotorRpm(null))
+    }
 }
