@@ -197,7 +197,7 @@ class BatteryCheckViewModelTest {
         assertEquals(null, vm.ui.value.selected)
         assertTrue(vm.ui.value.picker.isEmpty())
         assertFalse(vm.ui.value.loading)
-        assertEquals(EntryKind.COLLECT_OFF, vm.entry.value.kind)
+        assertEquals(EntryKind.HIDDEN, vm.entry.value.kind)
     }
 
     @Test fun `manual result reaches the ui`() = runTest(dispatcher) {
@@ -303,7 +303,7 @@ class BatteryCheckViewModelTest {
         assertEquals(null, vm.ui.value.selected)
         assertTrue(vm.ui.value.history.isEmpty())
         assertFalse(vm.ui.value.loading)
-        assertEquals(EntryKind.COLLECT_OFF, vm.entry.value.kind)
+        assertEquals(EntryKind.HIDDEN, vm.entry.value.kind)
         settings.setCollect(true)
         advanceUntilIdle()
         assertEquals(EntryKind.NO_MEASUREMENTS, vm.entry.value.kind)

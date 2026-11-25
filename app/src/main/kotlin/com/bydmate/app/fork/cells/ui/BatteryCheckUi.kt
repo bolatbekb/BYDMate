@@ -109,7 +109,9 @@ fun entryRow(config: CellsConfig, stream: StreamStatus, latest: Evaluation?, fra
     stream.state == StreamState.UNSUPPORTED -> EntryRow(EntryKind.UNSUPPORTED)
     stream.state == StreamState.NO_STREAM -> EntryRow(EntryKind.NO_STREAM, stopped = framesSeen)
     latest != null -> EntryRow(EntryKind.RESULT, latest.level, latest.preliminary, latest.spreadMv, latest.input.ts)
-    !config.collect -> EntryRow(EntryKind.COLLECT_OFF)
+    // Not engaged (collection off, no stored result): hide the row rather than clutter «Машина» — the
+    // feature is set up from Settings, not here (spec: hidden when off and no data).
+    !config.collect -> EntryRow(EntryKind.HIDDEN)
     else -> EntryRow(EntryKind.NO_MEASUREMENTS)
 }
 

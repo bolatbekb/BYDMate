@@ -164,7 +164,13 @@ class CellCollector(
      */
     private suspend fun begin(s: LiveSample, profile: CarProfile, wake: Boolean): CellSchedule {
         val sch = schedule?.takeIf { scheduleProfile == profile }
-            ?: CellSchedule({ oneCAmps(capacityKwh() ?: profile.capacityKwh, packCells.takeIf { it > 0 } ?: profile.cells) }) {
+            // Capacity feeds only the 1C "under load" threshold. Without a chosen model (NONE → 0) and an
+            // empty capacity field, fall back to a neutral default so the threshold never collapses to 0 A
+            // and classifies all driving as "под нагрузкой" (R: any-car collection).
+            ?: CellSchedule({
+                val cap = (capacityKwh() ?: profile.capacityKwh).takeIf { it > 0.0 } ?: DEFAULT_PACK_KWH
+                oneCAmps(cap, packCells.takeIf { it > 0 } ?: profile.cells)
+            }) {
                 settings.config.value.intervalSec * MS_PER_SEC
             }
         schedule = sch
@@ -263,6 +269,8 @@ class CellCollector(
     private companion object {
         const val TAG = "CellCollector"
         const val MS_PER_SEC = 1_000L
+        /** Neutral pack size for the 1C threshold when no model and no entered capacity give one. */
+        const val DEFAULT_PACK_KWH = 60.0
         const val MANUAL_POLLS = 12
         const val MANUAL_POLL_MS = 1_000L
         const val WINDOW_POLL_MS = 5_000L

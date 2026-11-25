@@ -44,11 +44,11 @@ class BatteryCheckUiTest {
     @Test fun `entry row no longer depends on a car model`() {
         // The model moved to «Мой автомобиль»; NONE behaves like any car — the row shows its normal state.
         assertEquals(EntryKind.RESULT, entryRow(car.copy(profile = CarProfile.NONE), ok, eval()).kind)
-        assertEquals(EntryKind.COLLECT_OFF, entryRow(car.copy(profile = CarProfile.NONE, collect = false), StreamStatus(StreamState.IDLE), null).kind)
+        assertEquals(EntryKind.NO_MEASUREMENTS, entryRow(car.copy(profile = CarProfile.NONE), ok, null).kind)
     }
 
-    @Test fun `entry row asks to turn collection on`() {
-        assertEquals(EntryKind.COLLECT_OFF, entryRow(car.copy(collect = false), StreamStatus(StreamState.IDLE), null).kind)
+    @Test fun `entry row is hidden when collection is off with no stored result`() {
+        assertEquals(EntryKind.HIDDEN, entryRow(car.copy(collect = false), StreamStatus(StreamState.IDLE), null).kind)
         assertEquals(EntryKind.NO_MEASUREMENTS, entryRow(car, ok, null).kind)
     }
 

@@ -5,6 +5,7 @@ import android.os.Environment
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.bydmate.app.R
+import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.fork.cells.data.CarProfile
 import com.bydmate.app.fork.cells.data.CellRepository
 import com.bydmate.app.fork.cells.data.CellStats
@@ -43,7 +44,10 @@ class CellsSettingsViewModel @Inject constructor(
     // The model no longer gates this (it moved to «Мой автомобиль»): show stats while collecting or
     // while a database with earlier data exists, so stored snapshots stay exportable after collection
     // is switched off. An existence check never opens or creates the database.
-    private fun cellsDbExists(): Boolean = ctx.getDatabasePath(CellsDatabase.FILE_NAME).exists()
+    private fun cellsDbExists(): Boolean {
+        val name = if (DemoMode.isOn(ctx)) CellsDatabase.DEMO_FILE_NAME else CellsDatabase.FILE_NAME
+        return ctx.getDatabasePath(name).exists()
+    }
 
     @OptIn(ExperimentalCoroutinesApi::class)
     val stats: StateFlow<CellStats?> = config
