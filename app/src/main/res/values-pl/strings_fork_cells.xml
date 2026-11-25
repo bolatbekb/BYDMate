@@ -5,9 +5,9 @@
     <string name="fork_cells_settings_header">Diagnostyka baterii</string>
     <!-- Car -->
     <string name="fork_cells_car_title">Samochód</string>
-    <string name="fork_cells_car_desc">Dopóki samochód nie jest wybrany, diagnostyka ogniw nie jest pokazywana. Liczbę ogniw i czujników aplikacja bierze z samego auta, a pojemność dla progu „pod obciążeniem” — z ustawienia „Pojemność akumulatora” (puste pole — 31,8 kWh).</string>
+    <string name="fork_cells_car_desc">Wybór modelu włącza dane znane tylko dla niego: temperatury płynu chłodzącego, falowników i silników. Zbieranie danych ogniw działa bez wyboru modelu. Pojemność dla progu „pod obciążeniem” pochodzi z pola „Pojemność akumulatora” (puste — 31,8 kWh).</string>
     <string name="fork_cells_car_none">Nie wybrano</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5/8</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">Zbieraj dane ogniw baterii</string>
     <string name="fork_cells_collect_desc">Gdy auto jest włączone, aplikacja co wybrany interwał zapisuje napięcia wszystkich ogniw i temperatury wszystkich czujników — tylu, ilu zgłasza auto. Z tych zapisów powstają pomiary „w spoczynku”, „po ładowaniu”, „pod obciążeniem” oraz historia. Tylko odczyt, do auta nic nie jest zapisywane. Dane są przechowywane osobno od bazy przejazdów i ładowań.</string>

@@ -5,9 +5,9 @@
     <string name="fork_cells_settings_header">Diagnóstico da bateria</string>
     <!-- Car -->
     <string name="fork_cells_car_title">Carro</string>
-    <string name="fork_cells_car_desc">Enquanto nenhum carro for escolhido, o diagnóstico das células não é mostrado. O app obtém o número de células e sensores do próprio carro, e a capacidade para o limite «sob carga» da configuração «Capacidade da bateria» (campo vazio — 31,8 kWh).</string>
+    <string name="fork_cells_car_desc">Escolher um modelo ativa dados conhecidos apenas para ele: temperaturas do líquido de arrefecimento, dos inversores e dos motores. A coleta de dados das células funciona sem escolher um modelo. A capacidade para o limite «sob carga» vem do campo «Capacidade da bateria» (vazio — 31,8 kWh).</string>
     <string name="fork_cells_car_none">Não escolhido</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5/8</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">Coletar dados das células da bateria</string>
     <string name="fork_cells_collect_desc">Com o carro ligado, o app salva a cada intervalo escolhido as tensões de todas as células e as temperaturas de todos os sensores, quantos o carro informar. Desses registros saem as medições «em repouso», «após carregar», «sob carga» e o histórico. Somente leitura: nada é gravado no carro. Os dados ficam separados do banco de viagens e carregamentos.</string>

@@ -5,9 +5,9 @@
     <string name="fork_cells_settings_header">Battery check</string>
     <!-- Car -->
     <string name="fork_cells_car_title">Car</string>
-    <string name="fork_cells_car_desc">Until a car is chosen, cell diagnostics are hidden. The app takes the number of cells and probes from the car itself, and the capacity for the “under load” threshold from the “Battery capacity” setting (empty field — 31.8 kWh).</string>
+    <string name="fork_cells_car_desc">Choosing a model turns on data known only for it: coolant, inverter and motor temperatures. Cell data collection works without a model. The capacity for the “under load” threshold comes from the “Battery capacity” field (empty — 31.8 kWh).</string>
     <string name="fork_cells_car_none">Not chosen</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5/8</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">Collect battery cell data</string>
     <string name="fork_cells_collect_desc">While the car is on, the app saves the voltages of all cells and the temperatures of all probes, as many as the car reports, once per chosen interval. These snapshots build the “at rest”, “after charging” and “under load” measurements and the history. Read-only: nothing is written to the car. The data is stored apart from the trips and charges database.</string>

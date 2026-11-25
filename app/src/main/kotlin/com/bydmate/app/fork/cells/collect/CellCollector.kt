@@ -106,8 +106,9 @@ class CellCollector(
 
     /** «Снять замер сейчас»: polls a snapshot each second for up to 12 s and stores the first complete one. */
     suspend fun takeManual(): ManualResult {
+        // The model no longer gates collection (it moved to «Мой автомобиль»); a snapshot works on any
+        // car — the cell count comes from the reading itself, not from a profile.
         val profile = settings.config.value.profile
-        if (profile == CarProfile.NONE) return ManualResult.Failed(StreamState.IDLE)
         lock.withLock { cellsStep("manual listen") { link.listen(true) } }
         var result: ManualResult? = null
         for (attempt in 1..MANUAL_POLLS) {
@@ -122,14 +123,14 @@ class CellCollector(
     }
 
     private suspend fun onSample(d: DiParsData?, c: CellsConfig) = cellsStep("sample") {
-        val enabled = c.profile != CarProfile.NONE && c.collect
+        val enabled = c.collect
         val s = d?.let { liveSampleOf(it, wall(), elapsed()) }
         if (s == null) {
             if (active && !enabled) end()
             return@cellsStep
         }
         lastSampleMs = s.elapsedMs
-        if (c.profile != CarProfile.NONE) settings.noteFull(s)
+        settings.noteFull(s)
         val sch = session(gate.move(s, uptime(), enabled, active), s, c.profile) ?: return@cellsStep
         val step = sch.onSample(s)
         step.relax.forEach { repo.updateRelax(it) }
@@ -163,7 +164,13 @@ class CellCollector(
      */
     private suspend fun begin(s: LiveSample, profile: CarProfile, wake: Boolean): CellSchedule {
         val sch = schedule?.takeIf { scheduleProfile == profile }
-            ?: CellSchedule({ oneCAmps(capacityKwh() ?: profile.capacityKwh, packCells.takeIf { it > 0 } ?: profile.cells) }) {
+            // Capacity feeds only the 1C "under load" threshold. Without a chosen model (NONE → 0) and an
+            // empty capacity field, fall back to a neutral default so the threshold never collapses to 0 A
+            // and classifies all driving as "под нагрузкой" (R: any-car collection).
+            ?: CellSchedule({
+                val cap = (capacityKwh() ?: profile.capacityKwh).takeIf { it > 0.0 } ?: DEFAULT_PACK_KWH
+                oneCAmps(cap, packCells.takeIf { it > 0 } ?: profile.cells)
+            }) {
                 settings.config.value.intervalSec * MS_PER_SEC
             }
         schedule = sch
@@ -246,8 +253,6 @@ class CellCollector(
         while (true) {
             lock.withLock {
                 cellsStep("window") {
-                    val profile = settings.config.value.profile
-                    if (profile == CarProfile.NONE) return@cellsStep
                     val now = elapsed()
                     val last = lastListen
                     if (last == null || now - last >= CellSchedule.KEEPALIVE_MS || now < last) {
@@ -264,6 +269,8 @@ class CellCollector(
     private companion object {
         const val TAG = "CellCollector"
         const val MS_PER_SEC = 1_000L
+        /** Neutral pack size for the 1C threshold when no model and no entered capacity give one. */
+        const val DEFAULT_PACK_KWH = 60.0
         const val MANUAL_POLLS = 12
         const val MANUAL_POLL_MS = 1_000L
         const val WINDOW_POLL_MS = 5_000L

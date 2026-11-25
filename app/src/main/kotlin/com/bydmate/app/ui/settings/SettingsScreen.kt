@@ -71,6 +71,7 @@ import androidx.compose.material.icons.outlined.Mic
 import java.util.Date
 
 internal enum class SettingsSection(@StringRes val labelRes: Int, val icon: ImageVector) {
+    MY_CAR(R.string.fork_my_car_title, Icons.Outlined.DirectionsCar), // fork: «Мой автомобиль», first
     VOICE(R.string.settings_section_voice_agent, Icons.Outlined.Mic),
     WIDGET(R.string.settings_section_widget_title, Icons.Outlined.PhoneAndroid),
     DISPLAY(R.string.settings_section_display_title, Icons.Outlined.DirectionsCar),
@@ -191,6 +192,7 @@ fun SettingsScreen(
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     when (safeSelected) {
+                        SettingsSection.MY_CAR -> MyCarSection() // fork: «Мой автомобиль»
                         SettingsSection.BATTERY -> BatterySection(state, viewModel, onNavigateToTariffPeriods)
                         SettingsSection.ALERTS -> AlertsSection() // fork: problem-alerts (Предупреждения)
                         SettingsSection.INTEGRATIONS -> IntegrationsSection(state, viewModel)

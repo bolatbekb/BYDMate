@@ -1,21 +1,14 @@
 package com.bydmate.app.fork.cells.ui
 
-import com.bydmate.app.fork.cells.data.CarProfile
-import com.bydmate.app.fork.cells.data.CellsConfig
-import com.bydmate.app.fork.cells.data.CheckView
 import java.util.Locale
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class CellsSettingsTextTest {
-    private fun config(p: CarProfile) = CellsConfig(p, collect = false, intervalSec = 30, view = CheckView.WHAT_TO_DO)
 
-    @Test fun `only the car row without a car`() {
-        assertEquals(listOf(BlockRow.CAR), visibleRows(config(CarProfile.NONE)))
-    }
-
-    @Test fun `all rows with Leopard 5`() {
-        assertEquals(BlockRow.entries, visibleRows(config(CarProfile.LEOPARD5_318)))
+    @Test fun `the four data rows show, no car row`() {
+        // Model choice moved to «Мой автомобиль»; the Service block no longer has a CAR row.
+        assertEquals(listOf(BlockRow.COLLECT, BlockRow.INTERVAL, BlockRow.VIEW, BlockRow.STATS), visibleRows())
     }
 
     @Test fun `size text has one decimal`() {
