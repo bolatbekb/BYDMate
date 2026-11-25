@@ -5,9 +5,9 @@
     <string name="fork_cells_settings_header">电池检测</string>
     <!-- Car -->
     <string name="fork_cells_car_title">车辆</string>
-    <string name="fork_cells_car_desc">未选择车辆时，不显示电芯诊断。电芯和温度探头的数量由车辆本身提供；“负载下”阈值所用的容量取自“电池容量”设置（为空时按 31.8 kWh）。</string>
+    <string name="fork_cells_car_desc">选择车型会启用仅该车型已知的数据：冷却液、逆变器和电机温度。未选择车型也能采集电芯数据。“负载下”阈值所用容量取自“电池容量”字段（为空时按 31.8 kWh）。</string>
     <string name="fork_cells_car_none">未选择</string>
-    <string name="fork_cells_car_leopard5">BYD Leopard 5</string>
+    <string name="fork_cells_car_leopard5">BYD Leopard 5/8</string>
     <!-- Collection -->
     <string name="fork_cells_collect_title">采集电池电芯数据</string>
     <string name="fork_cells_collect_desc">车辆启动期间，应用按所选间隔保存车辆报告的全部电芯电压和全部温度探头温度。这些快照用于生成“静置”“充电后”“负载下”的测量以及历史记录。仅读取，不会向车辆写入任何内容。数据与行程和充电数据库分开存放。</string>
