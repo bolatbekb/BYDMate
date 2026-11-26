@@ -9,4 +9,8 @@
     <string name="fork_update_notify_text">Усталяваць можна на стаянцы</string>
     <string name="fork_update_nightly_toggle_label">Усталёўваць тэставыя (nightly) зборкі</string>
     <string name="fork_update_nightly_toggle_description">Гэта тэставыя зборкі (prerelease), могуць працаваць нестабільна. Па змаўчанні выключана.</string>
+    <string name="fork_update_ready_title">Абнаўленне спампавана</string>
+    <string name="fork_update_ready_desc">BYDMate %1$s · гатова да ўсталявання</string>
+    <string name="fork_update_ready_install">Усталяваць</string>
+    <string name="fork_update_none">Няма спампаваных абнаўленняў</string>
 </resources>

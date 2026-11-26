@@ -9,4 +9,8 @@
     <string name="fork_update_notify_text">Установить можно на стоянке</string>
     <string name="fork_update_nightly_toggle_label">Устанавливать тестовые (nightly) сборки</string>
     <string name="fork_update_nightly_toggle_description">Это тестовые сборки (prerelease), могут работать нестабильно. По умолчанию выключено.</string>
+    <string name="fork_update_ready_title">Обновление загружено</string>
+    <string name="fork_update_ready_desc">BYDMate %1$s · готово к установке</string>
+    <string name="fork_update_ready_install">Установить</string>
+    <string name="fork_update_none">Загруженных обновлений нет</string>
 </resources>

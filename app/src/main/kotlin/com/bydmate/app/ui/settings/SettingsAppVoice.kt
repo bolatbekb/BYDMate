@@ -162,6 +162,8 @@ internal fun AppSection(state: SettingsUiState, viewModel: SettingsViewModel) {
                 buttonLabel = stringResource(R.string.settings_update_check_button),
                 onClick = { viewModel.showUpdateDialog() },
             )
+            SettingDivider() // fork: background-download status
+            UpdateReadyRow() // fork: shows the update already downloaded in the background + install now
         }
     }
 

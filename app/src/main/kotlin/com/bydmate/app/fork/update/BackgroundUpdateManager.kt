@@ -8,6 +8,7 @@ import com.bydmate.app.demo.DemoMode
 import com.bydmate.app.service.UpdateChecker
 import dagger.hilt.android.qualifiers.ApplicationContext
 import okhttp3.OkHttpClient
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -36,6 +37,10 @@ class BackgroundUpdateManager @Inject constructor(
     private val parkReader = ParkStateReader()
     private val notifyGate = LaunchNotifyGate()
 
+    /** One download at a time: the process-start trigger and the window gate share this guard, so
+     *  opening the window mid-download never starts a second download of the same file. */
+    private val downloading = AtomicBoolean(false)
+
     val currentVersion: String
         get() = runCatching {
             context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "0.0.0"
@@ -47,10 +52,28 @@ class BackgroundUpdateManager @Inject constructor(
      * (the gate) swallows it — an update that cannot download must never surface an error.
      */
     suspend fun refresh() {
-        val info = updateChecker.checkForUpdate(context) ?: return
-        Log.i(TAG, "newer release ${info.version} — downloading in background")
-        downloader.download(info)
+        if (!downloading.compareAndSet(false, true)) {
+            Log.i(TAG, "download already in progress — skipping")
+            return
+        }
+        try {
+            val info = updateChecker.checkForUpdate(context) ?: return
+            Log.i(TAG, "newer release ${info.version} — downloading in background")
+            downloader.download(info)
+        } finally {
+            downloading.set(false)
+        }
     }
+
+    /**
+     * The silently-downloaded update waiting in the cache (strictly newer than the running app), or
+     * null when nothing is ready. Read by the settings status row so the driver can see a background
+     * download landed and install it on demand. In demo mode a fake is returned so the row can be
+     * looked at on an emulator.
+     */
+    fun readyUpdate(): ReadyApk? =
+        if (DemoMode.isOn(context)) BackgroundUpdateDemo.fakeReady(context)
+        else store.readyApk(currentVersion)
 
     /**
      * What to show at app open: reads the current ready APK (dropping an already-installed one)

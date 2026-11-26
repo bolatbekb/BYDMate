@@ -9,4 +9,8 @@
     <string name="fork_update_notify_text">可在停车时安装</string>
     <string name="fork_update_nightly_toggle_label">安装测试版 (nightly) 更新</string>
     <string name="fork_update_nightly_toggle_description">这些是测试版 (预发布) 更新，可能不稳定。默认关闭。</string>
+    <string name="fork_update_ready_title">更新已下载</string>
+    <string name="fork_update_ready_desc">BYDMate %1$s · 可安装</string>
+    <string name="fork_update_ready_install">安装</string>
+    <string name="fork_update_none">没有已下载的更新</string>
 </resources>

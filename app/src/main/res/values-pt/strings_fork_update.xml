@@ -9,4 +9,8 @@
     <string name="fork_update_notify_text">Pode instalar quando estiver estacionado</string>
     <string name="fork_update_nightly_toggle_label">Instalar versões de teste (nightly)</string>
     <string name="fork_update_nightly_toggle_description">São versões de teste (pré-lançamento) e podem ser instáveis. Desativado por padrão.</string>
+    <string name="fork_update_ready_title">Atualização baixada</string>
+    <string name="fork_update_ready_desc">BYDMate %1$s · pronta para instalar</string>
+    <string name="fork_update_ready_install">Instalar</string>
+    <string name="fork_update_none">Nenhuma atualização baixada</string>
 </resources>
