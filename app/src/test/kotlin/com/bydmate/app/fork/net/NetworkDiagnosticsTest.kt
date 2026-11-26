@@ -40,4 +40,10 @@ class NetworkDiagnosticsTest {
         assertNull(loss.avgMs)
         assertNull(parsePing("PING 8.8.8.8: no reply"))
     }
+
+    @Test fun `mtu is the largest passing payload plus the 28-byte header`() {
+        assertEquals(1500, mtuFromPayloads(listOf(1472, 1400)))
+        assertEquals(1428, mtuFromPayloads(listOf(1400, 1372)))
+        assertNull(mtuFromPayloads(emptyList()))
+    }
 }
