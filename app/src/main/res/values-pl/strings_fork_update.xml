@@ -9,4 +9,8 @@
     <string name="fork_update_notify_text">Można zainstalować na postoju</string>
     <string name="fork_update_nightly_toggle_label">Instaluj kompilacje testowe (nightly)</string>
     <string name="fork_update_nightly_toggle_description">To kompilacje testowe (przedpremierowe), mogą być niestabilne. Domyślnie wyłączone.</string>
+    <string name="fork_update_ready_title">Aktualizacja pobrana</string>
+    <string name="fork_update_ready_desc">BYDMate %1$s · gotowa do instalacji</string>
+    <string name="fork_update_ready_install">Zainstaluj</string>
+    <string name="fork_update_none">Brak pobranych aktualizacji</string>
 </resources>

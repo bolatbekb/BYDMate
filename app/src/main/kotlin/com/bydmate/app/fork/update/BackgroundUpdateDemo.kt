@@ -33,7 +33,7 @@ object BackgroundUpdateDemo {
         }
     }
 
-    private fun fakeReady(context: Context): ReadyApk? = runCatching {
+    internal fun fakeReady(context: Context): ReadyApk? = runCatching {
         val dir = File(context.cacheDir, UpdateApkStore.SUBDIR).apply { mkdirs() }
         val file = File(dir, "BYDMate-$FAKE_VERSION.apk")
         if (!file.exists()) file.writeBytes(ByteArray(0))

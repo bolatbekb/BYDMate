@@ -9,4 +9,8 @@
     <string name="fork_update_notify_text">You can install it while parked</string>
     <string name="fork_update_nightly_toggle_label">Install test (nightly) builds</string>
     <string name="fork_update_nightly_toggle_description">These are test builds (prereleases) and may be unstable. Off by default.</string>
+    <string name="fork_update_ready_title">Update downloaded</string>
+    <string name="fork_update_ready_desc">BYDMate %1$s · ready to install</string>
+    <string name="fork_update_ready_install">Install</string>
+    <string name="fork_update_none">No downloaded updates</string>
 </resources>
