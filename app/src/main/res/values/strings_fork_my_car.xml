@@ -7,9 +7,4 @@
     <string name="fork_my_car_drive_ev">Электро (определён автоматически)</string>
     <string name="fork_my_car_drive_unknown">Определяется…</string>
     <string name="fork_my_car_tank_label">Объём бака, л</string>
-    <string name="fork_my_car_service_title">До ТО</string>
-    <string name="fork_my_car_service_km">%1$d км</string>
-    <string name="fork_my_car_service_days">%1$d дн.</string>
-    <string name="fork_my_car_service_none">Нет данных</string>
-    <string name="fork_my_car_service_soon_suffix"> · скоро</string>
 </resources>
