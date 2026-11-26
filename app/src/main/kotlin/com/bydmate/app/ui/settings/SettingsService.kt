@@ -579,6 +579,7 @@ private fun DiagnosticsRows(state: SettingsUiState, viewModel: SettingsViewModel
         )
     }
     SettingSubhead(stringResource(R.string.settings_diagnostics_header))
+    NetworkDiagRow() // fork: network diagnostics
     SettingActionRow(
         title = stringResource(R.string.settings_log_recording_start_button),
         description = stringResource(R.string.settings_log_recording_desc),

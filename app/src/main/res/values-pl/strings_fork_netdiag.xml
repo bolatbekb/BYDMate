@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fork_netdiag_title">Diagnostyka sieci</string>
+    <string name="fork_netdiag_desc">Wi-Fi, sieć, ping i realny test prędkości pobierania. Test zużywa ~5 MB danych.</string>
+    <string name="fork_netdiag_run">Uruchom</string>
+    <string name="fork_netdiag_running">Zbieranie…</string>
+    <string name="fork_netdiag_share">Udostępnij</string>
+    <string name="fork_netdiag_close">Zamknij</string>
+</resources>

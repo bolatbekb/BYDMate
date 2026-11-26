@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fork_netdiag_title">Диагностика сети</string>
+    <string name="fork_netdiag_desc">Wi-Fi, сеть, пинг и реальная скорость загрузки. Тест скорости использует ~5 МБ трафика.</string>
+    <string name="fork_netdiag_run">Запустить</string>
+    <string name="fork_netdiag_running">Сбор…</string>
+    <string name="fork_netdiag_share">Поделиться</string>
+    <string name="fork_netdiag_close">Закрыть</string>
+</resources>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fork_netdiag_title">网络诊断</string>
+    <string name="fork_netdiag_desc">Wi-Fi、网络、ping 和真实下载测速。测速约消耗 5 MB 流量。</string>
+    <string name="fork_netdiag_run">运行</string>
+    <string name="fork_netdiag_running">采集中…</string>
+    <string name="fork_netdiag_share">分享</string>
+    <string name="fork_netdiag_close">关闭</string>
+</resources>
