@@ -6,7 +6,6 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.wifi.WifiManager
 import android.os.Build
-import java.io.File
 import java.io.InputStream
 import java.net.HttpURLConnection
 import java.net.InetAddress
@@ -53,6 +52,7 @@ object NetworkDiagnostics {
     private const val SPEED_BYTES = 5_000_000L
     private const val PING_HOST = "8.8.8.8"
     private const val DNS_HOST = "cloudflare.com"
+    private const val WEB_HOST = "www.google.com"
 
     /** Builds the whole report. [speedTest] adds a ~5 MB download (metered data) when true. */
     fun collect(context: Context, speedTest: Boolean): String = buildString {
@@ -62,9 +62,13 @@ object NetworkDiagnostics {
         appendLine()
         section("active network") { activeNetwork(context) }
         section("wifi link") { wifiLink(context) }
-        section("interface counters") { interfaceCounters() }
         section("ping $PING_HOST") { ping() }
+        // Browser-relevant probes: a page pays these per site, where a bulk download/stream does not.
+        section("handshake to $WEB_HOST") { handshakeReport(WEB_HOST) }
+        section("ipv4 vs ipv6 ($WEB_HOST)") { ipVersionReport(WEB_HOST) }
+        section("path mtu ($PING_HOST)") { mtuReport(PING_HOST) }
         section("dns resolve $DNS_HOST") { dns() }
+        section("traffic") { trafficReport() }
         if (speedTest) section("download test (~${SPEED_BYTES / 1_000_000} MB)") { downloadTest() }
         else appendLine("download test: skipped (enable it to measure real throughput)")
     }
@@ -129,17 +133,6 @@ object NetworkDiagnostics {
         6 -> "11ax (Wi-Fi 6)"
         1 -> "11a/b/g (legacy)"
         else -> "unknown ($std)"
-    }
-
-    /** rx/tx bytes, errors and drops for the wlan interface from /proc/net/dev. */
-    private fun interfaceCounters(): String {
-        val lines = File("/proc/net/dev").readLines()
-        val wlan = lines.firstOrNull { it.trimStart().startsWith("wlan") } ?: return "no wlan interface"
-        val name = wlan.substringBefore(':').trim()
-        val f = wlan.substringAfter(':').trim().split(Regex("\\s+"))
-        // columns: rxBytes rxPackets rxErrs rxDrop ... (8) txBytes txPackets txErrs txDrop
-        fun col(i: Int) = f.getOrNull(i)?.toLongOrNull() ?: -1
-        return "$name  rx ${col(0)} B (err ${col(2)}, drop ${col(3)})  tx ${col(8)} B (err ${col(10)}, drop ${col(11)})"
     }
 
     private fun ping(): String {
