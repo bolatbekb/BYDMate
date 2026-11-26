@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="fork_netdiag_title">Network diagnostics</string>
+    <string name="fork_netdiag_desc">Wi-Fi, network, ping and a real download-speed test. The speed test uses ~5 MB of data.</string>
+    <string name="fork_netdiag_run">Run</string>
+    <string name="fork_netdiag_running">Collecting…</string>
+    <string name="fork_netdiag_share">Share</string>
+    <string name="fork_netdiag_close">Close</string>
+</resources>
