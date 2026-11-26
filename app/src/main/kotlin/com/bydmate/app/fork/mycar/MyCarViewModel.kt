@@ -2,8 +2,6 @@ package com.bydmate.app.fork.mycar
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.bydmate.app.data.carstatus.CarServiceStatus
-import com.bydmate.app.data.carstatus.CarStatusReader
 import com.bydmate.app.data.dtc.CarAutoType
 import com.bydmate.app.data.nativestack.VehicleKind
 import com.bydmate.app.data.nativestack.VehicleKindMonitor
@@ -27,10 +25,8 @@ import javax.inject.Inject
 /**
  * «Мой автомобиль» state. The drive type is read-only (auto-detected, [VehicleKindMonitor]); the model
  * is the fork [CarProfile] (kept in [CellsSettings]) and is autofilled once from the head unit code;
- * battery size and tank write the same keys the other screens use; the service countdown comes from
- * the stock car status. fork-local.
+ * battery size and tank write the same keys the other screens use. fork-local.
  */
-@Suppress("LongParameterList") // why: a Hilt view model aggregating the car's data from its separate stores
 @HiltViewModel
 class MyCarViewModel @Inject constructor(
     private val myCar: MyCarSettings,
@@ -38,7 +34,6 @@ class MyCarViewModel @Inject constructor(
     private val settings: SettingsRepository,
     private val ledger: LedgerRepository,
     vehicleKind: VehicleKindMonitor,
-    private val carStatus: CarStatusReader,
     private val helper: HelperClient,
 ) : ViewModel() {
 
@@ -53,17 +48,12 @@ class MyCarViewModel @Inject constructor(
     private val tankState = MutableStateFlow("")
     val tankCapacity: StateFlow<String> = tankState.asStateFlow()
 
-    private val serviceState = MutableStateFlow<CarServiceStatus?>(null)
-    val serviceStatus: StateFlow<CarServiceStatus?> = serviceState.asStateFlow()
-
     init {
         viewModelScope.launch {
             batteryState.value =
                 settings.getString(SettingsRepository.KEY_BATTERY_CAPACITY, SettingsRepository.DEFAULT_BATTERY_CAPACITY)
             tankState.value = ledger.tankCapacityL()?.let(::trimNumber) ?: ""
         }
-        viewModelScope.launch { refreshService() }
-        viewModelScope.launch { carStatus.changes().collect { refreshService() } }
         viewModelScope.launch {
             val code = withContext(Dispatchers.IO) { runCatching { CarAutoType.read(helper) }.getOrNull() }
             autofillModelOnce(
@@ -88,10 +78,6 @@ class MyCarViewModel @Inject constructor(
     fun setTankCapacity(value: String) {
         tankState.value = value
         viewModelScope.launch { ledger.setTankCapacityL(value.replace(',', '.').toDoubleOrNull()) }
-    }
-
-    private suspend fun refreshService() {
-        serviceState.value = runCatching { carStatus.read() }.getOrNull()
     }
 }
 

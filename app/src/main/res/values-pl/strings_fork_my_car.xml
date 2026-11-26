@@ -7,9 +7,4 @@
     <string name="fork_my_car_drive_ev">Elektryczny (wykryto automatycznie)</string>
     <string name="fork_my_car_drive_unknown">Wykrywanie…</string>
     <string name="fork_my_car_tank_label">Zbiornik, l</string>
-    <string name="fork_my_car_service_title">Do przeglądu</string>
-    <string name="fork_my_car_service_km">%1$d km</string>
-    <string name="fork_my_car_service_days">%1$d dni</string>
-    <string name="fork_my_car_service_none">Brak danych</string>
-    <string name="fork_my_car_service_soon_suffix"> · wkrótce</string>
 </resources>

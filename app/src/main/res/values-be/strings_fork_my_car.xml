@@ -7,9 +7,4 @@
     <string name="fork_my_car_drive_ev">Электра (вызначана аўтаматычна)</string>
     <string name="fork_my_car_drive_unknown">Вызначаецца…</string>
     <string name="fork_my_car_tank_label">Аб\'ём бака, л</string>
-    <string name="fork_my_car_service_title">Да ТА</string>
-    <string name="fork_my_car_service_km">%1$d км</string>
-    <string name="fork_my_car_service_days">%1$d дзён</string>
-    <string name="fork_my_car_service_none">Няма даных</string>
-    <string name="fork_my_car_service_soon_suffix"> · хутка</string>
 </resources>

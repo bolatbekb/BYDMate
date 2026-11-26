@@ -7,9 +7,4 @@
     <string name="fork_my_car_drive_ev">纯电（自动识别）</string>
     <string name="fork_my_car_drive_unknown">识别中…</string>
     <string name="fork_my_car_tank_label">油箱容积（升）</string>
-    <string name="fork_my_car_service_title">距保养</string>
-    <string name="fork_my_car_service_km">%1$d 公里</string>
-    <string name="fork_my_car_service_days">%1$d 天</string>
-    <string name="fork_my_car_service_none">无数据</string>
-    <string name="fork_my_car_service_soon_suffix"> · 即将</string>
 </resources>

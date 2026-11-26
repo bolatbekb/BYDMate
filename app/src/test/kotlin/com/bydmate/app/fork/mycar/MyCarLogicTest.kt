@@ -54,15 +54,4 @@ class MyCarLogicTest {
         assertNull(set)
         assertFalse(marked)
     }
-
-    // --- serviceSoon ---
-
-    @Test fun `service soon within 1000 km or 30 days, unknown is not soon`() {
-        assertTrue(serviceSoon(1000, null))
-        assertFalse(serviceSoon(1001, null))
-        assertTrue(serviceSoon(null, 30))
-        assertFalse(serviceSoon(null, 31))
-        assertFalse(serviceSoon(null, null))
-        assertTrue(serviceSoon(7897, 20)) // km far, days near → soon
-    }
 }
