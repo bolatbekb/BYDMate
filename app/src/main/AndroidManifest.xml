@@ -74,13 +74,14 @@
         <package android:name="com.ts.car.someip.service" />
     </queries>
 
+    <!-- fork: launcher icon marked as a fork build — ic_launcher_fork (teal fork badge) -->
     <application
         android:name=".BYDMateApp"
         android:allowBackup="false"
         android:requestLegacyExternalStorage="true"
         android:networkSecurityConfig="@xml/network_security_config"
-        android:icon="@mipmap/ic_launcher"
-        android:roundIcon="@mipmap/ic_launcher_round"
+        android:icon="@mipmap/ic_launcher_fork"
+        android:roundIcon="@mipmap/ic_launcher_fork_round"
         android:label="BYDMate"
         android:supportsRtl="true"
         android:theme="@style/Theme.BYDMate">
