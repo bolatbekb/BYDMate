@@ -16,6 +16,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -96,7 +97,7 @@ class RuleTextTest {
             PhraseCase("voice", listOf(TriggerDef("Voice", "", "==", "открой багажник", "", kind = "voice")), "Голосом «открой багажник»"),
             PhraseCase(
                 "one-shot with a param closes with a comma", listOf(oneShot("2026-09-30T07:30"), param("ExtTemp", "<", "5")),
-                "30 сентября в 07:30, один раз, и температура снаружи меньше 5 °C: авто AC, температура: 22 °C",
+                "30 сентября в 07:30, один раз, и температура снаружи меньше 5 °C: включить климат, температура: 22 °C",
                 actions = listOf(cmd("自动空调"), cmd("设置温度22")),
             ),
             PhraseCase("one-shot tomorrow", listOf(oneShot("2026-09-28T07:30")), "Завтра в 07:30, один раз"),
@@ -389,5 +390,38 @@ class RuleTextTest {
         assertEquals(listOf("==", "!="), operatorsFor(door))
         assertEquals(">" to "", withParam(t, speed, ctx).let { it.operator to it.value })
         assertEquals(OPERATORS, operatorsFor(speed))
+    }
+
+    @Test fun `bluetooth connected and disconnected render distinct phrases with device name`() {
+        val connected = TriggerDef(
+            param = "BtDevice", chineseName = "", operator = "==",
+            value = "AA:BB:CC:DD:EE:FF", displayName = "CarAudio", kind = "bt_connected",
+        )
+        val disconnected = connected.copy(kind = "bt_disconnected")
+
+        val connectedText = phrase(listOf(connected))
+        val disconnectedText = phrase(listOf(disconnected))
+
+        assertTrue(connectedText, connectedText.contains("CarAudio"))
+        assertTrue(disconnectedText, disconnectedText.contains("CarAudio"))
+        assertNotEquals("CarAudio", connectedText)
+        assertNotEquals("CarAudio", disconnectedText)
+        assertNotEquals(connectedText, disconnectedText)
+    }
+
+    @Test fun `steering key double press renders double wording while single stays unchanged`() {
+        val single = newSteeringKeyTrigger(305).copy(press = null)
+        val dbl = newSteeringKeyTrigger(305).copy(press = "double")
+
+        assertEquals("Клавиша руля «Левая звезда»", phrase(listOf(single)))
+
+        val ruDouble = phrase(listOf(dbl))
+        assertNotEquals("Клавиша руля «Левая звезда»", ruDouble)
+        assertTrue(ruDouble, ruDouble.lowercase().contains("двойн"))
+
+        LocalePreferences(ctx).setLanguage("en")
+        assertEquals("Steering key «Left star»", phrase(listOf(single)))
+        val enDouble = phrase(listOf(dbl))
+        assertTrue(enDouble, enDouble.lowercase().contains("double"))
     }
 }

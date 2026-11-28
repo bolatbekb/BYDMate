@@ -147,6 +147,7 @@ class TrackingService : Service(), LocationListener {
     private var wakeLock: PowerManager.WakeLock? = null
     private var wakeLockRenewer: WakeLockRenewer? = null
     private var locationManager: LocationManager? = null
+    private val bluetoothTracker = com.bydmate.app.data.automation.BluetoothConnectionTracker()
 
     // Widget session (ignition-on → ignition-off) — decoupled from TripTracker GPS state.
     // Primary signal: DiPars powerState ≥ 1. Fallback when powerState is unreliable:
@@ -171,6 +172,8 @@ class TrackingService : Service(), LocationListener {
     // Last range value logged (km, rounded) — avoids flooding logcat since
     // estimate() runs on every ~3s poll tick.
     private var lastLoggedRangeKm: Int? = null
+    // Last odometer logged by the hybrid range diagnostic line (once per km on hybrids).
+    private var lastHybridRangeLogOdoKm: Double? = null
     @Volatile private var lastGuidanceGrantRearmTs: Long = 0L
     // One listener rebind (#325) at a time: the guidance check may come while the startup one runs.
     private val notifRebindRunning = java.util.concurrent.atomic.AtomicBoolean(false)
@@ -233,6 +236,10 @@ class TrackingService : Service(), LocationListener {
     // onStartCommand calls since onCreate, main thread only: tells the start that created the
     // service apart from repeats on a running one in the trace.
     private var startCommands = 0
+
+    // Main thread only: stops a service that a cold boot started on a parked car.
+    private val coldBootGuard = ColdBootGuard()
+    private val mainHandler = android.os.Handler(android.os.Looper.getMainLooper())
 
     // Self-heal engines for daemon-backed grants. Lazy so they capture the service context only
     // after onCreate, and are never instantiated for callers that short-circuit before use.
@@ -357,7 +364,7 @@ class TrackingService : Service(), LocationListener {
          * that no rule can act on.
          */
         internal val PUSH_EVALUATE_FIELDS: Set<String> = setOf(
-            "gear", "turnSignal", "powerState", "workMode", "driveModeTarget",
+            "gear", "turnSignal", "powerState", "workMode", "driveModeTarget", "cruiseMode",
             "doorFL", "doorFR", "doorRL", "doorRR",
             "windowFL", "windowFR", "windowRL", "windowRR",
             "sunroof", "trunk", "hood", "lockFL",
@@ -500,7 +507,12 @@ class TrackingService : Service(), LocationListener {
          * Same shape as [fireAutomationButton]; matched count is diagnostics only
          * (the key was already consumed by the time the rules run).
          */
-        fun fireSteeringKey(keyCode: Int, cause: Long, onResult: (matched: Int) -> Unit) {
+        fun fireSteeringKey(
+            keyCode: Int,
+            cause: Long,
+            double: Boolean = false,
+            onResult: (matched: Int) -> Unit,
+        ) {
             val svc = instance
             if (svc == null) {
                 onResult(0)
@@ -509,7 +521,7 @@ class TrackingService : Service(), LocationListener {
             // The key press is the cause of every rule line the engine traces for it.
             svc.serviceScope.launch(Trace.causedBy(cause)) {
                 val matched = try {
-                    svc.automationEngine.onSteeringKey(keyCode)
+                    svc.automationEngine.onSteeringKeyPress(keyCode, double = double)
                 } catch (e: Exception) {
                     Log.w(TAG, "fireSteeringKey failed: ${e.message}")
                     0
@@ -525,6 +537,13 @@ class TrackingService : Service(), LocationListener {
          */
         fun steeringKeyAssigned(keyCode: Int): Boolean =
             instance?.automationEngine?.steeringKeyCodes?.value?.contains(keyCode) == true
+
+        /**
+         * Synchronous "is this steering-wheel key bound to an enabled double-press rule?"
+         * Answered off the engine's cached double-press keycode set on the key-event path (#451).
+         */
+        fun steeringKeyHasDouble(keyCode: Int): Boolean =
+            instance?.automationEngine?.steeringKeyDoubleCodes?.value?.contains(keyCode) == true
 
         /** [trigger] names the entry point for the trace (see [AutostartTrace]). */
         fun start(context: Context, trigger: String) {
@@ -822,6 +841,8 @@ class TrackingService : Service(), LocationListener {
         // Start the network monitor BEFORE polling so the first evaluate() tick
         // already has access to the latest VALIDATED edge state.
         networkAvailableMonitor.start()
+        bluetoothTracker.start(this)
+        automationEngine.connectedBtAddresses = { bluetoothTracker.addresses() }
         // Telegram reports that met no network go out now and whenever the internet comes back;
         // the edge at 0 is the start value, drained by the first line already.
         serviceScope.launch {
@@ -1038,11 +1059,29 @@ class TrackingService : Service(), LocationListener {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         // n=1 is the command that follows onCreate; later ones hit an already running service.
+        val n = ++startCommands
+        val coldBoot = intent?.getBooleanExtra(AutostartTrace.KEY_COLD_BOOT, false) == true
         Trace.event(TraceArea.APP, "service-trigger",
             "trigger" to AutostartTrace.startTrigger(intent != null, intent?.getStringExtra(AutostartTrace.EXTRA_TRIGGER)),
-            "n" to ++startCommands)
+            "n" to n, "cold_boot" to coldBoot)
+        val wasArmed = coldBootGuard.armed
+        val interactive = (getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
+        if (coldBootGuard.onStart(coldBoot, first = n == 1, interactive = interactive)) {
+            stopForColdBoot("screen_off_at_start")
+            return START_NOT_STICKY
+        }
+        if (coldBootGuard.armed != wasArmed) Trace.event(TraceArea.APP, "cold-boot guard", "armed" to coldBootGuard.armed)
         maybeAttachWidget()
         return START_STICKY
+    }
+
+    /** The head unit rebooted itself on a parked car: give back the wake lock and GPS, wait for the screen. */
+    private fun stopForColdBoot(reason: String) {
+        Log.i(TAG, "cold-boot guard: $reason, stopping")
+        ChainLog.append(this, "cold-boot guard stop: $reason")
+        Trace.event(TraceArea.APP, "service-stop", "reason" to "cold_boot", "at" to reason)
+        ColdBootDeferral.arm(this, "cold_boot_guard")
+        stopSelf()
     }
 
     private fun maybeAttachWidget() {
@@ -1283,6 +1322,8 @@ class TrackingService : Service(), LocationListener {
         _youtubeForeground.value = false
         _foregroundPackage.value = null
         networkAvailableMonitor.stop()
+        bluetoothTracker.stop(this)
+        automationEngine.connectedBtAddresses = { emptySet() }
         unregisterWifiRestoreCallback()
         unregisterWakeReceivers()
         // AutomationEngine is @Singleton — its scope must outlive the service
@@ -1345,11 +1386,22 @@ class TrackingService : Service(), LocationListener {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    /** Main thread. A speed from GPS or from the car's own poll (works in a tunnel) disarms the guard. */
+    private fun disarmColdBootIfMoving(kmh: Double?, source: String) {
+        val wasArmed = coldBootGuard.armed
+        coldBootGuard.onSpeed(kmh)
+        if (wasArmed && !coldBootGuard.armed) {
+            Trace.event(TraceArea.APP, "cold-boot guard", "armed" to false, "reason" to "moving", "by" to source)
+        }
+    }
+
     override fun onLocationChanged(location: Location) {
         lastLocationFix = LocationFix(location, isLive = true)
         _lastLocation.value = location
+        val speedKmh = if (location.hasSpeed()) location.speed * 3.6 else null
         recentTrack.add(TrackPoint(android.os.SystemClock.elapsedRealtime(), location.latitude, location.longitude,
-            if (location.hasSpeed()) location.speed * 3.6 else null))
+            speedKmh))
+        disarmColdBootIfMoving(speedKmh, "gps")
         // AC-06: never log raw coordinates in release — logcat is readable on DiLink
         // and ends up in user-shared diagnostic dumps.
         if (BuildConfig.DEBUG) {
@@ -1398,6 +1450,10 @@ class TrackingService : Service(), LocationListener {
                     // Before the snapshot goes out: the Tech panel maps temperatures by the
                     // verdict when it receives this very snapshot.
                     motorPresence.onSnapshot(data, SystemClock.elapsedRealtime())
+                    val carKmh = data.speed?.toDouble()
+                    if (coldBootGuard.armed && carKmh != null && carKmh >= ColdBootGuard.DRIVING_KMH) {
+                        mainHandler.post { disarmColdBootIfMoving(carKmh, "car") }
+                    }
                     _lastData.value = data
                     lastDataAtMs = System.currentTimeMillis()
                     lastSample = sample
@@ -1517,6 +1573,17 @@ class TrackingService : Service(), LocationListener {
                         socPercent = data.soc,
                         sessionId = sessionId,
                     )
+                    if (vehicleKindMonitor.kind.value == com.bydmate.app.data.nativestack.VehicleKind.HYBRID &&
+                        HybridRangeTrace.due(lastHybridRangeLogOdoKm, data.mileage)
+                    ) {
+                        Log.i(
+                            TAG,
+                            "hybrid range sample odo=${data.mileage} elec=${data.totalElecConsumption} " +
+                                "soc=${data.soc} fuel=${data.fuelTotalL} ev=${data.mileageEvKm} " +
+                                "hev=${data.mileageHevKm} rpm=${data.engineRpm}",
+                        )
+                        lastHybridRangeLogOdoKm = data.mileage
+                    }
                     // Odometer at the finish of energydata trips (HistoryImporter matches them).
                     odometerMarks.onReading(data.mileage, nowMs)
                     liveTripBuffer.onSample(
@@ -1879,12 +1946,21 @@ class TrackingService : Service(), LocationListener {
         }
     }
 
+    // A no-op unless the cold-boot guard is armed: a normal drive with a dark screen is not touched.
+    private val screenOffReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            val interactive = (getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
+            if (coldBootGuard.onScreenOff(interactive)) stopForColdBoot("screen_off")
+        }
+    }
+
     private fun registerScreenWakeReceiver() {
         val filter = IntentFilter(Intent.ACTION_SCREEN_ON).apply {
             addAction(Intent.ACTION_USER_PRESENT)
         }
         try {
             registerReceiver(screenWakeReceiver, filter)
+            registerReceiver(screenOffReceiver, IntentFilter(Intent.ACTION_SCREEN_OFF))
         } catch (e: Exception) {
             Log.w(TAG, "screen-wake receiver register failed: ${e.message}")
         }
@@ -1893,6 +1969,7 @@ class TrackingService : Service(), LocationListener {
     private fun unregisterWakeReceivers() {
         try {
             unregisterReceiver(screenWakeReceiver)
+            unregisterReceiver(screenOffReceiver)
         } catch (e: Exception) {
             Log.w(TAG, "screen-wake receiver unregister failed: ${e.message}")
         }

@@ -35,6 +35,7 @@
     <string name="settings_cluster_full_display_desc">地图占满整个仪表盘，不显示下方的车速信息条。如果地图只占顶部一条窄带，请开启。下次投射到仪表盘时生效。</string>
     <string name="settings_cluster_direct_reboot_hint">要让语音助手看到仪表盘上的导航，请将DiLink车机重启一次：长按音量旋钮即可重启。仅熄火并不能重启车机。重启之前投屏仍然可用，但语音助手看不到路线。</string>
     <string name="cluster_direct_unsupported_hint">此车机固件不支持直连输出，已使用兼容模式</string>
+    <string name="cluster_no_display_for_output">此车的仪表盘不支持投射显示</string>
     <string name="settings_projection_mode_title">仪表盘投射模式</string>
     <string name="settings_projection_mode_direct">扩展</string>
     <string name="settings_projection_mode_vd">出厂</string>
@@ -180,6 +181,7 @@
     <!-- Settings: Application section -->
     <string name="settings_app_units_header">单位与货币</string>
     <string name="settings_app_distance_label">距离</string>
+    <string name="settings_app_pressure_unit_label">胎压</string>
     <string name="settings_app_currency_label">货币</string>
     <string name="settings_charge_connector_label">充电接口</string>
     <string name="settings_charge_connector_desc">语音助手按此接口查找充电站</string>
@@ -400,6 +402,8 @@
     <string name="automation_trigger_type_steering_key">方向盘按键</string>
     <string name="automation_trigger_steering_key_unassigned">未分配按键</string>
     <string name="automation_trigger_steering_key_assign">分配</string>
+    <string name="automation_trigger_steering_key_single">单击</string>
+    <string name="automation_trigger_steering_key_double">双击</string>
     <string name="automation_steering_key_occupied_projection">该按键用于开启仪表盘导航。请在设置的显示部分释放该按键，或选择其他按键。</string>
     <string name="automation_steering_key_occupied_voice">该按键用于呼出 BYDMate 语音助手。请在设置的语音智能体部分更改按键，或选择其他按键。</string>
     <string name="automation_steering_key_occupied_knob">旋钮按下已被播放/暂停功能占用。请在设置的显示部分关闭该功能，或选择其他按键。</string>
@@ -664,6 +668,8 @@
     <string name="settings_tariff_trip_custom_chip">自定义</string>
     <string name="settings_unit_km">公里</string>
     <string name="settings_unit_miles">英里</string>
+    <string name="settings_unit_bar">bar</string>
+    <string name="settings_unit_psi">psi</string>
 
     <!-- Settings: ViewModel status strings -->
     <string name="settings_saved">已保存</string>
@@ -868,6 +874,7 @@
     <string name="settings_car_language_button">打开语言选择</string>
     <string name="settings_car_language_unavailable">此固件不支持语言选择对话框</string>
     <string name="learn_button_captured">已识别按键：</string>
+    <string name="learn_button_media_track_hint">此按键原有的切歌功能仍会同时触发</string>
     <string name="learn_button_dialog_title">分配按键</string>
     <string name="learn_button_rejected">无法分配此按键，请按其他按键。</string>
     <string name="learn_button_save">保存</string>
@@ -1099,6 +1106,7 @@
     <string name="auto_param_lightlow">近光灯</string>
     <string name="auto_param_drl">日行灯</string>
     <string name="auto_param_turnsignal">转向灯</string>
+    <string name="auto_param_cruise_active">巡航已开启</string>
     <!-- action names -->
     <string name="auto_act_vent_windows">车窗通风</string>
     <string name="auto_act_close_all_windows">关闭所有车窗</string>
@@ -1128,7 +1136,7 @@
     <string name="auto_act_vent_front_windows">前排车窗通风</string>
     <string name="auto_act_half_rear_windows">后排车窗半开</string>
     <string name="auto_act_vent_rear_windows">后排车窗通风</string>
-    <string name="auto_act_auto_ac">自动空调</string>
+    <string name="auto_act_auto_ac">开启空调</string>
     <string name="auto_act_ventilation_no_ac">通风（不开AC）</string>
     <string name="auto_act_wind_face">出风：吹面</string>
     <string name="auto_act_wind_face_feet">出风：吹面吹脚</string>
@@ -1147,6 +1155,7 @@
     <string name="auto_act_steering_heat_on">方向盘加热开</string>
     <string name="auto_act_steering_heat_off">方向盘加热关</string>
     <string name="steering_heat_not_equipped">这辆车没有方向盘加热</string>
+    <string name="steering_heat_level_not_equipped">这辆车不支持方向盘加热档位选择</string>
     <string name="auto_act_hud_on">打开抬头显示</string>
     <string name="auto_act_hud_off">关闭抬头显示</string>
     <string name="hud_not_equipped">这辆车没有抬头显示</string>
@@ -1195,6 +1204,7 @@
     <string name="auto_level_off">关</string>
     <string name="auto_level_temp">温度</string>
     <string name="auto_level_fan">风量</string>
+    <string name="auto_level_steering_heat">方向盘加热</string>
     <string name="auto_level_seat_heat_driver">主驾座椅加热</string>
     <string name="auto_level_seat_heat_passenger">副驾座椅加热</string>
     <string name="auto_level_seat_vent_driver">主驾座椅通风</string>
@@ -1209,6 +1219,7 @@
     <string name="auto_level_fridge_heat">冰箱制热</string>
     <string name="auto_level_tile_temp">温度 16–33 °C</string>
     <string name="auto_level_tile_fan">风量 1–7</string>
+    <string name="auto_level_tile_steering_heat">方向盘加热：档位</string>
     <string name="auto_level_tile_seat_heat_driver">主驾座椅加热：1–5 档或关</string>
     <string name="auto_level_tile_seat_heat_passenger">副驾座椅加热：1–5 档或关</string>
     <string name="auto_level_tile_seat_vent_driver">主驾座椅通风：1–5 档或关</string>
@@ -1750,6 +1761,7 @@
     <string name="tech_value_temp_range">%1$d°C (%2$d…%3$d)</string>
     <string name="tech_value_percent">%1$d%%</string>
     <string name="tech_value_tyre_pressure">%1$.2f bar</string>
+    <string name="tech_value_tyre_pressure_psi">%1$d psi</string>
     <string name="tech_value_cell_scale">%1$.2f V</string>
     <string name="tech_hint_soh" formatted="false">电池健康度，由车辆自己估算：相比新电池还剩多少容量。新车为 100%，随着年份缓慢下降。这是一个独立的数值，与“剩余电量”没有公式上的关系，不需要互相比较。</string>
     <string name="tech_hint_remain_kwh" formatted="false">剩余电量由电池自己估算。它考虑了电池损耗，所以这个数字小于电量百分比乘以出厂容量。刚充至 100% 时，估算最准确。屏幕可能一直显示 100%，而电池其实已经放出了最初的几千瓦时，所以在电量最高的一段，剩余电量和百分比相差更大。</string>
@@ -1941,6 +1953,7 @@
     <string name="tg_report_field_battery_temp">电池温度</string>
     <string name="tg_report_field_openings">未关闭项</string>
     <string name="tg_report_field_tires">胎压</string>
+    <string name="tg_report_field_battery_counter">电池电量计数</string>
     <string name="tg_report_header_off">BYDMate：车辆于 %1$s %2$s 熄火</string>
     <string name="tg_report_map_link">在地图上打开</string>
     <string name="tg_report_soc">电量 %1$s</string>
@@ -1973,6 +1986,7 @@
     <string name="tg_report_open_front_trunk">前备箱</string>
     <string name="tg_report_open_hood">引擎盖</string>
     <string name="tg_report_tires">胎压：%1$s bar</string>
+    <string name="tg_report_battery_counter">电池电量计数 %1$.1f kWh</string>
     <string name="tg_report_tire_fl">左前 %1$s</string>
     <string name="tg_report_tire_fr">右前 %1$s</string>
     <string name="tg_report_tire_rl">左后 %1$s</string>
@@ -1998,6 +2012,7 @@
     <string name="tg_report_field_battery_temp_desc">电池平均温度</string>
     <string name="tg_report_field_openings_desc">车门、车窗、天窗、后备箱、引擎盖</string>
     <string name="tg_report_field_tires_desc">全部四个车轮</string>
+    <string name="tg_report_field_battery_counter_desc">电池累计消耗的 kWh</string>
     <string name="settings_tg_report_off_title">熄火时发送报告</string>
     <string name="settings_tg_report_off_hint">熄火后的最初几秒内通过车辆的移动网络发送报告。如果没有网络，报告会在下次启动时送达。</string>
     <string name="settings_tg_report_off_no_bot">请先在上方连接 Telegram 机器人。</string>
@@ -2054,6 +2069,7 @@
     <string name="auto_ui_days_weekends">周末</string>
     <string name="auto_ui_phrase_button">小部件按钮 %1$d</string>
     <string name="auto_ui_phrase_steering">方向盘按键「%1$s」</string>
+    <string name="auto_ui_phrase_steering_double">方向盘按键「%1$s」，双击</string>
     <string name="auto_ui_phrase_steering_none">方向盘按键未设置</string>
     <string name="auto_ui_phrase_voice">语音「%1$s」</string>
     <string name="auto_ui_phrase_once">%1$s，一次</string>
@@ -2229,6 +2245,7 @@
     <string name="tech_dtc_full_body">车身模块 0x%1$X</string>
     <string name="tech_dtc_full_unknown">模块 0x%1$X</string>
     <string name="tech_dtc_no_diag_service">不可用：此车固件没有诊断服务</string>
+    <string name="tech_dtc_read_only_firmware">在此固件上，BYDMate 只能读取故障码和传感器，无法清除和写入</string>
     <string name="tech_fw_row_title">模块固件</string>
     <string name="tech_fw_row_never">未检查</string>
     <string name="tech_fw_row_unchanged">无变化</string>
@@ -2338,6 +2355,7 @@
     <string name="tyre_battery_ok">正常</string>
     <string name="tyre_battery_low">电量低</string>
     <string name="tyre_no_signal">无信号</string>
+    <string name="tyre_not_registered">未写入传感器</string>
     <string name="tyre_status_will_write">将写入</string>
     <string name="tyre_status_in_block">已在模块中</string>
     <string name="tyre_status_unchanged">不变</string>
@@ -2393,4 +2411,18 @@
     <string name="tyre_why_only_p">只能在 P 挡写入。</string>
     <string name="tyre_not_l3_title">此车辆不支持写入编号。</string>
     <string name="tyre_not_l3_text">车轮模块的应答与 Leopard 3 不一致，因此不冒险写入。编号可以查看，套装可以保存。</string>
+
+    <!-- Overlay permission screen fallback (#454) -->
+    <string name="overlay_permission_screen_unavailable">此固件没有「悬浮窗」权限设置页面</string>
+
+    <!-- Media play/pause action (#185) and Bluetooth triggers (#486) -->
+    <string name="automation_action_media_play_pause">媒体：播放 / 暂停</string>
+    <string name="automation_trigger_type_bt_connected">蓝牙：设备已连接</string>
+    <string name="automation_trigger_type_bt_disconnected">蓝牙：设备已断开</string>
+    <string name="automation_trigger_bt_pick">选择设备</string>
+    <string name="automation_trigger_bt_empty">没有已配对的蓝牙设备</string>
+    <string name="automation_trigger_bt_device_missing">未选择蓝牙设备</string>
+    <string name="auto_ui_phrase_bt_connected">蓝牙：已连接「%1$s」</string>
+    <string name="auto_ui_phrase_bt_disconnected">蓝牙：已断开「%1$s」</string>
+    <string name="auto_ui_miss_bt_device">请为条件 %1$d 选择蓝牙设备</string>
 </resources>

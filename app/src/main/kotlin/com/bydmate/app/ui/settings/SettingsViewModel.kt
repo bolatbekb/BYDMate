@@ -124,6 +124,7 @@ data class SettingsUiState(
     val homeTariff: String = SettingsRepository.DEFAULT_HOME_TARIFF,
     val dcTariff: String = SettingsRepository.DEFAULT_DC_TARIFF,
     val units: String = SettingsRepository.DEFAULT_UNITS,
+    val pressureUnit: String = SettingsRepository.DEFAULT_PRESSURE_UNIT,
     val currency: String = SettingsRepository.DEFAULT_CURRENCY,
     val currencySymbol: String = "BYN",
     val chargeConnector: ChargeConnector = ChargeConnector.GBT,
@@ -134,6 +135,8 @@ data class SettingsUiState(
     val isRecordingLogs: Boolean = false,
     /** File of the last finished log recording; null = none since the app started. */
     val lastLogPath: String? = null,
+    /** True when the current [lastLogPath] has already been uploaded to Telegram (#417). */
+    val lastLogSent: Boolean = false,
     /** «Отправить в Telegram» for the saved log is uploading (#324). */
     val logSending: Boolean = false,
     /** The fid recorder row is a diagnostic tool: shown on -test and local debug builds only. */
@@ -296,8 +299,8 @@ data class SettingsUiState(
         "custom" -> customConfigured
         else -> openRouterConfigured
     }
-    /** The saved log can go to the user's own bot: a finished recording, none running, a bot bound (#324). */
-    val canSendLogToTelegram: Boolean get() = lastLogPath != null && !isRecordingLogs && tgBackupBinding != null
+    /** The saved log can go to the user's own bot: a finished recording, none running, a bot bound, not already sent (#324, #417). */
+    val canSendLogToTelegram: Boolean get() = lastLogPath != null && !isRecordingLogs && tgBackupBinding != null && !lastLogSent
     /** No bot bound: the saved log goes through the system share sheet instead (#380). */
     val canShareLog: Boolean get() = lastLogPath != null && !isRecordingLogs &&
         com.bydmate.app.diagnostics.logSendRoute(botConfigured = tgBackupBinding != null) ==
@@ -476,6 +479,10 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
                 SettingsRepository.KEY_UNITS,
                 SettingsRepository.DEFAULT_UNITS
             )
+            val pressureUnit = settingsRepository.getString(
+                SettingsRepository.KEY_PRESSURE_UNIT,
+                SettingsRepository.DEFAULT_PRESSURE_UNIT
+            )
             val currency = settingsRepository.getCurrency()
             val chargeConnector = settingsRepository.getChargeConnector()
             val consumptionGood = settingsRepository.getString(
@@ -585,6 +592,7 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
                     homeTariff = homeTariff,
                     dcTariff = dcTariff,
                     units = units,
+                    pressureUnit = pressureUnit,
                     currency = currency.code,
                     currencySymbol = currency.symbol,
                     chargeConnector = chargeConnector,
@@ -798,6 +806,14 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
         _uiState.update { it.copy(units = value) }
         viewModelScope.launch {
             settingsRepository.setString(SettingsRepository.KEY_UNITS, value)
+        }
+    }
+
+    /** Save tyre pressure unit preference (bar or psi). */
+    fun savePressureUnit(value: String) {
+        _uiState.update { it.copy(pressureUnit = value) }
+        viewModelScope.launch {
+            settingsRepository.setString(SettingsRepository.KEY_PRESSURE_UNIT, value)
         }
     }
 
@@ -1635,10 +1651,13 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
                             appStrings.get(R.string.settings_log_saved, stopped.path, stopped.sizeKb)
                         } ?: it.logSaveStatus
                     }
+                    val path = state.lastStopped?.path
+                    val sent = logTelegramSender.sentPath.value
                     it.copy(
                         isRecordingLogs = state.isRecording,
                         logSaveStatus = status,
-                        lastLogPath = state.lastStopped?.path,
+                        lastLogPath = path,
+                        lastLogSent = path != null && sent == path,
                     )
                 }
                 first = false
@@ -1657,6 +1676,11 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
         viewModelScope.launch {
             logTelegramSender.results.collect { status ->
                 _uiState.update { if (it.isRecordingLogs) it else it.copy(logSaveStatus = status) }
+            }
+        }
+        viewModelScope.launch {
+            logTelegramSender.sentPath.collect { sent ->
+                _uiState.update { it.copy(lastLogSent = it.lastLogPath != null && sent == it.lastLogPath) }
             }
         }
     }
@@ -2018,6 +2042,7 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
         // The field now holds another token: store nothing, the caller drops this status.
         if (_uiState.value.tgBackupToken != token) return null
         settingsRepository.saveTgBackup(token, botName, chat.id, chat.name)
+        logTelegramSender.forgetSent()
         _uiState.update { it.copy(tgBackupCode = null, tgBackupBinding = TgBackupBinding(botName, chat.name)) }
         return null
     }
@@ -2042,6 +2067,7 @@ class SettingsViewModel @Inject @Suppress("LongParameterList") constructor( // H
     fun disconnectTelegramBackup() {
         val check = tgCheckJob
         autoBackupScheduler.cancelScheduled(appContext)
+        logTelegramSender.forgetSent()
         _uiState.update {
             it.copy(
                 tgBackupToken = "",

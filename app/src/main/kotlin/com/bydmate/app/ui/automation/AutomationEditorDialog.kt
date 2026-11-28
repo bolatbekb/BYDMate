@@ -26,6 +26,7 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInParent
 import com.bydmate.app.data.automation.AutomationEngine
 import com.bydmate.app.data.automation.OneShotTrigger
+import com.bydmate.app.data.automation.pairedBluetoothDevices
 import com.bydmate.app.util.appLocalizedContext
 import kotlinx.coroutines.launch
 import androidx.compose.foundation.lazy.grid.items
@@ -53,6 +54,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddPhotoAlternate
+import androidx.compose.material.icons.outlined.Bluetooth
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.Gamepad
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -125,6 +127,7 @@ private fun Missing.anchor(): Pair<Boolean, String> = when (this) {
     is Missing.Operator -> true to "t${condition - 1}"
     is Missing.Number -> true to "t${condition - 1}"
     is Missing.Key -> true to "t${condition - 1}"
+    is Missing.BluetoothDevice -> true to "t${condition - 1}"
     Missing.NoActions -> false to "addAction"
     is Missing.Action -> false to "a${action - 1}"
 }
@@ -740,6 +743,8 @@ private const val ICON_PICKER_COLUMNS = 6
 
 private fun triggerIcon(kind: String): ImageVector = when (kind) {
     "place_enter", "place_exit" -> Icons.Outlined.Place
+    AutomationEngine.TRIGGER_KIND_BT_CONNECTED,
+    AutomationEngine.TRIGGER_KIND_BT_DISCONNECTED -> Icons.Outlined.Bluetooth
     "time_of_day" -> Icons.Outlined.WbTwilight
     "time_range" -> Icons.Outlined.Schedule
     "service_start" -> Icons.Outlined.PlayArrow
@@ -755,6 +760,8 @@ private fun triggerIcon(kind: String): ImageVector = when (kind) {
 private fun triggerTitle(kind: String): String = stringResource(
     when (kind) {
         "place_enter", "place_exit" -> R.string.automation_trigger_type_place
+        AutomationEngine.TRIGGER_KIND_BT_CONNECTED -> R.string.automation_trigger_type_bt_connected
+        AutomationEngine.TRIGGER_KIND_BT_DISCONNECTED -> R.string.automation_trigger_type_bt_disconnected
         "time_of_day" -> R.string.automation_trigger_type_time_of_day
         "time_range" -> R.string.automation_trigger_type_schedule
         "service_start" -> R.string.automation_trigger_type_service_start
@@ -821,6 +828,9 @@ private fun TriggerRow(
         Column(Modifier.padding(start = 24.dp, end = 8.dp)) {
             when (trigger.kind) {
                 "place_enter", "place_exit" -> PlaceTriggerControls(trigger, places, onUpdate)
+                AutomationEngine.TRIGGER_KIND_BT_CONNECTED,
+                AutomationEngine.TRIGGER_KIND_BT_DISCONNECTED ->
+                    BluetoothTriggerControls(trigger, highlight = Missing.BluetoothDevice(n) in missing, onUpdate = onUpdate)
                 "time_of_day" -> TimeOfDayTriggerControls(trigger, onUpdate)
                 "time_range" -> ScheduleTriggerControls(trigger, onUpdate)
                 "service_start", "network_available" -> Unit
@@ -1030,6 +1040,42 @@ private fun PlaceTriggerControls(
             )
         }
     }
+}
+
+@Composable
+private fun BluetoothTriggerControls(
+    trigger: TriggerDef,
+    highlight: Boolean,
+    onUpdate: (TriggerDef) -> Unit,
+) {
+    val devices = remember { pairedBluetoothDevices() }
+    if (devices.isEmpty()) {
+        Text(
+            stringResource(R.string.automation_trigger_bt_empty),
+            fontSize = EDITOR_TEXT,
+            color = TextSecondary,
+            modifier = Modifier.padding(vertical = 8.dp),
+        )
+        return
+    }
+    val selectedLabel = when {
+        trigger.value.isBlank() -> stringResource(R.string.automation_trigger_bt_pick)
+        trigger.displayName.isNotBlank() && trigger.displayName != trigger.value ->
+            "${trigger.displayName} (${trigger.value})"
+        else -> trigger.value
+    }
+    DropdownField(
+        text = selectedLabel,
+        color = if (trigger.value.isBlank()) TextSecondary else TextPrimary,
+        highlight = highlight,
+        items = devices.map { d ->
+            if (d.name != d.address) "${d.name} (${d.address})" else d.address
+        },
+        onSelect = { i ->
+            val d = devices[i]
+            onUpdate(trigger.copy(value = d.address, displayName = d.name))
+        },
+    )
 }
 
 @Composable
@@ -1295,6 +1341,7 @@ private fun ButtonIconPicker(buttonNumber: Int) {
     }
 }
 
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun SteeringKeyTriggerControls(
     trigger: TriggerDef,
@@ -1304,22 +1351,39 @@ private fun SteeringKeyTriggerControls(
     val context = LocalContext.current
     var learning by remember { mutableStateOf(false) }
     val code = trigger.value.toIntOrNull() ?: 0
-    Box(
-        modifier = Modifier
-            .minimumInteractiveComponentSize()
-            .heightIn(min = FIELD_HEIGHT)
-            .clip(FIELD_SHAPE)
-            .background(CardSurface)
-            .border(if (highlight) 1.5.dp else 1.dp, if (highlight) AccentOrange else CardBorder, FIELD_SHAPE)
-            .clickable { learning = true }
-            .padding(horizontal = 14.dp),
-        contentAlignment = Alignment.Center,
+    val isDouble = trigger.press == TriggerDef.PRESS_DOUBLE
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Text(
-            if (code > 0) "${steeringKeyLabel(context, code)} ($code)"
-            else stringResource(R.string.automation_trigger_steering_key_assign),
-            fontSize = EDITOR_TEXT, color = AccentGreen, fontWeight = FontWeight.Bold,
-        )
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterVertically)
+                .minimumInteractiveComponentSize()
+                .heightIn(min = FIELD_HEIGHT)
+                .clip(FIELD_SHAPE)
+                .background(CardSurface)
+                .border(if (highlight) 1.5.dp else 1.dp, if (highlight) AccentOrange else CardBorder, FIELD_SHAPE)
+                .clickable { learning = true }
+                .padding(horizontal = 14.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                if (code > 0) "${steeringKeyLabel(context, code)} ($code)"
+                else stringResource(R.string.automation_trigger_steering_key_assign),
+                fontSize = EDITOR_TEXT, color = AccentGreen, fontWeight = FontWeight.Bold,
+            )
+        }
+        Box(Modifier.align(Alignment.CenterVertically)) {
+            ChoiceChip(stringResource(R.string.automation_trigger_steering_key_single), !isDouble) {
+                if (isDouble) onUpdate(trigger.copy(press = null))
+            }
+        }
+        Box(Modifier.align(Alignment.CenterVertically)) {
+            ChoiceChip(stringResource(R.string.automation_trigger_steering_key_double), isDouble) {
+                if (!isDouble) onUpdate(trigger.copy(press = TriggerDef.PRESS_DOUBLE))
+            }
+        }
     }
 
     if (learning) {

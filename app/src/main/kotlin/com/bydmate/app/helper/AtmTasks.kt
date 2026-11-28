@@ -51,34 +51,73 @@ internal fun fieldByName(target: Any, name: String): java.lang.reflect.Field? {
     return null
 }
 
-// --- IActivityTaskManager compatibility (Android 12 primary, Android 10 head units fallback) ---
+// --- IActivityTaskManager compatibility (Android 12 primary, Android 13 / Android 10 fallbacks) ---
 // Each verb resolves the CURRENT signature first and caches the Method for the daemon process:
 // the split/cluster watchdogs call these at 1 Hz, so after the first call there must be no
-// getMethod lookup, no methods[] scan and no thrown exception on either Android version.
+// getMethod lookup, no methods[] scan and no thrown exception on any Android version.
 
-/** Resolved IActivityTaskManager.getTasks; [atmGetTasksTakesFlags] false = Android 10 getTasks(int). */
-@Volatile private var atmGetTasksMethod: java.lang.reflect.Method? = null
-@Volatile private var atmGetTasksTakesFlags: Boolean = true
+/** Supported IActivityTaskManager.getTasks overload shapes in resolution order. */
+internal enum class GetTasksShape { FLAGS, FLAGS_DISPLAY, PLAIN }
+
+/**
+ * Resolves the best matching IActivityTaskManager.getTasks overload on [atmClass]:
+ * 3-arg (Android 12), then 4-arg with displayId (Android 13, #483), then 1-arg (Android 10).
+ * Returns null if none match.
+ */
+internal fun resolveGetTasks(atmClass: Class<*>): Pair<java.lang.reflect.Method, GetTasksShape>? {
+    val intT = Int::class.javaPrimitiveType
+    val boolT = Boolean::class.javaPrimitiveType
+    runCatching { atmClass.getMethod("getTasks", intT, boolT, boolT) }
+        .getOrNull()?.let { return it to GetTasksShape.FLAGS }
+    runCatching { atmClass.getMethod("getTasks", intT, boolT, boolT, intT) }
+        .getOrNull()?.let { return it to GetTasksShape.FLAGS_DISPLAY }
+    runCatching { atmClass.getMethod("getTasks", intT) }
+        .getOrNull()?.let { return it to GetTasksShape.PLAIN }
+    return null
+}
+
+/** Builds the reflective argument array for [shape]; FLAGS_DISPLAY passes Display.INVALID_DISPLAY (-1). */
+internal fun getTasksArgs(shape: GetTasksShape, maxNum: Int): Array<Any> = when (shape) {
+    GetTasksShape.FLAGS -> arrayOf(maxNum, false, false)
+    GetTasksShape.FLAGS_DISPLAY -> arrayOf(maxNum, false, false, -1)
+    GetTasksShape.PLAIN -> arrayOf(maxNum)
+}
+
+/** Diagnostic listing of every public getTasks overload on [atmClass]. */
+internal fun getTasksOverloads(atmClass: Class<*>): String =
+    atmClass.methods
+        .filter { it.name == "getTasks" }
+        .joinToString(", ") { m ->
+            "getTasks(${m.parameterTypes.joinToString(", ") { it.simpleName }})"
+        }
+        .ifEmpty { "(none)" }
+
+/** Cached IActivityTaskManager.getTasks method and its argument shape. */
+@Volatile private var atmGetTasksResolved: Pair<java.lang.reflect.Method, GetTasksShape>? = null
 
 /**
  * Running task list via getTasks(maxNum, false, false) (Android 12), falling back to
- * getTasks(maxNum) on Android 10 ROMs (DiLink 3.0 / 4.0) that have no flags overload.
+ * getTasks(maxNum, false, false, -1) on Android 13 (#483) and getTasks(maxNum) on Android 10.
  */
 internal fun atmGetTasks(iAtm: Any, maxNum: Int): List<*>? {
-    var m = atmGetTasksMethod
-    if (m == null) {
-        m = try {
-            iAtm.javaClass.getMethod(
-                "getTasks", Int::class.javaPrimitiveType, Boolean::class.javaPrimitiveType, Boolean::class.javaPrimitiveType,
-            )
-        } catch (e: NoSuchMethodException) {
-            atmGetTasksTakesFlags = false
-            android.util.Log.i("bydmate_helper", "atm compat: getTasks(int) (Android 10 signature)")
-            iAtm.javaClass.getMethod("getTasks", Int::class.javaPrimitiveType)
+    var resolved = atmGetTasksResolved
+    if (resolved == null) {
+        resolved = resolveGetTasks(iAtm.javaClass) ?: run {
+            val msg = "atm compat: no getTasks overload matched: ${getTasksOverloads(iAtm.javaClass)}"
+            android.util.Log.w("bydmate_helper", msg)
+            throw NoSuchMethodException(msg)
         }
-        atmGetTasksMethod = m
+        when (resolved.second) {
+            GetTasksShape.FLAGS -> Unit
+            GetTasksShape.FLAGS_DISPLAY ->
+                android.util.Log.i("bydmate_helper", "atm compat: getTasks(int, boolean, boolean, int) (Android 13 signature)")
+            GetTasksShape.PLAIN ->
+                android.util.Log.i("bydmate_helper", "atm compat: getTasks(int) (Android 10 signature)")
+        }
+        atmGetTasksResolved = resolved
     }
-    val raw = if (atmGetTasksTakesFlags) m.invoke(iAtm, maxNum, false, false) else m.invoke(iAtm, maxNum)
+    @Suppress("SpreadOperator")
+    val raw = resolved.first.invoke(iAtm, *getTasksArgs(resolved.second, maxNum))
     return raw as? List<*>
 }
 
@@ -373,6 +412,63 @@ internal fun setTaskWindowingModeReflect(taskId: Int, windowingMode: Int) {
         .invoke(iAtm, taskId, windowingMode, false)
     // The legacy API returns boolean; false = rejected without an exception (e.g. lock-task).
     if (result == false) throw IllegalStateException("setTaskWindowingMode(task=$taskId, mode=$windowingMode) returned false")
+}
+
+/**
+ * Moves the running [taskId] into Android 10 split-screen-primary (windowing mode 3) on top (#385).
+ * False from setTaskWindowingMode means the firmware refused the dock without throwing.
+ */
+internal fun setTaskSplitPrimaryReflect(taskId: Int) {
+    require(taskId > 0) { "invalid taskId=$taskId" }
+    val iAtm = activityTaskManager()
+    val result = iAtm.javaClass.getMethod(
+        "setTaskWindowingMode",
+        Int::class.javaPrimitiveType,
+        Int::class.javaPrimitiveType,
+        Boolean::class.javaPrimitiveType,
+    ).invoke(iAtm, taskId, 3, true)
+    check(result != false) { "setTaskWindowingMode(task=$taskId, mode=3) returned false" }
+}
+
+/** Handles TX_SET_TASK_WINDOWING_MODE and TX_SET_TASK_SPLIT_PRIMARY (#385). */
+internal fun handleWindowingModeTransact(code: Int, data: android.os.Parcel, reply: android.os.Parcel?): Boolean =
+    if (code == HelperBinderProtocol.TX_SET_TASK_SPLIT_PRIMARY) {
+        handleSetTaskSplitPrimary(data, reply)
+    } else {
+        runCatching {
+            val taskId = data.readInt(); val mode = data.readInt()
+            handleSetWindowingModeTx(
+                taskId, mode, readTrailingPaneType(data),
+                reflectSet = ::setTaskWindowingModeReflect,
+                resolveComponent = { packageForTask(taskId)?.let { resolveLaunchComponent(it) } },
+                shell = amShell,
+                getActivityType = { ti -> taskActivityType(ti) },
+                sleep = { Thread.sleep(it) },
+                // Enables the non-destructive freeform probe before a retype remove.
+                stateOf = { ti -> taskModeState(ti) },
+            )
+            reply?.writeInt(0); reply?.writeInt(0)
+            true
+        }.getOrElse { reply?.writeInt(-1); reply?.writeInt(0); true }
+    }
+
+/** Handles TX_SET_TASK_SPLIT_PRIMARY inside HelperDaemon.onTransact (#385). */
+private fun handleSetTaskSplitPrimary(data: android.os.Parcel, reply: android.os.Parcel?): Boolean {
+    var logTaskId = -1
+    return runCatching {
+        val taskId = data.readInt()
+        logTaskId = taskId
+        setTaskSplitPrimaryReflect(taskId)
+        android.util.Log.i("bydmate_helper", "TX_SET_TASK_SPLIT_PRIMARY task=$logTaskId ok")
+        reply?.writeInt(0)
+        reply?.writeInt(0)
+        true
+    }.getOrElse { t ->
+        android.util.Log.w("bydmate_helper", "TX_SET_TASK_SPLIT_PRIMARY failed task=$logTaskId: ${t.message}")
+        reply?.writeInt(-1)
+        reply?.writeInt(0)
+        true
+    }
 }
 
 internal fun setTaskBoundsReflect(taskId: Int, left: Int, top: Int, right: Int, bottom: Int) {

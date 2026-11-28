@@ -32,6 +32,7 @@
     <string name="settings_cluster_full_display_desc">O mapa no painel inteiro, sem a faixa de baixo com a velocidade. Ative se o mapa ocupa só uma faixa estreita em cima. Vale na próxima projeção no painel.</string>
     <string name="settings_cluster_direct_reboot_hint">Para o agente de voz ver o navegador no painel, reinicie o DiLink uma vez: mantenha pressionado o botão de volume. Apenas desligar o carro não é suficiente. Até o reinício a projeção funciona, mas o agente não vê a rota.</string>
     <string name="cluster_direct_unsupported_hint">A saída direta não está disponível no firmware deste carro, um modo compatível é usado</string>
+    <string name="cluster_no_display_for_output">Neste carro, o painel de instrumentos não está disponível para exibição</string>
     <string name="settings_projection_mode_title">Modo de exibição no painel</string>
     <string name="settings_projection_mode_direct">Estendido</string>
     <string name="settings_projection_mode_vd">De fábrica</string>
@@ -68,6 +69,7 @@
     <string name="learn_button_waiting">Pressione um botão do volante…</string>
     <string name="learn_button_rejected">Este botão não pode ser atribuído. Pressione outro.</string>
     <string name="learn_button_captured">Botão reconhecido:</string>
+    <string name="learn_button_media_track_hint">A troca padrão de faixa neste botão também será acionada</string>
     <string name="learn_button_timeout">Botão não reconhecido. Pode não chegar ao sistema. Tente outro.</string>
     <string name="learn_button_save">Salvar</string>
     <string name="learn_button_again">Novamente</string>
@@ -262,6 +264,7 @@
     <string name="settings_widget_buttons_description">Um toque exibe 4 botões, dois toques abrem o BYDMate. Um botão executa uma regra com o gatilho «Pressionamento de botão».</string>
     <string name="settings_app_units_header">Unidades e moeda</string>
     <string name="settings_app_distance_label">Distância</string>
+    <string name="settings_app_pressure_unit_label">Pressão dos pneus</string>
     <string name="settings_app_currency_label">Moeda</string>
     <string name="settings_charge_connector_label">Conector de carregamento</string>
     <string name="settings_charge_connector_desc">O assistente procura carregadores com este conector</string>
@@ -449,6 +452,8 @@
     <string name="automation_trigger_type_steering_key">Tecla do volante</string>
     <string name="automation_trigger_steering_key_unassigned">Tecla não atribuída</string>
     <string name="automation_trigger_steering_key_assign">atribuir</string>
+    <string name="automation_trigger_steering_key_single">toque simples</string>
+    <string name="automation_trigger_steering_key_double">toque duplo</string>
     <string name="automation_steering_key_occupied_projection">Esta tecla liga a navegação no painel de instrumentos. Libere-a em Configurações, seção Tela, ou escolha outra.</string>
     <string name="automation_steering_key_occupied_voice">Esta tecla chama o assistente de voz do BYDMate. Altere a tecla em Configurações, seção Agente de voz, ou escolha outra.</string>
     <string name="automation_steering_key_occupied_knob">O toque no botão giratório está ocupado pela função play/pause. Desative-a em Configurações, seção Tela, ou escolha outra tecla.</string>
@@ -690,6 +695,8 @@
     <string name="settings_tariff_trip_custom_chip">Personalizado</string>
     <string name="settings_unit_km">km</string>
     <string name="settings_unit_miles">milhas</string>
+    <string name="settings_unit_bar">bar</string>
+    <string name="settings_unit_psi">psi</string>
     <string name="settings_saved">Salvo</string>
     <string name="settings_export_in_progress">Exportando...</string>
     <string name="settings_error_with_message">Erro: %1$s</string>
@@ -1021,6 +1028,7 @@
     <string name="auto_param_lightlow">Farol baixo</string>
     <string name="auto_param_drl">DRL</string>
     <string name="auto_param_turnsignal">Pisca-pisca</string>
+    <string name="auto_param_cruise_active">Piloto automático ligado</string>
     <!-- action names -->
     <string name="auto_act_vent_windows">Ventilar vidros</string>
     <string name="auto_act_close_all_windows">Fechar todos os vidros</string>
@@ -1050,7 +1058,7 @@
     <string name="auto_act_vent_front_windows">Ventilar dianteiros</string>
     <string name="auto_act_half_rear_windows">Traseiros a 50%</string>
     <string name="auto_act_vent_rear_windows">Ventilar traseiros</string>
-    <string name="auto_act_auto_ac">AC automático</string>
+    <string name="auto_act_auto_ac">Ligar AC</string>
     <string name="auto_act_ventilation_no_ac">Ventilação (sem AC)</string>
     <string name="auto_act_wind_face">Fluxo de ar: rosto</string>
     <string name="auto_act_wind_face_feet">Fluxo de ar: rosto e pés</string>
@@ -1069,6 +1077,7 @@
     <string name="auto_act_steering_heat_on">Aquec. volante lig.</string>
     <string name="auto_act_steering_heat_off">Aquec. volante desl.</string>
     <string name="steering_heat_not_equipped">Este carro não tem aquecimento do volante</string>
+    <string name="steering_heat_level_not_equipped">Este carro não tem seleção de nível de aquecimento do volante</string>
     <string name="auto_act_hud_on">HUD: ligar</string>
     <string name="auto_act_hud_off">HUD: desligar</string>
     <string name="hud_not_equipped">Este carro não tem HUD</string>
@@ -1117,6 +1126,7 @@
     <string name="auto_level_off">desl.</string>
     <string name="auto_level_temp">Temperatura</string>
     <string name="auto_level_fan">Ventilação</string>
+    <string name="auto_level_steering_heat">Aquecimento do volante</string>
     <string name="auto_level_seat_heat_driver">Aquecimento do banco do motorista</string>
     <string name="auto_level_seat_heat_passenger">Aquecimento do banco do passageiro</string>
     <string name="auto_level_seat_vent_driver">Ventilação do banco do motorista</string>
@@ -1131,6 +1141,7 @@
     <string name="auto_level_fridge_heat">Aquecimento da geladeira</string>
     <string name="auto_level_tile_temp">Temperatura 16–33 °C</string>
     <string name="auto_level_tile_fan">Ventilação 1–7</string>
+    <string name="auto_level_tile_steering_heat">Aquecimento do volante: nível</string>
     <string name="auto_level_tile_seat_heat_driver">Aquecimento do banco do motorista: nível 1–5 ou desl.</string>
     <string name="auto_level_tile_seat_heat_passenger">Aquecimento do banco do passageiro: nível 1–5 ou desl.</string>
     <string name="auto_level_tile_seat_vent_driver">Ventilação do banco do motorista: nível 1–5 ou desl.</string>
@@ -1636,6 +1647,7 @@
     <string name="tech_value_temp_range">%1$d°C (%2$d…%3$d)</string>
     <string name="tech_value_percent">%1$d%%</string>
     <string name="tech_value_tyre_pressure">%1$.2f bar</string>
+    <string name="tech_value_tyre_pressure_psi">%1$d psi</string>
     <string name="tech_value_cell_scale">%1$.2f V</string>
     <string name="tech_hint_soh" formatted="false">Saúde da bateria segundo a estimativa do próprio carro: quanta capacidade resta em relação à bateria nova. 100% num carro novo, desce lentamente com os anos. É um valor à parte, não está ligado por fórmula a “Restante”, não é preciso compará-los entre si.</string>
     <string name="tech_hint_remain_kwh" formatted="false">Quanta energia resta, segundo a estimativa da própria bateria. Ela tem em conta o desgaste, por isso o valor é menor do que a percentagem de carga multiplicada pela capacidade de fábrica. É mais preciso logo após carregar até 100%. O ecrã pode manter 100% enquanto a bateria já forneceu os primeiros quilowatts-hora, por isso no topo da escala a energia restante e a percentagem afastam-se mais.</string>
@@ -1827,6 +1839,7 @@
     <string name="tg_report_field_battery_temp">Temperatura da bateria</string>
     <string name="tg_report_field_openings">O que está aberto</string>
     <string name="tg_report_field_tires">Pressão dos pneus</string>
+    <string name="tg_report_field_battery_counter">Contador de energia da bateria</string>
     <string name="tg_report_header_off">BYDMate: carro desligado em %1$s às %2$s</string>
     <string name="tg_report_map_link">Abrir no mapa</string>
     <string name="tg_report_soc">carga %1$s</string>
@@ -1859,6 +1872,7 @@
     <string name="tg_report_open_front_trunk">porta-malas dianteiro</string>
     <string name="tg_report_open_hood">capô</string>
     <string name="tg_report_tires">Pneus: %1$s bar</string>
+    <string name="tg_report_battery_counter">Contador de energia da bateria %1$.1f kWh</string>
     <string name="tg_report_tire_fl">DE %1$s</string>
     <string name="tg_report_tire_fr">DD %1$s</string>
     <string name="tg_report_tire_rl">TE %1$s</string>
@@ -1884,6 +1898,7 @@
     <string name="tg_report_field_battery_temp_desc">Média da bateria</string>
     <string name="tg_report_field_openings_desc">Portas, janelas, teto solar, porta-malas, capô</string>
     <string name="tg_report_field_tires_desc">As quatro rodas</string>
+    <string name="tg_report_field_battery_counter_desc">Total de kWh pela bateria desde novo</string>
     <string name="settings_tg_report_off_title">Relatório ao desligar o carro</string>
     <string name="settings_tg_report_off_hint">O relatório é enviado nos primeiros segundos após desligar, pela internet móvel do carro. Se não houver conexão, ele chega na próxima vez que o carro for ligado.</string>
     <string name="settings_tg_report_off_no_bot">Primeiro conecte o bot do Telegram acima.</string>
@@ -1940,6 +1955,7 @@
     <string name="auto_ui_days_weekends">Nos fins de semana</string>
     <string name="auto_ui_phrase_button">Botão %1$d no widget</string>
     <string name="auto_ui_phrase_steering">Tecla do volante «%1$s»</string>
+    <string name="auto_ui_phrase_steering_double">Tecla do volante «%1$s», toque duplo</string>
     <string name="auto_ui_phrase_steering_none">Tecla do volante não definida</string>
     <string name="auto_ui_phrase_voice">Por voz «%1$s»</string>
     <string name="auto_ui_phrase_once">%1$s, uma vez</string>
@@ -2115,6 +2131,7 @@
     <string name="tech_dtc_full_body">Módulo da carroçaria 0x%1$X</string>
     <string name="tech_dtc_full_unknown">Módulo 0x%1$X</string>
     <string name="tech_dtc_no_diag_service">Indisponível: o firmware deste carro não tem serviço de diagnóstico</string>
+    <string name="tech_dtc_read_only_firmware">Neste firmware, o BYDMate só pode ler códigos e sensores; apagar e gravar não é permitido</string>
     <string name="tech_fw_row_title">Firmware dos módulos</string>
     <string name="tech_fw_row_never">não verificado</string>
     <string name="tech_fw_row_unchanged">sem alterações</string>
@@ -2234,6 +2251,7 @@
     <string name="tyre_battery_ok">OK</string>
     <string name="tyre_battery_low">fraca</string>
     <string name="tyre_no_signal">sem sinal</string>
+    <string name="tyre_not_registered">sensor não registado</string>
     <string name="tyre_status_will_write">será gravado</string>
     <string name="tyre_status_in_block">já no módulo</string>
     <string name="tyre_status_unchanged">sem alteração</string>
@@ -2289,4 +2307,18 @@
     <string name="tyre_why_only_p">Só é possível gravar em P.</string>
     <string name="tyre_not_l3_title">A gravação dos números não está disponível neste carro.</string>
     <string name="tyre_not_l3_text">O módulo das rodas não respondeu como no Leopard 3, por isso não arriscamos gravar. Os números são mostrados e os conjuntos podem ser guardados.</string>
+
+    <!-- Overlay permission screen fallback (#454) -->
+    <string name="overlay_permission_screen_unavailable">Este firmware não tem ecrã de permissão «Sobrepor a outras aplicações»</string>
+
+    <!-- Media play/pause action (#185) and Bluetooth triggers (#486) -->
+    <string name="automation_action_media_play_pause">Mídia: tocar / pausar</string>
+    <string name="automation_trigger_type_bt_connected">Bluetooth: dispositivo conectado</string>
+    <string name="automation_trigger_type_bt_disconnected">Bluetooth: dispositivo desconectado</string>
+    <string name="automation_trigger_bt_pick">Escolha o dispositivo</string>
+    <string name="automation_trigger_bt_empty">Nenhum dispositivo Bluetooth emparelhado</string>
+    <string name="automation_trigger_bt_device_missing">Dispositivo Bluetooth não selecionado</string>
+    <string name="auto_ui_phrase_bt_connected">Bluetooth: «%1$s» conectado</string>
+    <string name="auto_ui_phrase_bt_disconnected">Bluetooth: «%1$s» desconectado</string>
+    <string name="auto_ui_miss_bt_device">Escolha um dispositivo Bluetooth na condição %1$d</string>
 </resources>

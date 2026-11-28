@@ -35,6 +35,7 @@
     <string name="settings_cluster_full_display_desc">Карта на всю приборку, без нижней полосы со скоростью. Включите, если карта занимает только узкую полосу сверху. Применяется при следующем выводе на приборку.</string>
     <string name="settings_cluster_direct_reboot_hint">Чтобы голосовой агент видел навигатор на приборке, один раз перезагрузите ДиЛинк: зажмите и удерживайте колёсико громкости. Просто заглушить машину недостаточно. До перезагрузки проекция работает, но агент не видит маршрут.</string>
     <string name="cluster_direct_unsupported_hint">Прямой вывод недоступен на прошивке этой машины, используется совместимый режим</string>
+    <string name="cluster_no_display_for_output">На этой машине приборка недоступна для вывода</string>
     <string name="settings_projection_mode_title">Режим вывода на приборку</string>
     <string name="settings_projection_mode_direct">Расширенный</string>
     <string name="settings_projection_mode_vd">Заводской</string>
@@ -71,6 +72,7 @@
     <string name="learn_button_waiting">Нажмите кнопку на руле…</string>
     <string name="learn_button_rejected">Эту кнопку нельзя назначить. Нажмите другую.</string>
     <string name="learn_button_captured">Кнопка распознана:</string>
+    <string name="learn_button_media_track_hint">Штатная перемотка трека на этой кнопке тоже сработает</string>
     <string name="learn_button_timeout">Кнопка не распознана. Возможно, она не передаётся системе. Попробуйте другую.</string>
     <string name="learn_button_save">Сохранить</string>
     <string name="learn_button_again">Заново</string>
@@ -280,6 +282,7 @@
     <!-- Settings: Application section -->
     <string name="settings_app_units_header">Единицы и валюта</string>
     <string name="settings_app_distance_label">Расстояние</string>
+    <string name="settings_app_pressure_unit_label">Давление в шинах</string>
     <string name="settings_app_currency_label">Валюта</string>
     <string name="settings_charge_connector_label">Разъём для зарядки</string>
     <string name="settings_charge_connector_desc">Помощник ищет зарядки с этим разъёмом</string>
@@ -502,6 +505,8 @@
     <string name="automation_trigger_type_steering_key">Клавиша руля</string>
     <string name="automation_trigger_steering_key_unassigned">Клавиша не назначена</string>
     <string name="automation_trigger_steering_key_assign">назначить</string>
+    <string name="automation_trigger_steering_key_single">одно нажатие</string>
+    <string name="automation_trigger_steering_key_double">двойное нажатие</string>
     <string name="automation_steering_key_occupied_projection">Эта клавиша включает навигацию на приборке. Освободите её в Настройках, раздел Дисплей, или выберите другую.</string>
     <string name="automation_steering_key_occupied_voice">Эта клавиша вызывает голосового помощника BYDMate. Измените клавишу в Настройках, раздел Голос-агент, или выберите другую.</string>
     <string name="automation_steering_key_occupied_knob">Нажатие колёсика занято функцией play/pause. Выключите её в Настройках, раздел Дисплей, или выберите другую клавишу.</string>
@@ -830,6 +835,8 @@
     <string name="settings_tariff_trip_custom_chip">Свой</string>
     <string name="settings_unit_km">км</string>
     <string name="settings_unit_miles">мили</string>
+    <string name="settings_unit_bar">бар</string>
+    <string name="settings_unit_psi">psi</string>
     <!-- Language names shown in language picker (intentionally NOT translated - native name) -->
 
     <!-- Settings: ViewModel status strings (user-visible feedback) -->
@@ -1176,6 +1183,7 @@
     <string name="auto_param_lightlow">Ближний свет</string>
     <string name="auto_param_drl">Дневные ходовые</string>
     <string name="auto_param_turnsignal">Поворотник</string>
+    <string name="auto_param_cruise_active">Круиз включён</string>
     <!-- action names -->
     <string name="auto_act_vent_windows">Проветривание</string>
     <string name="auto_act_close_all_windows">Закрыть все окна</string>
@@ -1205,7 +1213,7 @@
     <string name="auto_act_vent_front_windows">Проветрить передние</string>
     <string name="auto_act_half_rear_windows">Задние на 50%</string>
     <string name="auto_act_vent_rear_windows">Проветрить задние</string>
-    <string name="auto_act_auto_ac">Авто AC</string>
+    <string name="auto_act_auto_ac">Включить климат</string>
     <string name="auto_act_ventilation_no_ac">Обдув без AC</string>
     <string name="auto_act_wind_face">Обдув: в лицо</string>
     <string name="auto_act_wind_face_feet">Обдув: лицо и ноги</string>
@@ -1224,6 +1232,7 @@
     <string name="auto_act_steering_heat_on">Подогрев руля вкл</string>
     <string name="auto_act_steering_heat_off">Подогрев руля выкл</string>
     <string name="steering_heat_not_equipped">На этой машине нет подогрева руля</string>
+    <string name="steering_heat_level_not_equipped">На этой машине нет выбора уровня подогрева руля</string>
     <string name="auto_act_hud_on">HUD: включить</string>
     <string name="auto_act_hud_off">HUD: выключить</string>
     <string name="hud_not_equipped">На этой машине нет HUD</string>
@@ -1272,6 +1281,7 @@
     <string name="auto_level_off">выкл</string>
     <string name="auto_level_temp">Температура</string>
     <string name="auto_level_fan">Вентилятор</string>
+    <string name="auto_level_steering_heat">Подогрев руля</string>
     <string name="auto_level_seat_heat_driver">Подогрев сиденья водителя</string>
     <string name="auto_level_seat_heat_passenger">Подогрев сиденья пассажира</string>
     <string name="auto_level_seat_vent_driver">Вентиляция сиденья водителя</string>
@@ -1286,6 +1296,7 @@
     <string name="auto_level_fridge_heat">Обогрев холодильника</string>
     <string name="auto_level_tile_temp">Температура 16–33 °C</string>
     <string name="auto_level_tile_fan">Вентилятор 1–7</string>
+    <string name="auto_level_tile_steering_heat">Подогрев руля: уровень</string>
     <string name="auto_level_tile_seat_heat_driver">Подогрев сиденья водителя: уровень 1–5 или выкл</string>
     <string name="auto_level_tile_seat_heat_passenger">Подогрев сиденья пассажира: уровень 1–5 или выкл</string>
     <string name="auto_level_tile_seat_vent_driver">Вентиляция сиденья водителя: уровень 1–5 или выкл</string>
@@ -1799,6 +1810,8 @@
     <string name="tech_value_percent">%1$d%%</string>
     <!-- %1$.2f = bar -->
     <string name="tech_value_tyre_pressure">%1$.2f бар</string>
+    <!-- %1$d = psi -->
+    <string name="tech_value_tyre_pressure_psi">%1$d psi</string>
     <string name="tech_value_cell_scale">%1$.2f В</string>
     <string name="tech_hint_soh" formatted="false">Здоровье батареи по оценке самой машины: сколько ёмкости осталось от новой. 100 % у новой машины, медленно снижается с годами. Это отдельная цифра, с «Остатком» она формулой не связана, сравнивать их между собой не нужно.</string>
     <string name="tech_hint_remain_kwh" formatted="false">Сколько энергии осталось по оценке самой батареи. Она учитывает износ, поэтому цифра меньше, чем процент заряда, умноженный на заводскую ёмкость. Точнее всего сразу после зарядки до 100 %. Экран может держать 100 %, пока батарея уже отдала первые киловатт-часы, поэтому в самом верху шкалы остаток и процент расходятся сильнее.</string>
@@ -1990,6 +2003,7 @@
     <string name="tg_report_field_battery_temp">Температура батареи</string>
     <string name="tg_report_field_openings">Что открыто</string>
     <string name="tg_report_field_tires">Давление в шинах</string>
+    <string name="tg_report_field_battery_counter">Счётчик энергии батареи</string>
     <string name="tg_report_header_off">BYDMate: машина выключена %1$s в %2$s</string>
     <string name="tg_report_map_link">Открыть на карте</string>
     <string name="tg_report_soc">заряд %1$s</string>
@@ -2022,6 +2036,7 @@
     <string name="tg_report_open_front_trunk">передний багажник</string>
     <string name="tg_report_open_hood">капот</string>
     <string name="tg_report_tires">Шины: %1$s бар</string>
+    <string name="tg_report_battery_counter">Счётчик энергии батареи %1$.1f кВт·ч</string>
     <string name="tg_report_tire_fl">ПЛ %1$s</string>
     <string name="tg_report_tire_fr">ПП %1$s</string>
     <string name="tg_report_tire_rl">ЗЛ %1$s</string>
@@ -2047,6 +2062,7 @@
     <string name="tg_report_field_battery_temp_desc">Средняя по батарее</string>
     <string name="tg_report_field_openings_desc">Двери, окна, люк, багажник, капот</string>
     <string name="tg_report_field_tires_desc">Все четыре колеса</string>
+    <string name="tg_report_field_battery_counter_desc">Сколько кВт·ч прошло через батарею за всё время</string>
     <string name="settings_tg_report_off_title">Отчёт при выключении машины</string>
     <string name="settings_tg_report_off_hint">Отчёт уходит в первые секунды после выключения через мобильный интернет машины. Если связи нет, он придёт при следующем включении.</string>
     <string name="settings_tg_report_off_no_bot">Сначала подключите Telegram-бот выше.</string>
@@ -2103,6 +2119,7 @@
     <string name="auto_ui_days_weekends">По выходным</string>
     <string name="auto_ui_phrase_button">Кнопка %1$d на виджете</string>
     <string name="auto_ui_phrase_steering">Клавиша руля «%1$s»</string>
+    <string name="auto_ui_phrase_steering_double">Клавиша руля «%1$s», двойное нажатие</string>
     <string name="auto_ui_phrase_steering_none">Клавиша руля не назначена</string>
     <string name="auto_ui_phrase_voice">Голосом «%1$s»</string>
     <string name="auto_ui_phrase_once">%1$s, один раз</string>
@@ -2278,6 +2295,7 @@
     <string name="tech_dtc_full_body">Кузовной блок 0x%1$X</string>
     <string name="tech_dtc_full_unknown">Блок 0x%1$X</string>
     <string name="tech_dtc_no_diag_service">Недоступно: в прошивке этой машины нет диагностического сервиса</string>
+    <string name="tech_dtc_read_only_firmware">На этой прошивке BYDMate может только читать коды и датчики, стирать и прописывать нельзя</string>
     <string name="tech_fw_row_title">Прошивки блоков</string>
     <string name="tech_fw_row_never">не проверяли</string>
     <string name="tech_fw_row_unchanged">без изменений</string>
@@ -2403,6 +2421,7 @@
     <string name="tyre_battery_ok">OK</string>
     <string name="tyre_battery_low">разряжена</string>
     <string name="tyre_no_signal">нет сигнала</string>
+    <string name="tyre_not_registered">датчик не прописан</string>
     <string name="tyre_status_will_write">будет записан</string>
     <string name="tyre_status_in_block">уже в блоке</string>
     <string name="tyre_status_unchanged">не меняется</string>
@@ -2458,4 +2477,18 @@
     <string name="tyre_why_only_p">Прописать можно только на P.</string>
     <string name="tyre_not_l3_title">Запись номеров недоступна на этой машине.</string>
     <string name="tyre_not_l3_text">Блок колёс ответил не так, как на Leopard 3, поэтому писать в него не рискуем. Номера видно, комплекты можно хранить.</string>
+
+    <!-- Overlay permission screen fallback (#454) -->
+    <string name="overlay_permission_screen_unavailable">На этой прошивке нет экрана разрешения «Поверх других окон»</string>
+
+    <!-- Media play/pause action (#185) and Bluetooth triggers (#486) -->
+    <string name="automation_action_media_play_pause">Медиа: играть / пауза</string>
+    <string name="automation_trigger_type_bt_connected">Bluetooth: устройство подключилось</string>
+    <string name="automation_trigger_type_bt_disconnected">Bluetooth: устройство отключилось</string>
+    <string name="automation_trigger_bt_pick">Выберите устройство</string>
+    <string name="automation_trigger_bt_empty">Нет сопряжённых устройств Bluetooth</string>
+    <string name="automation_trigger_bt_device_missing">Устройство Bluetooth не выбрано</string>
+    <string name="auto_ui_phrase_bt_connected">Bluetooth: подключилось «%1$s»</string>
+    <string name="auto_ui_phrase_bt_disconnected">Bluetooth: отключилось «%1$s»</string>
+    <string name="auto_ui_miss_bt_device">Выберите устройство Bluetooth в условии %1$d</string>
 </resources>

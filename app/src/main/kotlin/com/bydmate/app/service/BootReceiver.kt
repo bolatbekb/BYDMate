@@ -3,7 +3,10 @@ package com.bydmate.app.service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.PowerManager
 import android.util.Log
+import androidx.work.Data
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
@@ -33,11 +36,23 @@ class BootReceiver : BroadcastReceiver() {
         /** Explicit restart request from the helper daemon after the Android 10 a11y recovery. */
         const val ACTION_RECOVER_START = "com.bydmate.app.action.RECOVER_START"
 
-        // Unlock arrives only while the service is down (see onReceive), so whatever job is
-        // queued or running has not started it: replace it rather than be dropped behind a
-        // parked-restart job that skipped because the screen still read as off at car-on.
-        fun workPolicyFor(action: String?): ExistingWorkPolicy =
-            if (action == Intent.ACTION_USER_PRESENT) ExistingWorkPolicy.REPLACE else ExistingWorkPolicy.KEEP
+        // DiLink's JobScheduler blocks third-party jobs while the car is off, so a start job can
+        // sit enqueued until morning and must not swallow the car-wake boot or a later unlock.
+        fun workPolicyFor(action: String?): ExistingWorkPolicy = when (action) {
+            Intent.ACTION_BOOT_COMPLETED, Intent.ACTION_USER_PRESENT -> ExistingWorkPolicy.REPLACE
+            else -> ExistingWorkPolicy.KEEP
+        }
+
+        /** The start worker's input: who enqueued it, and whether the boot was cold ([AutostartTrace.isColdBoot]). */
+        fun workInput(intent: Intent): Data = workDataOf(
+            AutostartTrace.KEY_WORKER_SOURCE to AutostartTrace.actionName(intent.action),
+            AutostartTrace.KEY_COLD_BOOT to (
+                AutostartTrace.isColdBoot(
+                    intent.action,
+                    intent.getBooleanExtra(AutostartTrace.EXTRA_FROM_QUICKBOOT, false),
+                ) && AutostartTrace.coldBootGuardApplies(Build.VERSION.SDK_INT)
+            ),
+        )
     }
 
     override fun onReceive(context: Context, intent: Intent) {
@@ -55,8 +70,11 @@ class BootReceiver : BroadcastReceiver() {
 
         Log.i(TAG, "Boot/user event: ${intent.action}")
         ChainLog.append(context, "BootReceiver: ${intent.action}")
-        val action = AutostartTrace.actionName(intent.action)
-        Trace.event(TraceArea.APP, "boot-receiver", "action" to action, "service_running" to TrackingService.isRunning.value)
+        val input = workInput(intent)
+        val interactive = (context.getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
+        Trace.event(TraceArea.APP, "boot-receiver", "action" to AutostartTrace.actionName(intent.action),
+            "service_running" to TrackingService.isRunning.value,
+            "cold_boot" to input.getBoolean(AutostartTrace.KEY_COLD_BOOT, false), "interactive" to interactive)
 
         // Skip USER_PRESENT if service is already running
         if (intent.action == Intent.ACTION_USER_PRESENT && TrackingService.isRunning.value) {
@@ -70,7 +88,7 @@ class BootReceiver : BroadcastReceiver() {
         // Use WorkManager — guaranteed execution (like BydConnect)
         try {
             val request = OneTimeWorkRequestBuilder<ServiceStartWorker>()
-                .setInputData(workDataOf(AutostartTrace.KEY_WORKER_SOURCE to action))
+                .setInputData(input)
                 .build()
             WorkManager.getInstance(context).enqueueUniqueWork(
                 ServiceStartWorker.WORK_NAME,

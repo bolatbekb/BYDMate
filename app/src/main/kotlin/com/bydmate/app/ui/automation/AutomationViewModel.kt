@@ -25,6 +25,7 @@ import com.bydmate.app.data.automation.RuleParseResult
 import com.bydmate.app.data.automation.RuleShare
 import com.bydmate.app.data.automation.RuleShareFiles
 import com.bydmate.app.data.automation.RuleShareUrl
+import com.bydmate.app.data.automation.RuleStepPacing
 import com.bydmate.app.data.automation.SharedRule
 import com.bydmate.app.data.automation.TriggerValidationError
 import com.bydmate.app.voice.VoiceUserPhrases
@@ -51,6 +52,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -185,6 +187,8 @@ data class AutomationUiState(
     val message: String? = null,
     /** Rear seats whose heat this car reports (#327): the editor offers only their tiles. */
     val rearSeats: Set<RearSeat> = emptySet(),
+    /** Steering wheel heat level count reported by the car (0, 3 or 5) (#408). */
+    val steeringHeatLevels: Int = 0,
 )
 
 @HiltViewModel
@@ -380,11 +384,12 @@ class AutomationViewModel @Inject @Suppress("LongParameterList") constructor( //
         loadRearSeats()
     }
 
-    /** Asks the car which rear seats have heat (#327), once per editor open. */
+    /** Asks the car which rear seats have heat (#327) and steering heat level count (#408), once per editor open. */
     private fun loadRearSeats() {
         viewModelScope.launch {
             val sides = withContext(ioDispatcher) { vehicleApi.rearSeatHeatSides() }
-            _uiState.update { it.copy(rearSeats = sides) }
+            val steeringLevels = withContext(ioDispatcher) { vehicleApi.steeringHeatLevelCount() }
+            _uiState.update { it.copy(rearSeats = sides, steeringHeatLevels = steeringLevels) }
         }
     }
 
@@ -467,19 +472,25 @@ class AutomationViewModel @Inject @Suppress("LongParameterList") constructor( //
         val err = RuleDraftValidator.validateTriggers(triggers, editingId, _uiState.value.rules, userPhrases, triggerLogic)
             ?.takeUnless { keyPickedLater && it == TriggerValidationError.SteeringKeyUnassigned }
         if (err != null) Log.i("AutomationViewModel", "rule not saved: $err")
-        return when (err) {
-            TriggerValidationError.SteeringKeyUnassigned -> ctx.getString(R.string.automation_trigger_steering_key_unassigned)
-            is TriggerValidationError.ValueNotNumber ->
-                ctx.getString(R.string.auto_ui_miss_number, triggers.indexOfFirst { it.kind == "param" && it.param == err.param } + 1)
-            TriggerValidationError.OneShotInvalid -> ctx.getString(R.string.auto_ui_err_one_shot_invalid)
-            TriggerValidationError.OneShotWithOr -> ctx.getString(R.string.auto_ui_err_one_shot_or)
-            TriggerValidationError.OneShotWithEvent -> ctx.getString(R.string.auto_ui_err_one_shot_event)
-            TriggerValidationError.OneShotTwice -> ctx.getString(R.string.auto_ui_err_one_shot_twice)
-            TriggerValidationError.VoicePhraseEmpty -> ctx.getString(R.string.automation_voice_phrase_empty)
-            is TriggerValidationError.VoicePhraseBuiltin -> ctx.getString(R.string.automation_voice_phrase_taken, err.command)
-            is TriggerValidationError.VoicePhraseTaken -> ctx.getString(R.string.automation_voice_phrase_taken, err.rule)
-            null -> null
-        }
+        return err?.let { triggerErrorText(it, triggers, ctx) }
+    }
+
+    private fun triggerErrorText(
+        err: TriggerValidationError,
+        triggers: List<TriggerDef>,
+        ctx: Context,
+    ): String = when (err) {
+        TriggerValidationError.SteeringKeyUnassigned -> ctx.getString(R.string.automation_trigger_steering_key_unassigned)
+        TriggerValidationError.BluetoothDeviceMissing -> ctx.getString(R.string.automation_trigger_bt_device_missing)
+        is TriggerValidationError.ValueNotNumber ->
+            ctx.getString(R.string.auto_ui_miss_number, triggers.indexOfFirst { it.kind == "param" && it.param == err.param } + 1)
+        TriggerValidationError.OneShotInvalid -> ctx.getString(R.string.auto_ui_err_one_shot_invalid)
+        TriggerValidationError.OneShotWithOr -> ctx.getString(R.string.auto_ui_err_one_shot_or)
+        TriggerValidationError.OneShotWithEvent -> ctx.getString(R.string.auto_ui_err_one_shot_event)
+        TriggerValidationError.OneShotTwice -> ctx.getString(R.string.auto_ui_err_one_shot_twice)
+        TriggerValidationError.VoicePhraseEmpty -> ctx.getString(R.string.automation_voice_phrase_empty)
+        is TriggerValidationError.VoicePhraseBuiltin -> ctx.getString(R.string.automation_voice_phrase_taken, err.command)
+        is TriggerValidationError.VoicePhraseTaken -> ctx.getString(R.string.automation_voice_phrase_taken, err.rule)
     }
 
     fun saveRule() {
@@ -668,15 +679,7 @@ class AutomationViewModel @Inject @Suppress("LongParameterList") constructor( //
             val lc = context.appLocalizedContext()
             try {
                 if (e.playSound) OverlayNotificationManager.playNotificationSound(context)
-                var failed = 0
-                var firstReason: String? = null
-                for (action in e.actions) {
-                    val reason = runTestAction(action)
-                    if (reason != null) {
-                        failed++
-                        if (firstReason == null) firstReason = reason
-                    }
-                }
+                val (failed, firstReason) = runTestActions(e.actions)
                 val msg = if (failed == 0) {
                     lc.getString(R.string.automation_test_run_done)
                 } else {
@@ -702,6 +705,23 @@ class AutomationViewModel @Inject @Suppress("LongParameterList") constructor( //
         if (freshGear == 1 && gear == 1) return true
         Log.i("AutomationViewModel", "test run refused: park only, gear=$gear fresh=$freshGear")
         return false
+    }
+
+    private suspend fun runTestActions(actions: List<ActionDef>): Pair<Int, String?> {
+        var failed = 0
+        var firstReason: String? = null
+        var prevAction: ActionDef? = null
+        for (action in actions) {
+            val gapMs = RuleStepPacing.gapBefore(prevAction, action)
+            if (gapMs > 0L) delay(gapMs)
+            prevAction = action
+            val reason = runTestAction(action)
+            if (reason != null) {
+                failed++
+                if (firstReason == null) firstReason = reason
+            }
+        }
+        return failed to firstReason
     }
 
     /**

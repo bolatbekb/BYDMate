@@ -34,6 +34,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -46,6 +47,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
+@Suppress("LargeClass") // rule evaluation loop, manual triggers and confirmation flow
 class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hilt-injected dependencies
     private val ruleDao: RuleDao,
     private val ruleLogDao: RuleLogDao,
@@ -58,6 +60,9 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
     companion object {
         private const val TAG = "AutomationEngine"
         private const val CONFIRM_CHANNEL_ID = "bydmate_automation_confirm"
+        // ADAS ACC/ICC/NOA active mode codes (#383): 3..7 (5 = throttle override).
+        private const val CRUISE_ACTIVE_MIN = 3
+        private const val CRUISE_ACTIVE_MAX = 7
         private const val CONFIRM_TIMEOUT_MS = 30_000L
         private const val NOTIF_BASE_ID = 5000
         // Trace `src=` of the edges that do not come from a manual trigger kind.
@@ -95,6 +100,9 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
         // the a11y key filter through onSteeringKey(), never from the poll.
         const val TRIGGER_KIND_STEERING_KEY = "steering_key"
         const val TRIGGER_PARAM_STEERING_KEY = "steering_key"
+        const val TRIGGER_KIND_BT_CONNECTED = "bt_connected"
+        const val TRIGGER_KIND_BT_DISCONNECTED = "bt_disconnected"
+        const val TRIGGER_PARAM_BT_DEVICE = "BtDevice"
 
         /** An enabled rule with a steering_key trigger needs the a11y key filter bound (#262). */
         fun hasEnabledSteeringKeyRule(rules: List<RuleEntity>): Boolean = rules.any { rule ->
@@ -177,6 +185,8 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
     internal var liveData: () -> DiParsData? = { TrackingService.lastData.value }
     // Test seam: the range the Dashboard shows, for the RangeKm condition.
     internal var rangeKm: () -> Double? = { TrackingService.lastRangeKm.value }
+    // Connected Bluetooth device addresses (wired by TrackingService; overridden in tests, #486).
+    internal var connectedBtAddresses: () -> Set<String> = { emptySet() }
     // «Why was the rule skipped» lines: one per rule and reason per minute.
     private val skipLog = com.bydmate.app.data.autoservice.LogThrottle()
     private val journal = RuleJournal(ruleLogDao, appStrings, skipLog) { nowMs() }
@@ -192,6 +202,9 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
     // key event itself — a DB read there would run on the input path.
     private val _steeringKeyCodes = MutableStateFlow<Set<Int>>(emptySet())
     val steeringKeyCodes: StateFlow<Set<Int>> = _steeringKeyCodes
+    // Subset of steeringKeyCodes that have at least one enabled rule with press = "double" (#451).
+    private val _steeringKeyDoubleCodes = MutableStateFlow<Set<Int>>(emptySet())
+    val steeringKeyDoubleCodes: StateFlow<Set<Int>> = _steeringKeyDoubleCodes
 
     private data class PendingAction(
         val rule: RuleEntity,
@@ -212,13 +225,21 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
     private fun observeSteeringKeyCodes() {
         scope.launch {
             ruleDao.getAll().collect { rules ->
-                _steeringKeyCodes.value = rules
+                val enabledTriggers = rules
                     .filter { it.enabled }
                     .flatMap { TriggerDef.listFromJson(it.triggers) }
                     .filter { it.kind == TRIGGER_KIND_STEERING_KEY }
-                    // 0 = "not assigned yet" (a trigger just added from the menu); it must never
-                    // claim a key, so the filter never sees it.
-                    .mapNotNullTo(HashSet()) { it.value.toIntOrNull()?.takeIf { code -> code > 0 } }
+                // 0 = "not assigned yet" (a trigger just added from the menu); it must never
+                // claim a key, so the filter never sees it.
+                val allCodes = HashSet<Int>()
+                val doubleCodes = HashSet<Int>()
+                for (trigger in enabledTriggers) {
+                    val code = trigger.value.toIntOrNull()?.takeIf { it > 0 } ?: continue
+                    allCodes.add(code)
+                    if (trigger.press == TriggerDef.PRESS_DOUBLE) doubleCodes.add(code)
+                }
+                _steeringKeyDoubleCodes.value = doubleCodes
+                _steeringKeyCodes.value = allCodes
             }
         }
     }
@@ -502,12 +523,23 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
 
     /**
      * Direct entry point for a steering-wheel key bound to a rule, called from the
-     * a11y key filter. Same manual semantics as [onButtonPress].
+     * a11y key filter. Same manual semantics as [onButtonPress]. Runs single-press rules only.
      *
      * Returns the number of rules matched by keycode (0 ⇒ nothing was bound to it).
      */
     suspend fun onSteeringKey(keyCode: Int): Int =
-        fireManualTrigger(TRIGGER_KIND_STEERING_KEY, keyCode.toString())
+        onSteeringKeyPress(keyCode, double = false)
+
+    /**
+     * Direct entry point for a steering-wheel key press distinguishing single ([double] = false,
+     * matching press null only) and double press ([double] = true, matching press "double" only).
+     */
+    suspend fun onSteeringKeyPress(keyCode: Int, double: Boolean): Int {
+        val expectedPress = if (double) TriggerDef.PRESS_DOUBLE else null
+        return fireManualTrigger(TRIGGER_KIND_STEERING_KEY, keyCode.toString()) { trigger ->
+            trigger.press == expectedPress
+        }
+    }
 
     /**
      * Shared body of the manual (event) trigger paths. Runs every ENABLED rule
@@ -524,10 +556,14 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
      * Returns the number of matched rules. A matched-but-park-gated rule still
      * counts, so the caller does not falsely report "no rules".
      */
-    private suspend fun fireManualTrigger(kind: String, value: String): Int {
+    private suspend fun fireManualTrigger(
+        kind: String,
+        value: String,
+        triggerPredicate: (TriggerDef) -> Boolean = { true },
+    ): Int {
         val matching = ruleDao.getEnabled().filter { rule ->
             TriggerDef.listFromJson(rule.triggers).any {
-                it.kind == kind && it.value == value
+                it.kind == kind && it.value == value && triggerPredicate(it)
             }
         }
         if (matching.isEmpty()) return 0
@@ -583,8 +619,9 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
         networkAvailableEdge: Boolean
     ): List<Boolean> = triggers.map { trigger ->
         when (trigger.kind) {
-            "place_enter" -> evaluatePlace(trigger, location, places, enterKind = true)
-            "place_exit" -> evaluatePlace(trigger, location, places, enterKind = false)
+            "place_enter", "place_exit" -> evaluatePlace(trigger, location, places, enterKind = trigger.kind == "place_enter")
+            TRIGGER_KIND_BT_CONNECTED, TRIGGER_KIND_BT_DISCONNECTED ->
+                evaluateBluetooth(trigger, connected = trigger.kind == TRIGGER_KIND_BT_CONNECTED)
             "time_of_day" -> evaluateTimeOfDay(trigger, location)
             "time_range" -> evaluateSchedule(trigger)
             "service_start" -> serviceStartActive
@@ -648,6 +685,13 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
             place.lat, place.lon, place.radiusM
         )
         return if (enterKind) inside else !inside
+    }
+
+    private fun evaluateBluetooth(trigger: TriggerDef, connected: Boolean): Boolean {
+        val target = trigger.value.trim()
+        if (target.isEmpty()) return false
+        val present = connectedBtAddresses().any { it.equals(target, ignoreCase = true) }
+        return if (connected) present else !present
     }
 
     private fun evaluateTimeOfDay(trigger: TriggerDef, location: Location?): Boolean {
@@ -723,6 +767,7 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
         "LightLow" -> data.lightLow?.toDouble()
         "DRL" -> data.drl?.toDouble()
         "TurnSignal" -> data.turnSignal?.toDouble()
+        "cruise_active" -> data.cruiseMode?.let { if (it in CRUISE_ACTIVE_MIN..CRUISE_ACTIVE_MAX) 1.0 else 0.0 }
         "MaxBatTemp" -> data.maxBatTemp?.toDouble()
         "AvgBatTemp" -> data.avgBatTemp?.toDouble()
         "MinBatTemp" -> data.minBatTemp?.toDouble()
@@ -755,8 +800,12 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
 
             val results = JSONArray()
             var allSuccess = true
+            var prevAction: ActionDef? = null
 
             for ((i, action) in actions.withIndex()) {
+                val gapMs = RuleStepPacing.gapBefore(prevAction, action)
+                if (gapMs > 0L) delay(gapMs)
+                prevAction = action
                 // Fresh data per step: a pause may lie between the fire and this step. A speed-gated
                 // step does not trust it either: the dispatcher reads the speed itself right before.
                 val stepData = liveData() ?: data
@@ -851,6 +900,8 @@ class AutomationEngine @Inject @Suppress("LongParameterList") constructor( // Hi
             when (t.kind) {
                 "place_enter" -> json.put("place_enter", t.placeName ?: "?")
                 "place_exit" -> json.put("place_exit", t.placeName ?: "?")
+                TRIGGER_KIND_BT_CONNECTED, TRIGGER_KIND_BT_DISCONNECTED ->
+                    json.put(t.kind, t.displayName.ifBlank { t.value })
                 "time_of_day", "time_range", "button_press", TRIGGER_KIND_STEERING_KEY, OneShotTrigger.KIND ->
                     json.put(t.kind, t.value)
                 "service_start" -> json.put("service_start", true)

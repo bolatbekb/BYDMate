@@ -558,6 +558,7 @@ class AgentTools @Inject constructor(
         putIf("ambient_light_level_1dark_5bright", d.lightLevel)
         putIf("key_fob_battery_ok", d.keyBatteryStatus?.let { it == 0 })
         putIf("rain_detected", d.rain?.let { it == 1 })
+        putIf("cruise_active", d.cruiseMode?.let { it in 3..7 })
         // Blind-spot cameras are a BYDMate feature, not a car parameter: the driver asks why
         // the picture does not appear, and the answer is usually "off" or "below the threshold".
         runCatchingCancellable { BlindSpotPreferences(context) }.getOrNull()?.let { bs ->
@@ -2411,6 +2412,7 @@ class AgentTools @Inject constructor(
     private fun triggerErrorText(err: TriggerValidationError): String = when (err) {
         is TriggerValidationError.ValueNotNumber -> "значение для «${err.param}» должно быть числом"
         TriggerValidationError.SteeringKeyUnassigned -> "не назначена клавиша руля"
+        TriggerValidationError.BluetoothDeviceMissing -> "не выбрано Bluetooth-устройство"
         TriggerValidationError.OneShotInvalid,
         TriggerValidationError.OneShotWithOr,
         TriggerValidationError.OneShotWithEvent,

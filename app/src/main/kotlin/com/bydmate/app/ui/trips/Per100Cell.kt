@@ -26,6 +26,26 @@ internal fun per100Cell(
     }
 }
 
+/**
+ * The "/100" cell of a period header (day or month, #458). When both electric consumption and
+ * positive fuel consumption per 100 km are present, both show side by side uncoloured; otherwise
+ * falls back to [per100Cell].
+ */
+internal fun periodPer100Cell(
+    kwhPer100: Double?,
+    fuelLiters: Double?,
+    litersKm: Double?,
+    litersUnit: String,
+): Per100Cell {
+    val km = litersKm?.takeIf { it > 0.0 }
+    val litersPer100 = fuelLiters?.takeIf { it > 0.0 }?.let { liters -> km?.let { liters / it * 100.0 } }
+    return if (kwhPer100 != null && litersPer100 != null) {
+        Per100Cell("%.1f + %.1f %s".format(kwhPer100, litersPer100, litersUnit), colored = false)
+    } else {
+        per100Cell(kwhPer100, fuelLiters, litersKm, litersUnit)
+    }
+}
+
 /** The «л» cell: litres of the trip, «—» when either counter edge was missing. */
 internal fun litersCell(fuelLiters: Double?): String = fuelLiters?.let { "%.1f".format(it) } ?: "—"
 
@@ -55,3 +75,14 @@ internal fun sumLiters(trips: List<TripEntity>): Double? =
  */
 internal fun litersKm(trips: List<TripEntity>): Double? =
     trips.filter { it.fuelLiters != null }.takeIf { it.isNotEmpty() }?.sumOf { it.distanceKm ?: 0.0 }
+
+/**
+ * Electric consumption per 100 km of a period (#458): null when no trip has a kWh reading or the
+ * summed distance is not positive, so a hybrid header without kWh keeps the litres-only cell.
+ */
+internal fun periodKwhPer100(trips: List<TripEntity>): Double? {
+    if (trips.none { it.kwhConsumed != null }) return null
+    val km = trips.sumOf { it.distanceKm ?: 0.0 }
+    if (km <= 0.0) return null
+    return trips.sumOf { it.kwhConsumed ?: 0.0 } / km * 100.0
+}

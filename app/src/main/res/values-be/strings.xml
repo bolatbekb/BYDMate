@@ -35,6 +35,7 @@
     <string name="settings_cluster_full_display_desc">Карта на ўсю прыборку, без ніжняй паласы з хуткасцю. Уключыце, калі карта займае толькі вузкую паласу зверху. Ужываецца пры наступным вывадзе на прыборку.</string>
     <string name="settings_cluster_direct_reboot_hint">Каб галасавы агент бачыў навігатар на прыборцы, адзін раз перазагрузіце DiLink: заціскайце і ўтрымлівайце колца гучнасці. Проста заглушыць машыну недастаткова. Да перазагрузкі праекцыя працуе, але агент не бачыць маршрут.</string>
     <string name="cluster_direct_unsupported_hint">Прамы вывад недаступны на прашыўцы гэтай машыны, выкарыстоўваецца сумяшчальны рэжым</string>
+    <string name="cluster_no_display_for_output">На гэтай машыне прыборка недаступная для вываду</string>
     <string name="settings_projection_mode_title">Рэжым вываду на прыборку</string>
     <string name="settings_projection_mode_direct">Пашыраны</string>
     <string name="settings_projection_mode_vd">Заводскі</string>
@@ -71,6 +72,7 @@
     <string name="learn_button_waiting">Націсніце кнопку на рулі…</string>
     <string name="learn_button_rejected">Гэту кнопку нельга прызначыць. Націсніце іншую.</string>
     <string name="learn_button_captured">Кнопка распазнана:</string>
+    <string name="learn_button_media_track_hint">Штатная перамотка трэка на гэтай кнопцы таксама спрацуе</string>
     <string name="learn_button_timeout">Кнопка не распазнана. Магчыма, яна не перадаецца сістэме. Паспрабуйце іншую.</string>
     <string name="learn_button_save">Захаваць</string>
     <string name="learn_button_again">Нанова</string>
@@ -280,6 +282,7 @@
     <!-- Settings: Application section -->
     <string name="settings_app_units_header">Адзінкі і валюта</string>
     <string name="settings_app_distance_label">Адлегласць</string>
+    <string name="settings_app_pressure_unit_label">Ціск у шынах</string>
     <string name="settings_app_currency_label">Валюта</string>
     <string name="settings_charge_connector_label">Раз’ём для зарадкі</string>
     <string name="settings_charge_connector_desc">Памочнік шукае зарадкі з гэтым раз’ёмам</string>
@@ -502,6 +505,8 @@
     <string name="automation_trigger_type_steering_key">Клавіша руля</string>
     <string name="automation_trigger_steering_key_unassigned">Клавіша не прызначана</string>
     <string name="automation_trigger_steering_key_assign">прызначыць</string>
+    <string name="automation_trigger_steering_key_single">адно націсканне</string>
+    <string name="automation_trigger_steering_key_double">падвойнае націсканне</string>
     <string name="automation_steering_key_occupied_projection">Гэтая клавіша ўключае навігацыю на прыборнай панэлі. Вызваліце яе ў Наладах, раздзел Дысплей, або выберыце іншую.</string>
     <string name="automation_steering_key_occupied_voice">Гэтая клавіша выклікае галасавога памочніка BYDMate. Змяніце клавішу ў Наладах, раздзел Голас-агент, або выберыце іншую.</string>
     <string name="automation_steering_key_occupied_knob">Націсканне кола занята функцыяй play/pause. Выключыце яе ў Наладах, раздзел Дысплей, або выберыце іншую клавішу.</string>
@@ -826,6 +831,8 @@
     <string name="settings_tariff_trip_custom_chip">Свой</string>
     <string name="settings_unit_km">км</string>
     <string name="settings_unit_miles">мілі</string>
+    <string name="settings_unit_bar">бар</string>
+    <string name="settings_unit_psi">psi</string>
     <!-- Language names shown in language picker (intentionally NOT translated - native name) -->
 
     <!-- Settings: ViewModel status strings (user-visible feedback) -->
@@ -1172,6 +1179,7 @@
     <string name="auto_param_lightlow">Блізкае святло</string>
     <string name="auto_param_drl">Дзённыя ходавыя</string>
     <string name="auto_param_turnsignal">Паваротнік</string>
+    <string name="auto_param_cruise_active">Круіз уключаны</string>
     <!-- action names -->
     <string name="auto_act_vent_windows">Праветрыванне</string>
     <string name="auto_act_close_all_windows">Зачыніць усе вокны</string>
@@ -1201,7 +1209,7 @@
     <string name="auto_act_vent_front_windows">Праветрыць пярэднія</string>
     <string name="auto_act_half_rear_windows">Заднія на 50%</string>
     <string name="auto_act_vent_rear_windows">Праветрыць заднія</string>
-    <string name="auto_act_auto_ac">Аўта AC</string>
+    <string name="auto_act_auto_ac">Уключыць клімат</string>
     <string name="auto_act_ventilation_no_ac">Абдзьмуванне без AC</string>
     <string name="auto_act_wind_face">Абдзьмух: у твар</string>
     <string name="auto_act_wind_face_feet">Абдзьмух: твар і ногі</string>
@@ -1220,6 +1228,7 @@
     <string name="auto_act_steering_heat_on">Падагрэў руля ўкл</string>
     <string name="auto_act_steering_heat_off">Падагрэў руля выкл</string>
     <string name="steering_heat_not_equipped">На гэтай машыне няма падагрэву руля</string>
+    <string name="steering_heat_level_not_equipped">На гэтай машыне няма выбару ўзроўню падагрэву руля</string>
     <string name="auto_act_hud_on">HUD: уключыць</string>
     <string name="auto_act_hud_off">HUD: выключыць</string>
     <string name="hud_not_equipped">На гэтай машыне няма HUD</string>
@@ -1268,6 +1277,7 @@
     <string name="auto_level_off">выкл</string>
     <string name="auto_level_temp">Тэмпература</string>
     <string name="auto_level_fan">Вентылятар</string>
+    <string name="auto_level_steering_heat">Падагрэў руля</string>
     <string name="auto_level_seat_heat_driver">Падагрэў сядзення кіроўцы</string>
     <string name="auto_level_seat_heat_passenger">Падагрэў сядзення пасажыра</string>
     <string name="auto_level_seat_vent_driver">Вентыляцыя сядзення кіроўцы</string>
@@ -1282,6 +1292,7 @@
     <string name="auto_level_fridge_heat">Абагрэў халадзільніка</string>
     <string name="auto_level_tile_temp">Тэмпература 16–33 °C</string>
     <string name="auto_level_tile_fan">Вентылятар 1–7</string>
+    <string name="auto_level_tile_steering_heat">Падагрэў руля: узровень</string>
     <string name="auto_level_tile_seat_heat_driver">Падагрэў сядзення кіроўцы: узровень 1–5 або выкл</string>
     <string name="auto_level_tile_seat_heat_passenger">Падагрэў сядзення пасажыра: узровень 1–5 або выкл</string>
     <string name="auto_level_tile_seat_vent_driver">Вентыляцыя сядзення кіроўцы: узровень 1–5 або выкл</string>
@@ -1785,6 +1796,7 @@
     <string name="tech_value_temp_range">%1$d°C (%2$d…%3$d)</string>
     <string name="tech_value_percent">%1$d%%</string>
     <string name="tech_value_tyre_pressure">%1$.2f бар</string>
+    <string name="tech_value_tyre_pressure_psi">%1$d psi</string>
     <string name="tech_value_cell_scale">%1$.2f В</string>
     <string name="tech_hint_soh" formatted="false">Здароўе батарэі паводле ацэнкі самой машыны: колькі ёмістасці засталося ад новай. 100% у новай машыны, павольна зніжаецца з гадамі. Гэта асобная лічба, з «Астаткам» яна формулай не звязана, параўноўваць іх паміж сабой не трэба.</string>
     <string name="tech_hint_remain_kwh" formatted="false">Колькі энергіі засталося паводле ацэнкі самой батарэі. Яна ўлічвае знос, таму лічба меншая, чым працэнт зарада, памножаны на завадскую ёмістасць. Найдакладней адразу пасля зарадкі да 100%. На экране можа заставацца 100%, пакуль батарэя ўжо аддала першыя кілават-гадзіны, таму ў самым версе шкалы астатак і працэнт разыходзяцца мацней.</string>
@@ -1976,6 +1988,7 @@
     <string name="tg_report_field_battery_temp">Тэмпература батарэі</string>
     <string name="tg_report_field_openings">Што адчынена</string>
     <string name="tg_report_field_tires">Ціск у шынах</string>
+    <string name="tg_report_field_battery_counter">Лічыльнік энергіі батарэі</string>
     <string name="tg_report_header_off">BYDMate: машына выключана %1$s у %2$s</string>
     <string name="tg_report_map_link">Адкрыць на карце</string>
     <string name="tg_report_soc">зарад %1$s</string>
@@ -2008,6 +2021,7 @@
     <string name="tg_report_open_front_trunk">пярэдні багажнік</string>
     <string name="tg_report_open_hood">капот</string>
     <string name="tg_report_tires">Шыны: %1$s бар</string>
+    <string name="tg_report_battery_counter">Лічыльнік энергіі батарэі %1$.1f кВт·г</string>
     <string name="tg_report_tire_fl">ПЛ %1$s</string>
     <string name="tg_report_tire_fr">ПП %1$s</string>
     <string name="tg_report_tire_rl">ЗЛ %1$s</string>
@@ -2033,6 +2047,7 @@
     <string name="tg_report_field_battery_temp_desc">Сярэдняя па батарэі</string>
     <string name="tg_report_field_openings_desc">Дзверы, вокны, люк, багажнік, капот</string>
     <string name="tg_report_field_tires_desc">Усе чатыры колы</string>
+    <string name="tg_report_field_battery_counter_desc">Колькі кВт·г прайшло праз батарэю за ўвесь час</string>
     <string name="settings_tg_report_off_title">Справаздача пры выключэнні машыны</string>
     <string name="settings_tg_report_off_hint">Справаздача ідзе ў першыя секунды пасля выключэння праз мабільны інтэрнэт машыны. Калі сувязі няма, яна прыйдзе пры наступным уключэнні.</string>
     <string name="settings_tg_report_off_no_bot">Спачатку падключыце Telegram-бот вышэй.</string>
@@ -2089,6 +2104,7 @@
     <string name="auto_ui_days_weekends">Па выхадных</string>
     <string name="auto_ui_phrase_button">Кнопка %1$d на віджэце</string>
     <string name="auto_ui_phrase_steering">Клавіша руля «%1$s»</string>
+    <string name="auto_ui_phrase_steering_double">Клавіша руля «%1$s», падвойнае націсканне</string>
     <string name="auto_ui_phrase_steering_none">Клавіша руля не прызначана</string>
     <string name="auto_ui_phrase_voice">Голасам «%1$s»</string>
     <string name="auto_ui_phrase_once">%1$s, адзін раз</string>
@@ -2264,6 +2280,7 @@
     <string name="tech_dtc_full_body">Кузаўны блок 0x%1$X</string>
     <string name="tech_dtc_full_unknown">Блок 0x%1$X</string>
     <string name="tech_dtc_no_diag_service">Недаступна: у прашыўцы гэтай машыны няма дыягнастычнага сэрвісу</string>
+    <string name="tech_dtc_read_only_firmware">На гэтай прашыўцы BYDMate можа толькі чытаць коды і датчыкі, сціраць і прапісваць нельга</string>
     <string name="tech_fw_row_title">Прашыўкі блокаў</string>
     <string name="tech_fw_row_never">не правяралі</string>
     <string name="tech_fw_row_unchanged">без змен</string>
@@ -2388,6 +2405,7 @@
     <string name="tyre_battery_ok">OK</string>
     <string name="tyre_battery_low">разраджана</string>
     <string name="tyre_no_signal">няма сігналу</string>
+    <string name="tyre_not_registered">датчык не прапісаны</string>
     <string name="tyre_status_will_write">будзе запісаны</string>
     <string name="tyre_status_in_block">ужо ў блоку</string>
     <string name="tyre_status_unchanged">не мяняецца</string>
@@ -2443,4 +2461,18 @@
     <string name="tyre_why_only_p">Прапісаць можна толькі на P.</string>
     <string name="tyre_not_l3_title">Запіс нумароў недаступны на гэтай машыне.</string>
     <string name="tyre_not_l3_text">Блок колаў адказаў не так, як на Leopard 3, таму пісаць у яго не рызыкуем. Нумары відаць, камплекты можна захоўваць.</string>
+
+    <!-- Overlay permission screen fallback (#454) -->
+    <string name="overlay_permission_screen_unavailable">На гэтай прашыўцы няма экрана дазволу «Паверх іншых вокнаў»</string>
+
+    <!-- Media play/pause action (#185) and Bluetooth triggers (#486) -->
+    <string name="automation_action_media_play_pause">Медыя: прайграць / паўза</string>
+    <string name="automation_trigger_type_bt_connected">Bluetooth: прылада падключылася</string>
+    <string name="automation_trigger_type_bt_disconnected">Bluetooth: прылада адключылася</string>
+    <string name="automation_trigger_bt_pick">Выберыце прыладу</string>
+    <string name="automation_trigger_bt_empty">Няма спалучаных прылад Bluetooth</string>
+    <string name="automation_trigger_bt_device_missing">Прылада Bluetooth не выбрана</string>
+    <string name="auto_ui_phrase_bt_connected">Bluetooth: падключылася «%1$s»</string>
+    <string name="auto_ui_phrase_bt_disconnected">Bluetooth: адключылася «%1$s»</string>
+    <string name="auto_ui_miss_bt_device">Выберыце прыладу Bluetooth ва ўмове %1$d</string>
 </resources>

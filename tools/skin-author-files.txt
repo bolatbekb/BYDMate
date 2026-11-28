@@ -29,11 +29,13 @@ app/src/main/kotlin/com/bydmate/app/agent/SettlementSearchClient.kt
 app/src/main/kotlin/com/bydmate/app/agent/WeatherClient.kt
 app/src/main/kotlin/com/bydmate/app/agent/ZaiSearchClient.kt
 app/src/main/kotlin/com/bydmate/app/camera/AvmCameraProbe.kt
+app/src/main/kotlin/com/bydmate/app/camera/BlindSpotApaProbe.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotBackoff.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotController.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotCrop.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotDecision.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotLateLuma.kt
+app/src/main/kotlin/com/bydmate/app/camera/BlindSpotOverlayAccess.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotPositionOverlay.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotPreferences.kt
 app/src/main/kotlin/com/bydmate/app/camera/BlindSpotShowLog.kt
@@ -47,6 +49,7 @@ app/src/main/kotlin/com/bydmate/app/cluster/ClusterVoiceControl.kt
 app/src/main/kotlin/com/bydmate/app/cluster/ForegroundHintFilter.kt
 app/src/main/kotlin/com/bydmate/app/cluster/KeyCounters.kt
 app/src/main/kotlin/com/bydmate/app/cluster/SplitKey.kt
+app/src/main/kotlin/com/bydmate/app/cluster/SteeringDoublePress.kt
 app/src/main/kotlin/com/bydmate/app/cluster/SteeringKeyOwner.kt
 app/src/main/kotlin/com/bydmate/app/cluster/SteeringWheelButtons.kt
 app/src/main/kotlin/com/bydmate/app/cluster/SteeringWheelKeyDecision.kt
@@ -54,6 +57,7 @@ app/src/main/kotlin/com/bydmate/app/cluster/SteeringWheelKeyService.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/ActionDispatcher.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/AutoTrace.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/AutomationEngine.kt
+app/src/main/kotlin/com/bydmate/app/data/automation/BluetoothConnectionTracker.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/ConfirmOverlayManager.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/DriveModeCondition.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/DriveModeRuleMigration.kt
@@ -70,6 +74,7 @@ app/src/main/kotlin/com/bydmate/app/data/automation/RuleDraftValidator.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/RuleInserts.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/RuleJournal.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/RuleShare.kt
+app/src/main/kotlin/com/bydmate/app/data/automation/RuleStepPacing.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/ScheduleTrigger.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/SeatLevelMemory.kt
 app/src/main/kotlin/com/bydmate/app/data/automation/ServiceStartTrigger.kt
@@ -180,6 +185,7 @@ app/src/main/kotlin/com/bydmate/app/data/nativestack/FidMap.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FidResolveDiagnostics.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FidResolver.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/FieldGuards.kt
+app/src/main/kotlin/com/bydmate/app/data/nativestack/HvCurrent.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/MotorPresence.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/MotorSplit.kt
 app/src/main/kotlin/com/bydmate/app/data/nativestack/NativeParsReader.kt
@@ -303,6 +309,7 @@ app/src/main/kotlin/com/bydmate/app/helper/RootCause.kt
 app/src/main/kotlin/com/bydmate/app/helper/ScreenBacklight.kt
 app/src/main/kotlin/com/bydmate/app/helper/SettingsDaemon.kt
 app/src/main/kotlin/com/bydmate/app/helper/ShellExec.kt
+app/src/main/kotlin/com/bydmate/app/helper/ShellUser.kt
 app/src/main/kotlin/com/bydmate/app/helper/Split37Daemon.kt
 app/src/main/kotlin/com/bydmate/app/helper/dtc/DiagLink.kt
 app/src/main/kotlin/com/bydmate/app/helper/dtc/DtcScanner.kt
@@ -374,7 +381,10 @@ app/src/main/kotlin/com/bydmate/app/service/AutostartTrace.kt
 app/src/main/kotlin/com/bydmate/app/service/BeltProbeLog.kt
 app/src/main/kotlin/com/bydmate/app/service/BootReceiver.kt
 app/src/main/kotlin/com/bydmate/app/service/ChainLog.kt
+app/src/main/kotlin/com/bydmate/app/service/ColdBootDeferral.kt
+app/src/main/kotlin/com/bydmate/app/service/ColdBootGuard.kt
 app/src/main/kotlin/com/bydmate/app/service/GrantSelfHeal.kt
+app/src/main/kotlin/com/bydmate/app/service/HybridRangeTrace.kt
 app/src/main/kotlin/com/bydmate/app/service/LiveRange.kt
 app/src/main/kotlin/com/bydmate/app/service/LiveTelemetrySender.kt
 app/src/main/kotlin/com/bydmate/app/service/ServiceStartWorker.kt
@@ -383,6 +393,7 @@ app/src/main/kotlin/com/bydmate/app/service/TrackingService.kt
 app/src/main/kotlin/com/bydmate/app/service/UpdateApkCleanup.kt
 app/src/main/kotlin/com/bydmate/app/service/UpdateChecker.kt
 app/src/main/kotlin/com/bydmate/app/service/WakeLockRenewer.kt
+app/src/main/kotlin/com/bydmate/app/service/WebhookHybridFields.kt
 app/src/main/kotlin/com/bydmate/app/split/MediaKeyRerouter.kt
 app/src/main/kotlin/com/bydmate/app/split/NativeSplitLauncher.kt
 app/src/main/kotlin/com/bydmate/app/split/PaneTypePolicy.kt
@@ -391,12 +402,14 @@ app/src/main/kotlin/com/bydmate/app/split/SplitFreeformVerdict.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitJournal.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitKeyRules.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitMenuLogic.kt
+app/src/main/kotlin/com/bydmate/app/split/SplitMode3Fallback.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitOverlayController.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitPairPicker.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitPillView.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitPreferences.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitSessionManager.kt
 app/src/main/kotlin/com/bydmate/app/split/SplitStageActivity.kt
+app/src/main/kotlin/com/bydmate/app/ui/OverlayPermission.kt
 app/src/main/kotlin/com/bydmate/app/ui/automation/ActionDefBuilders.kt
 app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationActionControls.kt
 app/src/main/kotlin/com/bydmate/app/ui/automation/AutomationActionRow.kt
@@ -492,6 +505,7 @@ app/src/main/kotlin/com/bydmate/app/ui/tech/TechPanelVisuals.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TechTyres.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TyreIdsDialog.kt
 app/src/main/kotlin/com/bydmate/app/ui/tech/TyreIdsViewModel.kt
+app/src/main/kotlin/com/bydmate/app/ui/tech/TyrePressureUnit.kt
 app/src/main/kotlin/com/bydmate/app/ui/theme/Color.kt
 app/src/main/kotlin/com/bydmate/app/ui/theme/Theme.kt
 app/src/main/kotlin/com/bydmate/app/ui/theme/Type.kt

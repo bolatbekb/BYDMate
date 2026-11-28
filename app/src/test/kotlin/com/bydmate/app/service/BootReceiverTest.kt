@@ -42,13 +42,38 @@ class BootReceiverTest {
         assertTrue(receivers.any { it.activityInfo.name == BootReceiver::class.java.name })
     }
 
-    /** A start job deferred by the parked-restart gate can run at car-on while the screen still
-     *  reads as off: it skips, and a KEEP unlock enqueued during that run is dropped, so nothing
-     *  starts the service. Unlock (sent only when the service is down) must replace the job. */
-    @Test fun `screen unlock replaces a pending start job, boot and update keep it`() {
+    /** JobScheduler on DiLink blocks third-party jobs while the car is off, so a start job can sit
+     *  enqueued until morning. Both boot and screen unlock must replace a stale job instead of
+     *  letting it swallow the wake. */
+    @Test fun `boot and screen unlock replace a pending start job, update keeps it`() {
         assertEquals(ExistingWorkPolicy.REPLACE, BootReceiver.workPolicyFor(Intent.ACTION_USER_PRESENT))
-        assertEquals(ExistingWorkPolicy.KEEP, BootReceiver.workPolicyFor(Intent.ACTION_BOOT_COMPLETED))
+        assertEquals(ExistingWorkPolicy.REPLACE, BootReceiver.workPolicyFor(Intent.ACTION_BOOT_COMPLETED))
         assertEquals(ExistingWorkPolicy.KEEP, BootReceiver.workPolicyFor(Intent.ACTION_MY_PACKAGE_REPLACED))
         assertEquals(ExistingWorkPolicy.KEEP, BootReceiver.workPolicyFor(null))
+    }
+
+    /** The firmware marks a car wake with from_quickboot=true; reboot,bydcloud sends a bare boot, guarded only on Android 12. */
+    @Test fun `the worker learns whether the boot was cold`() {
+        val bare = Intent(Intent.ACTION_BOOT_COMPLETED)
+        val wake = Intent(Intent.ACTION_BOOT_COMPLETED).putExtra("from_quickboot", true)
+
+        assertEquals(false, BootReceiver.workInput(bare).getBoolean(AutostartTrace.KEY_COLD_BOOT, true))
+        assertEquals(false, BootReceiver.workInput(wake).getBoolean(AutostartTrace.KEY_COLD_BOOT, true))
+        assertEquals("BOOT_COMPLETED", BootReceiver.workInput(bare).getString(AutostartTrace.KEY_WORKER_SOURCE))
+        assertEquals(false, BootReceiver.workInput(Intent(Intent.ACTION_MY_PACKAGE_REPLACED))
+            .getBoolean(AutostartTrace.KEY_COLD_BOOT, true))
+    }
+
+    @Test
+    @Config(sdk = [32])
+    fun `on Android 12 the worker marks a bare boot cold`() {
+        val bare = Intent(Intent.ACTION_BOOT_COMPLETED)
+        val wake = Intent(Intent.ACTION_BOOT_COMPLETED).putExtra("from_quickboot", true)
+
+        assertEquals(true, BootReceiver.workInput(bare).getBoolean(AutostartTrace.KEY_COLD_BOOT, false))
+        assertEquals(false, BootReceiver.workInput(wake).getBoolean(AutostartTrace.KEY_COLD_BOOT, true))
+        assertEquals("BOOT_COMPLETED", BootReceiver.workInput(bare).getString(AutostartTrace.KEY_WORKER_SOURCE))
+        assertEquals(false, BootReceiver.workInput(Intent(Intent.ACTION_MY_PACKAGE_REPLACED))
+            .getBoolean(AutostartTrace.KEY_COLD_BOOT, true))
     }
 }
